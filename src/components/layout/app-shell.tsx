@@ -135,11 +135,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {item.label}
               </Link>
             ))}
-            {/* The "Add Expense" button was here, removed to make it a 3-button navigation bar as requested */}
           </nav>
         </footer>
       )}
     </div>
   );
 }
-
