@@ -11,8 +11,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-noto-sans-arabic)", "var(--font-geist-sans)", ...fontFamily.sans],
-        mono: ["var(--font-geist-mono)", ...fontFamily.mono],
+        sans: ["var(--font-noto-sans-arabic)", ...fontFamily.sans],
+        mono: [...fontFamily.mono],
       },
       colors: {
         background: 'hsl(var(--background))',

@@ -1,19 +1,8 @@
 import type { Metadata } from 'next';
-import { Geist_Sans as GeistSans, Geist_Mono as GeistMono } from 'next/font/google';
 import { Noto_Sans_Arabic as NotoSansArabic } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
-
-const geistSans = GeistSans({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = GeistMono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 const notoSansArabic = NotoSansArabic({
   variable: '--font-noto-sans-arabic',
@@ -33,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${notoSansArabic.variable} font-sans antialiased`}>
+      <body className={`${notoSansArabic.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
