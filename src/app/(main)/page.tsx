@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CircleIcon, CreditCardIcon } from "lucide-react";
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CircleIcon, CreditCardIcon, FilterIcon, FilterXIcon, Palette, ListFilter, SortAscIcon, SortDescIcon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,18 +15,30 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
-import Image from 'next/image'; // For placeholder images if needed
+import Image from 'next/image';
+import { cn } from '@/lib/utils'; // Added import for cn
 
 // Mock categories for display
-const mockCategories = {
-  "food": { name: "طعام", icon: "🍔", color: "bg-orange-500" }, // Adjusted to orange like image
-  "transport": { name: "مواصلات", icon: "🚗", color: "bg-red-500" }, // Taxi in image is orange/red
-  "shopping": { name: "تسوق", icon: "🛍️", color: "bg-blue-500" }, // Shopping bag in image is blue
-  "bills": { name: "فواتير", icon: "🧾", color: "bg-yellow-500" },
-  "other": { name: "أخرى", icon: "🧩", color: "bg-gray-500" },
+const defaultCategories = {
+  "food": { name: "طعام", icon: "🍔", color: "bg-orange-500", id: "food" },
+  "transport": { name: "مواصلات", icon: "🚗", color: "bg-red-500", id: "transport" },
+  "shopping": { name: "تسوق", icon: "🛍️", color: "bg-blue-500", id: "shopping" },
+  "bills": { name: "فواتير", icon: "🧾", color: "bg-yellow-500", id: "bills" },
+  "health": { name: "صحة", icon: "🩺", color: "bg-green-500", id: "health"},
+  "entertainment": { name: "ترفيه", icon: "🎬", color: "bg-purple-500", id: "entertainment"},
+  "other": { name: "أخرى", icon: "🧩", color: "bg-gray-500", id: "other" },
 };
 
 
@@ -54,7 +66,7 @@ const AddExpenseDialogs = [
   },
   { 
     label: "بطاقة إلكترونية", 
-    IconComponent: CreditCardIcon, // Changed from Circle for better semantics, style will be handled
+    IconComponent: CreditCardIcon,
     formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://picsum.photos/200/150" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
     iconBg: "bg-primary",
     iconColor: "text-primary-foreground"
@@ -67,6 +79,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<Record<string, { name: string; icon: string; color: string; id: string }>>(defaultCategories);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amountHighToLow' | 'amountLowToHigh'>('newest');
 
   const refreshExpenses = () => {
     const storedExpenses = localStorage.getItem('expenses');
@@ -92,24 +106,39 @@ export default function DashboardPage() {
     }
   }, [expenses, isMounted]);
   
-  const totalBudget = 5000000; // Example budget
+  const totalBudget = 5000000; 
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = totalBudget - currentExpenses;
   const budgetProgress = totalBudget > 0 ? (currentExpenses / totalBudget) * 100 : 0;
 
-  // Mock data for weekly spending
   const expectedWeeklySpending = 1000000;
-  const currentAverageWeeklySpending = 750000; // Example
+  const currentAverageWeeklySpending = 750000;
   const weeklySpendingProgress = expectedWeeklySpending > 0 ? (currentAverageWeeklySpending / expectedWeeklySpending) * 100 : 0;
 
 
   if (!isMounted) {
-    // return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
-    return null; // Return null on server or during first client render to avoid hydration mismatch
+    return null; 
   }
   
-  const recentExpensesToDisplay = expenses.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+  const filteredExpenses = expenses.filter(expense => categoryFilter[expense.category as keyof typeof categoryFilter]);
+
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    switch (sortOrder) {
+      case 'newest':
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      case 'oldest':
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'amountHighToLow':
+        return b.amount - a.amount;
+      case 'amountLowToHigh':
+        return a.amount - b.amount;
+      default:
+        return 0;
+    }
+  });
+  
+  const recentExpensesToDisplay = sortedExpenses.slice(0, 5); // Show 5 for more context with filters
 
   return (
     <div className="space-y-6 pb-8">
@@ -195,11 +224,72 @@ export default function DashboardPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xl sm:text-2xl">المصاريف الأخيرة</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">أحدث 3 مصاريف مسجلة</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">أحدث المصاريف المسجلة</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
-            عرض الكل
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu dir="rtl">
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <ListFilter className="ml-2 h-4 w-4" />
+                  ترتيب حسب
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>ترتيب المصاريف</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setSortOrder('newest')}>
+                  <SortDescIcon className="mr-2 h-4 w-4" /> الأحدث أولاً
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortOrder('oldest')}>
+                  <SortAscIcon className="mr-2 h-4 w-4" /> الأقدم أولاً
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortOrder('amountHighToLow')}>
+                  <SortDescIcon className="mr-2 h-4 w-4" /> المبلغ (من الأعلى للأقل)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSortOrder('amountLowToHigh')}>
+                  <SortAscIcon className="mr-2 h-4 w-4" /> المبلغ (من الأقل للأعلى)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu dir="rtl">
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FilterIcon className="ml-2 h-4 w-4" />
+                  تصنيف
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>تصنيف حسب الفئة</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.entries(defaultCategories).map(([key, cat]) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={!!categoryFilter[key]}
+                    onCheckedChange={(checked) => {
+                      setCategoryFilter(prev => {
+                        const newFilter = { ...prev };
+                        if (checked) {
+                          newFilter[key] = cat;
+                        } else {
+                          delete newFilter[key];
+                        }
+                        return newFilter;
+                      });
+                    }}
+                  >
+                    <span className={`inline-block ml-2 text-lg ${cat.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>{cat.icon}</span>
+                    {cat.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+                 <DropdownMenuItem onSelect={() => setCategoryFilter(defaultCategories)} className="text-primary">
+                  <FilterXIcon className="mr-2 h-4 w-4" />
+                  إعادة تعيين الفلاتر
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -207,13 +297,18 @@ export default function DashboardPage() {
           ) : recentExpensesToDisplay.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-2" />
-              <p className="font-semibold">لا توجد مصاريف مسجلة حتى الآن.</p>
-              <p className="text-sm">ابدأ بإضافة أول مصروف لك!</p>
+              <p className="font-semibold">
+                {Object.keys(categoryFilter).length !== Object.keys(defaultCategories).length ? "لا توجد مصاريف تطابق الفلتر الحالي." : "لا توجد مصاريف مسجلة حتى الآن."}
+              </p>
+              <p className="text-sm">
+                {Object.keys(categoryFilter).length !== Object.keys(defaultCategories).length ? "جرب تغيير الفلاتر أو " : ""}
+                ابدأ بإضافة أول مصروف لك!
+              </p>
             </div>
           ) : (
             <ul className="space-y-3">
               {recentExpensesToDisplay.map((expense) => {
-                const categoryInfo = mockCategories[expense.category as keyof typeof mockCategories] || mockCategories.other;
+                const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="font-semibold text-primary">
@@ -226,7 +321,7 @@ export default function DashboardPage() {
                           {new Date(expense.date).toLocaleDateString('ar-IQ', { month: 'short', day: 'numeric' })} - {new Date(expense.date).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </p>
                       </div>
-                       <span className={`flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} text-white`}>
+                       <span className={`flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
                         {categoryInfo.icon}
                       </span>
                     </div>
@@ -236,8 +331,14 @@ export default function DashboardPage() {
             </ul>
           )}
         </CardContent>
+         {filteredExpenses.length > 5 && (
+          <CardFooter className="pt-4">
+            <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
+              عرض كل المصاريف ({filteredExpenses.length})
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
 }
-
