@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -26,6 +27,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuItem, // Added import
 } from "@/components/ui/dropdown-menu";
 
 
@@ -48,13 +50,23 @@ export default function DashboardPage() {
 
   const [categoryFilter, setCategoryFilter] = useState<string[]>(defaultCategories);
 
-  useEffect(() => {
-    setIsMounted(true);
+  const refreshExpenses = () => {
     const storedExpenses = localStorage.getItem('expenses');
     if (storedExpenses) {
       setExpenses(JSON.parse(storedExpenses));
     }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    refreshExpenses();
     setIsLoading(false);
+
+    // Listen for custom event to refresh expenses
+    window.addEventListener('expensesUpdated', refreshExpenses);
+    return () => {
+      window.removeEventListener('expensesUpdated', refreshExpenses);
+    };
   }, []);
 
   useEffect(() => {
@@ -75,11 +87,8 @@ export default function DashboardPage() {
   const totalBudget = 500000; // Example budget
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = totalBudget - currentExpenses;
-  const budgetProgress = (currentExpenses / totalBudget) * 100;
+  const budgetProgress = totalBudget > 0 ? (currentExpenses / totalBudget) * 100 : 0;
 
-  let progressColor = "bg-green-500";
-  if (budgetProgress > 80 && budgetProgress <= 100) progressColor = "bg-yellow-500";
-  else if (budgetProgress > 100) progressColor = "bg-red-500";
 
   if (!isMounted) {
     return null; // Or a loading spinner
