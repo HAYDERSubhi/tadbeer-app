@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -118,7 +119,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {isMobile && (
         <footer className="sticky bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <nav className="container grid grid-cols-4 h-16 items-center justify-items-center gap-2">
+          <nav className="container grid grid-cols-3 h-16 items-center justify-items-center gap-2">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -134,35 +135,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {item.label}
               </Link>
             ))}
-             <DropdownMenu dir="rtl">
-              <DropdownMenuTrigger asChild>
-                 <Button variant="ghost" className="flex flex-col items-center justify-center gap-1 p-2 rounded-md text-xs font-medium transition-colors w-full text-primary">
-                    <PlusCircleIcon className="h-5 w-5" />
-                    إضافة
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 mb-2">
-                 {AddExpenseOptions.map(option => (
-                  <Dialog key={option.label}>
-                    <DialogTrigger asChild>
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <option.icon className="mr-2 h-4 w-4" />
-                        {option.label}
-                      </DropdownMenuItem>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{option.label}</DialogTitle>
-                      </DialogHeader>
-                      {option.component}
-                    </DialogContent>
-                  </Dialog>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* The "Add Expense" button was here, removed to make it a 3-button navigation bar as requested */}
           </nav>
         </footer>
       )}
     </div>
   );
 }
+
