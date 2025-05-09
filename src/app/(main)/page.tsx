@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CircleIcon, CreditCardIcon, FilterIcon, FilterXIcon, Palette, ListFilter, SortAscIcon, SortDescIcon } from "lucide-react";
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -28,7 +28,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
-import { cn } from '@/lib/utils'; // Added import for cn
+import { cn } from '@/lib/utils';
 
 // Mock categories for display
 const defaultCategories = {
@@ -331,14 +331,13 @@ export default function DashboardPage() {
             </ul>
           )}
         </CardContent>
-         {filteredExpenses.length > 5 && (
-          <CardFooter className="pt-4">
-            <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
-              عرض كل المصاريف ({filteredExpenses.length})
-            </Button>
-          </CardFooter>
-        )}
       </Card>
+      
+      {filteredExpenses.length > 5 && (
+        <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
+          عرض كل المصاريف ({filteredExpenses.length})
+        </Button>
+      )}
     </div>
   );
 }
