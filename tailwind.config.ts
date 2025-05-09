@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 import { fontFamily } from 'tailwindcss/defaultTheme';
 
@@ -11,7 +12,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-noto-sans-arabic)", ...fontFamily.sans],
+        sans: ["var(--font-lalezar)", ...fontFamily.sans],
         mono: [...fontFamily.mono],
       },
       colors: {

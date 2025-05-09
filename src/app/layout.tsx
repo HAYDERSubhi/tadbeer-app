@@ -1,14 +1,14 @@
 
 import type { Metadata } from 'next';
-import { Noto_Sans_Arabic as NotoSansArabic } from 'next/font/google';
+import { Lalezar } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 
-const notoSansArabic = NotoSansArabic({
-  variable: '--font-noto-sans-arabic',
-  subsets: ['arabic'],
-  weight: ['400', '500', '700'],
+const lalezar = Lalezar({
+  variable: '--font-lalezar',
+  subsets: ['arabic', 'latin'],
+  weight: ['400'],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${notoSansArabic.variable} font-sans antialiased`}>
+      <body className={`${lalezar.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

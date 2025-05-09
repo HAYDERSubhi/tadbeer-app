@@ -1,9 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: var(--font-noto-sans-arabic), sans-serif;
+  font-family: var(--font-lalezar), sans-serif;
 }
 
 @layer base {
