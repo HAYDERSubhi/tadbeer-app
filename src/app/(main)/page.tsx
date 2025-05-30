@@ -5,11 +5,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon } from "lucide-react";
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -43,31 +44,31 @@ const defaultCategories = {
 
 
 const AddExpenseDialogs = [
-  { 
-    label: "إدخال يدوي", 
-    IconComponent: FilePenLine, 
+  {
+    label: "إدخال يدوي",
+    IconComponent: FilePenLine,
     formComponent: <ManualExpenseForm />,
     iconBg: "bg-primary",
     iconColor: "text-primary-foreground"
   },
-  { 
-    label: "إدخال صوتي", 
-    IconComponent: Mic, 
+  {
+    label: "إدخال صوتي",
+    IconComponent: Mic,
     formComponent: <VoiceExpenseForm />,
     iconBg: "bg-primary",
     iconColor: "text-primary-foreground"
   },
-  { 
-    label: "مسح الفاتورة", 
-    IconComponent: ScanLine, 
+  {
+    label: "مسح الفاتورة",
+    IconComponent: ScanLine,
     formComponent: <ReceiptScanForm />,
     iconBg: "bg-primary",
     iconColor: "text-primary-foreground"
   },
-  { 
-    label: "بطاقة إلكترونية", 
+  {
+    label: "بطاقة إلكترونية",
     IconComponent: CreditCardIcon,
-    formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://picsum.photos/200/150" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
+    formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
     iconBg: "bg-primary",
     iconColor: "text-primary-foreground"
   },
@@ -105,8 +106,8 @@ export default function DashboardPage() {
       localStorage.setItem('expenses', JSON.stringify(expenses));
     }
   }, [expenses, isMounted]);
-  
-  const totalBudget = 5000000; 
+
+  const totalBudget = 5000000;
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = totalBudget - currentExpenses;
@@ -118,9 +119,9 @@ export default function DashboardPage() {
 
 
   if (!isMounted) {
-    return null; 
+    return <div className="flex justify-center items-center h-screen"><ListOrderedIcon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-  
+
   const filteredExpenses = expenses.filter(expense => categoryFilter[expense.category as keyof typeof categoryFilter]);
 
   const sortedExpenses = [...filteredExpenses].sort((a, b) => {
@@ -137,11 +138,11 @@ export default function DashboardPage() {
         return 0;
     }
   });
-  
-  const recentExpensesToDisplay = sortedExpenses.slice(0, 5); // Show 5 for more context with filters
+
+  const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-16 sm:pb-8"> {/* Adjusted padding for mobile bottom nav */}
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -196,15 +197,15 @@ export default function DashboardPage() {
           <CardTitle className="text-xl sm:text-2xl">طرق إدخال المصاريف</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="h-auto py-4 px-3 text-sm sm:text-base flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2">
-                    <span className={cn("p-2 rounded-full", iconBg)}>
+                   <Button variant="outline" className="w-full h-auto py-4 px-3 text-sm sm:text-base flex flex-row items-center justify-start gap-3">
+                    <span className={cn("p-2.5 rounded-lg", iconBg)}>
                       <IconComponent className={cn("h-5 w-5 sm:h-6 sm:w-6", iconColor)} />
                     </span>
-                    <span>{label}</span>
+                    <span className="flex-1 text-right">{label}</span>
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
@@ -272,6 +273,12 @@ export default function DashboardPage() {
                         if (checked) {
                           newFilter[key] = cat;
                         } else {
+                          // Ensure at least one category is always selected, or handle empty state
+                          const currentKeys = Object.keys(newFilter).filter(k => k !== key);
+                          if (currentKeys.length === 0 && !checked) {
+                            toast({ title: "تنبيه", description: "يجب اختيار فئة واحدة على الأقل."});
+                            return prev; // Prevent unchecking the last item
+                          }
                           delete newFilter[key];
                         }
                         return newFilter;
@@ -283,7 +290,7 @@ export default function DashboardPage() {
                   </DropdownMenuCheckboxItem>
                 ))}
                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onSelect={() => setCategoryFilter(defaultCategories)} className="text-primary">
+                 <DropdownMenuItem onSelect={() => setCategoryFilter(defaultCategories)} className="text-primary hover:!text-primary-foreground">
                   <FilterXIcon className="mr-2 h-4 w-4" />
                   إعادة تعيين الفلاتر
                 </DropdownMenuItem>
@@ -331,13 +338,14 @@ export default function DashboardPage() {
             </ul>
           )}
         </CardContent>
+         {filteredExpenses.length > 5 && (
+           <CardFooter>
+            <Button variant="outline" className="w-full mt-4" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
+              عرض كل المصاريف ({filteredExpenses.length})
+            </Button>
+          </CardFooter>
+        )}
       </Card>
-      
-      {filteredExpenses.length > 5 && (
-        <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
-          عرض كل المصاريف ({filteredExpenses.length})
-        </Button>
-      )}
     </div>
   );
 }

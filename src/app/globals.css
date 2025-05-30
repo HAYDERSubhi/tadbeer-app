@@ -1,11 +1,9 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Lalezar&family=Noto+Sans+Arabic:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-body {
-  font-family: var(--font-lalezar), sans-serif;
-}
 
 @layer base {
   :root {
@@ -18,7 +16,7 @@ body {
     --popover: 0 0% 100%; /* White */
     --popover-foreground: 220 30% 25%; /* Dark Blue */
 
-    --primary: 46 100% 63%; /* Keycard Yellow (adjusted for better contrast as primary button) */
+    --primary: 45 100% 70%; /* Keycard Yellow (#FFDA63) - Adjusted slightly for closer match */
     --primary-foreground: 220 30% 10%; /* Very Dark Blue/Black */
 
     --secondary: 220 15% 90%; /* Lighter Gray/Blue */
@@ -43,9 +41,16 @@ body {
     --sidebar-background: 0 0% 96%; /* Slightly off-white for sidebar */
     --sidebar-foreground: 220 30% 25%; /* Dark Blue text */
     --sidebar-border: 220 15% 85%; /* Light Gray Border */
-    --sidebar-accent: 46 100% 70%; /* Keycard Yellow for active/hover */
+    --sidebar-accent: 45 100% 70%; /* Keycard Yellow for active/hover (aligned with primary) */
     --sidebar-accent-foreground: 220 30% 10%; /* Dark text on yellow */
     --sidebar-ring: 180 100% 30%; /* Teal Ring for focus */
+
+    /* Chart Colors */
+    --chart-1: 45 100% 70%;   /* Keycard Yellow (Primary) */
+    --chart-2: 180 100% 25%;  /* Teal (Accent) */
+    --chart-3: 220 30% 55%;  /* Mid Dark Blue */
+    --chart-4: 210 15% 75%;  /* Lighter Cool Gray */
+    --chart-5: 30 80% 65%;  /* Soft Orange/Warm Accent */
   }
 
   .dark {
@@ -58,7 +63,7 @@ body {
     --popover: 220 30% 15%; /* Dark Popover */
     --popover-foreground: 0 0% 95%; /* Light Gray/White */
 
-    --primary: 46 100% 63%; /* Keycard Yellow */
+    --primary: 45 100% 70%; /* Keycard Yellow (#FFDA63) */
     --primary-foreground: 220 30% 10%; /* Very Dark Blue/Black */
 
     --secondary: 220 25% 25%; /* Medium-Dark Blue */
@@ -81,9 +86,16 @@ body {
     --sidebar-background: 220 30% 15%; /* Dark blue for sidebar */
     --sidebar-foreground: 0 0% 90%; /* Light gray text */
     --sidebar-border: 220 25% 30%; /* Medium Dark Blue Border */
-    --sidebar-accent: 46 100% 63%; /* Keycard Yellow for active/hover */
+    --sidebar-accent: 45 100% 70%; /* Keycard Yellow for active/hover (aligned with primary) */
     --sidebar-accent-foreground: 220 30% 10%; /* Dark text on yellow */
     --sidebar-ring: 180 100% 40%; /* Lighter Teal Ring for focus */
+
+    /* Chart Colors */
+    --chart-1: 45 100% 70%;   /* Keycard Yellow (Primary) */
+    --chart-2: 180 100% 35%;  /* Teal (Accent - dark mode version) */
+    --chart-3: 220 30% 45%;  /* Mid Dark Blue (adjusted for dark) */
+    --chart-4: 210 15% 50%;  /* Darker Cool Gray */
+    --chart-5: 30 70% 55%;  /* Muted Orange/Warm Accent (dark mode) */
   }
 }
 
@@ -94,5 +106,6 @@ body {
   body {
     @apply bg-background text-foreground;
     direction: rtl; /* RTL support */
+    font-family: var(--font-lalezar), var(--font-noto-sans-arabic), sans-serif;
   }
 }
