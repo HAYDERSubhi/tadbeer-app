@@ -129,7 +129,7 @@ export default function StatisticsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-semibold mb-2">لا توجد بيانات مصاريف لعرضها</h2>
+        <h2 className="text-2xl mb-2">لا توجد بيانات مصاريف لعرضها</h2>
         <p className="text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
     );
@@ -229,10 +229,10 @@ export default function StatisticsPage() {
                     return (
                         <li key={exp.id} className="flex justify-between items-center p-3 border-b last:border-b-0 rounded-md hover:bg-muted/50">
                             <div>
-                                <p className="font-medium">{exp.title}</p>
+                                <p>{exp.title}</p>
                                 <p className="text-xs text-muted-foreground">{categoryInfo.name} - {new Date(exp.date).toLocaleDateString('ar-IQ')}</p>
                             </div>
-                            <p className="font-semibold text-destructive">{exp.amount.toLocaleString()} د.ع</p>
+                            <p className="text-destructive">{exp.amount.toLocaleString()} د.ع</p>
                         </li>
                     );
                 })}

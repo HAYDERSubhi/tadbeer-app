@@ -196,26 +196,26 @@ export default function DashboardPage() {
         <CardContent className="space-y-4 text-sm sm:text-base">
           {userBudget.totalBudget === 0 && (
             <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
-              <p className="font-semibold">لم تقم بتعيين ميزانية شهرية بعد.</p>
+              <p>لم تقم بتعيين ميزانية شهرية بعد.</p>
               <p className="text-xs">اذهب إلى <Link href="/settings" className="text-primary underline">الإعدادات</Link> لتعيين ميزانيتك.</p>
             </div>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div>
               <p className="text-muted-foreground">الميزانية</p>
-              <p className="font-bold text-lg">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+              <p className="text-lg">{userBudget.totalBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">المصروف</p>
-              <p className="font-bold text-lg text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
+              <p className="text-lg text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">المتبقي</p>
-              <p className={`font-bold text-lg ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+              <p className={`text-lg ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">خارج الميزانية</p>
-              <p className="font-bold text-lg">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
+              <p className="text-lg">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
             </div>
           </div>
            {budgetProgress > 100 && userBudget.totalBudget > 0 && (
@@ -225,7 +225,7 @@ export default function DashboardPage() {
             </div>
           )}
           <div className="pt-4">
-            <h4 className="font-semibold mb-1 text-center sm:text-right">متابعة الصرف الأسبوعي</h4>
+            <h4 className="mb-1 text-center sm:text-right">متابعة الصرف الأسبوعي</h4>
             {userBudget.weeklyBudget > 0 ? (
               <>
                 <p className="text-xs text-muted-foreground text-center sm:text-right">المتوقع: {userBudget.weeklyBudget.toLocaleString()} د.ع هذا الأسبوع</p>
@@ -359,7 +359,7 @@ export default function DashboardPage() {
           ) : recentExpensesToDisplay.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-2" />
-              <p className="font-semibold">
+              <p>
                 {Object.keys(categoryFilter).length !== Object.keys(defaultCategories).length ? "لا توجد مصاريف تطابق الفلتر الحالي." : "لا توجد مصاريف مسجلة حتى الآن."}
               </p>
               <p className="text-sm">
@@ -374,7 +374,7 @@ export default function DashboardPage() {
                 return (
                   <li key={expense.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-2"> {/* Group for Amount and Delete button */}
-                      <div className="font-semibold text-primary">
+                      <div className="text-primary">
                         {expense.amount.toLocaleString()} د.ع
                       </div>
                       <Button
@@ -389,7 +389,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-3 text-right">
                       <div className="flex-grow">
-                        <p className="font-medium">{expense.title}</p>
+                        <p>{expense.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(expense.date).toLocaleDateString('ar-IQ', { month: 'short', day: 'numeric' })} - {new Date(expense.date).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </p>

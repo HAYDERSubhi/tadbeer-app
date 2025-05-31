@@ -47,7 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
+          <Link href="/" className="flex items-center gap-2 text-xl">
             <WalletIcon className="h-7 w-7 text-primary" />
             <span className="hidden sm:inline">كي - راقب مصروفك</span>
             <span className="sm:hidden">كي</span>
@@ -75,7 +75,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                     pathname === item.href
                       ? 'bg-primary text-primary-foreground'
                       : 'hover:bg-muted hover:text-muted-foreground'
@@ -125,7 +125,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1 p-2 rounded-md text-xs font-medium transition-colors w-full',
+                  'flex flex-col items-center justify-center gap-1 p-2 rounded-md text-xs w-full transition-colors',
                   pathname === item.href
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
