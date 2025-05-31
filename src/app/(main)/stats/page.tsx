@@ -1,46 +1,140 @@
 
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon } from "lucide-react";
-import {ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useState, useEffect } from 'react'; // Added useState, useEffect
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts'; // Kept RechartsTooltip for specific formatting
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import type { Expense } from '@/types';
+import { format, subDays, parseISO } from 'date-fns';
+import { arSA } from 'date-fns/locale';
+
+// Copied from DashboardPage for consistency - consider moving to a shared constants file
+const defaultCategories = {
+  "food": { name: "طعام", icon: "🍔", color: "hsl(var(--chart-1))", id: "food" }, // Using chart colors directly
+  "transport": { name: "مواصلات", icon: "🚗", color: "hsl(var(--chart-2))", id: "transport" },
+  "shopping": { name: "تسوق", icon: "🛍️", color: "hsl(var(--chart-3))", id: "shopping" },
+  "bills": { name: "فواتير", icon: "🧾", color: "hsl(var(--chart-4))", id: "bills" },
+  "health": { name: "صحة", icon: "🩺", color: "hsl(var(--chart-5))", id: "health"}, // Added health
+  "entertainment": { name: "ترفيه", icon: "🎬", color: "hsl(var(--chart-1))", id: "entertainment"}, // Reused chart-1 for demo
+  "receipt-scan": { name: "فاتورة ممسوحة", icon: "📄", color: "hsl(var(--chart-2))", id: "receipt-scan" }, // Reused chart-2 for demo
+  "other": { name: "أخرى", icon: "🧩", color: "hsl(var(--chart-3))", id: "other" }, // Reused chart-3 for demo
+};
+
+// Chart config using keys from defaultCategories
+const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
+  acc[key as keyof typeof acc] = { label: value.name, color: value.color };
+  return acc;
+}, {} as ChartConfig & { expenses: { label: string, color: string }});
+
+chartConfig.expenses = { label: "المصاريف", color: "hsl(var(--accent))" };
 
 
-const mockExpenseDataRaw = [
-  { name: 'طعام', value: 40000, key: 'food' },
-  { name: 'مواصلات', value: 15000, key: 'transport' },
-  { name: 'تسوق', value: 25000, key: 'shopping' },
-  { name: 'فواتير', value: 10000, key: 'bills' },
-  { name: 'ترفيه', value: 5000, key: 'entertainment' },
-];
+interface PieChartDataItem {
+  name: string;
+  value: number;
+  key: string; // category id
+  fill: string;
+}
 
-const mockTrendData = [
-  { name: 'الأسبوع 1', expenses: 50000, budget: 60000 },
-  { name: 'الأسبوع 2', expenses: 45000, budget: 60000 },
-  { name: 'الأسبوع 3', expenses: 60000, budget: 60000 },
-  { name: 'الأسبوع 4', expenses: 55000, budget: 60000 },
-];
-
-const mockLargestExpenses = [
-    { name: "عشاء فاخر", amount: 75000, date: "2024-07-15", category: "طعام" },
-    { name: "تذكرة طيران", amount: 250000, date: "2024-07-10", category: "سفر" },
-    { name: "هاتف جديد", amount: 1200000, date: "2024-07-05", category: "إلكترونيات" },
-];
-
-const chartConfig = {
-  food: { label: "طعام", color: "hsl(var(--chart-1))" },
-  transport: { label: "مواصلات", color: "hsl(var(--chart-2))" },
-  shopping: { label: "تسوق", color: "hsl(var(--chart-3))" },
-  bills: { label: "فواتير", color: "hsl(var(--chart-4))" },
-  entertainment: { label: "ترفيه", color: "hsl(var(--chart-5))" },
-  expenses: { label: "المصاريف", color: "hsl(var(--chart-1))" },
-  budget: { label: "الميزانية", color: "hsl(var(--chart-2))" },
-} satisfies ChartConfig;
-
+interface TrendChartDataItem {
+  name: string; // Date string
+  expenses: number;
+}
 
 export default function StatisticsPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
+  const [trendChartData, setTrendChartData] = useState<TrendChartDataItem[]>([]);
+  const [largestExpenses, setLargestExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const storedExpenses = localStorage.getItem('expenses');
+    if (storedExpenses) {
+      const parsedExpenses = JSON.parse(storedExpenses) as Expense[];
+      setExpenses(parsedExpenses);
+      processChartData(parsedExpenses);
+    }
+    setIsLoading(false);
+
+    const handleExpensesUpdate = () => {
+        const updatedStoredExpenses = localStorage.getItem('expenses');
+        if (updatedStoredExpenses) {
+            const updatedParsedExpenses = JSON.parse(updatedStoredExpenses) as Expense[];
+            setExpenses(updatedParsedExpenses);
+            processChartData(updatedParsedExpenses);
+        } else {
+            setExpenses([]);
+            processChartData([]);
+        }
+    };
+    window.addEventListener('expensesUpdated', handleExpensesUpdate);
+    return () => window.removeEventListener('expensesUpdated', handleExpensesUpdate);
+
+  }, []);
+
+  const processChartData = (currentExpenses: Expense[]) => {
+    // Pie Chart Data
+    const categoryTotals: { [key: string]: number } = {};
+    currentExpenses.forEach(exp => {
+      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+    });
+    const pieData = Object.entries(categoryTotals).map(([catKey, total]) => ({
+      name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
+      value: total,
+      key: catKey,
+      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.color || 'hsl(var(--muted))',
+    }));
+    setPieChartData(pieData);
+
+    // Trend Chart Data (last 7 days)
+    const dailyTotals: { [date: string]: number } = {};
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(today, i);
+      const formattedDate = format(date, 'MMM d', { locale: arSA });
+      dailyTotals[formattedDate] = 0;
+    }
+    currentExpenses.forEach(exp => {
+      const expenseDate = parseISO(exp.date);
+      if (expenseDate >= subDays(today, 6)) { // consider expenses from last 7 days
+        const formattedDate = format(expenseDate, 'MMM d', { locale: arSA });
+        if (dailyTotals.hasOwnProperty(formattedDate)) {
+             dailyTotals[formattedDate] += exp.amount;
+        }
+      }
+    });
+    const trendData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
+      name: dateStr,
+      expenses: total,
+    }));
+    setTrendChartData(trendData);
+    
+    // Largest Expenses
+    const sortedExpenses = [...currentExpenses].sort((a, b) => b.amount - a.amount);
+    setLargestExpenses(sortedExpenses.slice(0, 3));
+  };
+
+  if (!isMounted && isLoading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
+  }
+
+  if (expenses.length === 0 && !isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
+        <h2 className="text-2xl font-semibold mb-2">لا توجد بيانات مصاريف لعرضها</h2>
+        <p className="text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-8">
       <Card>
@@ -49,41 +143,45 @@ export default function StatisticsPage() {
             <PieChartIcon className="h-6 w-6 text-primary" />
             توزيع المصاريف حسب الفئة
           </CardTitle>
+           {pieChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
         <CardContent className="h-[350px] flex justify-center">
-          <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
-            <PieChart>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel formatter={(value, name, props) => `${props.payload.name}: ${Number(value).toLocaleString()} د.ع`} />}
-              />
-              <Pie
-                data={mockExpenseDataRaw}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                labelLine={false}
-                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-                  const RADIAN = Math.PI / 180;
-                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                  return (
-                    <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground">
-                      {`${(percent * 100).toFixed(0)}%`}
-                    </text>
-                  );
-                }}
-              >
-                {mockExpenseDataRaw.map((entry) => (
-                  <Cell key={`cell-${entry.key}`} fill={`var(--color-${entry.key})`} />
-                ))}
-              </Pie>
-              <ChartLegend content={<ChartLegendContent nameKey="name" />} />
-            </PieChart>
-          </ChartContainer>
+          {pieChartData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
+              <PieChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent hideLabel formatter={(value, name, props) => `${props.payload.name}: ${Number(value).toLocaleString()} د.ع`} />}
+                />
+                <Pie
+                  data={pieChartData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  labelLine={false}
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    if (percent * 100 < 5) return null; // Hide small percentage labels
+                    return (
+                      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground">
+                        {`${(percent * 100).toFixed(0)}%`}
+                      </text>
+                    );
+                  }}
+                >
+                  {pieChartData.map((entry) => (
+                    <Cell key={`cell-${entry.key}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+              </PieChart>
+            </ChartContainer>
+          ) : (!isLoading && <p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها في هذا الرسم.</p>)}
         </CardContent>
       </Card>
 
@@ -91,24 +189,27 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <TrendingUpIcon className="h-6 w-6 text-primary" />
-            اتجاه المصاريف
+            اتجاه المصاريف (آخر 7 أيام)
           </CardTitle>
+          {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
         <CardContent className="h-[300px]">
-          <ChartContainer config={chartConfig} className="w-full h-full">
-            <LineChart data={mockTrendData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-              <YAxis tickFormatter={(value) => `${(value / 1000)} ألف`} tickLine={false} axisLine={false} tickMargin={8} />
-              <ChartTooltip
-                cursor={true}
-                content={<ChartTooltipContent formatter={(value, name) => `${chartConfig[name as keyof typeof chartConfig]?.label || name}: ${Number(value).toLocaleString()} د.ع`} />}
-              />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="budget" strokeWidth={2} stroke="var(--color-budget)" activeDot={{ r: 6 }} />
-            </LineChart>
-          </ChartContainer>
+          {trendChartData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <LineChart data={trendChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={(value) => `${(Number(value) / 1000)} ألف`} tickLine={false} axisLine={false} tickMargin={8} />
+                 <RechartsTooltip
+                    contentStyle={{ direction: 'rtl' }}
+                    formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
+                    labelFormatter={(label: string) => `التاريخ: ${label}`}
+                  />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
+              </LineChart>
+            </ChartContainer>
+          ) : (!isLoading && <p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها في هذا الرسم.</p>)}
         </CardContent>
       </Card>
       
@@ -116,21 +217,27 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <ListOrderedIcon className="h-6 w-6 text-primary" />
-            أكبر المصاريف
+            أكبر المصاريف (أعلى 3)
           </CardTitle>
+          {largestExpenses.length === 0 && <CardDescription>لا توجد مصاريف مسجلة.</CardDescription>}
         </CardHeader>
         <CardContent>
+          {largestExpenses.length > 0 ? (
             <ul className="space-y-2">
-                {mockLargestExpenses.map(exp => (
-                    <li key={exp.name} className="flex justify-between items-center p-3 border-b last:border-b-0 rounded-md hover:bg-muted/50">
-                        <div>
-                            <p className="font-medium">{exp.name}</p>
-                            <p className="text-xs text-muted-foreground">{exp.category} - {new Date(exp.date).toLocaleDateString('ar-IQ')}</p>
-                        </div>
-                        <p className="font-semibold text-destructive">{exp.amount.toLocaleString()} د.ع</p>
-                    </li>
-                ))}
+                {largestExpenses.map(exp => {
+                    const categoryInfo = defaultCategories[exp.category as keyof typeof defaultCategories] || defaultCategories.other;
+                    return (
+                        <li key={exp.id} className="flex justify-between items-center p-3 border-b last:border-b-0 rounded-md hover:bg-muted/50">
+                            <div>
+                                <p className="font-medium">{exp.title}</p>
+                                <p className="text-xs text-muted-foreground">{categoryInfo.name} - {new Date(exp.date).toLocaleDateString('ar-IQ')}</p>
+                            </div>
+                            <p className="font-semibold text-destructive">{exp.amount.toLocaleString()} د.ع</p>
+                        </li>
+                    );
+                })}
             </ul>
+          ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 

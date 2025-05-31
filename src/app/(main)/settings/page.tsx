@@ -1,25 +1,70 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input"; // Added Input
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, ListTreeIcon, CreditCardIcon, DatabaseZapIcon, InfoIcon, Moon, Sun } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, ListTreeIcon, CreditCardIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast"; // Added useToast
+
+interface UserBudgetSettings {
+  totalBudget: number;
+  weeklyBudget: number;
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => setMounted(true), []);
+  const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
+  const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
+  const [currentBudget, setCurrentBudget] = useState<UserBudgetSettings | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const storedBudget = localStorage.getItem('userBudgetSettings');
+    if (storedBudget) {
+      const budgetData = JSON.parse(storedBudget) as UserBudgetSettings;
+      setCurrentBudget(budgetData);
+      setTotalBudgetInput(budgetData.totalBudget.toString());
+      setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
+    }
+  }, []);
+
+  const handleSaveBudget = () => {
+    const total = parseFloat(totalBudgetInput);
+    const weekly = parseFloat(weeklyBudgetInput);
+
+    if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال أرقام صحيحة للميزانية.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newBudgetSettings: UserBudgetSettings = { totalBudget: total, weeklyBudget: weekly };
+    localStorage.setItem('userBudgetSettings', JSON.stringify(newBudgetSettings));
+    setCurrentBudget(newBudgetSettings);
+    toast({
+      title: "تم الحفظ",
+      description: "تم حفظ إعدادات الميزانية بنجاح.",
+    });
+    window.dispatchEvent(new CustomEvent('budgetUpdated'));
+  };
 
   if (!mounted) return null;
 
@@ -67,10 +112,36 @@ export default function SettingsPage() {
             <SlidersHorizontalIcon className="h-6 w-6 text-primary" />
             إعدادات الميزانية
           </CardTitle>
+          <CardDescription>قم بتعيين ميزانيتك الشهرية والأسبوعية المتوقعة.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-8">سيتم إضافة إعدادات الميزانية هنا قريباً.</p>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label>
+            <Input
+              id="totalBudget"
+              type="number"
+              value={totalBudgetInput}
+              onChange={(e) => setTotalBudgetInput(e.target.value)}
+              placeholder="مثال: 5000000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
+            <Input
+              id="weeklyBudget"
+              type="number"
+              value={weeklyBudgetInput}
+              onChange={(e) => setWeeklyBudgetInput(e.target.value)}
+              placeholder="مثال: 1000000"
+            />
+          </div>
         </CardContent>
+        <CardFooter>
+          <Button onClick={handleSaveBudget} className="w-full">
+            <SaveIcon className="ml-2 h-4 w-4" />
+            حفظ إعدادات الميزانية
+          </Button>
+        </CardFooter>
       </Card>
 
       <Card>

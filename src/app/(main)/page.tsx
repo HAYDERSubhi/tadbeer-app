@@ -5,12 +5,11 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon } from "lucide-react";
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -30,6 +29,8 @@ import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import Link from 'next/link'; // Added Link
+import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'; // Added date-fns
 
 // Mock categories for display
 const defaultCategories = {
@@ -39,6 +40,7 @@ const defaultCategories = {
   "bills": { name: "فواتير", icon: "🧾", color: "bg-yellow-500", id: "bills" },
   "health": { name: "صحة", icon: "🩺", color: "bg-green-500", id: "health"},
   "entertainment": { name: "ترفيه", icon: "🎬", color: "bg-purple-500", id: "entertainment"},
+  "receipt-scan": { name: "فاتورة ممسوحة", icon: "📄", color: "bg-indigo-500", id: "receipt-scan" },
   "other": { name: "أخرى", icon: "🧩", color: "bg-gray-500", id: "other" },
 };
 
@@ -74,6 +76,10 @@ const AddExpenseDialogs = [
   },
 ];
 
+interface UserBudgetSettings {
+  totalBudget: number;
+  weeklyBudget: number;
+}
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -82,22 +88,33 @@ export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<Record<string, { name: string; icon: string; color: string; id: string }>>(defaultCategories);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amountHighToLow' | 'amountLowToHigh'>('newest');
+  const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
 
-  const refreshExpenses = () => {
+  const refreshExpensesAndBudget = () => {
     const storedExpenses = localStorage.getItem('expenses');
     if (storedExpenses) {
       setExpenses(JSON.parse(storedExpenses));
+    } else {
+      setExpenses([]);
+    }
+    const storedBudget = localStorage.getItem('userBudgetSettings');
+    if (storedBudget) {
+      setUserBudget(JSON.parse(storedBudget));
+    } else {
+      setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
     }
   };
 
   useEffect(() => {
     setIsMounted(true);
-    refreshExpenses();
+    refreshExpensesAndBudget();
     setIsLoading(false);
 
-    window.addEventListener('expensesUpdated', refreshExpenses);
+    window.addEventListener('expensesUpdated', refreshExpensesAndBudget);
+    window.addEventListener('budgetUpdated', refreshExpensesAndBudget);
     return () => {
-      window.removeEventListener('expensesUpdated', refreshExpenses);
+      window.removeEventListener('expensesUpdated', refreshExpensesAndBudget);
+      window.removeEventListener('budgetUpdated', refreshExpensesAndBudget);
     };
   }, []);
 
@@ -107,18 +124,26 @@ export default function DashboardPage() {
     }
   }, [expenses, isMounted]);
 
-  const totalBudget = 5000000;
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
-  const remainingBudget = totalBudget - currentExpenses;
-  const budgetProgress = totalBudget > 0 ? (currentExpenses / totalBudget) * 100 : 0;
+  const remainingBudget = userBudget.totalBudget - currentExpenses;
+  const budgetProgress = userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0;
 
-  const expectedWeeklySpending = 1000000;
-  const currentAverageWeeklySpending = 750000;
-  const weeklySpendingProgress = expectedWeeklySpending > 0 ? (currentAverageWeeklySpending / expectedWeeklySpending) * 100 : 0;
+  const today = new Date();
+  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); // Assuming Saturday is start of week for ar-IQ
+  const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
+
+  const currentWeekExpensesTotal = expenses
+    .filter(exp => {
+      const expenseDate = new Date(exp.date);
+      return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
+    })
+    .reduce((sum, exp) => sum + exp.amount, 0);
+  
+  const weeklySpendingProgress = userBudget.weeklyBudget > 0 ? (currentWeekExpensesTotal / userBudget.weeklyBudget) * 100 : 0;
 
 
-  if (!isMounted) {
+  if (!isMounted && isLoading) {
     return <div className="flex justify-center items-center h-screen"><ListOrderedIcon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -142,22 +167,30 @@ export default function DashboardPage() {
   const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
 
   return (
-    <div className="space-y-6 pb-16 sm:pb-8"> {/* Adjusted padding for mobile bottom nav */}
+    <div className="space-y-6 pb-16 sm:pb-8">
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle className="text-xl sm:text-2xl">ملخص المصاريف الشهري</CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto" onClick={() => toast({ title: "قيد التطوير", description: "تعديل الميزانية سيكون متاحاً قريباً." })}>
-              <Edit3Icon className="ml-1 h-3 w-3" />
-              تعديل
-            </Button>
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto">
+                <SettingsIcon className="ml-1 h-3 w-3" />
+                {userBudget.totalBudget > 0 ? 'تعديل الميزانية' : 'إعداد الميزانية'}
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 text-sm sm:text-base">
+          {userBudget.totalBudget === 0 && (
+            <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
+              <p className="font-semibold">لم تقم بتعيين ميزانية شهرية بعد.</p>
+              <p className="text-xs">اذهب إلى <Link href="/settings" className="text-primary underline">الإعدادات</Link> لتعيين ميزانيتك.</p>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div>
               <p className="text-muted-foreground">الميزانية</p>
-              <p className="font-bold text-lg">{totalBudget.toLocaleString()} د.ع</p>
+              <p className="font-bold text-lg">{userBudget.totalBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">المصروف</p>
@@ -165,29 +198,36 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-muted-foreground">المتبقي</p>
-              <p className="font-bold text-lg text-green-600 dark:text-green-400">{remainingBudget.toLocaleString()} د.ع</p>
+              <p className={`font-bold text-lg ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">خارج الميزانية</p>
               <p className="font-bold text-lg">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
             </div>
           </div>
-           {budgetProgress > 100 && (
+           {budgetProgress > 100 && userBudget.totalBudget > 0 && (
             <div className="flex items-center text-destructive p-2 bg-destructive/10 rounded-md mt-4">
               <AlertCircleIcon className="h-5 w-5 ml-2" />
               <p>لقد تجاوزت الميزانية المحددة!</p>
             </div>
           )}
           <div className="pt-4">
-            <h4 className="font-semibold mb-1 text-center sm:text-right">معدل الصرفيات الأسبوعي</h4>
-            <p className="text-xs text-muted-foreground text-center sm:text-right">المتوقع: {expectedWeeklySpending.toLocaleString()} د.ع في الأسبوع</p>
-            <Progress value={weeklySpendingProgress > 100 ? 100 : weeklySpendingProgress} className="h-3 my-2 [&>div]:bg-accent" />
-            <div className="flex justify-between text-xs text-muted-foreground px-1">
-              <span>٠ د.ع</span>
-              <span>{currentAverageWeeklySpending.toLocaleString()} د.ع (الحالي)</span>
-              <span>{expectedWeeklySpending.toLocaleString()} د.ع</span>
-            </div>
-             <p className="text-xs text-muted-foreground text-center mt-1">تفاصيل أكثر قريباً حول التقسيم الأسبوعي.</p>
+            <h4 className="font-semibold mb-1 text-center sm:text-right">متابعة الصرف الأسبوعي</h4>
+            {userBudget.weeklyBudget > 0 ? (
+              <>
+                <p className="text-xs text-muted-foreground text-center sm:text-right">المتوقع: {userBudget.weeklyBudget.toLocaleString()} د.ع هذا الأسبوع</p>
+                <Progress value={weeklySpendingProgress > 100 ? 100 : weeklySpendingProgress} className="h-3 my-2 [&>div]:bg-accent" />
+                <div className="flex justify-between text-xs text-muted-foreground px-1">
+                  <span>٠ د.ع</span>
+                  <span>{currentWeekExpensesTotal.toLocaleString()} د.ع (الحالي)</span>
+                  <span>{userBudget.weeklyBudget.toLocaleString()} د.ع</span>
+                </div>
+              </>
+            ) : (
+                 <p className="text-xs text-muted-foreground text-center mt-1">
+                    قم بتعيين ميزانية أسبوعية متوقعة من <Link href="/settings" className="text-primary underline">الإعدادات</Link> لمتابعة صرفك الأسبوعي.
+                 </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -273,11 +313,10 @@ export default function DashboardPage() {
                         if (checked) {
                           newFilter[key] = cat;
                         } else {
-                          // Ensure at least one category is always selected, or handle empty state
                           const currentKeys = Object.keys(newFilter).filter(k => k !== key);
                           if (currentKeys.length === 0 && !checked) {
                             toast({ title: "تنبيه", description: "يجب اختيار فئة واحدة على الأقل."});
-                            return prev; // Prevent unchecking the last item
+                            return prev; 
                           }
                           delete newFilter[key];
                         }
@@ -300,7 +339,10 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-center py-4">جاري تحميل المصاريف...</p>
+            <div className="flex justify-center items-center py-4">
+                <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                <p className="mr-2">جاري تحميل المصاريف...</p>
+            </div>
           ) : recentExpensesToDisplay.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-2" />
