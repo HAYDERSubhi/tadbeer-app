@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input"; // Added Input
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from 'next-themes';
 import { PaletteIcon, SlidersHorizontalIcon, ListTreeIcon, CreditCardIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon } from "lucide-react";
@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"; // Added useToast
+import { useToast } from "@/hooks/use-toast";
 
 interface UserBudgetSettings {
   totalBudget: number;
@@ -40,17 +40,34 @@ export default function SettingsPage() {
       setCurrentBudget(budgetData);
       setTotalBudgetInput(budgetData.totalBudget.toString());
       setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
+    } else {
+      // Default to "0" if no budget is set in localStorage
+      setTotalBudgetInput("0");
+      setWeeklyBudgetInput("0");
     }
   }, []);
 
   const handleSaveBudget = () => {
-    const total = parseFloat(totalBudgetInput);
-    const weekly = parseFloat(weeklyBudgetInput);
+    // Trim and default to "0" if empty
+    const totalString = totalBudgetInput.trim() === "" ? "0" : totalBudgetInput.trim();
+    const weeklyString = weeklyBudgetInput.trim() === "" ? "0" : weeklyBudgetInput.trim();
+
+    const total = parseFloat(totalString);
+    const weekly = parseFloat(weeklyString);
 
     if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0) {
+      let errorDescription = "الرجاء إدخال أرقام موجبة وصحيحة للميزانية.";
+      if ((isNaN(total) || total < 0) && (isNaN(weekly) || weekly < 0)) {
+        errorDescription = "الرجاء إدخال قيم صحيحة للميزانية الشهرية والأسبوعية.";
+      } else if (isNaN(total) || total < 0) {
+        errorDescription = "الرجاء إدخال قيمة صحيحة للميزانية الشهرية.";
+      } else if (isNaN(weekly) || weekly < 0) {
+        errorDescription = "الرجاء إدخال قيمة صحيحة للميزانية الأسبوعية.";
+      }
+
       toast({
-        title: "خطأ",
-        description: "الرجاء إدخال أرقام صحيحة للميزانية.",
+        title: "خطأ في الإدخال",
+        description: errorDescription,
         variant: "destructive",
       });
       return;
@@ -72,7 +89,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <PaletteIcon className="h-6 w-6 text-primary" />
             تخصيص المظهر
           </CardTitle>
@@ -80,7 +97,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="theme-mode" className="flex items-center gap-2 text-base">
+            <Label htmlFor="theme-mode" className="flex items-center gap-2">
               {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               الوضع
             </Label>
@@ -96,11 +113,11 @@ export default function SettingsPage() {
             </Select>
           </div>
           <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="font-size" className="text-base">حجم الخط</Label>
+            <Label htmlFor="font-size">حجم الخط</Label>
             <Button variant="outline" disabled>متوسط (قريباً)</Button>
           </div>
           <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="currency-format" className="text-base">عرض المبالغ</Label>
+            <Label htmlFor="currency-format">عرض المبالغ</Label>
             <Button variant="outline" disabled>مع فواصل (قريباً)</Button>
           </div>
         </CardContent>
@@ -108,7 +125,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <SlidersHorizontalIcon className="h-6 w-6 text-primary" />
             إعدادات الميزانية
           </CardTitle>
@@ -123,6 +140,7 @@ export default function SettingsPage() {
               value={totalBudgetInput}
               onChange={(e) => setTotalBudgetInput(e.target.value)}
               placeholder="مثال: 5000000"
+              min="0"
             />
           </div>
           <div className="space-y-2">
@@ -133,6 +151,7 @@ export default function SettingsPage() {
               value={weeklyBudgetInput}
               onChange={(e) => setWeeklyBudgetInput(e.target.value)}
               placeholder="مثال: 1000000"
+              min="0"
             />
           </div>
         </CardContent>
@@ -146,7 +165,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <ListTreeIcon className="h-6 w-6 text-primary" />
             إدارة التصنيفات
           </CardTitle>
@@ -158,7 +177,7 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <CreditCardIcon className="h-6 w-6 text-primary" />
             إعدادات البطاقة الإلكترونية
           </CardTitle>
@@ -170,7 +189,7 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <DatabaseZapIcon className="h-6 w-6 text-primary" />
             الحفظ والاستيراد
           </CardTitle>
@@ -183,7 +202,7 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <InfoIcon className="h-6 w-6 text-primary" />
             معلومات التطبيق
           </CardTitle>
