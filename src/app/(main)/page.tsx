@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon } from "lucide-react";
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react"; // Added Trash2Icon, Loader2Icon
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,8 +29,8 @@ import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import Link from 'next/link'; // Added Link
-import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'; // Added date-fns
+import Link from 'next/link';
+import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 // Mock categories for display
 const defaultCategories = {
@@ -121,8 +121,21 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('expenses', JSON.stringify(expenses));
+      // Dispatch event after expenses are updated in localStorage if needed by other components
+      // For this page, direct state update is enough.
+      // window.dispatchEvent(new CustomEvent('expensesUpdated'));
     }
   }, [expenses, isMounted]);
+
+  const handleDeleteExpense = (expenseId: string) => {
+    if (!isMounted) return;
+    const updatedExpenses = expenses.filter(exp => exp.id !== expenseId);
+    setExpenses(updatedExpenses);
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف المصروف بنجاح.",
+    });
+  };
 
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
@@ -144,7 +157,7 @@ export default function DashboardPage() {
 
 
   if (!isMounted && isLoading) {
-    return <div className="flex justify-center items-center h-screen"><ListOrderedIcon className="h-12 w-12 animate-spin text-primary" /></div>;
+    return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
   const filteredExpenses = expenses.filter(expense => categoryFilter[expense.category as keyof typeof categoryFilter]);
@@ -338,7 +351,7 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && !isMounted? ( // Show loader only if loading and not yet mounted
             <div className="flex justify-center items-center py-4">
                 <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
                 <p className="mr-2">جاري تحميل المصاريف...</p>
@@ -360,8 +373,19 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="font-semibold text-primary">
-                      {expense.amount.toLocaleString()} د.ع
+                    <div className="flex items-center gap-2"> {/* Group for Amount and Delete button */}
+                      <div className="font-semibold text-primary">
+                        {expense.amount.toLocaleString()} د.ع
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive/80 p-0"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        aria-label="حذف المصروف"
+                      >
+                        <Trash2Icon className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="flex items-center gap-3 text-right">
                       <div className="flex-grow">
@@ -391,3 +415,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+    
