@@ -31,7 +31,6 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import PageNavigation from '@/components/layout/page-navigation'; // Import the new navigation component
 
 // Mock categories for display
 const defaultCategories = {
@@ -182,7 +181,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle className="text-xl sm:text-2xl">ملخص المصاريف الشهري</CardTitle>
+            <CardTitle>ملخص المصاريف الشهري</CardTitle>
             <Link href="/settings">
               <Button variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto">
                 <SettingsIcon className="ml-1 h-3 w-3" />
@@ -245,7 +244,7 @@ export default function DashboardPage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl">طرق إدخال المصاريف</CardTitle>
+          <CardTitle>طرق إدخال المصاريف</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -275,7 +274,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl sm:text-2xl">المصاريف الأخيرة</CardTitle>
+            <CardTitle>المصاريف الأخيرة</CardTitle>
             <CardDescription className="text-xs sm:text-sm">أحدث المصاريف المسجلة</CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -410,8 +409,6 @@ export default function DashboardPage() {
           </CardFooter>
         )}
       </Card>
-
-      <PageNavigation /> {/* Add the new navigation component here */}
     </div>
   );
 }
