@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react"; // Added Trash2Icon, Loader2Icon
+import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -31,6 +31,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import PageNavigation from '@/components/layout/page-navigation'; // Import the new navigation component
 
 // Mock categories for display
 const defaultCategories = {
@@ -121,9 +122,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isMounted) {
       localStorage.setItem('expenses', JSON.stringify(expenses));
-      // Dispatch event after expenses are updated in localStorage if needed by other components
-      // For this page, direct state update is enough.
-      // window.dispatchEvent(new CustomEvent('expensesUpdated'));
     }
   }, [expenses, isMounted]);
 
@@ -140,10 +138,10 @@ export default function DashboardPage() {
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
-  const budgetProgress = userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0;
+  // const budgetProgress = userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0; // This was not used, commented for now
 
   const today = new Date();
-  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); // Assuming Saturday is start of week for ar-IQ
+  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); 
   const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
 
   const currentWeekExpensesTotal = expenses
@@ -218,7 +216,7 @@ export default function DashboardPage() {
               <p className="text-lg">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
             </div>
           </div>
-           {budgetProgress > 100 && userBudget.totalBudget > 0 && (
+           {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
             <div className="flex items-center text-destructive p-2 bg-destructive/10 rounded-md mt-4">
               <AlertCircleIcon className="h-5 w-5 ml-2" />
               <p>لقد تجاوزت الميزانية المحددة!</p>
@@ -351,7 +349,7 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading && !isMounted? ( // Show loader only if loading and not yet mounted
+          {isLoading && !isMounted? ( 
             <div className="flex justify-center items-center py-4">
                 <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
                 <p className="mr-2">جاري تحميل المصاريف...</p>
@@ -373,7 +371,7 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-2"> {/* Group for Amount and Delete button */}
+                    <div className="flex items-center gap-2"> 
                       <div className="text-primary">
                         {expense.amount.toLocaleString()} د.ع
                       </div>
@@ -412,9 +410,8 @@ export default function DashboardPage() {
           </CardFooter>
         )}
       </Card>
+
+      <PageNavigation /> {/* Add the new navigation component here */}
     </div>
   );
 }
-
-
-    

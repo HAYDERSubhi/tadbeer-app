@@ -2,40 +2,14 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { HomeIcon, BarChart3Icon, SettingsIcon, WalletIcon, MoonIcon, SunIcon, PlusCircleIcon, MicIcon, ScanLineIcon, CreditCardIcon } from 'lucide-react';
+import { WalletIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
-import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
-
-const navItems = [
-  { href: '/', label: 'الرئيسية', icon: HomeIcon },
-  { href: '/stats', label: 'الإحصائيات', icon: BarChart3Icon },
-  { href: '/settings', label: 'الإعدادات', icon: SettingsIcon },
-];
+// import { useIsMobile } from '@/hooks/use-mobile'; // No longer needed for main navigation
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const isMobile = useIsMobile();
-
-  const AddExpenseOptions = [
-    { label: "إدخال يدوي", icon: PlusCircleIcon, component: <ManualExpenseForm /> },
-    { label: "إدخال صوتي", icon: MicIcon, component: <VoiceExpenseForm /> },
-    { label: "مسح فاتورة", icon: ScanLineIcon, component: <ReceiptScanForm /> },
-    { label: "بطاقة إلكترونية", icon: CreditCardIcon, component: <p className="p-4 text-center">سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p> },
-  ];
+  // const isMobile = useIsMobile(); // No longer needed for main navigation
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -61,52 +35,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="flex flex-1 container mx-auto py-6">
-        {!isMobile && (
-          <aside className="w-64 pr-8 space-y-4">
-            <nav className="flex flex-col space-y-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                    pathname === item.href
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted hover:text-muted-foreground'
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            {/* The Add Expense DropdownMenu was here and has been removed */}
-          </aside>
-        )}
+        {/* Sidebar navigation has been removed */}
         <main className="flex-1">{children}</main>
       </div>
 
-      {isMobile && (
-        <footer className="sticky bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <nav className="container grid grid-cols-3 h-16 items-center justify-items-center gap-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 p-2 rounded-md text-xs w-full transition-colors',
-                  pathname === item.href
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </footer>
-      )}
+      {/* Mobile footer navigation has been removed */}
     </div>
   );
 }
