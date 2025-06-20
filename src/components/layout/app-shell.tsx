@@ -9,12 +9,6 @@ import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -86,32 +80,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               ))}
             </nav>
-             <DropdownMenu dir="rtl">
-              <DropdownMenuTrigger asChild>
-                <Button className="w-full mt-4">
-                  <PlusCircleIcon className="ml-2 h-5 w-5" />
-                  إضافة مصروف
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                {AddExpenseOptions.map(option => (
-                  <Dialog key={option.label}>
-                    <DialogTrigger asChild>
-                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                        <option.icon className="mr-2 h-4 w-4" />
-                        {option.label}
-                      </DropdownMenuItem>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{option.label}</DialogTitle>
-                      </DialogHeader>
-                      {option.component}
-                    </DialogContent>
-                  </Dialog>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* The Add Expense DropdownMenu was here and has been removed */}
           </aside>
         )}
         <main className="flex-1">{children}</main>
