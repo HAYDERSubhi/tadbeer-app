@@ -157,67 +157,56 @@ export default function SettingsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, {
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
             defval: null,
         });
 
-        if (jsonData.length === 0) {
-          throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
+        if (rows.length < 2) {
+          throw new Error("الملف فارغ أو لا يحتوي على بيانات كافية.");
         }
 
-        const getHeaderMap = (firstRow: any): Record<string, string | null> => {
-            const mapping: Record<string, string | null> = {
-                title: null,
-                amount: null,
-                category: null,
-                date: null,
-                description: null,
-                isOutOfBudget: null,
-                outOfBudgetDetails: null,
-            };
-            const foundHeaders = Object.keys(firstRow);
+        const headerRow = rows[0];
+        const dataRows = rows.slice(1);
 
-            const findHeader = (possibleNames: string[]): string | null => {
-                for (const header of foundHeaders) {
-                    const normalizedHeader = header.trim().toLowerCase();
-                    if (possibleNames.map(p => p.toLowerCase()).includes(normalizedHeader)) {
-                        return header;
-                    }
-                }
-                return null;
-            };
+        const normalizeHeader = (h: any) => h ? String(h).trim().toLowerCase() : '';
+        const normalizedHeaders = headerRow.map(normalizeHeader);
 
-            mapping.title = findHeader(['العنوان', 'title']);
-            mapping.amount = findHeader(['المبلغ', 'amount']);
-            mapping.category = findHeader(['الفئة', 'category']);
-            mapping.date = findHeader(['التاريخ', 'date']);
-            mapping.description = findHeader(['الوصف', 'description']);
-            mapping.isOutOfBudget = findHeader(['خارج الميزانية', 'isoutofbudget', 'is out of budget']);
-            mapping.outOfBudgetDetails = findHeader(['تفاصيل خارج الميزانية', 'out of budget details', 'outOfBudgetDetails']);
-
-            return mapping;
+        const possibleHeaders: Record<string, string[]> = {
+            title: ['العنوان', 'title'],
+            amount: ['المبلغ', 'amount'],
+            category: ['الفئة', 'category'],
+            date: ['التاريخ', 'date'],
+            description: ['الوصف', 'description'],
+            isOutOfBudget: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'],
+            outOfBudgetDetails: ['تفاصيل خارج الميزانية', 'out of budget details', 'outofbudgetdetails'],
         };
-
-        const headerMap = getHeaderMap(jsonData[0]);
         
-        const required = {
-            title: 'العنوان',
-            amount: 'المبلغ',
-            category: 'الفئة'
-        };
+        const headerMap: Record<string, number> = {};
+        for (const [key, alternatives] of Object.entries(possibleHeaders)) {
+            const index = normalizedHeaders.findIndex(h => alternatives.includes(h));
+            if (index !== -1) {
+                headerMap[key] = index;
+            }
+        }
 
+        const required = { title: 'العنوان', amount: 'المبلغ', category: 'الفئة' };
         const missingHeaders = Object.entries(required)
-            .filter(([key]) => !headerMap[key as keyof typeof headerMap])
+            .filter(([key]) => headerMap[key] === undefined)
             .map(([, value]) => `"${value}"`);
 
         if (missingHeaders.length > 0) {
             throw new Error(`عمود مطلوب مفقود: ${missingHeaders.join(', ')}. يرجى التحقق من الملف.`);
         }
 
-        const validatedExpenses: Expense[] = jsonData.map((row, index) => {
-          const title = row[headerMap.title!];
-          const amount = row[headerMap.amount!];
-          const category = row[headerMap.category!];
+        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
+          if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
+            return null; // Skip empty rows
+          }
+
+          const title = row[headerMap.title];
+          const amount = row[headerMap.amount];
+          const category = row[headerMap.category];
 
           if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
             throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ).`);
@@ -236,8 +225,8 @@ export default function SettingsPage() {
               throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
           }
           newExp.amount = parsedAmount;
-
-          const dateVal = headerMap.date ? row[headerMap.date] : new Date();
+          
+          const dateVal = headerMap.date !== undefined ? row[headerMap.date] : new Date();
           if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
             newExp.date = dateVal.toISOString();
           } else if (typeof dateVal === 'string' && dateVal) {
@@ -247,15 +236,15 @@ export default function SettingsPage() {
             newExp.date = new Date().toISOString();
           }
 
-          newExp.description = headerMap.description ? String(row[headerMap.description] || '') : undefined;
+          newExp.description = headerMap.description !== undefined ? String(row[headerMap.description] || '') : undefined;
           
-          const isOutOfBudgetVal = headerMap.isOutOfBudget ? row[headerMap.isOutOfBudget] : false;
+          const isOutOfBudgetVal = headerMap.isOutOfBudget !== undefined ? row[headerMap.isOutOfBudget] : false;
           newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
           
-          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
+          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails !== undefined ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
 
           return newExp as Expense;
-        });
+        }).filter((exp): exp is Expense => exp !== null);
 
         localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
         window.dispatchEvent(new CustomEvent('expensesUpdated'));
