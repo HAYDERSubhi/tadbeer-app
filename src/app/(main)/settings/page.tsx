@@ -149,7 +149,23 @@ export default function SettingsPage() {
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        const jsonFromSheet: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+        if(jsonFromSheet.length === 0) {
+          toast({ title: "الملف فارغ", description: "الملف الذي اخترته لا يحتوي على بيانات.", variant: "destructive" });
+          return;
+        }
+
+        // Normalize headers by trimming whitespace from keys
+        const json = jsonFromSheet.map(row => {
+            const newRow: any = {};
+            for (const key in row) {
+                if (Object.prototype.hasOwnProperty.call(row, key)) {
+                    newRow[key.trim()] = row[key];
+                }
+            }
+            return newRow;
+        });
 
         const headerMapping: { [key: string]: keyof Expense | string } = {
           'العنوان': 'title',
@@ -161,11 +177,6 @@ export default function SettingsPage() {
           'تفاصيل خارج الميزانية': 'outOfBudgetDetails'
         };
         
-        if(json.length === 0) {
-          toast({ title: "الملف فارغ", description: "الملف الذي اخترته لا يحتوي على بيانات.", variant: "destructive" });
-          return;
-        }
-
         const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
         const excelHeaders = Object.keys(json[0] || {});
         const missingHeaders = requiredHeaders.filter(h => !excelHeaders.includes(h));
@@ -376,3 +387,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
