@@ -149,17 +149,12 @@ export default function SettingsPage() {
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonFromSheet: any[] = XLSX.utils.sheet_to_json(worksheet);
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-        if(jsonFromSheet.length === 0) {
+        if(json.length === 0) {
           toast({ title: "الملف فارغ", description: "الملف الذي اخترته لا يحتوي على بيانات.", variant: "destructive" });
           return;
         }
-
-        const json = jsonFromSheet;
-
-        const excelHeaders = Object.keys(json[0] || {});
-        const normalizedExcelHeaders = excelHeaders.map(h => h.trim().toLowerCase());
 
         const headerMapping: { [key: string]: keyof Expense | string } = {
           'العنوان': 'title',
@@ -170,15 +165,6 @@ export default function SettingsPage() {
           'خارج الميزانية': 'isOutOfBudget',
           'تفاصيل خارج الميزانية': 'outOfBudgetDetails'
         };
-        
-        const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
-        const missingHeaders = requiredHeaders.filter(requiredHeader => {
-            return !normalizedExcelHeaders.includes(requiredHeader.toLowerCase());
-        });
-
-        if (missingHeaders.length > 0) {
-             throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}`);
-        }
 
         const validatedExpenses: Expense[] = json.map((row, index) => {
           const newExp: Partial<Expense> = {
@@ -384,3 +370,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
