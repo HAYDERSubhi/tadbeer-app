@@ -158,71 +158,65 @@ export default function SettingsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, {
-          raw: false,
-          dateNF: 'yyyy-mm-dd',
-          blankrows: false,
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            defval: '',
+            blankrows: false,
         });
 
-        if (json.length === 0) {
+        if (rows.length < 2) {
           throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
         }
 
-        const fileHeaders = Object.keys(json[0]);
+        const headerRow = rows[0].map(h => String(h || '').trim().toLowerCase());
+        const dataRows = rows.slice(1);
 
-        const findHeader = (possibleNames: string[]): string | undefined => {
+        const findColIndex = (possibleNames: string[]) => {
             for (const name of possibleNames) {
-                const foundHeader = fileHeaders.find(h => h.trim().toLowerCase() === name.toLowerCase());
-                if (foundHeader) return foundHeader;
+                const index = headerRow.indexOf(name.toLowerCase());
+                if (index > -1) return index;
             }
-            return undefined;
-        }
-
-        const headerMap = {
-            title: findHeader(['العنوان', 'title']),
-            amount: findHeader(['المبلغ', 'amount']),
-            category: findHeader(['الفئة', 'category']),
-            date: findHeader(['التاريخ', 'date']),
-            description: findHeader(['الوصف', 'description']),
-            isOutOfBudget: findHeader(['خارج الميزانية', 'isoutofbudget', 'is out of budget']),
-            outOfBudgetDetails: findHeader(['تفاصيل خارج الميزانية', 'out of budget details', 'outOfBudgetDetails'])
+            return -1;
         };
 
-        const missingHeaders: string[] = [];
-        if (!headerMap.title) missingHeaders.push('العنوان');
-        if (!headerMap.amount) missingHeaders.push('المبلغ');
-        if (!headerMap.category) missingHeaders.push('الفئة');
+        const colIndices = {
+            title: findColIndex(['العنوان', 'title']),
+            amount: findColIndex(['المبلغ', 'amount']),
+            category: findColIndex(['الفئة', 'category']),
+            date: findColIndex(['التاريخ', 'date']),
+            description: findColIndex(['الوصف', 'description']),
+            isOutOfBudget: findColIndex(['خارج الميزانية', 'isoutofbudget', 'is out of budget']),
+            outOfBudgetDetails: findColIndex(['تفاصيل خارج الميزانية', 'out of budget details', 'outOfBudgetDetails']),
+        };
 
-        if (missingHeaders.length > 0) {
-            throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
-        }
+        if (colIndices.title === -1) throw new Error('عمود مطلوب مفقود: "العنوان". يرجى التحقق من الملف.');
+        if (colIndices.amount === -1) throw new Error('عمود مطلوب مفقود: "المبلغ". يرجى التحقق من الملف.');
+        if (colIndices.category === -1) throw new Error('عمود مطلوب مفقود: "الفئة". يرجى التحقق من الملف.');
 
-        const validatedExpenses: Expense[] = json.map((row, index) => {
-          const newExp: Partial<Expense> = {
-            id: crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
-          const title = row[headerMap.title!];
-          const amount = row[headerMap.amount!];
-          const category = row[headerMap.category!];
-
+        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
+          const title = row[colIndices.title];
+          const amount = row[colIndices.amount];
+          const category = row[colIndices.category];
+          
           if (title === undefined || String(title).trim() === '' || amount === undefined || String(amount).trim() === '') {
             throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ).`);
           }
 
-          newExp.title = String(title);
-          
+          const newExp: Partial<Expense> = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            title: String(title),
+            category: String(category || 'other'),
+          };
+
           const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g,""));
           if (isNaN(parsedAmount)) {
               throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
           }
           newExp.amount = parsedAmount;
 
-          newExp.category = String(category || 'other');
-
-          const dateVal = headerMap.date ? row[headerMap.date] : new Date();
+          const dateVal = colIndices.date > -1 ? row[colIndices.date] : new Date();
           if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
             newExp.date = dateVal.toISOString();
           } else if (typeof dateVal === 'string' && dateVal) {
@@ -232,12 +226,12 @@ export default function SettingsPage() {
             newExp.date = new Date().toISOString();
           }
 
-          newExp.description = headerMap.description ? String(row[headerMap.description] || '') : undefined;
+          newExp.description = colIndices.description > -1 ? String(row[colIndices.description] || '') : undefined;
           
-          const isOutOfBudgetVal = headerMap.isOutOfBudget ? row[headerMap.isOutOfBudget] : false;
+          const isOutOfBudgetVal = colIndices.isOutOfBudget > -1 ? row[colIndices.isOutOfBudget] : false;
           newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
           
-          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
+          newExp.outOfBudgetDetails = colIndices.outOfBudgetDetails > -1 ? String(row[colIndices.outOfBudgetDetails] || '') : undefined;
 
           return newExp as Expense;
         });
@@ -407,5 +401,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
