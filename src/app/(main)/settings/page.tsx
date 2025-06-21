@@ -28,11 +28,11 @@ interface UserBudgetSettings {
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount', 'category'];
 
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'العنوان', alternatives: ['العنوان', 'title'] },
+  title: { label: 'اسم التاجر / العنوان', alternatives: ['اسم التاجر', 'العنوان', 'title'] },
   amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount'] },
   category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
   date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
-  description: { label: 'الوصف', alternatives: ['الوصف', 'description', 'details'] },
+  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes', 'details'] },
   isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
   outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'outofbudgetdetails', 'out of budget details'] },
 };
@@ -120,7 +120,7 @@ export default function SettingsPage() {
     const expenses: Expense[] = JSON.parse(expensesJSON);
     
     const dataToExport = expenses.map((exp) => ({
-      'العنوان': exp.title,
+      'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
       'الفئة': exp.category,
       'التاريخ': new Date(exp.date),
@@ -134,7 +134,7 @@ export default function SettingsPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "المصاريف");
     
     worksheet['!cols'] = [
-        { wch: 30 }, // Title
+        { wch: 30 }, // Merchant Name
         { wch: 15 }, // Amount
         { wch: 15 }, // Category
         { wch: 20 }, // Date
@@ -197,7 +197,7 @@ export default function SettingsPage() {
         let allRequiredFound = true;
 
         for (const [field, config] of Object.entries(COLUMN_MAP_CONFIG)) {
-          const foundHeader = headers.find(h => config.alternatives.includes(h.toLowerCase()));
+          const foundHeader = headers.find(h => config.alternatives.map(a => a.toLowerCase()).includes(h.toLowerCase()));
           if (foundHeader) {
             autoMap[field] = foundHeader;
           }
@@ -240,7 +240,7 @@ export default function SettingsPage() {
     try {
       const headerIndexMap: Record<string, number> = {};
       for (const field in finalMap) {
-        headerIndexMap[field] = headers.indexOf(finalMap[field]);
+        headerIndexMap[field] = headers.findIndex(h => h.toLowerCase() === finalMap[field].toLowerCase());
       }
 
       const validatedExpenses: Expense[] = dataRows.map((row, index) => {
@@ -253,7 +253,7 @@ export default function SettingsPage() {
         const category = row[headerIndexMap.category];
 
         if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
-          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ).`);
+          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (اسم التاجر/العنوان، المبلغ).`);
         }
 
         const newExp: Partial<Expense> = {
@@ -440,7 +440,7 @@ export default function SettingsPage() {
                         {config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}
                     </Label>
                     <Select
-                        value={columnMap[field] || ''}
+                        value={columnMap[field] || '_EMPTY_'}
                         onValueChange={(value) => setColumnMap(prev => ({...prev, [field]: value === '_EMPTY_' ? '' : value}))}
                     >
                         <SelectTrigger id={`map-${field}`} className="col-span-2">
@@ -500,3 +500,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
