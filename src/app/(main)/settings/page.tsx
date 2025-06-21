@@ -441,15 +441,15 @@ export default function SettingsPage() {
                     </Label>
                     <Select
                         value={columnMap[field] || ''}
-                        onValueChange={(value) => setColumnMap(prev => ({...prev, [field]: value}))}
+                        onValueChange={(value) => setColumnMap(prev => ({...prev, [field]: value === '_EMPTY_' ? '' : value}))}
                     >
                         <SelectTrigger id={`map-${field}`} className="col-span-2">
                             <SelectValue placeholder="اختر عمودًا..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">-- لا يوجد --</SelectItem>
-                            {fileHeaders.map(header => (
-                                <SelectItem key={header} value={header}>{header}</SelectItem>
+                            <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
+                            {fileHeaders.map((header, index) => (
+                                <SelectItem key={`${header}-${index}`} value={header}>{header}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -499,5 +499,4 @@ export default function SettingsPage() {
 
     </div>
   );
-
-    
+}
