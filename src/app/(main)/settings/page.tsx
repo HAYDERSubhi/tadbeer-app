@@ -160,56 +160,56 @@ export default function SettingsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { blankrows: false });
+        // Use header: 1 to get an array of arrays, which is more robust
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
 
-        if (jsonData.length === 0) {
-          toast({ title: "الملف فارغ", description: "الملف لا يحتوي على بيانات.", variant: "destructive" });
+        if (rows.length < 2) {
+          toast({ title: "الملف فارغ", description: "الملف لا يحتوي على بيانات أو يحتوي على صف العناوين فقط.", variant: "destructive" });
           return;
         }
 
-        const headers = Object.keys(jsonData[0] || {});
+        const headerRowRaw = rows[0];
+        const dataRows = rows.slice(1);
         
-        const findHeader = (possibleNames: string[]) => {
+        const headerRow = headerRowRaw.map(h => String(h || '').trim().toLowerCase());
+
+        const findHeaderIndex = (possibleNames: string[]) => {
             for (const name of possibleNames) {
-                const foundHeader = headers.find(h => h.trim().toLowerCase() === name.toLowerCase());
-                if (foundHeader) return foundHeader;
+                const index = headerRow.findIndex(h => h === name.toLowerCase());
+                if (index !== -1) return index;
             }
-            return null;
+            return -1;
         }
 
-        const headerMap = {
-            title: findHeader(['العنوان', 'title']),
-            amount: findHeader(['المبلغ', 'amount']),
-            category: findHeader(['الفئة', 'category']),
-            date: findHeader(['التاريخ', 'date']),
-            description: findHeader(['الوصف', 'description']),
-            isOutOfBudget: findHeader(['خارج الميزانية', 'isoutofbudget', 'is out of budget']),
-            outOfBudgetDetails: findHeader(['تفاصيل خارج الميزانية', 'out of budget details'])
+        const colIndexMap = {
+            title: findHeaderIndex(['العنوان', 'title']),
+            amount: findHeaderIndex(['المبلغ', 'amount']),
+            category: findHeaderIndex(['الفئة', 'category']),
+            date: findHeaderIndex(['التاريخ', 'date']),
+            description: findHeaderIndex(['الوصف', 'description']),
+            isOutOfBudget: findHeaderIndex(['خارج الميزانية', 'isoutofbudget', 'is out of budget']),
+            outOfBudgetDetails: findHeaderIndex(['تفاصيل خارج الميزانية', 'out of budget details', 'outOfBudgetDetails'])
         };
 
-        const requiredKeys = ['title', 'amount', 'category'];
-        const missingKeys = requiredKeys.filter(key => !headerMap[key as keyof typeof headerMap]);
+        const missingHeaders: string[] = [];
+        if (colIndexMap.title === -1) missingHeaders.push('العنوان');
+        if (colIndexMap.amount === -1) missingHeaders.push('المبلغ');
+        if (colIndexMap.category === -1) missingHeaders.push('الفئة');
 
-        if (missingKeys.length > 0) {
-            const missingArabic = missingKeys.map(key => {
-                if (key === 'title') return 'العنوان';
-                if (key === 'amount') return 'المبلغ';
-                if (key === 'category') return 'الفئة';
-                return key;
-            });
-            throw new Error(`أعمدة مطلوبة مفقودة: ${missingArabic.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
+        if (missingHeaders.length > 0) {
+            throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
         }
 
-        const validatedExpenses: Expense[] = jsonData.map((row, index) => {
+        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
           const newExp: Partial<Expense> = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
 
-          const title = row[headerMap.title!];
-          const amount = row[headerMap.amount!];
-          const category = row[headerMap.category!];
+          const title = row[colIndexMap.title];
+          const amount = row[colIndexMap.amount];
+          const category = row[colIndexMap.category];
 
           if (title === undefined || amount === undefined || category === undefined || String(title).trim() === '' || String(amount).trim() === '') {
             throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ، الفئة).`);
@@ -224,7 +224,7 @@ export default function SettingsPage() {
           }
           newExp.amount = parsedAmount;
 
-          const dateVal = headerMap.date ? row[headerMap.date] : new Date();
+          const dateVal = colIndexMap.date !== -1 ? row[colIndexMap.date] : new Date();
           if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
             newExp.date = dateVal.toISOString();
           } else if (typeof dateVal === 'string' && dateVal) {
@@ -237,12 +237,12 @@ export default function SettingsPage() {
             newExp.date = new Date().toISOString();
           }
 
-          newExp.description = headerMap.description ? String(row[headerMap.description] || '') : undefined;
+          newExp.description = colIndexMap.description !== -1 ? String(row[colIndexMap.description] || '') : undefined;
           
-          const isOutOfBudgetVal = headerMap.isOutOfBudget ? row[headerMap.isOutOfBudget] : false;
+          const isOutOfBudgetVal = colIndexMap.isOutOfBudget !== -1 ? row[colIndexMap.isOutOfBudget] : false;
           newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal).trim().toLowerCase());
           
-          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
+          newExp.outOfBudgetDetails = colIndexMap.outOfBudgetDetails !== -1 ? String(row[colIndexMap.outOfBudgetDetails] || '') : undefined;
 
           return newExp as Expense;
         });
@@ -413,6 +413,5 @@ export default function SettingsPage() {
 
     </div>
   );
-}
 
     
