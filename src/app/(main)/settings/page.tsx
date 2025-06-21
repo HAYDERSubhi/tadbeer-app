@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, ListTreeIcon, CreditCardIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, ListTreeIcon, CreditCardIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -25,6 +25,19 @@ interface UserBudgetSettings {
   weeklyBudget: number;
 }
 
+const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount', 'category'];
+
+const COLUMN_MAP_CONFIG = {
+  title: { label: 'العنوان', alternatives: ['العنوان', 'title'] },
+  amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount'] },
+  category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
+  date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
+  description: { label: 'الوصف', alternatives: ['الوصف', 'description', 'details'] },
+  isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
+  outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'outofbudgetdetails', 'out of budget details'] },
+};
+
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -34,6 +47,13 @@ export default function SettingsPage() {
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
   const [currentBudget, setCurrentBudget] = useState<UserBudgetSettings | null>(null);
+  
+  // State for the new mapping feature
+  const [isMappingColumns, setIsMappingColumns] = useState(false);
+  const [fileHeaders, setFileHeaders] = useState<string[]>([]);
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({});
+  const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
+
 
   useEffect(() => {
     setMounted(true);
@@ -141,6 +161,9 @@ export default function SettingsPage() {
   };
 
   const handleImportClick = () => {
+    // Reset mapping state before opening file dialog
+    setIsMappingColumns(false);
+    setColumnMap({});
     fileInputRef.current?.click();
   };
 
@@ -157,110 +180,53 @@ export default function SettingsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, {
-            header: 1,
-            defval: null,
-        });
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
 
         if (rows.length < 2) {
-          throw new Error("الملف فارغ أو لا يحتوي على بيانات كافية.");
+          throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
         }
 
-        const headerRow = rows[0];
+        const headers: string[] = rows[0].map(h => String(h || '').trim());
         const dataRows = rows.slice(1);
 
-        const normalizeHeader = (h: any) => h ? String(h).trim().toLowerCase() : '';
-        const normalizedHeaders = headerRow.map(normalizeHeader);
+        setFileHeaders(headers);
+        setParsedDataCache(dataRows);
 
-        const possibleHeaders: Record<string, string[]> = {
-            title: ['العنوان', 'title'],
-            amount: ['المبلغ', 'amount'],
-            category: ['الفئة', 'category'],
-            date: ['التاريخ', 'date'],
-            description: ['الوصف', 'description'],
-            isOutOfBudget: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'],
-            outOfBudgetDetails: ['تفاصيل خارج الميزانية', 'out of budget details', 'outofbudgetdetails'],
-        };
+        // Attempt to auto-map
+        const autoMap: Record<string, string> = {};
+        let allRequiredFound = true;
+
+        for (const [field, config] of Object.entries(COLUMN_MAP_CONFIG)) {
+          const foundHeader = headers.find(h => config.alternatives.includes(h.toLowerCase()));
+          if (foundHeader) {
+            autoMap[field] = foundHeader;
+          }
+        }
         
-        const headerMap: Record<string, number> = {};
-        for (const [key, alternatives] of Object.entries(possibleHeaders)) {
-            const index = normalizedHeaders.findIndex(h => alternatives.includes(h));
-            if (index !== -1) {
-                headerMap[key] = index;
+        for (const field of REQUIRED_FIELDS) {
+            if (!autoMap[field]) {
+                allRequiredFound = false;
+                break;
             }
         }
-
-        const required = { title: 'العنوان', amount: 'المبلغ', category: 'الفئة' };
-        const missingHeaders = Object.entries(required)
-            .filter(([key]) => headerMap[key] === undefined)
-            .map(([, value]) => `"${value}"`);
-
-        if (missingHeaders.length > 0) {
-            throw new Error(`عمود مطلوب مفقود: ${missingHeaders.join(', ')}. يرجى التحقق من الملف.`);
+        
+        if (allRequiredFound) {
+          // If auto-mapping is successful, process directly
+          processAndSaveExpenses(dataRows, autoMap, headers);
+        } else {
+          // Otherwise, show the mapping UI
+          setColumnMap(autoMap); // Set with what was found
+          setIsMappingColumns(true);
+           toast({
+            title: "تحتاج للمساعدة في الربط",
+            description: "لم نتمكن من التعرف على كل الأعمدة. يرجى ربطها يدويًا.",
+            variant: "default",
+          });
         }
 
-        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
-          if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return null; // Skip empty rows
-          }
-
-          const title = row[headerMap.title];
-          const amount = row[headerMap.amount];
-          const category = row[headerMap.category];
-
-          if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
-            throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ).`);
-          }
-
-          const newExp: Partial<Expense> = {
-            id: crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            title: String(title),
-            category: String(category || 'other'),
-          };
-
-          const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g,""));
-          if (isNaN(parsedAmount)) {
-              throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
-          }
-          newExp.amount = parsedAmount;
-          
-          const dateVal = headerMap.date !== undefined ? row[headerMap.date] : new Date();
-          if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
-            newExp.date = dateVal.toISOString();
-          } else if (typeof dateVal === 'string' && dateVal) {
-            const parsedDate = new Date(dateVal);
-            newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-          } else {
-            newExp.date = new Date().toISOString();
-          }
-
-          newExp.description = headerMap.description !== undefined ? String(row[headerMap.description] || '') : undefined;
-          
-          const isOutOfBudgetVal = headerMap.isOutOfBudget !== undefined ? row[headerMap.isOutOfBudget] : false;
-          newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
-          
-          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails !== undefined ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
-
-          return newExp as Expense;
-        }).filter((exp): exp is Expense => exp !== null);
-
-        localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
-        window.dispatchEvent(new CustomEvent('expensesUpdated'));
-        
-        toast({
-          title: "تم الاستيراد بنجاح",
-          description: `تم استيراد ${validatedExpenses.length} مصروف.`,
-        });
-
       } catch (error: any) {
-        console.error("Failed to import file:", error);
-        toast({
-          title: "فشل الاستيراد",
-          description: error.message || "الملف غير صالح أو لا يتبع التنسيق الصحيح.",
-          variant: "destructive",
-        });
+        console.error("Failed to parse file:", error);
+        toast({ title: "فشل الاستيراد", description: error.message || "حدث خطأ أثناء قراءة الملف.", variant: "destructive" });
       } finally {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -269,6 +235,88 @@ export default function SettingsPage() {
     };
     reader.readAsArrayBuffer(file);
   };
+  
+  const processAndSaveExpenses = (dataRows: any[][], finalMap: Record<string, string>, headers: string[]) => {
+    try {
+      const headerIndexMap: Record<string, number> = {};
+      for (const field in finalMap) {
+        headerIndexMap[field] = headers.indexOf(finalMap[field]);
+      }
+
+      const validatedExpenses: Expense[] = dataRows.map((row, index) => {
+        if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
+            return null; // Skip empty rows
+        }
+
+        const title = row[headerIndexMap.title];
+        const amount = row[headerIndexMap.amount];
+        const category = row[headerIndexMap.category];
+
+        if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
+          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ).`);
+        }
+
+        const newExp: Partial<Expense> = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          title: String(title),
+          category: String(category || 'other'),
+        };
+        
+        const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g,""));
+        if (isNaN(parsedAmount)) {
+          throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
+        }
+        newExp.amount = parsedAmount;
+        
+        const dateVal = headerIndexMap.date !== -1 ? row[headerIndexMap.date] : new Date();
+        if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+          newExp.date = dateVal.toISOString();
+        } else if (typeof dateVal === 'string' && dateVal) {
+          const parsedDate = new Date(dateVal);
+          newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+        } else {
+          newExp.date = new Date().toISOString();
+        }
+
+        newExp.description = headerIndexMap.description !== -1 ? String(row[headerIndexMap.description] || '') : undefined;
+        const isOutOfBudgetVal = headerIndexMap.isOutOfBudget !== -1 ? row[headerIndexMap.isOutOfBudget] : false;
+        newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
+        newExp.outOfBudgetDetails = headerIndexMap.outOfBudgetDetails !== -1 ? String(row[headerIndexMap.outOfBudgetDetails] || '') : undefined;
+
+        return newExp as Expense;
+      }).filter((exp): exp is Expense => exp !== null);
+      
+      localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
+      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+      
+      toast({
+        title: "تم الاستيراد بنجاح",
+        description: `تم استيراد ${validatedExpenses.length} مصروف.`,
+      });
+
+      setIsMappingColumns(false); // Hide mapping UI on success
+
+    } catch (error: any) {
+        console.error("Error processing data:", error);
+        toast({ title: "فشل معالجة البيانات", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleConfirmMapping = () => {
+    const missingRequired = REQUIRED_FIELDS.filter(field => !columnMap[field]);
+    if (missingRequired.length > 0) {
+        toast({
+            title: "حقول مطلوبة مفقودة",
+            description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f].label).join(', ')}`,
+            variant: "destructive",
+        });
+        return;
+    }
+    processAndSaveExpenses(parsedDataCache, columnMap, fileHeaders);
+  };
+
 
   if (!mounted) return null;
 
@@ -374,6 +422,47 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {isMappingColumns && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <LinkIcon className="h-6 w-6 text-primary" />
+                ربط أعمدة الملف
+            </CardTitle>
+            <CardDescription>
+                الرجاء اختيار العمود الصحيح من ملفك لكل حقل مطلوب في التطبيق.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
+                 <div key={field} className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor={`map-${field}`} className="text-right">
+                        {config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}
+                    </Label>
+                    <Select
+                        value={columnMap[field] || ''}
+                        onValueChange={(value) => setColumnMap(prev => ({...prev, [field]: value}))}
+                    >
+                        <SelectTrigger id={`map-${field}`} className="col-span-2">
+                            <SelectValue placeholder="اختر عمودًا..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">-- لا يوجد --</SelectItem>
+                            {fileHeaders.map(header => (
+                                <SelectItem key={header} value={header}>{header}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+            ))}
+          </CardContent>
+          <CardFooter className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
+              <Button onClick={handleConfirmMapping}>تأكيد الاستيراد</Button>
+          </CardFooter>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -410,6 +499,5 @@ export default function SettingsPage() {
 
     </div>
   );
-}
 
     
