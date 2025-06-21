@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react'; // Added useState, useEffect
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts'; // Kept RechartsTooltip for specific formatting
+import { BarChart2Icon, BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { Expense } from '@/types';
@@ -44,6 +44,12 @@ interface TrendChartDataItem {
   expenses: number;
 }
 
+interface MonthlySpending {
+  month: string; // e.g., "2024-06"
+  monthName: string; // e.g., "يونيو 2024"
+  total: number;
+}
+
 export default function StatisticsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +58,7 @@ export default function StatisticsPage() {
   const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
   const [trendChartData, setTrendChartData] = useState<TrendChartDataItem[]>([]);
   const [largestExpenses, setLargestExpenses] = useState<Expense[]>([]);
+  const [monthlySpending, setMonthlySpending] = useState<MonthlySpending[]>([]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -119,6 +126,26 @@ export default function StatisticsPage() {
     // Largest Expenses
     const sortedExpenses = [...currentExpenses].sort((a, b) => b.amount - a.amount);
     setLargestExpenses(sortedExpenses.slice(0, 3));
+
+    // Monthly Spending Data
+    const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
+    currentExpenses.forEach(exp => {
+      const monthKey = format(parseISO(exp.date), 'yyyy-MM');
+      monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + exp.amount;
+    });
+
+    const spendingByMonth: MonthlySpending[] = Object.entries(monthlyTotals).map(([monthKey, total]) => {
+      const monthDate = parseISO(`${monthKey}-01`);
+      const monthName = format(monthDate, 'LLLL yyyy', { locale: arSA }); 
+      return {
+        month: monthKey,
+        monthName: monthName,
+        total: total,
+      };
+    });
+
+    spendingByMonth.sort((a, b) => b.total - a.total);
+    setMonthlySpending(spendingByMonth);
   };
 
   if (!isMounted && isLoading) {
@@ -238,6 +265,28 @@ export default function StatisticsPage() {
                 })}
             </ul>
           ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+                <BarChart2Icon className="h-6 w-6 text-primary" />
+                مقارنة المصاريف الشهرية
+            </CardTitle>
+            {monthlySpending.length === 0 && <CardDescription>لا توجد بيانات كافية للمقارنة.</CardDescription>}
+        </CardHeader>
+        <CardContent>
+            {monthlySpending.length > 0 ? (
+                <ul className="space-y-3">
+                    {monthlySpending.map((monthData) => (
+                        <li key={monthData.month} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50">
+                            <span className="font-medium">{monthData.monthName}</span>
+                            <span className="font-semibold text-lg">{monthData.total.toLocaleString()} د.ع</span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 
