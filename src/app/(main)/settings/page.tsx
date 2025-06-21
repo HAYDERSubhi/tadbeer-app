@@ -166,32 +166,50 @@ export default function SettingsPage() {
           return;
         }
 
-        const validatedExpenses: Expense[] = json.map((row) => {
+        const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
+        const excelHeaders = Object.keys(json[0] || {});
+        const missingHeaders = requiredHeaders.filter(h => !excelHeaders.includes(h));
+
+        if (missingHeaders.length > 0) {
+             throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}`);
+        }
+
+        const validatedExpenses: Expense[] = json.map((row, index) => {
           const newExp: Partial<Expense> = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
 
-          for(const header in row) {
-            if(headerMapping[header]) {
-              const mappedKey = headerMapping[header] as keyof Expense;
-              if (mappedKey === 'isOutOfBudget') {
-                  (newExp as any)[mappedKey] = ['نعم', 'yes', 'true', true].includes(String(row[header]).toLowerCase());
-              } else {
-                  (newExp as any)[mappedKey] = row[header];
-              }
+          for(const arabicHeader in headerMapping) {
+            if (row.hasOwnProperty(arabicHeader)) {
+               const mappedKey = headerMapping[arabicHeader] as keyof Expense;
+               let value = row[arabicHeader];
+
+               if (mappedKey === 'amount') {
+                   const parsedAmount = parseFloat(String(value));
+                   newExp.amount = isNaN(parsedAmount) ? 0 : parsedAmount;
+               } else if (mappedKey === 'isOutOfBudget') {
+                   newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(value).toLowerCase());
+               } else {
+                   (newExp as any)[mappedKey] = value;
+               }
             }
           }
           
           if (!newExp.title || typeof newExp.amount !== 'number' || !newExp.category) {
-            throw new Error(`صف غير صالح في الملف: ${JSON.stringify(row)}. تأكد من وجود "العنوان" و "المبلغ" و "الفئة".`);
+            throw new Error(`صف غير صالح في الملف (صف رقم ${index + 2}). تأكد من وجود "العنوان" و "المبلغ" و "الفئة" بقيم صحيحة.`);
           }
           
           newExp.date = newExp.date instanceof Date ? newExp.date.toISOString() : new Date().toISOString();
 
           return newExp as Expense;
-        });
+        }).filter(exp => exp.title && exp.title.trim() !== ''); // Filter out potentially empty rows that might be parsed
+
+
+        if (validatedExpenses.length === 0 && json.length > 0) {
+            throw new Error("لم يتم العثور على بيانات مصاريف صالحة في الملف.");
+        }
 
         localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
         window.dispatchEvent(new CustomEvent('expensesUpdated'));
@@ -201,11 +219,11 @@ export default function SettingsPage() {
           description: `تم استيراد ${validatedExpenses.length} مصروف.`,
         });
 
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to import file:", error);
         toast({
           title: "فشل الاستيراد",
-          description: "الملف غير صالح أو لا يتبع التنسيق الصحيح. تأكد من أن الأعمدة مطابقة لملف التصدير.",
+          description: error.message || "الملف غير صالح أو لا يتبع التنسيق الصحيح. تأكد من أن الأعمدة مطابقة لملف التصدير.",
           variant: "destructive",
         });
       } finally {
