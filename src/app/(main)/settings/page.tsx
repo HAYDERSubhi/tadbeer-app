@@ -160,49 +160,60 @@ export default function SettingsPage() {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        // Use header: 1 to get an array of arrays for robust parsing
-        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+        const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { blankrows: false });
 
-        if (rows.length < 2) {
-          toast({ title: "الملف فارغ", description: "الملف يجب أن يحتوي على صف للأعمدة وصف واحد للبيانات على الأقل.", variant: "destructive" });
+        if (jsonData.length === 0) {
+          toast({ title: "الملف فارغ", description: "الملف لا يحتوي على بيانات.", variant: "destructive" });
           return;
         }
 
-        const headerRow = rows[0].map(h => String(h || '').trim().toLowerCase());
-        const dataRows = rows.slice(1).filter(row => row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+        const headers = Object.keys(jsonData[0] || {});
         
-        // Map headers to their column index
-        const colMap: { [key: string]: number } = {};
-        const expectedHeaders = ['العنوان', 'المبلغ', 'الفئة', 'التاريخ', 'الوصف', 'خارج الميزانية', 'تفاصيل خارج الميزانية'];
-        
-        expectedHeaders.forEach(header => {
-            const index = headerRow.indexOf(header.toLowerCase());
-            if (index !== -1) {
-                colMap[header] = index;
+        const findHeader = (possibleNames: string[]) => {
+            for (const name of possibleNames) {
+                const foundHeader = headers.find(h => h.trim().toLowerCase() === name.toLowerCase());
+                if (foundHeader) return foundHeader;
             }
-        });
-
-        // Check for required headers
-        const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
-        const missingHeaders = requiredHeaders.filter(h => colMap[h] === undefined);
-        if (missingHeaders.length > 0) {
-            throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
+            return null;
         }
 
-        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
-          const title = row[colMap['العنوان']];
-          const amount = row[colMap['المبلغ']];
-          const category = row[colMap['الفئة']];
+        const headerMap = {
+            title: findHeader(['العنوان', 'title']),
+            amount: findHeader(['المبلغ', 'amount']),
+            category: findHeader(['الفئة', 'category']),
+            date: findHeader(['التاريخ', 'date']),
+            description: findHeader(['الوصف', 'description']),
+            isOutOfBudget: findHeader(['خارج الميزانية', 'isoutofbudget', 'is out of budget']),
+            outOfBudgetDetails: findHeader(['تفاصيل خارج الميزانية', 'out of budget details'])
+        };
 
-          if (!title || !amount || !category) {
-            throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة.`);
-          }
-          
+        const requiredKeys = ['title', 'amount', 'category'];
+        const missingKeys = requiredKeys.filter(key => !headerMap[key as keyof typeof headerMap]);
+
+        if (missingKeys.length > 0) {
+            const missingArabic = missingKeys.map(key => {
+                if (key === 'title') return 'العنوان';
+                if (key === 'amount') return 'المبلغ';
+                if (key === 'category') return 'الفئة';
+                return key;
+            });
+            throw new Error(`أعمدة مطلوبة مفقودة: ${missingArabic.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
+        }
+
+        const validatedExpenses: Expense[] = jsonData.map((row, index) => {
           const newExp: Partial<Expense> = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
+
+          const title = row[headerMap.title!];
+          const amount = row[headerMap.amount!];
+          const category = row[headerMap.category!];
+
+          if (title === undefined || amount === undefined || category === undefined || String(title).trim() === '' || String(amount).trim() === '') {
+            throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (العنوان، المبلغ، الفئة).`);
+          }
 
           newExp.title = String(title);
           newExp.category = String(category);
@@ -213,33 +224,29 @@ export default function SettingsPage() {
           }
           newExp.amount = parsedAmount;
 
-          const dateVal = colMap['التاريخ'] !== undefined ? row[colMap['التاريخ']] : new Date();
-          if (dateVal instanceof Date) {
+          const dateVal = headerMap.date ? row[headerMap.date] : new Date();
+          if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
             newExp.date = dateVal.toISOString();
           } else if (typeof dateVal === 'string' && dateVal) {
             const parsedDate = new Date(dateVal);
             newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
           } else if (typeof dateVal === 'number') { // Excel date serial number
-            const parsedDate = XLSX.SSF.parse_date_code(dateVal);
-            newExp.date = new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S).toISOString();
+            const excelDate = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
+            newExp.date = isNaN(excelDate.getTime()) ? new Date().toISOString() : excelDate.toISOString();
           } else {
             newExp.date = new Date().toISOString();
           }
 
-          newExp.description = colMap['الوصف'] !== undefined ? String(row[colMap['الوصف']] || '') : undefined;
+          newExp.description = headerMap.description ? String(row[headerMap.description] || '') : undefined;
           
-          const isOutOfBudgetVal = colMap['خارج الميزانية'] !== undefined ? row[colMap['خارج الميزانية']] : false;
+          const isOutOfBudgetVal = headerMap.isOutOfBudget ? row[headerMap.isOutOfBudget] : false;
           newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal).trim().toLowerCase());
           
-          newExp.outOfBudgetDetails = colMap['تفاصيل خارج الميزانية'] !== undefined ? String(row[colMap['تفاصيل خارج الميزانية']] || '') : undefined;
+          newExp.outOfBudgetDetails = headerMap.outOfBudgetDetails ? String(row[headerMap.outOfBudgetDetails] || '') : undefined;
 
           return newExp as Expense;
         });
 
-
-        if (validatedExpenses.length === 0 && dataRows.length > 0) {
-            throw new Error("لم يتم العثور على بيانات مصاريف صالحة في الملف. يرجى التحقق من محتوى الملف.");
-        }
 
         localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
         window.dispatchEvent(new CustomEvent('expensesUpdated'));
@@ -407,3 +414,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
