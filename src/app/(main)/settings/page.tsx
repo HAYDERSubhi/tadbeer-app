@@ -44,14 +44,12 @@ export default function SettingsPage() {
       setTotalBudgetInput(budgetData.totalBudget.toString());
       setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
     } else {
-      // Default to "0" if no budget is set in localStorage
       setTotalBudgetInput("0");
       setWeeklyBudgetInput("0");
     }
   }, []);
 
   const handleSaveBudget = () => {
-    // Trim and default to "0" if empty
     const totalString = totalBudgetInput.trim() === "" ? "0" : totalBudgetInput.trim();
     const weeklyString = weeklyBudgetInput.trim() === "" ? "0" : weeklyBudgetInput.trim();
 
@@ -156,46 +154,51 @@ export default function SettingsPage() {
           return;
         }
 
-        const headerMapping: { [key: string]: keyof Expense | string } = {
-          'العنوان': 'title',
-          'المبلغ': 'amount',
-          'الفئة': 'category',
-          'التاريخ': 'date',
-          'الوصف': 'description',
-          'خارج الميزانية': 'isOutOfBudget',
-          'تفاصيل خارج الميزانية': 'outOfBudgetDetails'
-        };
-
         const validatedExpenses: Expense[] = json.map((row, index) => {
           const newExp: Partial<Expense> = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          
-          for(const requiredHeader in headerMapping) {
-            const rowHeader = Object.keys(row).find(key => key.trim().toLowerCase() === requiredHeader.toLowerCase());
 
-            if (rowHeader && row.hasOwnProperty(rowHeader)) {
-               const mappedKey = headerMapping[requiredHeader] as keyof Expense;
-               let value = row[rowHeader];
+          const getVal = (headerName: string) => {
+              const key = Object.keys(row).find(k => k.trim().toLowerCase() === headerName.toLowerCase());
+              return key ? row[key] : undefined;
+          };
 
-               if (mappedKey === 'amount') {
-                   const parsedAmount = parseFloat(String(value));
-                   newExp.amount = isNaN(parsedAmount) ? 0 : parsedAmount;
-               } else if (mappedKey === 'isOutOfBudget') {
-                   newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(value).toLowerCase());
-               } else {
-                   (newExp as any)[mappedKey] = value;
-               }
-            }
+          const title = getVal('العنوان');
+          const amount = getVal('المبلغ');
+          const category = getVal('الفئة');
+          const date = getVal('التاريخ');
+          const description = getVal('الوصف');
+          const isOutOfBudget = getVal('خارج الميزانية');
+          const outOfBudgetDetails = getVal('تفاصيل خارج الميزانية');
+
+          if (title === undefined || amount === undefined || category === undefined) {
+            throw new Error(`صف غير صالح في الملف (صف رقم ${index + 2}). تأكد من وجود أعمدة "العنوان" و "المبلغ" و "الفئة".`);
           }
           
-          if (!newExp.title || typeof newExp.amount !== 'number' || !newExp.category) {
-            throw new Error(`صف غير صالح في الملف (صف رقم ${index + 2}). تأكد من وجود "العنوان" و "المبلغ" و "الفئة" بقيم صحيحة.`);
-          }
+          newExp.title = String(title);
+          newExp.category = String(category);
+          newExp.description = description ? String(description) : undefined;
+          newExp.outOfBudgetDetails = outOfBudgetDetails ? String(outOfBudgetDetails) : undefined;
           
-          newExp.date = newExp.date instanceof Date ? newExp.date.toISOString() : new Date().toISOString();
+          const parsedAmount = parseFloat(String(amount));
+          if (isNaN(parsedAmount)) {
+              throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}.`);
+          }
+          newExp.amount = parsedAmount;
+
+          newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudget).trim().toLowerCase());
+
+          if (date instanceof Date) {
+            newExp.date = date.toISOString();
+          } else if (typeof date === 'string' && date) {
+            const parsedDate = new Date(date);
+            newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+          } else {
+            newExp.date = new Date().toISOString();
+          }
 
           return newExp as Expense;
         }).filter(exp => exp.title && exp.title.trim() !== '');
