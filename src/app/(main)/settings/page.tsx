@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import type { Expense } from '@/types';
+import * as XLSX from 'xlsx';
 
 interface UserBudgetSettings {
   totalBudget: number;
@@ -27,6 +29,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
@@ -81,6 +84,137 @@ export default function SettingsPage() {
       description: "تم حفظ إعدادات الميزانية بنجاح.",
     });
     window.dispatchEvent(new CustomEvent('budgetUpdated'));
+  };
+
+  const handleExport = () => {
+    if (!mounted) return;
+
+    const expensesJSON = localStorage.getItem('expenses');
+    if (!expensesJSON || JSON.parse(expensesJSON).length === 0) {
+      toast({
+        title: "لا توجد بيانات",
+        description: "ليس لديك أي مصاريف مسجلة لتصديرها.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const expenses: Expense[] = JSON.parse(expensesJSON);
+    
+    const dataToExport = expenses.map((exp) => ({
+      'العنوان': exp.title,
+      'المبلغ': exp.amount,
+      'الفئة': exp.category,
+      'التاريخ': exp.date,
+      'الوصف': exp.description || '',
+      'خارج الميزانية': exp.isOutOfBudget ? 'نعم' : 'لا',
+      'تفاصيل خارج الميزانية': exp.outOfBudgetDetails || ''
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "المصاريف");
+    
+    worksheet['!cols'] = [
+        { wch: 30 }, // Title
+        { wch: 15 }, // Amount
+        { wch: 15 }, // Category
+        { wch: 20 }, // Date
+        { wch: 40 }, // Description
+        { wch: 15 }, // Out of budget
+        { wch: 40 }, // Out of budget details
+    ];
+
+    XLSX.writeFile(workbook, "qicard-expenses.xlsx");
+
+    toast({
+      title: "تم التصدير بنجاح",
+      description: "تم تصدير بيانات مصاريفك إلى ملف Excel.",
+    });
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!mounted) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+        const headerMapping: { [key: string]: keyof Expense | string } = {
+          'العنوان': 'title',
+          'المبلغ': 'amount',
+          'الفئة': 'category',
+          'التاريخ': 'date',
+          'الوصف': 'description',
+          'خارج الميزانية': 'isOutOfBudget',
+          'تفاصيل خارج الميزانية': 'outOfBudgetDetails'
+        };
+        
+        if(json.length === 0) {
+          toast({ title: "الملف فارغ", description: "الملف الذي اخترته لا يحتوي على بيانات.", variant: "destructive" });
+          return;
+        }
+
+        const validatedExpenses: Expense[] = json.map((row) => {
+          const newExp: Partial<Expense> = {
+            id: crypto.randomUUID(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          for(const header in row) {
+            if(headerMapping[header]) {
+              const mappedKey = headerMapping[header] as keyof Expense;
+              if (mappedKey === 'isOutOfBudget') {
+                  (newExp as any)[mappedKey] = ['نعم', 'yes', 'true', true].includes(String(row[header]).toLowerCase());
+              } else {
+                  (newExp as any)[mappedKey] = row[header];
+              }
+            }
+          }
+          
+          if (!newExp.title || typeof newExp.amount !== 'number' || !newExp.category) {
+            throw new Error(`صف غير صالح في الملف: ${JSON.stringify(row)}. تأكد من وجود "العنوان" و "المبلغ" و "الفئة".`);
+          }
+          
+          newExp.date = newExp.date instanceof Date ? newExp.date.toISOString() : new Date().toISOString();
+
+          return newExp as Expense;
+        });
+
+        localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
+        window.dispatchEvent(new CustomEvent('expensesUpdated'));
+        
+        toast({
+          title: "تم الاستيراد بنجاح",
+          description: `تم استيراد ${validatedExpenses.length} مصروف.`,
+        });
+
+      } catch (error) {
+        console.error("Failed to import file:", error);
+        toast({
+          title: "فشل الاستيراد",
+          description: "الملف غير صالح أو لا يتبع التنسيق الصحيح. تأكد من أن الأعمدة مطابقة لملف التصدير.",
+          variant: "destructive",
+        });
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   if (!mounted) return null;
@@ -193,10 +327,18 @@ export default function SettingsPage() {
             <DatabaseZapIcon className="h-6 w-6 text-primary" />
             الحفظ والاستيراد
           </CardTitle>
+           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-            <Button className="w-full" variant="outline" disabled>تصدير البيانات (JSON)</Button>
-            <Button className="w-full" variant="outline" disabled>استيراد البيانات (JSON)</Button>
+            <Button className="w-full" variant="outline" onClick={handleExport}>تصدير البيانات (Excel)</Button>
+            <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
+             <Input 
+              type="file"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".xlsx, .xls, .csv"
+            />
         </CardContent>
       </Card>
       
