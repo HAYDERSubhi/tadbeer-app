@@ -156,16 +156,10 @@ export default function SettingsPage() {
           return;
         }
 
-        // Normalize headers by trimming whitespace from keys
-        const json = jsonFromSheet.map(row => {
-            const newRow: any = {};
-            for (const key in row) {
-                if (Object.prototype.hasOwnProperty.call(row, key)) {
-                    newRow[key.trim()] = row[key];
-                }
-            }
-            return newRow;
-        });
+        const json = jsonFromSheet;
+
+        const excelHeaders = Object.keys(json[0] || {});
+        const normalizedExcelHeaders = excelHeaders.map(h => h.trim().toLowerCase());
 
         const headerMapping: { [key: string]: keyof Expense | string } = {
           'العنوان': 'title',
@@ -178,8 +172,9 @@ export default function SettingsPage() {
         };
         
         const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
-        const excelHeaders = Object.keys(json[0] || {});
-        const missingHeaders = requiredHeaders.filter(h => !excelHeaders.includes(h));
+        const missingHeaders = requiredHeaders.filter(requiredHeader => {
+            return !normalizedExcelHeaders.includes(requiredHeader.toLowerCase());
+        });
 
         if (missingHeaders.length > 0) {
              throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}`);
@@ -191,11 +186,13 @@ export default function SettingsPage() {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
+          
+          for(const requiredHeader in headerMapping) {
+            const rowHeader = Object.keys(row).find(key => key.trim().toLowerCase() === requiredHeader.toLowerCase());
 
-          for(const arabicHeader in headerMapping) {
-            if (row.hasOwnProperty(arabicHeader)) {
-               const mappedKey = headerMapping[arabicHeader] as keyof Expense;
-               let value = row[arabicHeader];
+            if (rowHeader && row.hasOwnProperty(rowHeader)) {
+               const mappedKey = headerMapping[requiredHeader] as keyof Expense;
+               let value = row[rowHeader];
 
                if (mappedKey === 'amount') {
                    const parsedAmount = parseFloat(String(value));
@@ -215,7 +212,7 @@ export default function SettingsPage() {
           newExp.date = newExp.date instanceof Date ? newExp.date.toISOString() : new Date().toISOString();
 
           return newExp as Expense;
-        }).filter(exp => exp.title && exp.title.trim() !== ''); // Filter out potentially empty rows that might be parsed
+        }).filter(exp => exp.title && exp.title.trim() !== '');
 
 
         if (validatedExpenses.length === 0 && json.length > 0) {
@@ -387,5 +384,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
