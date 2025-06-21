@@ -103,7 +103,7 @@ export default function SettingsPage() {
       'العنوان': exp.title,
       'المبلغ': exp.amount,
       'الفئة': exp.category,
-      'التاريخ': exp.date,
+      'التاريخ': new Date(exp.date), // Export as Date object for better Excel compatibility
       'الوصف': exp.description || '',
       'خارج الميزانية': exp.isOutOfBudget ? 'نعم' : 'لا',
       'تفاصيل خارج الميزانية': exp.outOfBudgetDetails || ''
@@ -113,6 +113,7 @@ export default function SettingsPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "المصاريف");
     
+    // Set column widths for better readability
     worksheet['!cols'] = [
         { wch: 30 }, // Title
         { wch: 15 }, // Amount
@@ -122,6 +123,17 @@ export default function SettingsPage() {
         { wch: 15 }, // Out of budget
         { wch: 40 }, // Out of budget details
     ];
+
+    // Set date format for the date column
+    const dateColumn = 'D';
+    for (let i = 2; i <= dataToExport.length + 1; i++) { // Assuming data starts at row 2
+        const cellAddress = `${dateColumn}${i}`;
+        if(worksheet[cellAddress]) {
+            worksheet[cellAddress].t = 'd';
+            worksheet[cellAddress].z = 'yyyy-mm-dd';
+        }
+    }
+
 
     XLSX.writeFile(workbook, "qicard-expenses.xlsx");
 
@@ -147,65 +159,86 @@ export default function SettingsPage() {
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+        
+        // Use header: 1 to get an array of arrays for robust parsing
+        const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
 
-        if(json.length === 0) {
-          toast({ title: "الملف فارغ", description: "الملف الذي اخترته لا يحتوي على بيانات.", variant: "destructive" });
+        if (rows.length < 2) {
+          toast({ title: "الملف فارغ", description: "الملف يجب أن يحتوي على صف للأعمدة وصف واحد للبيانات على الأقل.", variant: "destructive" });
           return;
         }
 
-        const validatedExpenses: Expense[] = json.map((row, index) => {
+        const headerRow = rows[0].map(h => String(h || '').trim().toLowerCase());
+        const dataRows = rows.slice(1).filter(row => row.length > 0 && row.some(cell => cell !== null && cell !== ''));
+        
+        // Map headers to their column index
+        const colMap: { [key: string]: number } = {};
+        const expectedHeaders = ['العنوان', 'المبلغ', 'الفئة', 'التاريخ', 'الوصف', 'خارج الميزانية', 'تفاصيل خارج الميزانية'];
+        
+        expectedHeaders.forEach(header => {
+            const index = headerRow.indexOf(header.toLowerCase());
+            if (index !== -1) {
+                colMap[header] = index;
+            }
+        });
+
+        // Check for required headers
+        const requiredHeaders = ['العنوان', 'المبلغ', 'الفئة'];
+        const missingHeaders = requiredHeaders.filter(h => colMap[h] === undefined);
+        if (missingHeaders.length > 0) {
+            throw new Error(`أعمدة مطلوبة مفقودة: ${missingHeaders.join(', ')}. تأكد من تطابق أسماء الأعمدة.`);
+        }
+
+        const validatedExpenses: Expense[] = dataRows.map((row, index) => {
+          const title = row[colMap['العنوان']];
+          const amount = row[colMap['المبلغ']];
+          const category = row[colMap['الفئة']];
+
+          if (!title || !amount || !category) {
+            throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة.`);
+          }
+          
           const newExp: Partial<Expense> = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
 
-          const getVal = (headerName: string) => {
-              const key = Object.keys(row).find(k => k.trim().toLowerCase() === headerName.toLowerCase());
-              return key ? row[key] : undefined;
-          };
-
-          const title = getVal('العنوان');
-          const amount = getVal('المبلغ');
-          const category = getVal('الفئة');
-          const date = getVal('التاريخ');
-          const description = getVal('الوصف');
-          const isOutOfBudget = getVal('خارج الميزانية');
-          const outOfBudgetDetails = getVal('تفاصيل خارج الميزانية');
-
-          if (title === undefined || amount === undefined || category === undefined) {
-            throw new Error(`صف غير صالح في الملف (صف رقم ${index + 2}). تأكد من وجود أعمدة "العنوان" و "المبلغ" و "الفئة".`);
-          }
-          
           newExp.title = String(title);
           newExp.category = String(category);
-          newExp.description = description ? String(description) : undefined;
-          newExp.outOfBudgetDetails = outOfBudgetDetails ? String(outOfBudgetDetails) : undefined;
           
           const parsedAmount = parseFloat(String(amount));
           if (isNaN(parsedAmount)) {
-              throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}.`);
+              throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
           }
           newExp.amount = parsedAmount;
 
-          newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudget).trim().toLowerCase());
-
-          if (date instanceof Date) {
-            newExp.date = date.toISOString();
-          } else if (typeof date === 'string' && date) {
-            const parsedDate = new Date(date);
+          const dateVal = colMap['التاريخ'] !== undefined ? row[colMap['التاريخ']] : new Date();
+          if (dateVal instanceof Date) {
+            newExp.date = dateVal.toISOString();
+          } else if (typeof dateVal === 'string' && dateVal) {
+            const parsedDate = new Date(dateVal);
             newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
+          } else if (typeof dateVal === 'number') { // Excel date serial number
+            const parsedDate = XLSX.SSF.parse_date_code(dateVal);
+            newExp.date = new Date(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S).toISOString();
           } else {
             newExp.date = new Date().toISOString();
           }
 
+          newExp.description = colMap['الوصف'] !== undefined ? String(row[colMap['الوصف']] || '') : undefined;
+          
+          const isOutOfBudgetVal = colMap['خارج الميزانية'] !== undefined ? row[colMap['خارج الميزانية']] : false;
+          newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal).trim().toLowerCase());
+          
+          newExp.outOfBudgetDetails = colMap['تفاصيل خارج الميزانية'] !== undefined ? String(row[colMap['تفاصيل خارج الميزانية']] || '') : undefined;
+
           return newExp as Expense;
-        }).filter(exp => exp.title && exp.title.trim() !== '');
+        });
 
 
-        if (validatedExpenses.length === 0 && json.length > 0) {
-            throw new Error("لم يتم العثور على بيانات مصاريف صالحة في الملف.");
+        if (validatedExpenses.length === 0 && dataRows.length > 0) {
+            throw new Error("لم يتم العثور على بيانات مصاريف صالحة في الملف. يرجى التحقق من محتوى الملف.");
         }
 
         localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
@@ -220,7 +253,7 @@ export default function SettingsPage() {
         console.error("Failed to import file:", error);
         toast({
           title: "فشل الاستيراد",
-          description: error.message || "الملف غير صالح أو لا يتبع التنسيق الصحيح. تأكد من أن الأعمدة مطابقة لملف التصدير.",
+          description: error.message || "الملف غير صالح أو لا يتبع التنسيق الصحيح.",
           variant: "destructive",
         });
       } finally {
@@ -231,6 +264,7 @@ export default function SettingsPage() {
     };
     reader.readAsArrayBuffer(file);
   };
+
 
   if (!mounted) return null;
 
@@ -373,5 +407,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
