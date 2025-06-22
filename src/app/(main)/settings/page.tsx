@@ -25,17 +25,18 @@ interface UserBudgetSettings {
   weeklyBudget: number;
 }
 
-const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount', 'category'];
-
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'العنوان', 'title', 'merchant name'] },
-  amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount'] },
+  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'العنوان', 'title', 'merchant name', 'description'] },
+  amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount', 'price', 'total'] },
   category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
   date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
   description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes'] },
   isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
   outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'outofbudgetdetails', 'out of budget details'] },
 };
+
+const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount'];
+const LOCAL_STORAGE_MAP_KEY = 'userColumnMap';
 
 
 export default function SettingsPage() {
@@ -46,7 +47,6 @@ export default function SettingsPage() {
 
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
-  const [currentBudget, setCurrentBudget] = useState<UserBudgetSettings | null>(null);
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
@@ -59,7 +59,6 @@ export default function SettingsPage() {
     const storedBudget = localStorage.getItem('userBudgetSettings');
     if (storedBudget) {
       const budgetData = JSON.parse(storedBudget) as UserBudgetSettings;
-      setCurrentBudget(budgetData);
       setTotalBudgetInput(budgetData.totalBudget.toString());
       setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
     } else {
@@ -76,18 +75,9 @@ export default function SettingsPage() {
     const weekly = parseFloat(weeklyString);
 
     if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0) {
-      let errorDescription = "الرجاء إدخال أرقام موجبة وصحيحة للميزانية.";
-      if ((isNaN(total) || total < 0) && (isNaN(weekly) || weekly < 0)) {
-        errorDescription = "الرجاء إدخال قيم صحيحة للميزانية الشهرية والأسبوعية.";
-      } else if (isNaN(total) || total < 0) {
-        errorDescription = "الرجاء إدخال قيمة صحيحة للميزانية الشهرية.";
-      } else if (isNaN(weekly) || weekly < 0) {
-        errorDescription = "الرجاء إدخال قيمة صحيحة للميزانية الأسبوعية.";
-      }
-
       toast({
         title: "خطأ في الإدخال",
-        description: errorDescription,
+        description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية.",
         variant: "destructive",
       });
       return;
@@ -95,7 +85,6 @@ export default function SettingsPage() {
 
     const newBudgetSettings: UserBudgetSettings = { totalBudget: total, weeklyBudget: weekly };
     localStorage.setItem('userBudgetSettings', JSON.stringify(newBudgetSettings));
-    setCurrentBudget(newBudgetSettings);
     toast({
       title: "تم الحفظ",
       description: "تم حفظ إعدادات الميزانية بنجاح.",
@@ -108,11 +97,7 @@ export default function SettingsPage() {
 
     const expensesJSON = localStorage.getItem('expenses');
     if (!expensesJSON || JSON.parse(expensesJSON).length === 0) {
-      toast({
-        title: "لا توجد بيانات",
-        description: "ليس لديك أي مصاريف مسجلة لتصديرها.",
-        variant: "destructive",
-      });
+      toast({ title: "لا توجد بيانات", description: "ليس لديك أي مصاريف مسجلة لتصديرها.", variant: "destructive" });
       return;
     }
 
@@ -137,34 +122,12 @@ export default function SettingsPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "المصاريف");
     
     worksheet['!cols'] = [
-        { wch: 30 }, // اسم التاجر
-        { wch: 15 }, // المبلغ
-        { wch: 10 }, // العملة
-        { wch: 15 }, // الفئة
-        { wch: 20 }, // التاريخ
-        { wch: 40 }, // الوصف
-        { wch: 15 }, // طريقة الدفع
-        { wch: 40 }, // ملاحظات
-        { wch: 30 }, // رابط صورة الفاتورة
-        { wch: 15 }, // خارج الميزانية
-        { wch: 40 }, // تفاصيل خارج الميزانية
+        { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
+        { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 30 }, { wch: 15 }, { wch: 40 },
     ];
 
-    const dateColumn = 'E'; // A=اسم, B=المبلغ, C=العملة, D=الفئة, E=التاريخ
-    for (let i = 2; i <= dataToExport.length + 1; i++) {
-        const cellAddress = `${dateColumn}${i}`;
-        if(worksheet[cellAddress]) {
-            worksheet[cellAddress].t = 'd';
-            worksheet[cellAddress].z = 'yyyy-mm-dd';
-        }
-    }
-
     XLSX.writeFile(workbook, "qicard-expenses.xlsx");
-
-    toast({
-      title: "تم التصدير بنجاح",
-      description: "تم تصدير بيانات مصاريفك إلى ملف Excel.",
-    });
+    toast({ title: "تم التصدير بنجاح", description: "تم تصدير بيانات مصاريفك إلى ملف Excel." });
   };
 
   const handleImportClick = () => {
@@ -188,9 +151,7 @@ export default function SettingsPage() {
         
         const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
 
-        if (rows.length < 2) {
-          throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
-        }
+        if (rows.length < 1) throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
 
         const headers: string[] = rows[0].map(h => String(h || '').trim());
         const dataRows = rows.slice(1);
@@ -198,65 +159,69 @@ export default function SettingsPage() {
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
 
+        // Attempt to auto-map using saved or default configurations
+        const savedMap = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
         const autoMap: Record<string, string> = {};
-        let allRequiredFound = true;
-
+        
         for (const [field, config] of Object.entries(COLUMN_MAP_CONFIG)) {
+          const lowerCaseHeaders = headers.map(h => h.toLowerCase());
+          
+          // 1. Try saved mapping first
+          if (savedMap[field] && lowerCaseHeaders.includes(savedMap[field].toLowerCase())) {
+             autoMap[field] = savedMap[field];
+             continue;
+          }
+          
+          // 2. Try default alternatives
           const foundHeader = headers.find(h => config.alternatives.map(a => a.toLowerCase()).includes(h.toLowerCase()));
           if (foundHeader) {
             autoMap[field] = foundHeader;
           }
         }
         
-        for (const field of REQUIRED_FIELDS) {
-            if (!autoMap[field]) {
-                allRequiredFound = false;
-                break;
-            }
-        }
-        
-        if (allRequiredFound) {
-          processAndSaveExpenses(dataRows, autoMap, headers);
-        } else {
-          setColumnMap(autoMap);
-          setIsMappingColumns(true);
-           toast({
-            title: "تحتاج للمساعدة في الربط",
-            description: "لم نتمكن من التعرف على كل الأعمدة. يرجى ربطها يدويًا.",
-            variant: "default",
-          });
-        }
+        setColumnMap(autoMap);
+        setIsMappingColumns(true); // Always show mapping UI for confirmation
+        toast({
+          title: "يرجى تأكيد ربط الأعمدة",
+          description: "لقد قمنا بالتعرف على بعض الأعمدة تلقائيًا. يرجى مراجعتها وتأكيدها.",
+        });
 
       } catch (error: any) {
         console.error("Failed to parse file:", error);
         toast({ title: "فشل الاستيراد", description: error.message || "حدث خطأ أثناء قراءة الملف.", variant: "destructive" });
       } finally {
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.readAsArrayBuffer(file);
   };
   
   const processAndSaveExpenses = (dataRows: any[][], finalMap: Record<string, string>, headers: string[]) => {
-    try {
       const headerIndexMap: Record<string, number> = {};
       for (const field in finalMap) {
-        headerIndexMap[field] = headers.findIndex(h => h.toLowerCase() === finalMap[field].toLowerCase());
+        if (finalMap[field] && finalMap[field] !== '_EMPTY_') {
+            headerIndexMap[field] = headers.findIndex(h => h.toLowerCase().trim() === finalMap[field].toLowerCase().trim());
+        }
       }
 
-      const validatedExpenses: Expense[] = dataRows.map((row, index) => {
+      const newExpenses: Expense[] = [];
+      const skippedRows: number[] = [];
+
+      dataRows.forEach((row, index) => {
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return null;
+            return; // Skip empty rows
         }
 
-        const title = row[headerIndexMap.title];
-        const amount = row[headerIndexMap.amount];
-        const category = row[headerIndexMap.category];
+        const titleIndex = headerIndexMap.title;
+        const amountIndex = headerIndexMap.amount;
 
-        if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
-          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (اسم التاجر، المبلغ).`);
+        const title = (titleIndex !== -1 && titleIndex !== undefined) ? row[titleIndex] : undefined;
+        const amount = (amountIndex !== -1 && amountIndex !== undefined) ? row[amountIndex] : undefined;
+        
+        if (title === null || title === undefined || String(title).trim() === '' ||
+            amount === null || amount === undefined || String(amount).trim() === '') {
+            skippedRows.push(index + 2); // File row number
+            return;
         }
 
         const newExp: Partial<Expense> = {
@@ -264,16 +229,20 @@ export default function SettingsPage() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           title: String(title),
-          category: String(category || 'other'),
         };
-        
+
         const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g,""));
         if (isNaN(parsedAmount)) {
-          throw new Error(`قيمة "المبلغ" غير صالحة في الصف رقم ${index + 2}. يجب أن تكون رقماً.`);
+          skippedRows.push(index + 2);
+          return;
         }
         newExp.amount = parsedAmount;
-        
-        const dateVal = headerIndexMap.date !== -1 ? row[headerIndexMap.date] : new Date();
+
+        const categoryIndex = headerIndexMap.category;
+        newExp.category = (categoryIndex !== -1 && categoryIndex !== undefined && row[categoryIndex]) ? String(row[categoryIndex]) : 'other';
+
+        const dateIndex = headerIndexMap.date;
+        const dateVal = (dateIndex !== -1 && dateIndex !== undefined) ? row[dateIndex] : new Date();
         if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
           newExp.date = dateVal.toISOString();
         } else if (typeof dateVal === 'string' && dateVal) {
@@ -283,33 +252,41 @@ export default function SettingsPage() {
           newExp.date = new Date().toISOString();
         }
 
-        newExp.description = headerIndexMap.description !== -1 ? String(row[headerIndexMap.description] || '') : undefined;
-        const isOutOfBudgetVal = headerIndexMap.isOutOfBudget !== -1 ? row[headerIndexMap.isOutOfBudget] : false;
+        const descriptionIndex = headerIndexMap.description;
+        newExp.description = (descriptionIndex !== -1 && descriptionIndex !== undefined) ? String(row[descriptionIndex] || '') : undefined;
+        
+        const isOutOfBudgetIndex = headerIndexMap.isOutOfBudget;
+        const isOutOfBudgetVal = (isOutOfBudgetIndex !== -1 && isOutOfBudgetIndex !== undefined) ? row[isOutOfBudgetIndex] : false;
         newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
-        newExp.outOfBudgetDetails = headerIndexMap.outOfBudgetDetails !== -1 ? String(row[headerIndexMap.outOfBudgetDetails] || '') : undefined;
+        
+        const outOfBudgetDetailsIndex = headerIndexMap.outOfBudgetDetails;
+        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex !== -1 && outOfBudgetDetailsIndex !== undefined) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
 
-        return newExp as Expense;
-      }).filter((exp): exp is Expense => exp !== null);
+        newExpenses.push(newExp as Expense);
+      });
       
-      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
-      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...validatedExpenses]));
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+      if (newExpenses.length > 0) {
+        const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
+        localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...newExpenses]));
+        window.dispatchEvent(new CustomEvent('expensesUpdated'));
+        localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap)); // Save mapping on success
+      }
+      
+      let toastDescription = `تم استيراد ${newExpenses.length} مصروف بنجاح.`;
+      if (skippedRows.length > 0) {
+        toastDescription += ` تم تخطي ${skippedRows.length} صفوف بسبب بيانات ناقصة في الأعمدة المطلوبة.`
+      }
       
       toast({
-        title: "تم الاستيراد بنجاح",
-        description: `تم استيراد ${validatedExpenses.length} مصروف.`,
+        title: "اكتمل الاستيراد",
+        description: toastDescription,
       });
 
       setIsMappingColumns(false);
-
-    } catch (error: any) {
-        console.error("Error processing data:", error);
-        toast({ title: "فشل معالجة البيانات", description: error.message, variant: "destructive" });
-    }
   };
 
   const handleConfirmMapping = () => {
-    const missingRequired = REQUIRED_FIELDS.filter(field => !columnMap[field]);
+    const missingRequired = REQUIRED_FIELDS.filter(field => !columnMap[field] || columnMap[field] === '_EMPTY_');
     if (missingRequired.length > 0) {
         toast({
             title: "حقول مطلوبة مفقودة",
@@ -351,14 +328,6 @@ export default function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="font-size">حجم الخط</Label>
-            <Button variant="outline" disabled>متوسط (قريباً)</Button>
-          </div>
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="currency-format">عرض المبالغ</Label>
-            <Button variant="outline" disabled>مع فواصل (قريباً)</Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -373,25 +342,11 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label>
-            <Input
-              id="totalBudget"
-              type="number"
-              value={totalBudgetInput}
-              onChange={(e) => setTotalBudgetInput(e.target.value)}
-              placeholder="مثال: 5000000"
-              min="0"
-            />
+            <Input id="totalBudget" type="number" value={totalBudgetInput} onChange={(e) => setTotalBudgetInput(e.target.value)} placeholder="مثال: 5000000" min="0" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
-            <Input
-              id="weeklyBudget"
-              type="number"
-              value={weeklyBudgetInput}
-              onChange={(e) => setWeeklyBudgetInput(e.target.value)}
-              placeholder="مثال: 1000000"
-              min="0"
-            />
+            <Input id="weeklyBudget" type="number" value={weeklyBudgetInput} onChange={(e) => setWeeklyBudgetInput(e.target.value)} placeholder="مثال: 1000000" min="0" />
           </div>
         </CardContent>
         <CardFooter>
@@ -401,31 +356,7 @@ export default function SettingsPage() {
           </Button>
         </CardFooter>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListTreeIcon className="h-6 w-6 text-primary" />
-            إدارة التصنيفات
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-8">سيتم إضافة إدارة التصنيفات هنا قريباً.</p>
-        </CardContent>
-      </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCardIcon className="h-6 w-6 text-primary" />
-            إعدادات البطاقة الإلكترونية
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center py-8">سيتم إضافة إعدادات البطاقة الإلكترونية هنا قريباً.</p>
-        </CardContent>
-      </Card>
-
       {isMappingColumns && (
         <Card>
           <CardHeader>
@@ -434,7 +365,7 @@ export default function SettingsPage() {
                 ربط أعمدة الملف
             </CardTitle>
             <CardDescription>
-                الرجاء اختيار العمود الصحيح من ملفك لكل حقل مطلوب في التطبيق.
+                الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -462,7 +393,7 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-              <Button onClick={handleConfirmMapping}>تأكيد الاستيراد</Button>
+              <Button onClick={handleConfirmMapping}>تأكيد و استيراد البيانات</Button>
           </CardFooter>
         </Card>
       )}
@@ -471,20 +402,17 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DatabaseZapIcon className="h-6 w-6 text-primary" />
-            الحفظ والاستيراد
+            البيانات والتصنيفات
           </CardTitle>
-           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه.</CardDescription>
+           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه. وإدارة التصنيفات.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Button className="w-full" variant="outline" onClick={handleExport}>تصدير البيانات (Excel)</Button>
             <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
-             <Input 
-              type="file"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".xlsx, .xls, .csv"
-            />
+            <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
+            <div className="sm:col-span-2 p-4 text-center text-muted-foreground border rounded-lg">
+                سيتم إضافة إدارة التصنيفات هنا قريباً.
+            </div>
         </CardContent>
       </Card>
       
