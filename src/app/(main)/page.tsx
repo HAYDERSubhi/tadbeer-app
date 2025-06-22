@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, Edit3Icon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, ListOrderedIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react";
+import { AlertCircleIcon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amountHighToLow' | 'amountLowToHigh'>('newest');
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
 
-  const refreshExpensesAndBudget = () => {
+  const refreshExpensesAndBudget = useCallback(() => {
     const storedBudget = localStorage.getItem('userBudgetSettings');
     if (storedBudget) {
       setUserBudget(JSON.parse(storedBudget));
@@ -106,21 +106,22 @@ export default function DashboardPage() {
           setExpenses(parsedExpenses);
         } else {
           setExpenses([]);
+          localStorage.setItem('expenses', '[]'); 
         }
       } catch (error) {
         console.error("Failed to parse expenses from localStorage", error);
-        setExpenses([]); // Fallback to empty array on error
+        setExpenses([]);
         toast({
           title: "خطأ في قراءة البيانات",
           description: "تم إعادة تعيين بيانات المصاريف بسبب وجود بيانات تالفة.",
           variant: "destructive",
         });
-        localStorage.removeItem('expenses'); // Clear the corrupted data
+        localStorage.setItem('expenses', '[]');
       }
     } else {
       setExpenses([]);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -133,7 +134,7 @@ export default function DashboardPage() {
       window.removeEventListener('expensesUpdated', refreshExpensesAndBudget);
       window.removeEventListener('budgetUpdated', refreshExpensesAndBudget);
     };
-  }, []);
+  }, [refreshExpensesAndBudget]);
 
   useEffect(() => {
     if (isMounted) {
@@ -154,7 +155,6 @@ export default function DashboardPage() {
   const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
-  // const budgetProgress = userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0; // This was not used, commented for now
 
   const today = new Date();
   const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); 
@@ -398,12 +398,10 @@ export default function DashboardPage() {
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
-                          {' - '}
-                          {new Date(expense.date).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-col items-end gap-1 text-left">
                       <div className="font-bold text-primary whitespace-nowrap">
                         {expense.amount.toLocaleString()} د.ع
                       </div>
