@@ -205,44 +205,40 @@ export default function SettingsPage() {
       }
 
       const newExpenses: Expense[] = [];
-      const skippedRows: number[] = [];
 
-      dataRows.forEach((row, index) => {
+      dataRows.forEach((row) => {
+        // Skip any row that is completely empty
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return; // Skip empty rows
+            return;
         }
 
         const titleIndex = headerIndexMap.title;
         const amountIndex = headerIndexMap.amount;
 
-        const title = (titleIndex !== -1 && titleIndex !== undefined) ? row[titleIndex] : undefined;
-        const amount = (amountIndex !== -1 && amountIndex !== undefined) ? row[amountIndex] : undefined;
-        
-        if (title === null || title === undefined || String(title).trim() === '' ||
-            amount === null || amount === undefined || String(amount).trim() === '') {
-            skippedRows.push(index + 2); // File row number
-            return;
+        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
+        if (titleValue === '') {
+          titleValue = 'مصروف مستورد بدون عنوان'; // Provide default title
+        }
+
+        const amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
+        let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
+        if (isNaN(parsedAmount)) {
+          parsedAmount = 0; // Provide default amount
         }
 
         const newExp: Partial<Expense> = {
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          title: String(title),
+          title: titleValue,
+          amount: parsedAmount,
         };
 
-        const parsedAmount = parseFloat(String(amount).replace(/[^0-9.-]+/g,""));
-        if (isNaN(parsedAmount)) {
-          skippedRows.push(index + 2);
-          return;
-        }
-        newExp.amount = parsedAmount;
-
         const categoryIndex = headerIndexMap.category;
-        newExp.category = (categoryIndex !== -1 && categoryIndex !== undefined && row[categoryIndex]) ? String(row[categoryIndex]) : 'other';
+        newExp.category = (categoryIndex > -1 && row[categoryIndex]) ? String(row[categoryIndex]) : 'other';
 
         const dateIndex = headerIndexMap.date;
-        const dateVal = (dateIndex !== -1 && dateIndex !== undefined) ? row[dateIndex] : new Date();
+        const dateVal = (dateIndex > -1 && row[dateIndex]) ? row[dateIndex] : new Date();
         if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
           newExp.date = dateVal.toISOString();
         } else if (typeof dateVal === 'string' && dateVal) {
@@ -253,14 +249,14 @@ export default function SettingsPage() {
         }
 
         const descriptionIndex = headerIndexMap.description;
-        newExp.description = (descriptionIndex !== -1 && descriptionIndex !== undefined) ? String(row[descriptionIndex] || '') : undefined;
+        newExp.description = (descriptionIndex > -1 && row[descriptionIndex]) ? String(row[descriptionIndex] || '') : undefined;
         
         const isOutOfBudgetIndex = headerIndexMap.isOutOfBudget;
-        const isOutOfBudgetVal = (isOutOfBudgetIndex !== -1 && isOutOfBudgetIndex !== undefined) ? row[isOutOfBudgetIndex] : false;
+        const isOutOfBudgetVal = (isOutOfBudgetIndex > -1) ? row[isOutOfBudgetIndex] : false;
         newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
         
         const outOfBudgetDetailsIndex = headerIndexMap.outOfBudgetDetails;
-        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex !== -1 && outOfBudgetDetailsIndex !== undefined) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
+        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex > -1 && row[outOfBudgetDetailsIndex]) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
 
         newExpenses.push(newExp as Expense);
       });
@@ -272,14 +268,9 @@ export default function SettingsPage() {
         localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap)); // Save mapping on success
       }
       
-      let toastDescription = `تم استيراد ${newExpenses.length} مصروف بنجاح.`;
-      if (skippedRows.length > 0) {
-        toastDescription += ` تم تخطي ${skippedRows.length} صفوف بسبب بيانات ناقصة في الأعمدة المطلوبة.`
-      }
-      
       toast({
         title: "اكتمل الاستيراد",
-        description: toastDescription,
+        description: `تم استيراد ${newExpenses.length} مصروف بنجاح.`,
       });
 
       setIsMappingColumns(false);
@@ -290,7 +281,7 @@ export default function SettingsPage() {
     if (missingRequired.length > 0) {
         toast({
             title: "حقول مطلوبة مفقودة",
-            description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f].label).join(', ')}`,
+            description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f as keyof typeof COLUMN_MAP_CONFIG].label).join(', ')}`,
             variant: "destructive",
         });
         return;
@@ -432,5 +423,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
