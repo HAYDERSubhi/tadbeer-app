@@ -28,11 +28,11 @@ interface UserBudgetSettings {
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount', 'category'];
 
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'اسم التاجر / العنوان', alternatives: ['اسم التاجر', 'العنوان', 'title'] },
+  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'العنوان', 'title', 'merchant name'] },
   amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount'] },
   category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
   date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
-  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes', 'details'] },
+  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes'] },
   isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
   outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'outofbudgetdetails', 'out of budget details'] },
 };
@@ -48,7 +48,6 @@ export default function SettingsPage() {
   const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
   const [currentBudget, setCurrentBudget] = useState<UserBudgetSettings | null>(null);
   
-  // State for the new mapping feature
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
@@ -122,11 +121,15 @@ export default function SettingsPage() {
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
+      'العملة': 'د.ع',
       'الفئة': exp.category,
       'التاريخ': new Date(exp.date),
       'الوصف': exp.description || '',
+      'طريقة الدفع': '',
+      'ملاحظات': '',
+      'رابط صورة الفاتورة': '',
       'خارج الميزانية': exp.isOutOfBudget ? 'نعم' : 'لا',
-      'تفاصيل خارج الميزانية': exp.outOfBudgetDetails || ''
+      'تفاصيل خارج الميزانية': exp.outOfBudgetDetails || '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -134,16 +137,20 @@ export default function SettingsPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "المصاريف");
     
     worksheet['!cols'] = [
-        { wch: 30 }, // Merchant Name
-        { wch: 15 }, // Amount
-        { wch: 15 }, // Category
-        { wch: 20 }, // Date
-        { wch: 40 }, // Description
-        { wch: 15 }, // Out of budget
-        { wch: 40 }, // Out of budget details
+        { wch: 30 }, // اسم التاجر
+        { wch: 15 }, // المبلغ
+        { wch: 10 }, // العملة
+        { wch: 15 }, // الفئة
+        { wch: 20 }, // التاريخ
+        { wch: 40 }, // الوصف
+        { wch: 15 }, // طريقة الدفع
+        { wch: 40 }, // ملاحظات
+        { wch: 30 }, // رابط صورة الفاتورة
+        { wch: 15 }, // خارج الميزانية
+        { wch: 40 }, // تفاصيل خارج الميزانية
     ];
 
-    const dateColumn = 'D';
+    const dateColumn = 'E'; // A=اسم, B=المبلغ, C=العملة, D=الفئة, E=التاريخ
     for (let i = 2; i <= dataToExport.length + 1; i++) {
         const cellAddress = `${dateColumn}${i}`;
         if(worksheet[cellAddress]) {
@@ -161,7 +168,6 @@ export default function SettingsPage() {
   };
 
   const handleImportClick = () => {
-    // Reset mapping state before opening file dialog
     setIsMappingColumns(false);
     setColumnMap({});
     fileInputRef.current?.click();
@@ -192,7 +198,6 @@ export default function SettingsPage() {
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
 
-        // Attempt to auto-map
         const autoMap: Record<string, string> = {};
         let allRequiredFound = true;
 
@@ -211,11 +216,9 @@ export default function SettingsPage() {
         }
         
         if (allRequiredFound) {
-          // If auto-mapping is successful, process directly
           processAndSaveExpenses(dataRows, autoMap, headers);
         } else {
-          // Otherwise, show the mapping UI
-          setColumnMap(autoMap); // Set with what was found
+          setColumnMap(autoMap);
           setIsMappingColumns(true);
            toast({
             title: "تحتاج للمساعدة في الربط",
@@ -245,7 +248,7 @@ export default function SettingsPage() {
 
       const validatedExpenses: Expense[] = dataRows.map((row, index) => {
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return null; // Skip empty rows
+            return null;
         }
 
         const title = row[headerIndexMap.title];
@@ -253,7 +256,7 @@ export default function SettingsPage() {
         const category = row[headerIndexMap.category];
 
         if (title === null || String(title).trim() === '' || amount === null || String(amount).trim() === '') {
-          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (اسم التاجر/العنوان، المبلغ).`);
+          throw new Error(`بيانات ناقصة في الصف رقم ${index + 2}. تأكد من وجود قيم في الأعمدة المطلوبة (اسم التاجر، المبلغ).`);
         }
 
         const newExp: Partial<Expense> = {
@@ -288,7 +291,8 @@ export default function SettingsPage() {
         return newExp as Expense;
       }).filter((exp): exp is Expense => exp !== null);
       
-      localStorage.setItem('expenses', JSON.stringify(validatedExpenses));
+      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
+      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...validatedExpenses]));
       window.dispatchEvent(new CustomEvent('expensesUpdated'));
       
       toast({
@@ -296,7 +300,7 @@ export default function SettingsPage() {
         description: `تم استيراد ${validatedExpenses.length} مصروف.`,
       });
 
-      setIsMappingColumns(false); // Hide mapping UI on success
+      setIsMappingColumns(false);
 
     } catch (error: any) {
         console.error("Error processing data:", error);
