@@ -369,12 +369,9 @@ export default function DashboardPage() {
               {recentExpensesToDisplay.map((expense) => {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
-                  <li key={expense.id} className="flex items-start justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    {/* RIGHT SIDE: Icon and Details */}
-                    <div className="flex items-start gap-3 flex-1">
-                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                        {categoryInfo.icon}
-                      </span>
+                  <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    {/* RIGHT SIDE: Details and Icon */}
+                    <div className="flex items-center gap-4 flex-1">
                       <div className="flex-1 text-right">
                         <p className="font-semibold">{expense.title}</p>
                         {expense.description && (
@@ -386,10 +383,13 @@ export default function DashboardPage() {
                           {new Date(expense.date).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </p>
                       </div>
+                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                        {categoryInfo.icon}
+                      </span>
                     </div>
 
                     {/* LEFT SIDE: Amount and Delete button */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-1">
                       <div className="font-bold text-primary whitespace-nowrap">
                         {expense.amount.toLocaleString()} د.ع
                       </div>
