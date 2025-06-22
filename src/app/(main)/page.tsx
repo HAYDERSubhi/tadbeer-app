@@ -91,17 +91,34 @@ export default function DashboardPage() {
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
 
   const refreshExpensesAndBudget = () => {
-    const storedExpenses = localStorage.getItem('expenses');
-    if (storedExpenses) {
-      setExpenses(JSON.parse(storedExpenses));
-    } else {
-      setExpenses([]);
-    }
     const storedBudget = localStorage.getItem('userBudgetSettings');
     if (storedBudget) {
       setUserBudget(JSON.parse(storedBudget));
     } else {
       setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+    }
+
+    const storedExpenses = localStorage.getItem('expenses');
+    if (storedExpenses) {
+      try {
+        const parsedExpenses = JSON.parse(storedExpenses);
+        if (Array.isArray(parsedExpenses)) {
+          setExpenses(parsedExpenses);
+        } else {
+          setExpenses([]);
+        }
+      } catch (error) {
+        console.error("Failed to parse expenses from localStorage", error);
+        setExpenses([]); // Fallback to empty array on error
+        toast({
+          title: "خطأ في قراءة البيانات",
+          description: "تم إعادة تعيين بيانات المصاريف بسبب وجود بيانات تالفة.",
+          variant: "destructive",
+        });
+        localStorage.removeItem('expenses'); // Clear the corrupted data
+      }
+    } else {
+      setExpenses([]);
     }
   };
 
@@ -370,8 +387,10 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    {/* RIGHT SIDE: Details and Icon */}
                     <div className="flex items-center gap-4 flex-1">
+                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                        {categoryInfo.icon}
+                      </span>
                       <div className="flex-1 text-right">
                         <p className="font-semibold">{expense.title}</p>
                         {expense.description && (
@@ -383,12 +402,7 @@ export default function DashboardPage() {
                           {new Date(expense.date).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', hour12: true })}
                         </p>
                       </div>
-                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                        {categoryInfo.icon}
-                      </span>
                     </div>
-
-                    {/* LEFT SIDE: Amount and Delete button */}
                     <div className="flex flex-col items-end gap-1">
                       <div className="font-bold text-primary whitespace-nowrap">
                         {expense.amount.toLocaleString()} د.ع
@@ -420,3 +434,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

@@ -207,7 +207,6 @@ export default function SettingsPage() {
       const newExpenses: Expense[] = [];
 
       dataRows.forEach((row) => {
-        // Skip any row that is completely empty
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
             return;
         }
@@ -217,13 +216,13 @@ export default function SettingsPage() {
 
         let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
         if (titleValue === '') {
-          titleValue = 'مصروف مستورد بدون عنوان'; // Provide default title
+          titleValue = 'مصروف مستورد بدون عنوان';
         }
 
         const amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
         let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
         if (isNaN(parsedAmount)) {
-          parsedAmount = 0; // Provide default amount
+          parsedAmount = 0;
         }
 
         const newExp: Partial<Expense> = {
@@ -262,10 +261,19 @@ export default function SettingsPage() {
       });
       
       if (newExpenses.length > 0) {
-        const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
+        let existingExpenses: Expense[] = [];
+        try {
+            const storedExpenses = localStorage.getItem('expenses');
+            if (storedExpenses) {
+                existingExpenses = JSON.parse(storedExpenses);
+            }
+        } catch (e) {
+            console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
+        }
+        
         localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...newExpenses]));
         window.dispatchEvent(new CustomEvent('expensesUpdated'));
-        localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap)); // Save mapping on success
+        localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap));
       }
       
       toast({
@@ -423,3 +431,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
