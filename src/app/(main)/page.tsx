@@ -243,47 +243,49 @@ export default function DashboardPage() {
 
       {/* Recent Expenses List */}
       <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>أحدث المصاريف</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">آخر المصاريف التي قمت بتسجيلها هذا الشهر</CardDescription>
-          </div>
+        <CardHeader className="border-b">
+          <CardTitle>أحدث المصاريف</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {recentExpensesToDisplay.length === 0 ? (
-            <div className="text-center py-10 text-muted-foreground">
+            <div className="px-6 py-10 text-center text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-4" />
               <h3 className="text-lg font-semibold">لا توجد مصاريف بعد</h3>
               <p className="text-sm">ابدأ بإضافة أول مصروف لك من الأعلى!</p>
             </div>
           ) : (
-            <ul className="space-y-4">
+            <ul className="divide-y divide-border">
               {recentExpensesToDisplay.map((expense) => {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
-                  <li key={expense.id} className="flex items-center gap-4">
-                    <span className={`flex-shrink-0 flex items-center justify-center text-xl h-12 w-12 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                        {categoryInfo.icon}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{expense.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                            {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
-                        </p>
+                  <li key={expense.id} className="group flex cursor-pointer items-center justify-between p-4 transition-colors hover:bg-muted/50">
+                    <div className="flex items-center gap-4">
+                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                          {categoryInfo.icon}
+                      </span>
+                      <div>
+                          <p className="font-semibold">{expense.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                              {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
+                          </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-base text-foreground whitespace-nowrap">
-                          {expense.amount.toLocaleString()}&nbsp;د.ع
-                      </p>
-                       <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-50 hover:opacity-100 mt-1 -mr-2"
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          aria-label="حذف المصروف"
-                      >
-                          <Trash2Icon className="h-4 w-4" />
-                      </Button>
+                    <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className="font-semibold text-foreground whitespace-nowrap">
+                              {expense.amount.toLocaleString()}&nbsp;د.ع
+                          </p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteExpense(expense.id); }}
+                            aria-label="حذف المصروف"
+                        >
+                            <Trash2Icon className="h-4 w-4" />
+                        </Button>
+                        <ChevronLeft className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-[-2px]" />
                     </div>
                   </li>
                 );
@@ -292,8 +294,8 @@ export default function DashboardPage() {
           )}
         </CardContent>
          {allExpensesCount > 5 && (
-           <CardFooter>
-            <Button variant="outline" className="w-full mt-4" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
+           <CardFooter className="border-t p-4">
+            <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
               عرض كل المصاريف ({allExpensesCount})
               <ChevronLeft className="mr-2 h-4 w-4"/>
             </Button>
