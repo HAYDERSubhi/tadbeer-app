@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, FilterIcon, FilterXIcon, ListFilter, SortAscIcon, SortDescIcon, SettingsIcon, Trash2Icon, Loader2Icon } from "lucide-react";
+import { AlertCircleIcon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,27 +15,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
+// Grouping the dialogs for easier mapping
 const AddExpenseDialogs = [
   {
     label: "إدخال يدوي",
+    description: "أضف مصروفاً جديداً بنفسك",
     IconComponent: FilePenLine,
     formComponent: <ManualExpenseForm />,
     iconBg: "bg-blue-100 dark:bg-blue-900/50",
@@ -43,6 +36,7 @@ const AddExpenseDialogs = [
   },
   {
     label: "إدخال صوتي",
+    description: "سجل مصروفك بصوتك",
     IconComponent: Mic,
     formComponent: <VoiceExpenseForm />,
     iconBg: "bg-rose-100 dark:bg-rose-900/50",
@@ -50,6 +44,7 @@ const AddExpenseDialogs = [
   },
   {
     label: "مسح الفاتورة",
+    description: "التقط صورة لفاتورتك",
     IconComponent: ScanLine,
     formComponent: <ReceiptScanForm />,
     iconBg: "bg-teal-100 dark:bg-teal-900/50",
@@ -57,6 +52,7 @@ const AddExpenseDialogs = [
   },
   {
     label: "بطاقة إلكترونية",
+    description: "مزامنة تلقائية (قريباً)",
     IconComponent: CreditCardIcon,
     formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
     iconBg: "bg-amber-100 dark:bg-amber-900/50",
@@ -69,13 +65,12 @@ interface UserBudgetSettings {
   weeklyBudget: number;
 }
 
+// Main Dashboard Component
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<Record<string, { name: string; icon: string; color: string; id: string }>>(defaultCategories);
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amountHighToLow' | 'amountLowToHigh'>('newest');
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
 
   useEffect(() => {
@@ -86,13 +81,12 @@ export default function DashboardPage() {
       const storedBudget = localStorage.getItem('userBudgetSettings');
       if (storedBudget) {
         try {
-          const parsedBudget = JSON.parse(storedBudget);
-          setUserBudget(parsedBudget);
+          setUserBudget(JSON.parse(storedBudget));
         } catch {
           setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
         }
       } else {
-        setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+         setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
       }
 
       // Refresh Expenses
@@ -100,20 +94,14 @@ export default function DashboardPage() {
       if (storedExpenses) {
         try {
           const parsedExpenses = JSON.parse(storedExpenses);
-          if (Array.isArray(parsedExpenses)) {
+           if (Array.isArray(parsedExpenses)) {
             setExpenses(parsedExpenses);
           } else {
-            setExpenses([]);
-            localStorage.setItem('expenses', '[]'); 
+             setExpenses([]);
           }
         } catch (error) {
           console.error("Failed to parse expenses from localStorage", error);
           setExpenses([]);
-          toast({
-            title: "خطأ في قراءة البيانات",
-            description: "تم إعادة تعيين بيانات المصاريف بسبب وجود بيانات تالفة.",
-            variant: "destructive",
-          });
           localStorage.setItem('expenses', '[]');
         }
       } else {
@@ -131,19 +119,13 @@ export default function DashboardPage() {
       window.removeEventListener('expensesUpdated', refreshData);
       window.removeEventListener('budgetUpdated', refreshData);
     };
-  }, [toast]);
-
-
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('expenses', JSON.stringify(expenses));
-    }
-  }, [expenses, isMounted]);
+  }, []);
 
   const handleDeleteExpense = (expenseId: string) => {
     if (!isMounted) return;
     const updatedExpenses = expenses.filter(exp => exp.id !== expenseId);
     setExpenses(updatedExpenses);
+    localStorage.setItem('expenses', JSON.stringify(updatedExpenses));
     toast({
       title: "تم الحذف",
       description: "تم حذف المصروف بنجاح.",
@@ -164,272 +146,156 @@ export default function DashboardPage() {
   });
 
   const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const outOfBudgetExpenses = monthlyExpenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
-
-  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); 
-  const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
-
-  const currentWeekExpensesTotal = expenses
-    .filter(exp => {
-      try {
-        const expenseDate = new Date(exp.date);
-        return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
-      } catch {
-        return false;
-      }
-    })
-    .reduce((sum, exp) => sum + exp.amount, 0);
-  
-  const weeklySpendingProgress = userBudget.weeklyBudget > 0 ? (currentWeekExpensesTotal / userBudget.weeklyBudget) * 100 : 0;
-
 
   if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
-  const filteredExpenses = expenses.filter(expense => categoryFilter[expense.category as keyof typeof categoryFilter]);
-
-  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
-    switch (sortOrder) {
-      case 'newest':
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      case 'oldest':
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
-      case 'amountHighToLow':
-        return b.amount - a.amount;
-      case 'amountLowToHigh':
-        return a.amount - b.amount;
-      default:
-        return 0;
-    }
-  });
+  const sortedExpenses = [...monthlyExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
+  const allExpensesCount = sortedExpenses.length;
 
   return (
-    <div className="space-y-6 pb-24 sm:pb-8">
-      <Card>
+    <div className="space-y-8 pb-24 sm:pb-8">
+      
+      {/* Hero Balance Card */}
+      <Card className="text-center shadow-lg border-primary/20 bg-card">
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>ملخص المصاريف الشهري</CardTitle>
+            <h2 className="text-lg font-semibold text-foreground">ملخص الشهر</h2>
             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="text-xs px-2 py-1 h-auto">
-                <SettingsIcon className="ml-1 h-3 w-3" />
-                {userBudget.totalBudget > 0 ? 'تعديل الميزانية' : 'إعداد الميزانية'}
+              <Button variant="ghost" size="sm">
+                <SettingsIcon className="ml-2 h-4 w-4" />
+                إدارة الميزانية
               </Button>
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm sm:text-base">
-          {userBudget.totalBudget === 0 && (
-            <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
-              <p>لم تقم بتعيين ميزانية شهرية بعد.</p>
-              <p className="text-xs">اذهب إلى <Link href="/settings" className="text-primary underline">الإعدادات</Link> لتعيين ميزانيتك.</p>
+        <CardContent className="flex flex-col items-center justify-center gap-2">
+          <p className="text-muted-foreground">المتبقي من الميزانية</p>
+          <p className={`text-5xl font-bold ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+            {remainingBudget.toLocaleString()}<span className="text-2xl font-normal"> د.ع</span>
+          </p>
+          {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
+            <div className="flex items-center text-destructive text-sm mt-2">
+              <AlertCircleIcon className="h-4 w-4 ml-1" />
+              <span>لقد تجاوزت الميزانية!</span>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-muted-foreground">الميزانية</p>
-              <p className="text-lg font-semibold">{userBudget.totalBudget.toLocaleString()} د.ع</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">المصروف</p>
-              <p className="text-lg font-semibold text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">المتبقي</p>
-              <p className={`text-lg font-semibold ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">خارج الميزانية</p>
-              <p className="text-lg font-semibold">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
-            </div>
-          </div>
-           {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
-            <div className="flex items-center text-destructive p-2 bg-destructive/10 rounded-md mt-4">
-              <AlertCircleIcon className="h-5 w-5 ml-2" />
-              <p>لقد تجاوزت الميزانية المحددة!</p>
-            </div>
-          )}
-          <div className="pt-4">
-            <h4 className="mb-1 text-center sm:text-right font-display">متابعة الصرف الأسبوعي</h4>
-            {userBudget.weeklyBudget > 0 ? (
-              <>
-                <p className="text-xs text-muted-foreground text-center sm:text-right">المتوقع: {userBudget.weeklyBudget.toLocaleString()} د.ع هذا الأسبوع</p>
-                <Progress value={weeklySpendingProgress > 100 ? 100 : weeklySpendingProgress} className="h-3 my-2 [&>div]:bg-accent" />
-                <div className="flex justify-between text-xs text-muted-foreground px-1">
-                  <span>٠ د.ع</span>
-                  <span>{currentWeekExpensesTotal.toLocaleString()} د.ع (الحالي)</span>
-                  <span>{userBudget.weeklyBudget.toLocaleString()} د.ع</span>
-                </div>
-              </>
-            ) : (
-                 <p className="text-xs text-muted-foreground text-center mt-1">
-                    قم بتعيين ميزانية أسبوعية متوقعة من <Link href="/settings" className="text-primary underline">الإعدادات</Link> لمتابعة صرفك الأسبوعي.
-                 </p>
-            )}
-          </div>
         </CardContent>
+        <CardFooter className="flex flex-col gap-4 pt-4 border-t">
+           <Progress value={userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0} className="h-2" />
+           <div className="w-full grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div className="text-right">
+                <p className="text-muted-foreground">المصروف</p>
+                <p className="font-semibold text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
+              </div>
+              <div className="text-left">
+                <p className="text-muted-foreground">الميزانية</p>
+                <p className="font-semibold">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+              </div>
+           </div>
+        </CardFooter>
       </Card>
+      
+      {userBudget.totalBudget === 0 && !isLoading && (
+        <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
+            <p>لم تقم بتعيين ميزانية شهرية بعد.</p>
+            <p className="text-sm">اذهب إلى <Link href="/settings" className="text-primary underline font-semibold">الإعدادات</Link> لتعيين ميزانيتك.</p>
+        </div>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>طرق إدخال المصاريف</CardTitle>
-        </CardHeader>
-        <CardContent>
-           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
+      {/* Add Expense Horizontal Scroll */}
+      <div>
+        <h2 className="text-xl font-bold tracking-tight mb-4">إضافة مصروف جديد</h2>
+        <div className="relative">
+          <div className="flex w-full space-x-4 space-x-reverse overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+            {AddExpenseDialogs.map(({ label, description, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
-                   <button className="w-full text-right p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors flex items-center gap-4">
-                    <span className={cn("p-3 rounded-full", iconBg)}>
-                      <IconComponent className={cn("h-6 w-6", iconColor)} />
-                    </span>
-                    <span className="font-medium">{label}</span>
-                  </button>
+                  <div className="flex-shrink-0 w-48 cursor-pointer">
+                    <Card className="h-full hover:border-primary hover:shadow-md transition-all">
+                      <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                        <span className={cn("p-3 rounded-full", iconBg)}>
+                           <IconComponent className={cn("h-7 w-7", iconColor)} />
+                        </span>
+                        <div className="flex-1">
+                          <p className="font-semibold">{label}</p>
+                          <p className="text-xs text-muted-foreground">{description}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
-                    <CardTitle as="h2">{label}</CardTitle>
+                    <DialogTitle as="h2">{label}</DialogTitle>
                   </DialogHeader>
                   {formComponent}
                 </DialogContent>
               </Dialog>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-
+      {/* Recent Expenses List */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <div>
-            <CardTitle>المصاريف الأخيرة</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">أحدث المصاريف المسجلة</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu dir="rtl">
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <ListFilter className="ml-2 h-4 w-4" />
-                  ترتيب حسب
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>ترتيب المصاريف</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setSortOrder('newest')}>
-                  <SortDescIcon className="mr-2 h-4 w-4" /> الأحدث أولاً
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setSortOrder('oldest')}>
-                  <SortAscIcon className="mr-2 h-4 w-4" /> الأقدم أولاً
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setSortOrder('amountHighToLow')}>
-                  <SortDescIcon className="mr-2 h-4 w-4" /> المبلغ (من الأعلى للأقل)
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setSortOrder('amountLowToHigh')}>
-                  <SortAscIcon className="mr-2 h-4 w-4" /> المبلغ (من الأقل للأعلى)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu dir="rtl">
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <FilterIcon className="ml-2 h-4 w-4" />
-                  تصنيف
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>تصنيف حسب الفئة</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {Object.entries(defaultCategories).map(([key, cat]) => (
-                  <DropdownMenuCheckboxItem
-                    key={key}
-                    checked={!!categoryFilter[key]}
-                    onCheckedChange={(checked) => {
-                      setCategoryFilter(prev => {
-                        const newFilter = { ...prev };
-                        if (checked) {
-                          newFilter[key] = cat;
-                        } else {
-                          const currentKeys = Object.keys(newFilter).filter(k => k !== key);
-                          if (currentKeys.length === 0 && !checked) {
-                            toast({ title: "تنبيه", description: "يجب اختيار فئة واحدة على الأقل."});
-                            return prev; 
-                          }
-                          delete newFilter[key];
-                        }
-                        return newFilter;
-                      });
-                    }}
-                  >
-                    <span className={`inline-block ml-2 text-lg ${cat.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>{cat.icon}</span>
-                    {cat.name}
-                  </DropdownMenuCheckboxItem>
-                ))}
-                <DropdownMenuSeparator />
-                 <DropdownMenuItem onSelect={() => setCategoryFilter(defaultCategories)} className="text-primary hover:!text-primary-foreground">
-                  <FilterXIcon className="mr-2 h-4 w-4" />
-                  إعادة تعيين الفلاتر
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <CardTitle>أحدث المصاريف</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">آخر المصاريف التي قمت بتسجيلها هذا الشهر</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           {recentExpensesToDisplay.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <DollarSign className="mx-auto h-12 w-12 mb-2" />
-              <p>
-                {Object.keys(categoryFilter).length !== Object.keys(defaultCategories).length ? "لا توجد مصاريف تطابق الفلتر الحالي." : "لا توجد مصاريف مسجلة حتى الآن."}
-              </p>
-              <p className="text-sm">
-                {Object.keys(categoryFilter).length !== Object.keys(defaultCategories).length ? "جرب تغيير الفلاتر أو " : ""}
-                ابدأ بإضافة أول مصروف لك!
-              </p>
+            <div className="text-center py-10 text-muted-foreground">
+              <DollarSign className="mx-auto h-12 w-12 mb-4" />
+              <h3 className="text-lg font-semibold">لا توجد مصاريف بعد</h3>
+              <p className="text-sm">ابدأ بإضافة أول مصروف لك من الأعلى!</p>
             </div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-4">
               {recentExpensesToDisplay.map((expense) => {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
-                  <li key={expense.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card transition-colors">
-                    <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                  <li key={expense.id} className="flex items-center gap-4">
+                    <span className={`flex-shrink-0 flex items-center justify-center text-xl h-12 w-12 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
                         {categoryInfo.icon}
                     </span>
-                    
                     <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">{expense.title}</p>
                         <p className="text-sm text-muted-foreground truncate">
-                            {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
                         </p>
                     </div>
-
-                    <div className="font-semibold text-base text-right whitespace-nowrap text-foreground">
-                        {expense.amount.toLocaleString()}&nbsp;د.ع
+                    <div className="text-right">
+                      <p className="font-semibold text-base text-foreground whitespace-nowrap">
+                          {expense.amount.toLocaleString()}&nbsp;د.ع
+                      </p>
+                       <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-50 hover:opacity-100 mt-1 -mr-2"
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          aria-label="حذف المصروف"
+                      >
+                          <Trash2Icon className="h-4 w-4" />
+                      </Button>
                     </div>
-
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        aria-label="حذف المصروف"
-                    >
-                        <Trash2Icon className="h-4 w-4" />
-                    </Button>
                   </li>
                 );
               })}
             </ul>
           )}
         </CardContent>
-         {filteredExpenses.length > 5 && (
+         {allExpensesCount > 5 && (
            <CardFooter>
             <Button variant="outline" className="w-full mt-4" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
-              عرض كل المصاريف ({filteredExpenses.length})
+              عرض كل المصاريف ({allExpensesCount})
+              <ChevronLeft className="mr-2 h-4 w-4"/>
             </Button>
           </CardFooter>
         )}
