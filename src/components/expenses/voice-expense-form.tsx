@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { MicIcon, StopCircleIcon, AlertTriangleIcon, CheckCircle2Icon, Loader2Icon } from 'lucide-react';
+import { StopCircleIcon, AlertTriangleIcon, CheckCircle2Icon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 import { recordExpenseWithVoice, RecordExpenseWithVoiceOutput } from '@/ai/flows/record-expense-voice';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense } from '@/types';
@@ -13,68 +13,26 @@ import { DialogClose } from '@/components/ui/dialog';
 
 export default function VoiceExpenseForm() {
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   const [audioDataUri, setAudioDataUri] = useState<string | null>(null);
   const [transcribedData, setTranscribedData] = useState<RecordExpenseWithVoiceOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-
-  const startRecording = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setError("الوصول إلى الميكروفون غير مدعوم في هذا المتصفح.");
-      toast({ title: "خطأ", description: "الوصول إلى الميكروفون غير مدعوم.", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' }); // Common format, adjust if needed
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          setAudioDataUri(reader.result as string);
-          processAudio(reader.result as string);
-        };
-        stream.getTracks().forEach(track => track.stop()); // Stop microphone access
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setTranscribedData(null);
-      setError(null);
-      toast({ title: "بدء التسجيل", description: "تحدث الآن لتسجيل مصروفك..." });
-    } catch (err) {
-      console.error("Error starting recording:", err);
-      setError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
-      toast({ title: "خطأ في التسجيل", description: "تأكد من صلاحيات الميكروفون.", variant: "destructive" });
-    }
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      toast({ title: "انتهاء التسجيل", description: "جاري معالجة الصوت..." });
-    }
-  };
-
-  const processAudio = async (dataUri: string) => {
+  const processAudio = useCallback(async (dataUri: string) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -87,7 +45,85 @@ export default function VoiceExpenseForm() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+  
+  const startRecording = useCallback(async () => {
+    if (!isMounted) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError("الوصول إلى الميكروفون غير مدعوم في هذا المتصفح.");
+      toast({ title: "خطأ", description: "الوصول إلى الميكروفون غير مدعوم.", variant: "destructive" });
+      return;
+    }
+    
+    setTranscribedData(null);
+    setError(null);
+    setAudioDataUri(null);
+    setRecordingTime(0);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    audioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const dataUri = reader.result as string;
+          setAudioDataUri(dataUri);
+          if (dataUri) {
+            processAudio(dataUri);
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      toast({ title: "بدء التسجيل", description: "تحدث الآن لتسجيل مصروفك..." });
+      
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      setIsRecording(false);
+      setError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
+      toast({ title: "خطأ في التسجيل", description: "تأكد من صلاحيات الميكروفون.", variant: "destructive" });
+    }
+  }, [isMounted, toast, processAudio]);
+  
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+      toast({ title: "انتهاء التسجيل", description: "جاري معالجة الصوت..." });
+    }
+  }, [isRecording, toast]);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    startRecording();
+
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [startRecording]);
   
   const handleSaveExpense = () => {
     if (!transcribedData || !isMounted) return;
@@ -96,7 +132,7 @@ export default function VoiceExpenseForm() {
       id: crypto.randomUUID(),
       title: transcribedData.description || `مصروف صوتي (${transcribedData.category})`,
       amount: transcribedData.amount,
-      category: transcribedData.category.toLowerCase().replace(/\s+/g, '') || 'other', // Simple categorization
+      category: transcribedData.category.toLowerCase().replace(/\s+/g, '') || 'other',
       date: transcribedData.date ? new Date(transcribedData.date).toISOString() : new Date().toISOString(),
       description: transcribedData.description,
       createdAt: new Date().toISOString(),
@@ -127,61 +163,45 @@ export default function VoiceExpenseForm() {
 
 
   if (!isMounted) {
-    return <div className="flex justify-center items-center p-8"><Loader2Icon className="h-8 w-8 animate-spin text-primary" /></div>; 
+    return (
+        <div className="flex justify-center items-center p-8 min-h-[220px]">
+            <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
   }
 
-  return (
-    <div className="p-1 space-y-4">
-      {!transcribedData && (
-        <div className="flex flex-col items-center space-y-4">
-          <Button
-            onClick={isRecording ? stopRecording : startRecording}
-            variant={isRecording ? "destructive" : "default"}
-            size="lg"
-            className="w-full"
-          >
-            {isRecording ? (
-              <>
-                <StopCircleIcon className="ml-2 h-5 w-5 animate-pulse" />
-                إيقاف التسجيل
-              </>
-            ) : (
-              <>
-                <MicIcon className="ml-2 h-5 w-5" />
-                {audioDataUri ? 'تسجيل مرة أخرى' : 'بدء التسجيل الصوتي'}
-              </>
-            )}
-          </Button>
-          {isRecording && <p className="text-sm text-muted-foreground">التسجيل جاري... اضغط للإيقاف.</p>}
-        </div>
-      )}
-
-      {isLoading && (
+  const renderContent = () => {
+    if (isLoading) {
+      return (
         <div className="flex flex-col items-center space-y-2 text-primary">
           <Loader2Icon className="h-8 w-8 animate-spin" />
           <p>جاري تحليل الصوت...</p>
         </div>
-      )}
-
-      {error && (
-        <div className="flex flex-col items-center space-y-2 text-destructive">
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="flex flex-col items-center space-y-4 text-destructive">
           <AlertTriangleIcon className="h-8 w-8" />
           <p className="text-center">{error}</p>
-          <Button onClick={() => { setError(null); setAudioDataUri(null); }} variant="outline">
+          <Button onClick={startRecording} variant="outline">
             حاول مرة أخرى
           </Button>
         </div>
-      )}
-
-      {transcribedData && !isLoading && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      );
+    }
+    
+    if (transcribedData) {
+       return (
+        <Card className="border-none shadow-none w-full">
+          <CardHeader className="p-0 pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <CheckCircle2Icon className="h-6 w-6 text-green-500" />
               تم تحليل المصروف
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-0">
             <div>
               <Label>المبلغ:</Label>
               <Input type="text" readOnly value={`${transcribedData.amount.toLocaleString()} د.ع`} />
@@ -201,14 +221,53 @@ export default function VoiceExpenseForm() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => { setTranscribedData(null); setAudioDataUri(null); }}>تسجيل جديد</Button>
+          <CardFooter className="flex justify-between p-0 pt-4 mt-2">
+            <Button variant="outline" onClick={startRecording}>
+              <RefreshCwIcon className="ml-2 h-4 w-4"/>
+              تسجيل جديد
+            </Button>
             <DialogClose asChild>
               <Button onClick={handleSaveExpense}>حفظ المصروف</Button>
             </DialogClose>
           </CardFooter>
         </Card>
-      )}
+      );
+    }
+    
+    if (isRecording) {
+      return (
+        <div className="flex flex-col items-center justify-center space-y-6 w-full">
+          <div className="text-center">
+             <p className="text-sm text-muted-foreground animate-pulse">استمع الآن...</p>
+             <p className="text-5xl font-mono tracking-wider text-foreground mt-1">
+              {formatTime(recordingTime)}
+            </p>
+          </div>
+          <Button
+            onClick={stopRecording}
+            variant="destructive"
+            size="lg"
+            className="w-full"
+          >
+            <StopCircleIcon className="ml-2 h-5 w-5" />
+            إيقاف التسجيل
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+        <div className="flex flex-col items-center space-y-2 text-primary">
+          <Loader2Icon className="h-8 w-8 animate-spin" />
+          <p>الاستعداد للتسجيل...</p>
+        </div>
+    );
+  };
+
+
+  return (
+    <div className="p-1 space-y-4 min-h-[220px] w-full flex items-center justify-center">
+      {renderContent()}
     </div>
   );
 }
