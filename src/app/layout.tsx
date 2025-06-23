@@ -6,7 +6,6 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 
 const tajawal = Tajawal({
-  variable: '--font-tajawal',
   subsets: ['arabic', 'latin'],
   weight: ['400', '500', '700', '900'],
   display: 'swap',
@@ -23,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={tajawal.variable} suppressHydrationWarning>
-      <body className={'font-sans antialiased'}>
+    <html lang="ar" dir="rtl" className={tajawal.className} suppressHydrationWarning>
+      <body className={'antialiased'}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
