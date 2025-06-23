@@ -428,58 +428,53 @@ export default function DashboardPage() {
       )}
 
       {/* Add Expense Section */}
-      <div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            
-            {/* INLINE VOICE BUTTON */}
-            <div 
-              onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
-              className={cn(
-                "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
-                !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer hover:bg-muted/50",
-                (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
-                voiceError && "ring-2 ring-destructive/50"
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          
+          {/* INLINE VOICE BUTTON */}
+          <div 
+            onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
+            className={cn(
+              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
+              !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer hover:bg-muted/50",
+              (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
+              voiceError && "ring-2 ring-destructive/50"
+            )}
+          >
+              {renderVoiceButtonContent()}
+              {voiceError && (
+                <div className="w-full mt-auto pt-2">
+                  <Button onClick={startVoiceRecording} variant="ghost" size="sm" className="w-full text-xs">
+                     <RefreshCwIcon className="ml-2 h-3 w-3" />
+                     {'حاول مرة أخرى'}
+                  </Button>
+                </div>
               )}
-            >
-                {renderVoiceButtonContent()}
-                {voiceError && (
-                  <div className="w-full mt-auto pt-2">
-                    <Button onClick={startVoiceRecording} variant="ghost" size="sm" className="w-full text-xs">
-                       <RefreshCwIcon className="ml-2 h-3 w-3" />
-                       {'حاول مرة أخرى'}
-                    </Button>
-                  </div>
-                )}
-            </div>
+          </div>
 
-            {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
-              <Dialog key={label}>
-                <DialogTrigger asChild>
-                  <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
-                    <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", iconBg)}>
-                       <IconComponent className={cn("h-8 w-8", iconColor)} />
-                    </span>
-                    <div>
-                      <p className="font-semibold">{label}</p>
-                    </div>
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle as="h2">{label}</DialogTitle>
-                  </DialogHeader>
-                  {formComponent}
-                </DialogContent>
-              </Dialog>
-            ))}
-        </div>
+          {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
+            <Dialog key={label}>
+              <DialogTrigger asChild>
+                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+                  <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", iconBg)}>
+                     <IconComponent className={cn("h-8 w-8", iconColor)} />
+                  </span>
+                  <div>
+                    <p className="font-semibold">{label}</p>
+                  </div>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle as="h2">{label}</DialogTitle>
+                </DialogHeader>
+                {formComponent}
+              </DialogContent>
+            </Dialog>
+          ))}
       </div>
 
       {/* Recent Expenses List */}
       <Card>
-        <CardHeader>
-          <CardTitle>أحدث المصاريف</CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
           {recentExpensesToDisplay.length === 0 ? (
             <div className="px-6 py-10 text-center text-muted-foreground">
