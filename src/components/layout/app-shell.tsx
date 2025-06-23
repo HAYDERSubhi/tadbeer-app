@@ -5,17 +5,15 @@ import Link from 'next/link';
 import { WalletIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
-// import { useIsMobile } from '@/hooks/use-mobile'; // No longer needed for main navigation
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
-  // const isMobile = useIsMobile(); // No longer needed for main navigation
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-xl">
+          <Link href="/" className="flex items-center gap-2 text-xl font-display">
             <WalletIcon className="h-7 w-7 text-primary" />
             <span className="hidden sm:inline">كي - راقب مصروفك</span>
             <span className="sm:hidden">كي</span>
@@ -35,11 +33,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="flex flex-1 container mx-auto py-6">
-        {/* Sidebar navigation has been removed */}
         <main className="flex-1">{children}</main>
       </div>
-
-      {/* Mobile footer navigation has been removed */}
     </div>
   );
 }

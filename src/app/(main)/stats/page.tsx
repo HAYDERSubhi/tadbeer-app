@@ -177,7 +177,7 @@ export default function StatisticsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl mb-2">لا توجد بيانات مصاريف لعرضها</h2>
+        <h2 className="text-2xl font-display mb-2">لا توجد بيانات مصاريف لعرضها</h2>
         <p className="text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
     );
@@ -187,7 +187,7 @@ export default function StatisticsPage() {
     <div className="space-y-6 pb-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <PieChartIcon className="h-6 w-6 text-primary" />
             توزيع مصاريف الشهر الحالي
           </CardTitle>
@@ -216,7 +216,7 @@ export default function StatisticsPage() {
                     const y = cy + radius * Math.sin(-midAngle * RADIAN);
                     if (percent * 100 < 5) return null; // Hide small percentage labels
                     return (
-                      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground">
+                      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground font-semibold">
                         {`${(percent * 100).toFixed(0)}%`}
                       </text>
                     );
@@ -235,7 +235,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <TrendingUpIcon className="h-6 w-6 text-primary" />
             اتجاه المصاريف (آخر 7 أيام)
           </CardTitle>
@@ -263,7 +263,7 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <ListOrderedIcon className="h-6 w-6 text-primary" />
             أكبر مصاريف الشهر الحالي (أعلى 3)
           </CardTitle>
@@ -277,10 +277,10 @@ export default function StatisticsPage() {
                     return (
                         <li key={exp.id} className="flex justify-between items-center p-3 border-b last:border-b-0 rounded-md hover:bg-muted/50">
                             <div>
-                                <p>{exp.title}</p>
+                                <p className="font-medium">{exp.title}</p>
                                 <p className="text-xs text-muted-foreground">{categoryInfo.name} - {new Date(exp.date).toLocaleDateString('ar-IQ')}</p>
                             </div>
-                            <p className="text-destructive">{exp.amount.toLocaleString()} د.ع</p>
+                            <p className="text-destructive font-semibold">{exp.amount.toLocaleString()} د.ع</p>
                         </li>
                     );
                 })}
@@ -291,7 +291,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
+            <CardTitle className="flex items-center gap-2">
                 <TrendingUpIcon className="h-6 w-6 text-primary" />
                 اتجاه المصاريف الشهرية
             </CardTitle>
@@ -319,7 +319,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
+          <CardTitle className="flex items-center gap-2">
             <BarChart3Icon className="h-6 w-6 text-primary" />
             تنبؤات المصاريف
           </CardTitle>

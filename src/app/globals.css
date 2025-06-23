@@ -35,7 +35,7 @@
     --input: 220 15% 88%; /* Light Gray Input */
     --ring: 180 100% 30%; /* Teal Ring */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Sidebar specific colors (light theme) */
     --sidebar-background: 0 0% 96%; /* Slightly off-white for sidebar */
@@ -106,6 +106,9 @@
   body {
     @apply bg-background text-foreground;
     direction: rtl; /* RTL support */
-    font-family: var(--font-lalezar), var(--font-noto-sans-arabic), sans-serif;
+    font-family: var(--font-noto-sans-arabic), sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
   }
 }

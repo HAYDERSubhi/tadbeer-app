@@ -208,8 +208,8 @@ export default function DashboardPage() {
   const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
 
   return (
-    <div className="space-y-6 pb-16 sm:pb-8">
-      <Card className="shadow-lg">
+    <div className="space-y-6 pb-24 sm:pb-8">
+      <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>ملخص المصاريف الشهري</CardTitle>
@@ -231,19 +231,19 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div>
               <p className="text-muted-foreground">الميزانية</p>
-              <p className="text-lg">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+              <p className="text-lg font-semibold">{userBudget.totalBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">المصروف</p>
-              <p className="text-lg text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
+              <p className="text-lg font-semibold text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">المتبقي</p>
-              <p className={`text-lg ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+              <p className={`text-lg font-semibold ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>{remainingBudget.toLocaleString()} د.ع</p>
             </div>
             <div>
               <p className="text-muted-foreground">خارج الميزانية</p>
-              <p className="text-lg">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
+              <p className="text-lg font-semibold">{outOfBudgetExpenses.toLocaleString()} د.ع</p>
             </div>
           </div>
            {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
@@ -253,7 +253,7 @@ export default function DashboardPage() {
             </div>
           )}
           <div className="pt-4">
-            <h4 className="mb-1 text-center sm:text-right">متابعة الصرف الأسبوعي</h4>
+            <h4 className="mb-1 text-center sm:text-right font-display">متابعة الصرف الأسبوعي</h4>
             {userBudget.weeklyBudget > 0 ? (
               <>
                 <p className="text-xs text-muted-foreground text-center sm:text-right">المتوقع: {userBudget.weeklyBudget.toLocaleString()} د.ع هذا الأسبوع</p>
@@ -273,7 +273,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-lg">
+      <Card>
         <CardHeader>
           <CardTitle>طرق إدخال المصاريف</CardTitle>
         </CardHeader>
@@ -282,7 +282,7 @@ export default function DashboardPage() {
             {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
-                   <Button variant="outline" className="w-full h-auto py-4 px-3 text-sm sm:text-base flex flex-row items-center justify-start gap-3">
+                   <Button variant="secondary" className="w-full h-auto py-4 px-3 text-sm sm:text-base flex flex-row items-center justify-start gap-3">
                     <span className={cn("p-2.5 rounded-lg", iconBg)}>
                       <IconComponent className={cn("h-5 w-5 sm:h-6 sm:w-6", iconColor)} />
                     </span>
@@ -291,7 +291,7 @@ export default function DashboardPage() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
-                    <DialogTitle>{label}</DialogTitle>
+                    <CardTitle as="h2">{label}</CardTitle>
                   </DialogHeader>
                   {formComponent}
                 </DialogContent>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
       </Card>
 
 
-      <Card className="shadow-lg">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>المصاريف الأخيرة</CardTitle>
@@ -404,7 +404,7 @@ export default function DashboardPage() {
                                 {categoryInfo.name} - {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         </div>
-                        <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                        <span className={`flex-shrink-0 flex items-center justify-center text-xl h-12 w-12 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
                             {categoryInfo.icon}
                         </span>
                     </div>

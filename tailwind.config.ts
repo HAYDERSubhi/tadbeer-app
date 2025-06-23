@@ -12,7 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-lalezar)", ...fontFamily.sans],
+        sans: ["var(--font-noto-sans-arabic)", ...fontFamily.sans],
+        display: ["var(--font-lalezar)"],
         mono: [...fontFamily.mono],
       },
       colors: {
