@@ -51,7 +51,7 @@ export default function SettingsPage() {
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  const [columnMap, setColumnMap] = useState<Record<string, string>>({});
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({}); // Maps field -> header name
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
 
@@ -200,80 +200,93 @@ export default function SettingsPage() {
   };
   
   const processAndSaveExpenses = (dataRows: any[][], finalMap: Record<string, string>, headers: string[]) => {
-      const headerIndexMap: Record<string, number> = {};
-      for (const field in finalMap) {
-        if (finalMap[field] && finalMap[field] !== '_EMPTY_') {
-            headerIndexMap[field] = headers.findIndex(h => h.toLowerCase().trim() === finalMap[field].toLowerCase().trim());
-        }
-      }
-
-      const categoryNameMap: Record<string, string> = Object.values(CATEGORIES).reduce((acc, cat) => {
-          acc[cat.name.toLowerCase()] = cat.id;
-          return acc;
-      }, {} as Record<string, string>);
+      // Step 1: Create a lookup map from header name (lowercase, trimmed) to its original index.
+      const headerNameToIndexMap = new Map<string, number>();
+      headers.forEach((header, index) => {
+          if (typeof header === 'string') {
+              headerNameToIndexMap.set(header.toLowerCase().trim(), index);
+          }
+      });
+      
+      // Step 2: Create a reverse map for category names (e.g., 'طعام' -> 'food')
+      const categoryNameToIdMap = new Map<string, string>();
+      Object.values(CATEGORIES).forEach(cat => {
+          categoryNameToIdMap.set(cat.name.toLowerCase(), cat.id);
+      });
 
       const newExpenses: Expense[] = [];
 
       dataRows.forEach((row) => {
+        // Skip empty rows
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
             return;
         }
 
-        const titleIndex = headerIndexMap.title;
-        let titleValue = (titleIndex !== undefined && titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
-        if (!titleValue) {
-          titleValue = 'مصروف مستورد بدون عنوان';
+        // Helper function to get value from a row using the app field name (e.g., 'title')
+        const getCellData = (fieldName: keyof typeof COLUMN_MAP_CONFIG): any => {
+            const mappedHeaderName = finalMap[fieldName];
+            if (!mappedHeaderName || mappedHeaderName === '_EMPTY_') return null;
+
+            const headerIndex = headerNameToIndexMap.get(mappedHeaderName.toLowerCase().trim());
+            if (headerIndex === undefined) return null;
+
+            return row[headerIndex];
+        };
+
+        // Step 3: Extract and process data for each field
+        let title = String(getCellData('title') || '').trim();
+        if (!title) {
+          title = 'مصروف مستورد بدون عنوان';
         }
 
-        const amountIndex = headerIndexMap.amount;
-        let amountValue = (amountIndex !== undefined && amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
-        let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
-        if (isNaN(parsedAmount)) {
-          parsedAmount = 0;
+        const rawAmount = getCellData('amount');
+        let amount = 0;
+        if (rawAmount !== null && rawAmount !== undefined) {
+             const parsed = parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,""));
+             if (!isNaN(parsed)) {
+                 amount = parsed;
+             }
         }
 
-        const newExp: Partial<Expense> = {
+        const rawCategoryName = String(getCellData('category') || '').toLowerCase().trim();
+        let category = categoryNameToIdMap.get(rawCategoryName) || 'other';
+
+        const rawDate = getCellData('date');
+        let date = new Date().toISOString();
+        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+          date = rawDate.toISOString();
+        } else if (typeof rawDate === 'string' && rawDate) {
+          const parsedDate = new Date(rawDate);
+          if (!isNaN(parsedDate.getTime())) {
+            date = parsedDate.toISOString();
+          }
+        }
+
+        const description = String(getCellData('description') || '');
+        
+        const rawIsOutOfBudget = getCellData('isOutOfBudget');
+        const isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(rawIsOutOfBudget || '').trim().toLowerCase());
+
+        const outOfBudgetDetails = String(getCellData('outOfBudgetDetails') || '');
+
+        // Step 4: Assemble the new expense object
+        const newExp: Expense = {
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          title: titleValue,
-          amount: parsedAmount,
+          title: title,
+          amount: amount,
+          category: category,
+          date: date,
+          description: description || undefined,
+          isOutOfBudget: isOutOfBudget,
+          outOfBudgetDetails: outOfBudgetDetails || undefined,
         };
-
-        const categoryIndex = headerIndexMap.category;
-        let categoryId = 'other';
-        if (categoryIndex !== undefined && categoryIndex > -1 && row[categoryIndex]) {
-            const rawCategoryName = String(row[categoryIndex]).toLowerCase().trim();
-            if (categoryNameMap[rawCategoryName]) {
-                categoryId = categoryNameMap[rawCategoryName];
-            }
-        }
-        newExp.category = categoryId;
-
-        const dateIndex = headerIndexMap.date;
-        const dateVal = (dateIndex !== undefined && dateIndex > -1 && row[dateIndex]) ? row[dateIndex] : new Date();
-        if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
-          newExp.date = dateVal.toISOString();
-        } else if (typeof dateVal === 'string' && dateVal) {
-          const parsedDate = new Date(dateVal);
-          newExp.date = isNaN(parsedDate.getTime()) ? new Date().toISOString() : parsedDate.toISOString();
-        } else {
-          newExp.date = new Date().toISOString();
-        }
-
-        const descriptionIndex = headerIndexMap.description;
-        newExp.description = (descriptionIndex !== undefined && descriptionIndex > -1 && row[descriptionIndex]) ? String(row[descriptionIndex] || '') : undefined;
         
-        const isOutOfBudgetIndex = headerIndexMap.isOutOfBudget;
-        const isOutOfBudgetVal = (isOutOfBudgetIndex !== undefined && isOutOfBudgetIndex > -1) ? row[isOutOfBudgetIndex] : false;
-        newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
-        
-        const outOfBudgetDetailsIndex = headerIndexMap.outOfBudgetDetails;
-        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex !== undefined && outOfBudgetDetailsIndex > -1 && row[outOfBudgetDetailsIndex]) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
-
-        newExpenses.push(newExp as Expense);
+        newExpenses.push(newExp);
       });
       
+      // Step 5: Save to localStorage
       let existingExpenses: Expense[] = [];
       try {
           const storedExpenses = localStorage.getItem('expenses');
@@ -284,13 +297,12 @@ export default function SettingsPage() {
               }
           }
       } catch (e) {
-          console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
+          console.error("Could not parse existing expenses from localStorage, overwriting.", e);
           toast({
             title: "تحذير",
             description: "تم العثور على بيانات تالفة، سيتم الكتابة فوقها.",
             variant: "destructive"
           });
-          existingExpenses = [];
       }
       
       const combinedExpenses = [...existingExpenses, ...newExpenses];
@@ -305,6 +317,7 @@ export default function SettingsPage() {
 
       setIsMappingColumns(false);
   };
+
 
   const handleConfirmMapping = () => {
     const missingRequired = REQUIRED_FIELDS.filter(field => !columnMap[field] || columnMap[field] === '_EMPTY_');
@@ -453,3 +466,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
