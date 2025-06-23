@@ -12,8 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-tajawal)", ...fontFamily.sans],
-        display: ["var(--font-tajawal)"],
+        sans: ["var(--font-noto-naskh-arabic)", ...fontFamily.sans],
+        display: ["var(--font-noto-naskh-arabic)"],
         mono: [...fontFamily.mono],
       },
       colors: {
