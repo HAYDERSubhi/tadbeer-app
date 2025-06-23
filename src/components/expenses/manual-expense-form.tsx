@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { DialogClose } from '@/components/ui/dialog';
+import { CATEGORIES } from '@/lib/constants';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -37,17 +38,6 @@ const expenseSchema = z.object({
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
-
-// Mock categories, ideally this would come from a global state or props
-const categories = [
-  { id: 'food', name: 'طعام' },
-  { id: 'transport', name: 'مواصلات' },
-  { id: 'shopping', name: 'تسوق' },
-  { id: 'bills', name: 'فواتير' },
-  { id: 'health', name: 'صحة' },
-  { id: 'entertainment', name: 'ترفيه' },
-  { id: 'other', name: 'أخرى' },
-];
 
 export default function ManualExpenseForm() {
   const { toast } = useToast();
@@ -137,7 +127,7 @@ export default function ManualExpenseForm() {
                 <SelectValue placeholder="اختر فئة" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
+                {Object.values(CATEGORIES).map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
                   </SelectItem>
