@@ -37,13 +37,13 @@ interface UserBudgetSettings {
 }
 
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'merchant name', 'title'] },
-  amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount', 'price', 'total'] },
-  category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
-  date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
-  description: { label: 'الوصف', alternatives: ['الوصف', 'description', 'ملاحظات', 'notes'] },
-  isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'is out of budget'] },
-  outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'out of budget details']},
+  title: { label: 'اسم التاجر' },
+  amount: { label: 'المبلغ' },
+  category: { label: 'الفئة' },
+  date: { label: 'التاريخ' },
+  description: { label: 'الوصف' },
+  isOutOfBudget: { label: 'خارج الميزانية' },
+  outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية' },
 };
 
 
@@ -62,7 +62,7 @@ export default function SettingsPage() {
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  const [columnMap, setColumnMap] = useState<Record<string, string>>({}); // Maps field -> header index
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({}); // Maps field -> header name
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
 
@@ -227,14 +227,9 @@ export default function SettingsPage() {
         headerToIndexMap.set(header, index);
       });
 
-      const categoryNameToIdMap = new Map<string, string>();
-      Object.values(CATEGORIES).forEach(cat => {
-          categoryNameToIdMap.set(cat.name.toLowerCase(), cat.id);
-      });
-
       const newExpenses: Expense[] = [];
 
-      parsedDataCache.forEach((row) => {
+      parsedDataCache.forEach((row, rowIndex) => {
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
             return;
         }
@@ -247,12 +242,18 @@ export default function SettingsPage() {
             return row[headerIndex];
         };
 
-        const title = String(getCellData('title') || 'مصروف مستورد بدون عنوان').trim();
+        const title = String(getCellData('title') || `مصروف مستورد - صف ${rowIndex + 2}`).trim();
         const rawAmount = getCellData('amount');
         const amount = rawAmount !== null ? parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,"")) || 0 : 0;
         
-        const rawCategoryName = String(getCellData('category') || '').toLowerCase().trim();
-        const category = categoryNameToIdMap.get(rawCategoryName) || 'other';
+        let foundCategoryId = 'other';
+        const rawCategoryName = String(getCellData('category') || '').trim();
+        if (rawCategoryName) {
+            const categoryEntry = Object.entries(CATEGORIES).find(([, catData]) => catData.name === rawCategoryName);
+            if (categoryEntry) {
+                foundCategoryId = categoryEntry[0]; // This is the ID, e.g., 'food'
+            }
+        }
 
         const rawDate = getCellData('date');
         let date = new Date().toISOString();
@@ -271,11 +272,11 @@ export default function SettingsPage() {
           updatedAt: new Date().toISOString(),
           title: title,
           amount: amount,
-          category: category,
+          category: foundCategoryId,
           date: date,
-          description: String(getCellData('description') || undefined),
+          description: String(getCellData('description') || '').trim() || undefined,
           isOutOfBudget: ['نعم', 'yes', 'true', true, '1', 1].includes(String(getCellData('isOutOfBudget') || '').trim().toLowerCase()),
-          outOfBudgetDetails: String(getCellData('outOfBudgetDetails') || undefined),
+          outOfBudgetDetails: String(getCellData('outOfBudgetDetails') || '').trim() || undefined,
         };
         
         newExpenses.push(newExp);
@@ -291,7 +292,7 @@ export default function SettingsPage() {
               }
           }
       } catch (e) {
-          console.error("Could not parse existing expenses from localStorage.", e);
+          console.error("Could not parse existing expenses from localStorage. Overwriting.", e);
           toast({
             title: "تحذير",
             description: "تم العثور على بيانات سابقة تالفة، سيتم الكتابة فوقها.",
@@ -310,10 +311,6 @@ export default function SettingsPage() {
 
       setIsMappingColumns(false);
       window.dispatchEvent(new CustomEvent('expensesUpdated'));
-  };
-
-  const handleConfirmMapping = () => {
-    processAndSaveExpenses();
   };
   
   const handleDeleteAllData = () => {
@@ -440,7 +437,7 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-              <Button onClick={handleConfirmMapping}>تأكيد و استيراد البيانات</Button>
+              <Button onClick={processAndSaveExpenses}>تأكيد و استيراد البيانات</Button>
           </CardFooter>
         </Card>
       )}
@@ -507,3 +504,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
