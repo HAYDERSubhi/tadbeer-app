@@ -227,6 +227,11 @@ export default function SettingsPage() {
         headerToIndexMap.set(header, index);
       });
 
+      const categoryNameToIdMap = new Map<string, string>();
+      Object.entries(CATEGORIES).forEach(([id, catData]) => {
+          categoryNameToIdMap.set(catData.name.trim(), id);
+      });
+
       const newExpenses: Expense[] = [];
 
       parsedDataCache.forEach((row, rowIndex) => {
@@ -246,14 +251,8 @@ export default function SettingsPage() {
         const rawAmount = getCellData('amount');
         const amount = rawAmount !== null ? parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,"")) || 0 : 0;
         
-        let foundCategoryId = 'other';
         const rawCategoryName = String(getCellData('category') || '').trim();
-        if (rawCategoryName) {
-            const categoryEntry = Object.entries(CATEGORIES).find(([, catData]) => catData.name === rawCategoryName);
-            if (categoryEntry) {
-                foundCategoryId = categoryEntry[0]; // This is the ID, e.g., 'food'
-            }
-        }
+        const foundCategoryId = categoryNameToIdMap.get(rawCategoryName) || 'other';
 
         const rawDate = getCellData('date');
         let date = new Date().toISOString();
@@ -281,6 +280,15 @@ export default function SettingsPage() {
         
         newExpenses.push(newExp);
       });
+
+      if (newExpenses.length === 0) {
+        toast({
+            title: "لم يتم استيراد أي بيانات",
+            description: "لم يتم العثور على أي صفوف صالحة في الملف. يرجى التأكد من ربط الأعمدة المطلوبة بشكل صحيح.",
+            variant: "destructive",
+        });
+        return;
+      }
       
       let existingExpenses: Expense[] = [];
       try {
@@ -504,5 +512,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

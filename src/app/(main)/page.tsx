@@ -380,30 +380,33 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    {/* Right side group: Icon + Text */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                          {categoryInfo.icon}
-                      </span>
-                      <div className="flex-1 text-right min-w-0">
-                          <p className="font-semibold truncate">{expense.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
-                          </p>
-                      </div>
+                        <div className="flex-1 text-right min-w-0">
+                            <p className="font-semibold truncate">{expense.title}</p>
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {categoryInfo.name} - {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                        <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                            {categoryInfo.icon}
+                        </span>
                     </div>
+
+                    {/* Left side group: Amount + Delete button */}
                     <div className="flex flex-col items-end gap-1 text-left flex-shrink-0">
-                      <div className="font-bold text-primary whitespace-nowrap">
-                          {expense.amount.toLocaleString()} د.ع
-                      </div>
-                      <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive/80"
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          aria-label="حذف المصروف"
-                      >
-                          <Trash2Icon className="h-4 w-4" />
-                      </Button>
+                        <div className="font-bold text-lg text-primary whitespace-nowrap">
+                            {expense.amount.toLocaleString()} د.ع
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive/80"
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            aria-label="حذف المصروف"
+                        >
+                            <Trash2Icon className="h-4 w-4" />
+                        </Button>
                     </div>
                   </li>
                 );
