@@ -27,17 +27,13 @@ interface UserBudgetSettings {
 }
 
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'العنوان', 'title', 'merchant name', 'description'] },
+  title: { label: 'اسم التاجر', alternatives: ['اسم التاجر', 'merchant name', 'title'] },
   amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount', 'price', 'total'] },
   category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
   date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
-  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes', 'تفاصيل خارج الميزانية'] },
-  isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
-  // Unused Excel columns for export context
-  currency: { label: 'العملة', alternatives: ['العملة', 'currency']},
-  paymentMethod: { label: 'طريقة الدفع', alternatives: ['طريقة الدفع', 'payment method']},
-  receiptUrl: { label: 'رابط صورة الفاتورة', alternatives: ['رابط صورة الفاتورة', 'receipt url', 'receipt link']},
-  notes: { label: 'ملاحظات', alternatives: ['ملاحظات', 'notes']},
+  description: { label: 'الوصف', alternatives: ['الوصف', 'description', 'ملاحظات', 'notes'] },
+  isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'is out of budget'] },
+  outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'out of budget details']},
 };
 
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount'];
@@ -106,7 +102,12 @@ export default function SettingsPage() {
       return;
     }
 
-    const expenses: Expense[] = JSON.parse(expensesJSON);
+    let expenses: Expense[];
+    try {
+      expenses = JSON.parse(expensesJSON);
+    } catch {
+      expenses = [];
+    }
     
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
@@ -213,19 +214,19 @@ export default function SettingsPage() {
 
       const newExpenses: Expense[] = [];
 
-      dataRows.forEach((row, index) => {
+      dataRows.forEach((row) => {
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
             return;
         }
 
         const titleIndex = headerIndexMap.title;
-        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
+        let titleValue = (titleIndex !== undefined && titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
         if (!titleValue) {
           titleValue = 'مصروف مستورد بدون عنوان';
         }
 
         const amountIndex = headerIndexMap.amount;
-        let amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
+        let amountValue = (amountIndex !== undefined && amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
         let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
         if (isNaN(parsedAmount)) {
           parsedAmount = 0;
@@ -241,7 +242,7 @@ export default function SettingsPage() {
 
         const categoryIndex = headerIndexMap.category;
         let categoryId = 'other';
-        if (categoryIndex > -1 && row[categoryIndex]) {
+        if (categoryIndex !== undefined && categoryIndex > -1 && row[categoryIndex]) {
             const rawCategoryName = String(row[categoryIndex]).toLowerCase().trim();
             if (categoryNameMap[rawCategoryName]) {
                 categoryId = categoryNameMap[rawCategoryName];
@@ -250,7 +251,7 @@ export default function SettingsPage() {
         newExp.category = categoryId;
 
         const dateIndex = headerIndexMap.date;
-        const dateVal = (dateIndex > -1 && row[dateIndex]) ? row[dateIndex] : new Date();
+        const dateVal = (dateIndex !== undefined && dateIndex > -1 && row[dateIndex]) ? row[dateIndex] : new Date();
         if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
           newExp.date = dateVal.toISOString();
         } else if (typeof dateVal === 'string' && dateVal) {
@@ -261,13 +262,14 @@ export default function SettingsPage() {
         }
 
         const descriptionIndex = headerIndexMap.description;
-        newExp.description = (descriptionIndex > -1 && row[descriptionIndex]) ? String(row[descriptionIndex] || '') : undefined;
+        newExp.description = (descriptionIndex !== undefined && descriptionIndex > -1 && row[descriptionIndex]) ? String(row[descriptionIndex] || '') : undefined;
         
         const isOutOfBudgetIndex = headerIndexMap.isOutOfBudget;
-        const isOutOfBudgetVal = (isOutOfBudgetIndex > -1) ? row[isOutOfBudgetIndex] : false;
+        const isOutOfBudgetVal = (isOutOfBudgetIndex !== undefined && isOutOfBudgetIndex > -1) ? row[isOutOfBudgetIndex] : false;
         newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
         
-        newExp.outOfBudgetDetails = newExp.description; // Map description to out of budget details as well
+        const outOfBudgetDetailsIndex = headerIndexMap.outOfBudgetDetails;
+        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex !== undefined && outOfBudgetDetailsIndex > -1 && row[outOfBudgetDetailsIndex]) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
 
         newExpenses.push(newExp as Expense);
       });
@@ -283,6 +285,11 @@ export default function SettingsPage() {
           }
       } catch (e) {
           console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
+          toast({
+            title: "تحذير",
+            description: "تم العثور على بيانات تالفة، سيتم الكتابة فوقها.",
+            variant: "destructive"
+          });
           existingExpenses = [];
       }
       
