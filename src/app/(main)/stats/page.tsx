@@ -66,6 +66,7 @@ export default function StatisticsPage() {
   const [trendChartData, setTrendChartData] = useState<TrendChartDataItem[]>([]);
   const [categorySummary, setCategorySummary] = useState<CategorySummaryItem[]>([]);
   const [totalForPeriod, setTotalForPeriod] = useState(0);
+  const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -328,14 +329,20 @@ export default function StatisticsPage() {
                   outerRadius={100}
                   innerRadius={70}
                   labelLine={false}
-                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+                  onMouseEnter={(data) => {
+                    setActiveDonutSlice(data);
+                  }}
+                  onMouseLeave={() => {
+                    setActiveDonutSlice(null);
+                  }}
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
                     const RADIAN = Math.PI / 180;
                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                     const x = cx + radius * Math.cos(-midAngle * RADIAN);
                     const y = cy + radius * Math.sin(-midAngle * RADIAN);
                     if (percent * 100 < 5) return null;
                     return (
-                      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground font-semibold">
+                      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs fill-primary-foreground font-semibold pointer-events-none">
                         {`${(percent * 100).toFixed(0)}%`}
                       </text>
                     );
@@ -346,9 +353,14 @@ export default function StatisticsPage() {
                   ))}
                 </Pie>
                  <foreignObject width="100%" height="100%">
-                    <div className="w-full h-full flex flex-col justify-center items-center">
-                      <p className="text-sm text-muted-foreground">الإجمالي</p>
-                      <p className="text-xl font-bold">{totalForPeriod.toLocaleString()}</p>
+                    <div className="w-full h-full flex flex-col justify-center items-center text-center">
+                      <p className="text-sm text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
+                      <p className="text-2xl font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
+                       {activeDonutSlice && totalForPeriod > 0 && (
+                        <p className="text-sm font-semibold" style={{color: activeDonutSlice.fill}}>
+                            {`${((activeDonutSlice.value / totalForPeriod) * 100).toFixed(1)}%`}
+                        </p>
+                      )}
                     </div>
                  </foreignObject>
                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
