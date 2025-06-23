@@ -1,11 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { AlertCircleIcon, DollarSign, FilePenLine, Mic, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft } from "lucide-react";
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -16,13 +15,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import VoiceExpenseForm from '@/components/expenses/voice-expense-form';
 import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
+import { recordExpenseWithVoice, RecordExpenseWithVoiceOutput } from '@/ai/flows/record-expense-voice';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 // Grouping the dialogs for easier mapping
 const AddExpenseDialogs = [
@@ -33,14 +34,6 @@ const AddExpenseDialogs = [
     formComponent: <ManualExpenseForm />,
     iconBg: "bg-blue-100 dark:bg-blue-900/50",
     iconColor: "text-blue-600 dark:text-blue-300"
-  },
-  {
-    label: "إدخال صوتي",
-    description: "سجل مصروفك بصوتك",
-    IconComponent: Mic,
-    formComponent: <VoiceExpenseForm />,
-    iconBg: "bg-rose-100 dark:bg-rose-900/50",
-    iconColor: "text-rose-600 dark:text-rose-300"
   },
   {
     label: "مسح الفاتورة",
@@ -72,6 +65,18 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
+
+  // === Voice Recording State ===
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [voiceRecordingTime, setVoiceRecordingTime] = useState(0);
+  const [voiceTranscribedData, setVoiceTranscribedData] = useState<RecordExpenseWithVoiceOutput | null>(null);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  
+  const voiceMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const voiceAudioChunksRef = useRef<Blob[]>([]);
+  const voiceTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // =============================
 
   useEffect(() => {
     setIsMounted(true);
@@ -118,6 +123,14 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('expensesUpdated', refreshData);
       window.removeEventListener('budgetUpdated', refreshData);
+      
+      // Cleanup for voice recorder
+      if (voiceMediaRecorderRef.current && voiceMediaRecorderRef.current.state === 'recording') {
+        voiceMediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+      if (voiceTimerIntervalRef.current) {
+        clearInterval(voiceTimerIntervalRef.current);
+      }
     };
   }, []);
 
@@ -131,6 +144,200 @@ export default function DashboardPage() {
       description: "تم حذف المصروف بنجاح.",
     });
   };
+
+  // === Voice Recording Functions ===
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  const processVoiceAudio = useCallback(async (dataUri: string) => {
+    setIsVoiceLoading(true);
+    setVoiceError(null);
+    try {
+      const result = await recordExpenseWithVoice({ voiceRecordingDataUri: dataUri });
+      setVoiceTranscribedData(result);
+    } catch (e) {
+      console.error("Error processing voice:", e);
+      setVoiceError("حدث خطأ أثناء تحليل الصوت. حاول مرة أخرى.");
+    } finally {
+      setIsVoiceLoading(false);
+    }
+  }, []);
+  
+  const stopVoiceRecording = useCallback(() => {
+    if (voiceMediaRecorderRef.current && isVoiceRecording) {
+      voiceMediaRecorderRef.current.stop();
+      setIsVoiceRecording(false);
+      if (voiceTimerIntervalRef.current) {
+        clearInterval(voiceTimerIntervalRef.current);
+      }
+    }
+  }, [isVoiceRecording]);
+
+  const startVoiceRecording = useCallback(async () => {
+    if (!isMounted || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setVoiceError("الوصول إلى الميكروفون غير مدعوم أو مسموح به.");
+      toast({ title: "خطأ", description: "تأكد من صلاحيات الميكروفون.", variant: "destructive" });
+      return;
+    }
+    
+    // Reset all states
+    setVoiceTranscribedData(null);
+    setVoiceError(null);
+    setVoiceRecordingTime(0);
+    if (voiceTimerIntervalRef.current) clearInterval(voiceTimerIntervalRef.current);
+    voiceAudioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceMediaRecorderRef.current = new MediaRecorder(stream);
+
+      voiceMediaRecorderRef.current.ondataavailable = (event) => {
+        voiceAudioChunksRef.current.push(event.data);
+      };
+
+      voiceMediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(voiceAudioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const dataUri = reader.result as string;
+          if (dataUri) {
+            processVoiceAudio(dataUri);
+          }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      voiceMediaRecorderRef.current.start();
+      setIsVoiceRecording(true);
+      
+      voiceTimerIntervalRef.current = setInterval(() => {
+        setVoiceRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      setIsVoiceRecording(false);
+      setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
+    }
+  }, [isMounted, processVoiceAudio, toast]);
+  
+  const handleSaveVoiceExpense = () => {
+    if (!voiceTranscribedData || !isMounted) return;
+
+    const newExpense: Expense = {
+      id: crypto.randomUUID(),
+      title: voiceTranscribedData.description || `مصروف صوتي (${voiceTranscribedData.category})`,
+      amount: voiceTranscribedData.amount,
+      category: (voiceTranscribedData.category.toLowerCase().replace(/\s+/g, '') || 'other') as keyof typeof defaultCategories,
+      date: voiceTranscribedData.date ? new Date(voiceTranscribedData.date).toISOString() : new Date().toISOString(),
+      description: voiceTranscribedData.description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
+      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, newExpense]));
+      
+      toast({
+        title: "تمت الإضافة بنجاح!",
+        description: `تم إضافة مصروف "${newExpense.title}" بمبلغ ${newExpense.amount} د.ع.`,
+      });
+      
+      // Reset voice state
+      setVoiceTranscribedData(null);
+      setVoiceError(null);
+      
+      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+    } catch (error) {
+      console.error("Failed to save expense:", error);
+      toast({
+        title: "خطأ في الحفظ",
+        description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderVoiceCardContent = () => {
+    if (isVoiceLoading) {
+      return (
+        <div className="flex flex-col items-center space-y-2 text-primary">
+          <Loader2Icon className="h-8 w-8 animate-spin" />
+          <p>جاري تحليل الصوت...</p>
+        </div>
+      );
+    }
+    
+    if (voiceError) {
+      return (
+        <div className="flex flex-col items-center space-y-4 text-destructive">
+          <AlertTriangleIcon className="h-8 w-8" />
+          <p className="text-center text-sm">{voiceError}</p>
+        </div>
+      );
+    }
+    
+    if (voiceTranscribedData) {
+       return (
+        <div className="w-full text-sm text-right space-y-2">
+            <div className="flex items-center gap-2 font-semibold text-green-600 dark:text-green-400">
+              <CheckCircle2Icon className="h-5 w-5" />
+              <span>تم تحليل المصروف</span>
+            </div>
+            <div>
+              <Label className="text-xs">المبلغ:</Label>
+              <p className="font-bold">{voiceTranscribedData.amount.toLocaleString()} د.ع</p>
+            </div>
+            <div>
+              <Label className="text-xs">الفئة:</Label>
+              <p>{voiceTranscribedData.category}</p>
+            </div>
+        </div>
+      );
+    }
+    
+    if (isVoiceRecording) {
+      return (
+        <div className="flex flex-col items-center justify-center space-y-4 w-full">
+          <div className="text-center">
+             <p className="text-sm text-muted-foreground animate-pulse">جاري التسجيل...</p>
+             <p className="text-4xl font-mono tracking-wider text-foreground mt-1">
+              {formatTime(voiceRecordingTime)}
+            </p>
+          </div>
+          <Button
+            onClick={stopVoiceRecording}
+            variant="destructive"
+            size="sm"
+            className="w-full"
+          >
+            <StopCircleIcon />
+            إيقاف
+          </Button>
+        </div>
+      );
+    }
+
+    // Default/Idle state
+    return (
+        <>
+            <span className={cn("p-3 rounded-full", "bg-rose-100 dark:bg-rose-900/50")}>
+                <Mic className={cn("h-7 w-7", "text-rose-600 dark:text-rose-300")} />
+            </span>
+            <div className="flex-1">
+                <p className="font-semibold">إدخال صوتي</p>
+                <p className="text-xs text-muted-foreground">سجل مصروفك بصوتك</p>
+            </div>
+        </>
+    );
+  };
+  
+  // ===================================
   
   const today = new Date();
   const startOfCurrentMonth = startOfMonth(today);
@@ -265,6 +472,33 @@ export default function DashboardPage() {
         <h2 className="text-xl font-bold tracking-tight mb-4">إضافة مصروف جديد</h2>
         <div className="relative">
           <div className="flex w-full space-x-4 space-x-reverse overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+            
+            {/* INLINE VOICE CARD */}
+            <div className="flex-shrink-0 w-48">
+                <Card 
+                  onClick={!isVoiceRecording && !voiceTranscribedData && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
+                  className={cn(
+                    "h-full hover:border-primary hover:shadow-md transition-all flex flex-col",
+                    !isVoiceRecording && !voiceTranscribedData && !isVoiceLoading && "cursor-pointer"
+                  )}
+                >
+                    <CardContent className="p-4 flex flex-col flex-1 items-center justify-center text-center gap-3">
+                        {renderVoiceCardContent()}
+                    </CardContent>
+                    {(voiceTranscribedData && !isVoiceLoading || voiceError) && (
+                      <CardFooter className="flex-col gap-2 p-2 pt-0">
+                        {voiceTranscribedData &&
+                          <Button onClick={handleSaveVoiceExpense} className="w-full">حفظ المصروف</Button>
+                        }
+                        <Button onClick={startVoiceRecording} variant="ghost" className="w-full text-xs">
+                           <RefreshCwIcon className="ml-2 h-3 w-3" />
+                           {voiceError ? 'حاول مرة أخرى' : 'تسجيل جديد'}
+                        </Button>
+                      </CardFooter>
+                    )}
+                </Card>
+            </div>
+
             {AddExpenseDialogs.map(({ label, description, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
