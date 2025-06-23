@@ -148,6 +148,20 @@ export default function DashboardPage() {
   const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
 
+  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); // Saturday
+  const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
+
+  const weeklyExpensesList = expenses.filter(exp => {
+    try {
+      const expenseDate = new Date(exp.date);
+      return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
+    } catch {
+      return false;
+    }
+  });
+  const weeklyExpensesTotal = weeklyExpensesList.reduce((sum, exp) => sum + exp.amount, 0);
+
+
   if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
@@ -161,42 +175,67 @@ export default function DashboardPage() {
     <div className="space-y-8 pb-24 sm:pb-8">
       
       {/* Hero Balance Card */}
-      <Card className="text-center shadow-lg border-primary/20 bg-card">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-foreground">ملخص الشهر</h2>
+      <Card className="relative overflow-hidden bg-slate-900 text-primary-foreground shadow-2xl rounded-2xl">
+        <CardHeader className="z-10 relative border-b border-white/10">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl font-bold text-white">ملخص الميزانية</CardTitle>
+              <CardDescription className="text-slate-400 text-xs">نظرة شاملة على وضعك المالي</CardDescription>
+            </div>
             <Link href="/settings">
-              <Button variant="ghost" size="sm">
-                <SettingsIcon className="ml-2 h-4 w-4" />
-                إدارة الميزانية
+              <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-slate-700 hover:text-white rounded-full">
+                <SettingsIcon className="h-5 w-5" />
               </Button>
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-2">
-          <p className="text-muted-foreground">المتبقي من الميزانية</p>
-          <p className={`text-5xl font-bold ${remainingBudget >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
-            {remainingBudget.toLocaleString()}<span className="text-2xl font-normal"> د.ع</span>
-          </p>
+
+        <CardContent className="z-10 relative text-center p-6">
+          <p className="text-sm font-medium text-slate-400">المتبقي هذا الشهر</p>
+          <div className="my-2">
+            <span className={`text-5xl font-bold ${remainingBudget >= 0 ? 'text-white' : 'text-red-400'}`}>
+              {remainingBudget.toLocaleString()}
+            </span>
+            <span className="text-2xl font-medium text-slate-300 mr-2">د.ع</span>
+          </div>
           {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
-            <div className="flex items-center text-destructive text-sm mt-2">
+            <div className="flex items-center justify-center text-red-400 text-xs mt-1">
               <AlertCircleIcon className="h-4 w-4 ml-1" />
-              <span>لقد تجاوزت الميزانية!</span>
+              <span>لقد تجاوزت الميزانية الشهرية!</span>
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 pt-4 border-t">
-           <Progress value={userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0} className="h-2" />
-           <div className="w-full grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <div className="text-right">
-                <p className="text-muted-foreground">المصروف</p>
-                <p className="font-semibold text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
+
+        <CardFooter className="z-10 relative flex flex-col gap-4 p-6 bg-black/20">
+          <div>
+              <div className="flex justify-between items-center mb-1 text-xs font-medium">
+                  <span className="text-slate-300">التقدم الشهري</span>
+                  <span className="text-white">{(userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0).toFixed(0)}%</span>
               </div>
-              <div className="text-left">
-                <p className="text-muted-foreground">الميزانية</p>
-                <p className="font-semibold">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+              <Progress value={userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0} className="h-2 bg-white/20" />
+              <div className="flex justify-between text-xs mt-1 text-slate-400">
+                  <span>المصروف: {currentExpenses.toLocaleString()} د.ع</span>
+                  <span>الميزانية: {userBudget.totalBudget.toLocaleString()} د.ع</span>
               </div>
-           </div>
+          </div>
+
+          { userBudget.weeklyBudget > 0 && (
+              <>
+                  <div className="w-full h-px bg-white/10"></div>
+
+                  <div>
+                      <div className="flex justify-between items-center mb-1 text-xs font-medium">
+                          <span className="text-slate-300">مصروف الأسبوع</span>
+                          {weeklyExpensesTotal > userBudget.weeklyBudget && <AlertCircleIcon className="h-4 w-4 text-yellow-400" />}
+                      </div>
+                      <Progress value={userBudget.weeklyBudget > 0 ? (weeklyExpensesTotal / userBudget.weeklyBudget) * 100 : 0} className="h-2 bg-white/20 [&>div]:bg-teal-400" />
+                      <div className="flex justify-between text-xs mt-1 text-slate-400">
+                          <span>{weeklyExpensesTotal.toLocaleString()} د.ع</span>
+                          <span>الهدف: {userBudget.weeklyBudget.toLocaleString()} د.ع</span>
+                      </div>
+                  </div>
+              </>
+          )}
         </CardFooter>
       </Card>
       
