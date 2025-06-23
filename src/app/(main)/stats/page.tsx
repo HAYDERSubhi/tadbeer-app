@@ -10,22 +10,11 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import type { Expense } from '@/types';
 import { format, subDays, parseISO } from 'date-fns';
 import { arSA } from 'date-fns/locale';
-
-// Copied from DashboardPage for consistency - consider moving to a shared constants file
-const defaultCategories = {
-  "food": { name: "طعام", icon: "🍔", color: "hsl(var(--chart-1))", id: "food" }, // Using chart colors directly
-  "transport": { name: "مواصلات", icon: "🚗", color: "hsl(var(--chart-2))", id: "transport" },
-  "shopping": { name: "تسوق", icon: "🛍️", color: "hsl(var(--chart-3))", id: "shopping" },
-  "bills": { name: "فواتير", icon: "🧾", color: "hsl(var(--chart-4))", id: "bills" },
-  "health": { name: "صحة", icon: "🩺", color: "hsl(var(--chart-5))", id: "health"}, // Added health
-  "entertainment": { name: "ترفيه", icon: "🎬", color: "hsl(var(--chart-1))", id: "entertainment"}, // Reused chart-1 for demo
-  "receipt-scan": { name: "فاتورة ممسوحة", icon: "📄", color: "hsl(var(--chart-2))", id: "receipt-scan" }, // Reused chart-2 for demo
-  "other": { name: "أخرى", icon: "🧩", color: "hsl(var(--chart-3))", id: "other" }, // Reused chart-3 for demo
-};
+import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
-  acc[key as keyof typeof acc] = { label: value.name, color: value.color };
+  acc[key as keyof typeof acc] = { label: value.name, color: value.chartColor };
   return acc;
 }, {} as ChartConfig & { expenses: { label: string, color: string }});
 
@@ -96,7 +85,7 @@ export default function StatisticsPage() {
       name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
       value: total,
       key: catKey,
-      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.color || 'hsl(var(--muted))',
+      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.chartColor || 'hsl(var(--muted))',
     }));
     setPieChartData(pieData);
 

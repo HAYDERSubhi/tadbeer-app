@@ -31,19 +31,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-
-// Mock categories for display
-const defaultCategories = {
-  "food": { name: "طعام", icon: "🍔", color: "bg-orange-500", id: "food" },
-  "transport": { name: "مواصلات", icon: "🚗", color: "bg-red-500", id: "transport" },
-  "shopping": { name: "تسوق", icon: "🛍️", color: "bg-blue-500", id: "shopping" },
-  "bills": { name: "فواتير", icon: "🧾", color: "bg-yellow-500", id: "bills" },
-  "health": { name: "صحة", icon: "🩺", color: "bg-green-500", id: "health"},
-  "entertainment": { name: "ترفيه", icon: "🎬", color: "bg-purple-500", id: "entertainment"},
-  "receipt-scan": { name: "فاتورة ممسوحة", icon: "📄", color: "bg-indigo-500", id: "receipt-scan" },
-  "other": { name: "أخرى", icon: "🧩", color: "bg-gray-500", id: "other" },
-};
-
+import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
 const AddExpenseDialogs = [
   {
@@ -392,29 +380,29 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                       <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                        {categoryInfo.icon}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                          {categoryInfo.icon}
                       </span>
-                      <div className="flex-1 text-right">
-                        <p className="font-semibold">{expense.title}</p>
-                         <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </p>
+                      <div className="flex-1 text-right min-w-0">
+                          <p className="font-semibold truncate">{expense.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                              {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 text-left">
+                    <div className="flex flex-col items-end gap-1 text-left flex-shrink-0">
                       <div className="font-bold text-primary whitespace-nowrap">
-                        {expense.amount.toLocaleString()} د.ع
+                          {expense.amount.toLocaleString()} د.ع
                       </div>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive/80"
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        aria-label="حذف المصروف"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive/80"
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          aria-label="حذف المصروف"
                       >
-                        <Trash2Icon className="h-4 w-4" />
+                          <Trash2Icon className="h-4 w-4" />
                       </Button>
                     </div>
                   </li>

@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Expense } from '@/types';
 import * as XLSX from 'xlsx';
+import { CATEGORIES } from '@/lib/constants';
 
 interface UserBudgetSettings {
   totalBudget: number;
@@ -30,9 +31,13 @@ const COLUMN_MAP_CONFIG = {
   amount: { label: 'المبلغ', alternatives: ['المبلغ', 'amount', 'price', 'total'] },
   category: { label: 'الفئة', alternatives: ['الفئة', 'category'] },
   date: { label: 'التاريخ', alternatives: ['التاريخ', 'date'] },
-  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes'] },
+  description: { label: 'الوصف / ملاحظات', alternatives: ['الوصف', 'ملاحظات', 'description', 'notes', 'تفاصيل خارج الميزانية'] },
   isOutOfBudget: { label: 'خارج الميزانية', alternatives: ['خارج الميزانية', 'isoutofbudget', 'is out of budget'] },
-  outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية', alternatives: ['تفاصيل خارج الميزانية', 'outofbudgetdetails', 'out of budget details'] },
+  // Unused Excel columns for export context
+  currency: { label: 'العملة', alternatives: ['العملة', 'currency']},
+  paymentMethod: { label: 'طريقة الدفع', alternatives: ['طريقة الدفع', 'payment method']},
+  receiptUrl: { label: 'رابط صورة الفاتورة', alternatives: ['رابط صورة الفاتورة', 'receipt url', 'receipt link']},
+  notes: { label: 'ملاحظات', alternatives: ['ملاحظات', 'notes']},
 };
 
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount'];
@@ -107,7 +112,7 @@ export default function SettingsPage() {
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
       'العملة': 'د.ع',
-      'الفئة': exp.category,
+      'الفئة': CATEGORIES[exp.category as keyof typeof CATEGORIES]?.name || exp.category,
       'التاريخ': new Date(exp.date),
       'الوصف': exp.description || '',
       'طريقة الدفع': '',
@@ -159,20 +164,17 @@ export default function SettingsPage() {
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
 
-        // Attempt to auto-map using saved or default configurations
         const savedMap = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
         const autoMap: Record<string, string> = {};
         
         for (const [field, config] of Object.entries(COLUMN_MAP_CONFIG)) {
           const lowerCaseHeaders = headers.map(h => h.toLowerCase());
           
-          // 1. Try saved mapping first
           if (savedMap[field] && lowerCaseHeaders.includes(savedMap[field].toLowerCase())) {
              autoMap[field] = savedMap[field];
              continue;
           }
           
-          // 2. Try default alternatives
           const foundHeader = headers.find(h => config.alternatives.map(a => a.toLowerCase()).includes(h.toLowerCase()));
           if (foundHeader) {
             autoMap[field] = foundHeader;
@@ -180,7 +182,7 @@ export default function SettingsPage() {
         }
         
         setColumnMap(autoMap);
-        setIsMappingColumns(true); // Always show mapping UI for confirmation
+        setIsMappingColumns(true);
         toast({
           title: "يرجى تأكيد ربط الأعمدة",
           description: "لقد قمنا بالتعرف على بعض الأعمدة تلقائيًا. يرجى مراجعتها وتأكيدها.",
@@ -204,21 +206,26 @@ export default function SettingsPage() {
         }
       }
 
+      const categoryNameMap: Record<string, string> = Object.values(CATEGORIES).reduce((acc, cat) => {
+          acc[cat.name.toLowerCase()] = cat.id;
+          return acc;
+      }, {} as Record<string, string>);
+
       const newExpenses: Expense[] = [];
 
-      dataRows.forEach((row) => {
+      dataRows.forEach((row, index) => {
         if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
             return;
         }
 
         const titleIndex = headerIndexMap.title;
-        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : 'مصروف مستورد بدون عنوان';
-        if (titleValue === '') {
+        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
+        if (!titleValue) {
           titleValue = 'مصروف مستورد بدون عنوان';
         }
 
         const amountIndex = headerIndexMap.amount;
-        const amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
+        let amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
         let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
         if (isNaN(parsedAmount)) {
           parsedAmount = 0;
@@ -233,7 +240,14 @@ export default function SettingsPage() {
         };
 
         const categoryIndex = headerIndexMap.category;
-        newExp.category = (categoryIndex > -1 && row[categoryIndex]) ? String(row[categoryIndex]) : 'other';
+        let categoryId = 'other';
+        if (categoryIndex > -1 && row[categoryIndex]) {
+            const rawCategoryName = String(row[categoryIndex]).toLowerCase().trim();
+            if (categoryNameMap[rawCategoryName]) {
+                categoryId = categoryNameMap[rawCategoryName];
+            }
+        }
+        newExp.category = categoryId;
 
         const dateIndex = headerIndexMap.date;
         const dateVal = (dateIndex > -1 && row[dateIndex]) ? row[dateIndex] : new Date();
@@ -253,8 +267,7 @@ export default function SettingsPage() {
         const isOutOfBudgetVal = (isOutOfBudgetIndex > -1) ? row[isOutOfBudgetIndex] : false;
         newExp.isOutOfBudget = ['نعم', 'yes', 'true', true, '1', 1].includes(String(isOutOfBudgetVal || '').trim().toLowerCase());
         
-        const outOfBudgetDetailsIndex = headerIndexMap.outOfBudgetDetails;
-        newExp.outOfBudgetDetails = (outOfBudgetDetailsIndex > -1 && row[outOfBudgetDetailsIndex]) ? String(row[outOfBudgetDetailsIndex] || '') : undefined;
+        newExp.outOfBudgetDetails = newExp.description; // Map description to out of budget details as well
 
         newExpenses.push(newExp as Expense);
       });
@@ -270,7 +283,7 @@ export default function SettingsPage() {
           }
       } catch (e) {
           console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
-          existingExpenses = []; // Ensure it's an array on error
+          existingExpenses = [];
       }
       
       const combinedExpenses = [...existingExpenses, ...newExpenses];
