@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -81,9 +81,12 @@ export default function SettingsPage() {
   const [columnMap, setColumnMap] = useState<Record<string, number | null>>({});
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     setMounted(true);
+    // Load general budget settings
     const storedBudget = localStorage.getItem('userBudgetSettings');
     if (storedBudget) {
       try {
@@ -92,15 +95,26 @@ export default function SettingsPage() {
         setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
         setZeroSpendDaysTargetInput(budgetData.zeroSpendDaysTarget?.toString() || '4');
       } catch {
-        setTotalBudgetInput("0");
-        setWeeklyBudgetInput("0");
-        setZeroSpendDaysTargetInput("4");
+        // handle error
       }
-    } else {
-      setTotalBudgetInput("0");
-      setWeeklyBudgetInput("0");
-      setZeroSpendDaysTargetInput("4");
     }
+
+    // Load category budgets
+    const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
+    if (storedCategoryBudgets) {
+        try {
+            const budgets = JSON.parse(storedCategoryBudgets);
+            // Convert numbers to strings for input fields
+            const stringBudgets = Object.entries(budgets).reduce((acc, [key, value]) => {
+                acc[key] = String(value);
+                return acc;
+            }, {} as Record<string, string>);
+            setCategoryBudgets(stringBudgets);
+        } catch {
+            // handle error
+        }
+    }
+
   }, []);
 
   const handleSaveBudget = () => {
@@ -130,6 +144,23 @@ export default function SettingsPage() {
     toast({
       title: "تم الحفظ",
       description: "تم حفظ إعدادات الميزانية بنجاح.",
+    });
+    window.dispatchEvent(new CustomEvent('budgetUpdated'));
+  };
+
+  const handleSaveCategoryBudgets = () => {
+    const numericBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
+        const amount = parseFloat(value);
+        if (!isNaN(amount) && amount > 0) {
+            acc[key] = amount;
+        }
+        return acc;
+    }, {} as Record<string, number>);
+
+    localStorage.setItem('categoryBudgets', JSON.stringify(numericBudgets));
+    toast({
+      title: "تم الحفظ",
+      description: "تم حفظ ميزانيات الفئات بنجاح.",
     });
     window.dispatchEvent(new CustomEvent('budgetUpdated'));
   };
@@ -352,10 +383,12 @@ export default function SettingsPage() {
       localStorage.removeItem('expenses');
       localStorage.removeItem(LOCAL_STORAGE_MAP_KEY);
       localStorage.removeItem('userBudgetSettings');
+      localStorage.removeItem('categoryBudgets');
 
       setTotalBudgetInput("0");
       setWeeklyBudgetInput("0");
       setZeroSpendDaysTargetInput("4");
+      setCategoryBudgets({});
       
       toast({
         title: "تم الحذف بنجاح",
@@ -414,7 +447,7 @@ export default function SettingsPage() {
             <SlidersHorizontalIcon className="h-6 w-6 text-primary" />
             إعدادات الميزانية والأهداف
           </CardTitle>
-          <CardDescription>قم بتعيين ميزانيتك الشهرية والأهداف التحفيزية.</CardDescription>
+          <CardDescription>قم بتعيين ميزانيتك الشهرية الإجمالية والأهداف التحفيزية.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -433,8 +466,43 @@ export default function SettingsPage() {
         <CardFooter>
           <Button onClick={handleSaveBudget} className="w-full">
             <SaveIcon className="ml-2 h-4 w-4" />
-            حفظ الإعدادات
+            حفظ إعدادات الميزانية
           </Button>
+        </CardFooter>
+      </Card>
+
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderKanban className="h-6 w-6 text-primary" />
+            ميزانيات الفئات
+          </CardTitle>
+          <CardDescription>حدد ميزانية شهرية مخصصة لكل فئة لتتبع أدق.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 max-h-[40vh] overflow-y-auto pr-3">
+          {Object.entries(CATEGORIES).map(([id, category]) => (
+            <div key={id} className="flex items-center gap-4">
+                <span className="flex items-center gap-2 w-1/3">
+                    <span className="text-xl">{category.icon}</span>
+                    <Label htmlFor={`category-${id}`}>{category.name}</Label>
+                </span>
+              <Input
+                id={`category-${id}`}
+                type="number"
+                value={categoryBudgets[id] || ''}
+                onChange={(e) => setCategoryBudgets(prev => ({...prev, [id]: e.target.value}))}
+                placeholder="0"
+                min="0"
+                className="flex-1"
+              />
+            </div>
+          ))}
+        </CardContent>
+        <CardFooter>
+            <Button onClick={handleSaveCategoryBudgets} className="w-full">
+                <SaveIcon className="ml-2 h-4 w-4" />
+                حفظ ميزانيات الفئات
+            </Button>
         </CardFooter>
       </Card>
       

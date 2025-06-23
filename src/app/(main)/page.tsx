@@ -76,6 +76,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
 
@@ -109,6 +110,16 @@ export default function DashboardPage() {
         }
       } else {
          setUserBudget({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
+      }
+
+      // Refresh Category Budgets
+      const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
+      if (storedCategoryBudgets) {
+        try {
+          setCategoryBudgets(JSON.parse(storedCategoryBudgets));
+        } catch {
+          setCategoryBudgets({});
+        }
       }
 
       // Refresh Expenses
@@ -181,6 +192,7 @@ export default function DashboardPage() {
               category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
               date: format(new Date(e.date), 'yyyy-MM-dd'),
             })),
+            categoryBudgets: categoryBudgets,
           };
           const result = await financialCoach(coachInput);
           setInsights(result.insights);
@@ -196,7 +208,7 @@ export default function DashboardPage() {
     };
 
     getInsights();
-  }, [expenses, userBudget, isMounted]); // Rerun when expenses or budget change
+  }, [expenses, userBudget, categoryBudgets, isMounted]); // Rerun when expenses or budget change
 
 
   const handleDeleteExpense = (expenseId: string) => {

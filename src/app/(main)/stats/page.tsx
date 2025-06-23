@@ -12,6 +12,7 @@ import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
+import { Progress } from '@/components/ui/progress';
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
@@ -41,10 +42,12 @@ interface CategorySummaryItem {
   total: number;
   percentage: number;
   color: string;
+  budget?: number;
 }
 
 export default function StatisticsPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -64,62 +67,61 @@ export default function StatisticsPage() {
   useEffect(() => {
     setIsMounted(true);
     
-    const handleExpensesUpdate = () => {
+    const handleDataUpdate = () => {
+        // Load expenses
         const storedExpenses = localStorage.getItem('expenses');
-        if (storedExpenses) {
-          try {
-            const parsedExpenses = JSON.parse(storedExpenses) as Expense[];
-            setExpenses(parsedExpenses);
+        const parsedExpenses = storedExpenses ? JSON.parse(storedExpenses) as Expense[] : [];
+        setExpenses(parsedExpenses);
 
-            if (parsedExpenses.length > 0) {
-              const dates = parsedExpenses.map(e => parseISO(e.date));
-              const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
-              setAvailableYears(uniqueYears);
+        // Load category budgets
+        const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
+        const parsedCategoryBudgets = storedCategoryBudgets ? JSON.parse(storedCategoryBudgets) : {};
+        setCategoryBudgets(parsedCategoryBudgets);
 
-              const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
-              setAvailableMonths(uniqueMonths);
-              
-              // Set initial selection to the latest available data
-              if (uniqueYears.length > 0 && !availableYears.includes(selectedYear)) {
+        if (parsedExpenses.length > 0) {
+            const dates = parsedExpenses.map(e => parseISO(e.date));
+            const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
+            setAvailableYears(uniqueYears);
+
+            const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
+            setAvailableMonths(uniqueMonths);
+            
+            if (uniqueYears.length > 0 && !uniqueYears.includes(selectedYear)) {
                 setSelectedYear(uniqueYears[0]);
-              }
-              if (uniqueMonths.length > 0 && !availableMonths.includes(selectedMonth)) {
-                setSelectedMonth(uniqueMonths[0]);
-              }
-            } else {
-              // No data, clear filters
-              setAvailableYears([]);
-              setAvailableMonths([]);
             }
-          } catch {
-            setExpenses([]);
-          }
+            if (uniqueMonths.length > 0 && !uniqueMonths.includes(selectedMonth)) {
+                setSelectedMonth(uniqueMonths[0]);
+            }
         } else {
-          setExpenses([]);
+            setAvailableYears([]);
+            setAvailableMonths([]);
         }
     };
     
-    handleExpensesUpdate(); // Initial load
+    handleDataUpdate();
     setIsLoading(false);
 
-    window.addEventListener('expensesUpdated', handleExpensesUpdate);
-    return () => window.removeEventListener('expensesUpdated', handleExpensesUpdate);
+    window.addEventListener('expensesUpdated', handleDataUpdate);
+    window.addEventListener('budgetUpdated', handleDataUpdate);
+    return () => {
+        window.removeEventListener('expensesUpdated', handleDataUpdate);
+        window.removeEventListener('budgetUpdated', handleDataUpdate);
+    };
 
   }, []);
 
   useEffect(() => {
-    if (expenses.length > 0) {
-      processChartData(expenses, view, selectedYear, selectedMonth);
+    if (expenses) {
+      processChartData(expenses, view, selectedYear, selectedMonth, categoryBudgets);
     } else {
-      // Clear all data if there are no expenses
       setPieChartData([]);
       setTrendChartData([]);
       setCategorySummary([]);
       setTotalForPeriod(0);
     }
-  }, [expenses, view, selectedYear, selectedMonth, isMounted]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, isMounted]);
 
-  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string) => {
+  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string, currentCategoryBudgets: Record<string, number>) => {
     if (!isMounted) return;
 
     let filteredExpenses: Expense[];
@@ -162,6 +164,7 @@ export default function StatisticsPage() {
     const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
         .map(([catKey, total]) => {
             const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
+            const budget = currentCategoryBudgets[catKey];
             return {
                 id: catKey,
                 name: categoryInfo.name,
@@ -169,6 +172,7 @@ export default function StatisticsPage() {
                 total,
                 percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
                 color: categoryInfo.color,
+                budget,
             };
         })
         .sort((a, b) => b.total - a.total);
@@ -245,7 +249,7 @@ export default function StatisticsPage() {
                            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                                 <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
                                     <TabsList>
-                                        {availableMonths.map(m => (
+                                        {(availableMonths.length > 0 ? availableMonths : [format(new Date(), 'yyyy-MM')]).map(m => (
                                             <TabsTrigger key={m} value={m} className="whitespace-nowrap">
                                                 {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arSA})}
                                             </TabsTrigger>
@@ -260,7 +264,7 @@ export default function StatisticsPage() {
                            <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                                 <Tabs value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))} className="w-full">
                                     <TabsList>
-                                        {availableYears.map(y => (
+                                        {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
                                             <TabsTrigger key={y} value={String(y)}>
                                                 {y}
                                             </TabsTrigger>
@@ -388,22 +392,33 @@ export default function StatisticsPage() {
         </CardHeader>
         <CardContent>
           {categorySummary.length > 0 ? (
-            <ul className="space-y-4">
+            <div className="space-y-4">
                 {categorySummary.map(item => (
-                    <li key={item.id} className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                           <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl`}>
-                              {item.icon}
-                           </span>
-                           <div>
-                                <p className="font-medium">{item.name}</p>
-                                <p className="text-xs text-muted-foreground">{item.percentage.toFixed(2)}%</p>
-                           </div>
+                    <div key={item.id} className="rounded-lg border p-3">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl`}>
+                                  {item.icon}
+                               </span>
+                               <div>
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
+                               </div>
+                            </div>
+                            <p className="font-semibold">{item.total.toLocaleString()} د.ع</p>
                         </div>
-                        <p className="font-semibold">{item.total.toLocaleString()} د.ع</p>
-                    </li>
+                        {item.budget && item.budget > 0 && (
+                            <div className="mt-3">
+                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                    <span>المصروف من الميزانية</span>
+                                    <span>{item.budget.toLocaleString()} د.ع</span>
+                                </div>
+                                <Progress value={Math.min((item.total / item.budget) * 100, 100)} className="h-2" />
+                            </div>
+                        )}
+                    </div>
                 ))}
-            </ul>
+            </div>
           ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
