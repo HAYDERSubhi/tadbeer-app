@@ -1,21 +1,14 @@
 
 import type { Metadata } from 'next';
-import { Lalezar, Noto_Sans_Arabic } from 'next/font/google';
+import { Tajawal } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 
-const lalezar = Lalezar({
-  variable: '--font-lalezar',
+const tajawal = Tajawal({
+  variable: '--font-tajawal',
   subsets: ['arabic'],
-  weight: '400',
-  display: 'swap',
-});
-
-const notoSansArabic = Noto_Sans_Arabic({
-  variable: '--font-noto-sans-arabic',
-  subsets: ['arabic'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '700', '800'],
   display: 'swap',
 });
 
@@ -31,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${lalezar.variable} ${notoSansArabic.variable} font-sans antialiased`}>
+      <body className={`${tajawal.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
