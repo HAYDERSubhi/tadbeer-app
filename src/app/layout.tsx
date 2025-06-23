@@ -1,14 +1,14 @@
 
 import type { Metadata } from 'next';
-import { Cairo } from 'next/font/google';
+import { Tajawal } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 
-const cairo = Cairo({
-  variable: '--font-cairo',
+const tajawal = Tajawal({
+  variable: '--font-tajawal',
   subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '600', '700', '900'],
+  weight: ['400', '500', '700', '900'],
   display: 'swap',
 });
 
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${cairo.variable} font-sans antialiased`}>
+      <body className={`${tajawal.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
