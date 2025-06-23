@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, CheckCircle2Icon } from "lucide-react";
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -21,9 +21,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
-import { recordExpenseWithVoice, RecordExpenseWithVoiceOutput } from '@/ai/flows/record-expense-voice';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
 
 // Grouping the dialogs for easier mapping
 const AddExpenseDialogs = [
@@ -69,7 +67,6 @@ export default function DashboardPage() {
   // === Voice Recording State ===
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [voiceRecordingTime, setVoiceRecordingTime] = useState(0);
-  const [voiceTranscribedData, setVoiceTranscribedData] = useState<RecordExpenseWithVoiceOutput | null>(null);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   
@@ -152,19 +149,45 @@ export default function DashboardPage() {
     return `${mins}:${secs}`;
   };
 
-  const processVoiceAudio = useCallback(async (dataUri: string) => {
+  const processVoiceAndSave = useCallback(async (dataUri: string) => {
     setIsVoiceLoading(true);
     setVoiceError(null);
     try {
-      const result = await recordExpenseWithVoice({ voiceRecordingDataUri: dataUri });
-      setVoiceTranscribedData(result);
-    } catch (e) {
-      console.error("Error processing voice:", e);
-      setVoiceError("حدث خطأ أثناء تحليل الصوت. حاول مرة أخرى.");
+      const analysisResult = await recordExpenseWithVoice({ voiceRecordingDataUri: dataUri });
+
+      if (!analysisResult || !analysisResult.amount) {
+        throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل المصروف. يرجى المحاولة بصوت أوضح.");
+      }
+
+      const newExpense: Expense = {
+        id: crypto.randomUUID(),
+        title: analysisResult.description || `مصروف صوتي (${analysisResult.category})`,
+        amount: analysisResult.amount,
+        category: (analysisResult.category.toLowerCase().replace(/\s+/g, '') || 'other') as keyof typeof defaultCategories,
+        date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
+        description: analysisResult.description,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
+      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, newExpense]));
+      
+      toast({
+        title: "تمت الإضافة بنجاح!",
+        description: `أضيف مصروف صوتي بمبلغ ${newExpense.amount.toLocaleString()} د.ع.`,
+      });
+      
+      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+    } catch (e: any) {
+      console.error("Error processing and saving voice expense:", e);
+      const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
+      setVoiceError(errorMessage);
+      toast({ title: "خطأ", description: errorMessage, variant: "destructive" });
     } finally {
       setIsVoiceLoading(false);
     }
-  }, []);
+  }, [isMounted, toast]);
   
   const stopVoiceRecording = useCallback(() => {
     if (voiceMediaRecorderRef.current && isVoiceRecording) {
@@ -183,8 +206,6 @@ export default function DashboardPage() {
       return;
     }
     
-    // Reset all states
-    setVoiceTranscribedData(null);
     setVoiceError(null);
     setVoiceRecordingTime(0);
     if (voiceTimerIntervalRef.current) clearInterval(voiceTimerIntervalRef.current);
@@ -205,7 +226,7 @@ export default function DashboardPage() {
         reader.onloadend = () => {
           const dataUri = reader.result as string;
           if (dataUri) {
-            processVoiceAudio(dataUri);
+            processVoiceAndSave(dataUri);
           }
         };
         stream.getTracks().forEach(track => track.stop());
@@ -223,52 +244,14 @@ export default function DashboardPage() {
       setIsVoiceRecording(false);
       setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
     }
-  }, [isMounted, processVoiceAudio, toast]);
+  }, [isMounted, processVoiceAndSave, toast]);
   
-  const handleSaveVoiceExpense = () => {
-    if (!voiceTranscribedData || !isMounted) return;
-
-    const newExpense: Expense = {
-      id: crypto.randomUUID(),
-      title: voiceTranscribedData.description || `مصروف صوتي (${voiceTranscribedData.category})`,
-      amount: voiceTranscribedData.amount,
-      category: (voiceTranscribedData.category.toLowerCase().replace(/\s+/g, '') || 'other') as keyof typeof defaultCategories,
-      date: voiceTranscribedData.date ? new Date(voiceTranscribedData.date).toISOString() : new Date().toISOString(),
-      description: voiceTranscribedData.description,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    try {
-      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
-      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, newExpense]));
-      
-      toast({
-        title: "تمت الإضافة بنجاح!",
-        description: `تم إضافة مصروف "${newExpense.title}" بمبلغ ${newExpense.amount} د.ع.`,
-      });
-      
-      // Reset voice state
-      setVoiceTranscribedData(null);
-      setVoiceError(null);
-      
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
-    } catch (error) {
-      console.error("Failed to save expense:", error);
-      toast({
-        title: "خطأ في الحفظ",
-        description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const renderVoiceCardContent = () => {
     if (isVoiceLoading) {
       return (
         <div className="flex flex-col items-center space-y-2 text-primary">
           <Loader2Icon className="h-8 w-8 animate-spin" />
-          <p>جاري تحليل الصوت...</p>
+          <p>جاري التحليل والحفظ...</p>
         </div>
       );
     }
@@ -278,25 +261,6 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center space-y-4 text-destructive">
           <AlertTriangleIcon className="h-8 w-8" />
           <p className="text-center text-sm">{voiceError}</p>
-        </div>
-      );
-    }
-    
-    if (voiceTranscribedData) {
-       return (
-        <div className="w-full text-sm text-right space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-green-600 dark:text-green-400">
-              <CheckCircle2Icon className="h-5 w-5" />
-              <span>تم تحليل المصروف</span>
-            </div>
-            <div>
-              <Label className="text-xs">المبلغ:</Label>
-              <p className="font-bold">{voiceTranscribedData.amount.toLocaleString()} د.ع</p>
-            </div>
-            <div>
-              <Label className="text-xs">الفئة:</Label>
-              <p>{voiceTranscribedData.category}</p>
-            </div>
         </div>
       );
     }
@@ -476,23 +440,20 @@ export default function DashboardPage() {
             {/* INLINE VOICE CARD */}
             <div className="flex-shrink-0 w-48">
                 <Card 
-                  onClick={!isVoiceRecording && !voiceTranscribedData && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
+                  onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
                   className={cn(
                     "h-full hover:border-primary hover:shadow-md transition-all flex flex-col",
-                    !isVoiceRecording && !voiceTranscribedData && !isVoiceLoading && "cursor-pointer"
+                    !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer"
                   )}
                 >
                     <CardContent className="p-4 flex flex-col flex-1 items-center justify-center text-center gap-3">
                         {renderVoiceCardContent()}
                     </CardContent>
-                    {(voiceTranscribedData && !isVoiceLoading || voiceError) && (
+                    {voiceError && (
                       <CardFooter className="flex-col gap-2 p-2 pt-0">
-                        {voiceTranscribedData &&
-                          <Button onClick={handleSaveVoiceExpense} className="w-full">حفظ المصروف</Button>
-                        }
                         <Button onClick={startVoiceRecording} variant="ghost" className="w-full text-xs">
                            <RefreshCwIcon className="ml-2 h-3 w-3" />
-                           {voiceError ? 'حاول مرة أخرى' : 'تسجيل جديد'}
+                           {'حاول مرة أخرى'}
                         </Button>
                       </CardFooter>
                     )}
@@ -594,3 +555,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
