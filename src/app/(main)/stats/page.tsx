@@ -335,15 +335,19 @@ export default function StatisticsPage() {
                   onMouseLeave={() => {
                     setActiveDonutSlice(null);
                   }}
-                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-                    const RADIAN = Math.PI / 180;
-                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                    if (percent * 100 < 5) return null;
+                  label={({ name, percent, x, y }) => {
+                    if (percent * 100 < 8) return null; // Only show for larger slices to avoid clutter
+                    const displayName = name.length > 10 ? `${name.substring(0, 8)}...` : name;
                     return (
-                      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs fill-primary-foreground font-semibold pointer-events-none">
-                        {`${(percent * 100).toFixed(0)}%`}
+                      <text
+                        x={x}
+                        y={y}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        className="text-[10px] fill-primary-foreground font-semibold pointer-events-none"
+                      >
+                        <tspan x={x} dy="-0.5em">{displayName}</tspan>
+                        <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
                       </text>
                     );
                   }}
