@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon } from "lucide-react";
+import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
@@ -13,6 +13,8 @@ import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, 
 import { arSA } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
@@ -57,6 +59,7 @@ export default function StatisticsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [availableMonths, setAvailableMonths] = useState<string[]>([]); // "YYYY-MM" format
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [focusedCategory, setFocusedCategory] = useState<string | null>(null);
 
   // Chart data state
   const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
@@ -112,16 +115,16 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     if (expenses) {
-      processChartData(expenses, view, selectedYear, selectedMonth, categoryBudgets);
+      processChartData(expenses, view, selectedYear, selectedMonth, categoryBudgets, focusedCategory);
     } else {
       setPieChartData([]);
       setTrendChartData([]);
       setCategorySummary([]);
       setTotalForPeriod(0);
     }
-  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, isMounted]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, isMounted, focusedCategory]);
 
-  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string, currentCategoryBudgets: Record<string, number>) => {
+  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string, currentCategoryBudgets: Record<string, number>, focusedCategoryId: string | null) => {
     if (!isMounted) return;
 
     let filteredExpenses: Expense[];
@@ -147,7 +150,7 @@ export default function StatisticsPage() {
     const totalExpensesInPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     setTotalForPeriod(totalExpensesInPeriod);
 
-    // Pie Chart & Category Summary Data
+    // Pie Chart & Category Summary Data (always based on all expenses in period)
     const categoryTotals: { [key: string]: number } = {};
     filteredExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
@@ -179,14 +182,18 @@ export default function StatisticsPage() {
     setCategorySummary(summaryData);
 
 
-    // Trend Chart Data
+    // Trend Chart Data (based on focused category if one is selected)
+    const trendSourceData = focusedCategoryId
+        ? filteredExpenses.filter(exp => exp.category === focusedCategoryId)
+        : filteredExpenses;
+        
     if (currentView === 'year') {
         const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
         for (let i = 0; i < 12; i++) {
             const monthKey = format(new Date(year, i, 1), 'yyyy-MM');
             monthlyTotals[monthKey] = 0;
         }
-        filteredExpenses.forEach(exp => {
+        trendSourceData.forEach(exp => {
             const monthKey = format(parseISO(exp.date), 'yyyy-MM');
             if (monthlyTotals.hasOwnProperty(monthKey)) {
               monthlyTotals[monthKey] += exp.amount;
@@ -207,7 +214,7 @@ export default function StatisticsPage() {
             day = subDays(day, -1); // next day
         }
 
-        filteredExpenses.forEach(exp => {
+        trendSourceData.forEach(exp => {
             const formattedDate = format(parseISO(exp.date), 'd');
             if (dailyTotals.hasOwnProperty(formattedDate)) {
                 dailyTotals[formattedDate] += exp.amount;
@@ -353,10 +360,18 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUpIcon className="h-6 w-6 text-primary" />
-            اتجاه المصاريف
-          </CardTitle>
+          <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUpIcon className="h-6 w-6 text-primary" />
+                {focusedCategory ? `اتجاه مصاريف: ${defaultCategories[focusedCategory as keyof typeof defaultCategories]?.name}` : 'اتجاه المصاريف'}
+              </CardTitle>
+              {focusedCategory && (
+                  <Button variant="ghost" size="sm" onClick={() => setFocusedCategory(null)} className="flex items-center gap-1 text-sm">
+                      <XCircle className="h-4 w-4" />
+                      عرض الكل
+                  </Button>
+              )}
+          </div>
           <CardDescription>
             {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arSA })}`}
           </CardDescription>
@@ -388,38 +403,40 @@ export default function StatisticsPage() {
             <ListOrderedIcon className="h-6 w-6 text-primary" />
             ملخص الفئات
           </CardTitle>
-          {categorySummary.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+          <CardDescription>
+            {focusedCategory 
+                ? 'تم تحديد فئة. قم بإلغاء الفلترة لعرض الملخص.' 
+                : (categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض اتجاهها البياني.')
+            }
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          {categorySummary.length > 0 ? (
-            <div className="space-y-4">
+        <CardContent className="p-0">
+          {categorySummary.length > 0 && !focusedCategory ? (
+            <ul className="divide-y divide-border">
                 {categorySummary.map(item => (
-                    <div key={item.id} className="rounded-lg border p-3">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl`}>
-                                  {item.icon}
-                               </span>
-                               <div>
-                                    <p className="font-medium">{item.name}</p>
-                                    <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
-                               </div>
-                            </div>
-                            <p className="font-semibold">{item.total.toLocaleString()} د.ع</p>
-                        </div>
-                        {item.budget && item.budget > 0 && (
-                            <div className="mt-3">
-                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                    <span>المصروف من الميزانية</span>
-                                    <span>{item.budget.toLocaleString()} د.ع</span>
-                                </div>
-                                <Progress value={Math.min((item.total / item.budget) * 100, 100)} className="h-2" />
-                            </div>
-                        )}
-                    </div>
+                    <li 
+                      key={item.id}
+                      className="flex items-center justify-between p-4 cursor-pointer transition-colors hover:bg-muted/50"
+                      onClick={() => setFocusedCategory(item.id)}
+                    >
+                      <div className="flex items-center gap-4">
+                         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
+                            {item.icon}
+                         </span>
+                         <div>
+                              <p className="font-semibold">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
+                         </div>
+                      </div>
+                      <p className="text-lg font-bold text-end shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                    </li>
                 ))}
-            </div>
-          ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
+            </ul>
+          ) : (!isLoading && 
+                <div className="px-6 py-10 text-center text-muted-foreground">
+                    <p>{focusedCategory ? ' ' : 'لا توجد مصاريف لعرضها.'}</p>
+                </div>
+          )}
         </CardContent>
       </Card>
 
@@ -437,3 +454,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
