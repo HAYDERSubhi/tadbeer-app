@@ -148,18 +148,26 @@ export default function DashboardPage() {
   const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
 
-  const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); // Saturday
-  const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
+  // Weekly spending calculation
+  const weeklyIntervals = [
+    { start: startOfCurrentMonth, end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 7, 23, 59, 59) },
+    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 8), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 14, 23, 59, 59) },
+    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 15), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 21, 23, 59, 59) },
+    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 22), end: endOfCurrentMonth }
+  ];
 
-  const weeklyExpensesList = expenses.filter(exp => {
-    try {
-      const expenseDate = new Date(exp.date);
-      return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
-    } catch {
-      return false;
-    }
-  });
-  const weeklyExpensesTotal = weeklyExpensesList.reduce((sum, exp) => sum + exp.amount, 0);
+  const weeklySpending = weeklyIntervals.map(interval => 
+      monthlyExpenses
+          .filter(exp => {
+              try {
+                  return isWithinInterval(new Date(exp.date), interval);
+              } catch {
+                  return false;
+              }
+          })
+          .reduce((sum, exp) => sum + exp.amount, 0)
+  );
+  const weeklyTarget = userBudget.totalBudget > 0 ? userBudget.totalBudget / 4 : 0;
 
 
   if (!isMounted || isLoading) {
@@ -179,8 +187,8 @@ export default function DashboardPage() {
         <CardHeader className="z-10 relative border-b border-white/10">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl font-bold text-white">ملخص الميزانية</CardTitle>
-              <CardDescription className="text-slate-400 text-xs">نظرة شاملة على وضعك المالي</CardDescription>
+              <CardTitle className="text-xl font-bold text-white">ملخص الميزانية الشهرية</CardTitle>
+              <CardDescription className="text-slate-400 text-xs">نظرة شاملة لوضعك المالي هذا الشهر</CardDescription>
             </div>
             <Link href="/settings">
               <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-slate-700 hover:text-white rounded-full">
@@ -190,53 +198,59 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="z-10 relative text-center p-6">
-          <p className="text-sm font-medium text-slate-400">المتبقي هذا الشهر</p>
-          <div className="my-2">
-            <span className={`text-5xl font-bold ${remainingBudget >= 0 ? 'text-white' : 'text-red-400'}`}>
-              {remainingBudget.toLocaleString()}
-            </span>
-            <span className="text-2xl font-medium text-slate-300 mr-2">د.ع</span>
-          </div>
-          {currentExpenses > userBudget.totalBudget && userBudget.totalBudget > 0 && (
-            <div className="flex items-center justify-center text-red-400 text-xs mt-1">
-              <AlertCircleIcon className="h-4 w-4 ml-1" />
-              <span>لقد تجاوزت الميزانية الشهرية!</span>
+        <CardContent className="z-10 relative p-6 space-y-6">
+            {/* Main numbers */}
+            <div className="grid grid-cols-3 divide-x-reverse divide-x divide-slate-700 text-center">
+              <div>
+                  <p className="text-sm text-slate-400">الميزانية</p>
+                  <p className="text-xl md:text-2xl font-bold text-white whitespace-nowrap">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+              </div>
+              <div>
+                  <p className="text-sm text-slate-400">المصروف</p>
+                  <p className="text-xl md:text-2xl font-bold text-white whitespace-nowrap">{currentExpenses.toLocaleString()} د.ع</p>
+              </div>
+              <div>
+                  <p className="text-sm text-slate-400">المتبقي</p>
+                  <p className={`text-xl md:text-2xl font-bold whitespace-nowrap ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+              </div>
             </div>
-          )}
-        </CardContent>
 
-        <CardFooter className="z-10 relative flex flex-col gap-4 p-6 bg-black/20">
-          <div>
-              <div className="flex justify-between items-center mb-1 text-xs font-medium">
-                  <span className="text-slate-300">التقدم الشهري</span>
-                  <span className="text-white">{(userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0).toFixed(0)}%</span>
-              </div>
-              <Progress value={userBudget.totalBudget > 0 ? (currentExpenses / userBudget.totalBudget) * 100 : 0} className="h-2 bg-white/20" />
-              <div className="flex justify-between text-xs mt-1 text-slate-400">
-                  <span>المصروف: {currentExpenses.toLocaleString()} د.ع</span>
-                  <span>الميزانية: {userBudget.totalBudget.toLocaleString()} د.ع</span>
-              </div>
-          </div>
-
-          { userBudget.weeklyBudget > 0 && (
-              <>
-                  <div className="w-full h-px bg-white/10"></div>
-
-                  <div>
-                      <div className="flex justify-between items-center mb-1 text-xs font-medium">
-                          <span className="text-slate-300">مصروف الأسبوع</span>
-                          {weeklyExpensesTotal > userBudget.weeklyBudget && <AlertCircleIcon className="h-4 w-4 text-yellow-400" />}
-                      </div>
-                      <Progress value={userBudget.weeklyBudget > 0 ? (weeklyExpensesTotal / userBudget.weeklyBudget) * 100 : 0} className="h-2 bg-white/20 [&>div]:bg-teal-400" />
-                      <div className="flex justify-between text-xs mt-1 text-slate-400">
-                          <span>{weeklyExpensesTotal.toLocaleString()} د.ع</span>
-                          <span>الهدف: {userBudget.weeklyBudget.toLocaleString()} د.ع</span>
-                      </div>
+            {/* Weekly progress section */}
+            {userBudget.totalBudget > 0 && (
+                <div className="pt-4">
+                  <div className="flex justify-around mb-2 text-xs text-slate-300">
+                    <span>الأسبوع 1</span>
+                    <span>الأسبوع 2</span>
+                    <span>الأسبوع 3</span>
+                    <span>الأسبوع 4</span>
                   </div>
-              </>
-          )}
-        </CardFooter>
+                  <div className="flex w-full space-x-2 space-x-reverse">
+                    {weeklySpending.map((spent, index) => {
+                      const percentage = weeklyTarget > 0 ? Math.min((spent / weeklyTarget) * 100, 100) : 0;
+                      const isOverBudget = spent > weeklyTarget;
+                      return (
+                        <div key={index} className="w-1/4 group relative">
+                          <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 ${isOverBudget ? 'bg-red-500' : 'bg-teal-400'}`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max p-2 text-xs text-white bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                            <p>المصروف: {spent.toLocaleString()} د.ع</p>
+                            {isOverBudget && <p className="text-red-400 font-bold">تجاوزت الهدف!</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-center text-xs text-slate-400 mt-2">
+                    <span>الهدف الأسبوعي: {weeklyTarget.toLocaleString()} د.ع</span>
+                  </div>
+                </div>
+              )}
+        </CardContent>
       </Card>
       
       {userBudget.totalBudget === 0 && !isLoading && (
@@ -282,7 +296,7 @@ export default function DashboardPage() {
 
       {/* Recent Expenses List */}
       <Card>
-        <CardHeader className="border-b">
+        <CardHeader>
           <CardTitle>أحدث المصاريف</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
