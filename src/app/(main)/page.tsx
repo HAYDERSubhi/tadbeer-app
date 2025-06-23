@@ -413,7 +413,6 @@ export default function DashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-xl font-bold text-white">ملخص الميزانية الشهرية</CardTitle>
-              <CardDescription className="text-slate-400 text-xs">نظرة شاملة لوضعك المالي هذا الشهر</CardDescription>
             </div>
             <Link href="/settings">
               <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-slate-700 hover:text-white rounded-full">
@@ -561,7 +560,11 @@ export default function DashboardPage() {
           ) : insights && insights.length > 0 ? (
             <ul className="space-y-4">
               {insights.map((insight, index) => (
-                <li key={index} className="flex items-start gap-4">
+                <li
+                  key={index}
+                  className="flex animate-in fade-in slide-in-from-bottom-5 items-start gap-4 duration-500 fill-mode-both"
+                  style={{ animationDelay: `${100 + index * 100}ms` }}
+                >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
                     <InsightIcon name={insight.icon} className="h-6 w-6 text-primary" />
                   </span>
