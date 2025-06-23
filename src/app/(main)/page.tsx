@@ -187,7 +187,7 @@ export default function DashboardPage() {
     } finally {
       setIsVoiceLoading(false);
     }
-  }, [isMounted, toast]);
+  }, [toast]);
   
   const stopVoiceRecording = useCallback(() => {
     if (voiceMediaRecorderRef.current && isVoiceRecording) {
@@ -246,29 +246,29 @@ export default function DashboardPage() {
     }
   }, [isMounted, processVoiceAndSave, toast]);
   
-  const renderVoiceCardContent = () => {
+  const renderVoiceButtonContent = () => {
     if (isVoiceLoading) {
       return (
-        <div className="flex flex-col items-center space-y-2 text-primary">
+        <div className="flex flex-col h-full items-center justify-center space-y-2 text-primary">
           <Loader2Icon className="h-8 w-8 animate-spin" />
-          <p>جاري التحليل والحفظ...</p>
+          <p>جاري التحليل...</p>
         </div>
       );
     }
     
     if (voiceError) {
       return (
-        <div className="flex flex-col items-center space-y-4 text-destructive">
+        <div className="flex flex-col h-full items-center justify-center space-y-2 text-destructive">
           <AlertTriangleIcon className="h-8 w-8" />
-          <p className="text-center text-sm">{voiceError}</p>
+          <p className="text-center text-sm flex-1">{voiceError}</p>
         </div>
       );
     }
     
     if (isVoiceRecording) {
       return (
-        <div className="flex flex-col items-center justify-center space-y-4 w-full">
-          <div className="text-center">
+        <div className="flex flex-col h-full items-center justify-center space-y-4 w-full">
+          <div className="flex-1 flex flex-col items-center justify-center">
              <p className="text-sm text-muted-foreground animate-pulse">جاري التسجيل...</p>
              <p className="text-4xl font-mono tracking-wider text-foreground mt-1">
               {formatTime(voiceRecordingTime)}
@@ -290,10 +290,10 @@ export default function DashboardPage() {
     // Default/Idle state
     return (
         <>
-            <span className={cn("p-3 rounded-full", "bg-rose-100 dark:bg-rose-900/50")}>
-                <Mic className={cn("h-7 w-7", "text-rose-600 dark:text-rose-300")} />
+            <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
+                <Mic className={cn("h-8 w-8", "text-rose-600 dark:text-rose-300")} />
             </span>
-            <div className="flex-1">
+            <div>
                 <p className="font-semibold">إدخال صوتي</p>
                 <p className="text-xs text-muted-foreground">سجل مصروفك بصوتك</p>
             </div>
@@ -431,51 +431,44 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Add Expense Horizontal Scroll */}
+      {/* Add Expense Section */}
       <div>
         <h2 className="text-xl font-bold tracking-tight mb-4">إضافة مصروف جديد</h2>
-        <div className="relative">
-          <div className="flex w-full space-x-4 space-x-reverse overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             
-            {/* INLINE VOICE CARD */}
-            <div className="flex-shrink-0 w-48">
-                <Card 
-                  onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
-                  className={cn(
-                    "h-full hover:border-primary hover:shadow-md transition-all flex flex-col",
-                    !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer"
-                  )}
-                >
-                    <CardContent className="p-4 flex flex-col flex-1 items-center justify-center text-center gap-3">
-                        {renderVoiceCardContent()}
-                    </CardContent>
-                    {voiceError && (
-                      <CardFooter className="flex-col gap-2 p-2 pt-0">
-                        <Button onClick={startVoiceRecording} variant="ghost" className="w-full text-xs">
-                           <RefreshCwIcon className="ml-2 h-3 w-3" />
-                           {'حاول مرة أخرى'}
-                        </Button>
-                      </CardFooter>
-                    )}
-                </Card>
+            {/* INLINE VOICE BUTTON */}
+            <div 
+              onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
+              className={cn(
+                "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
+                !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer hover:bg-muted/50",
+                (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
+                voiceError && "ring-2 ring-destructive/50"
+              )}
+            >
+                {renderVoiceButtonContent()}
+                {voiceError && (
+                  <div className="w-full mt-auto pt-2">
+                    <Button onClick={startVoiceRecording} variant="ghost" size="sm" className="w-full text-xs">
+                       <RefreshCwIcon className="ml-2 h-3 w-3" />
+                       {'حاول مرة أخرى'}
+                    </Button>
+                  </div>
+                )}
             </div>
 
             {AddExpenseDialogs.map(({ label, description, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
-                  <div className="flex-shrink-0 w-48 cursor-pointer">
-                    <Card className="h-full hover:border-primary hover:shadow-md transition-all">
-                      <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-                        <span className={cn("p-3 rounded-full", iconBg)}>
-                           <IconComponent className={cn("h-7 w-7", iconColor)} />
-                        </span>
-                        <div className="flex-1">
-                          <p className="font-semibold">{label}</p>
-                          <p className="text-xs text-muted-foreground">{description}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+                    <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", iconBg)}>
+                       <IconComponent className={cn("h-8 w-8", iconColor)} />
+                    </span>
+                    <div>
+                      <p className="font-semibold">{label}</p>
+                      <p className="text-xs text-muted-foreground">{description}</p>
+                    </div>
+                  </button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
@@ -485,7 +478,6 @@ export default function DashboardPage() {
                 </DialogContent>
               </Dialog>
             ))}
-          </div>
         </div>
       </div>
 
