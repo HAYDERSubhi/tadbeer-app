@@ -27,7 +27,6 @@ import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
 const AddExpenseDialogs = [
   {
     label: "إدخال يدوي",
-    description: "أضف مصروفاً جديداً بنفسك",
     IconComponent: FilePenLine,
     formComponent: <ManualExpenseForm />,
     iconBg: "bg-blue-100 dark:bg-blue-900/50",
@@ -35,7 +34,6 @@ const AddExpenseDialogs = [
   },
   {
     label: "مسح الفاتورة",
-    description: "التقط صورة لفاتورتك",
     IconComponent: ScanLine,
     formComponent: <ReceiptScanForm />,
     iconBg: "bg-teal-100 dark:bg-teal-900/50",
@@ -43,7 +41,6 @@ const AddExpenseDialogs = [
   },
   {
     label: "بطاقة إلكترونية",
-    description: "مزامنة تلقائية (قريباً)",
     IconComponent: CreditCardIcon,
     formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
     iconBg: "bg-amber-100 dark:bg-amber-900/50",
@@ -295,7 +292,6 @@ export default function DashboardPage() {
             </span>
             <div>
                 <p className="font-semibold">إدخال صوتي</p>
-                <p className="text-xs text-muted-foreground">سجل مصروفك بصوتك</p>
             </div>
         </>
     );
@@ -457,7 +453,7 @@ export default function DashboardPage() {
                 )}
             </div>
 
-            {AddExpenseDialogs.map(({ label, description, IconComponent, formComponent, iconBg, iconColor }) => (
+            {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
                   <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
@@ -466,7 +462,6 @@ export default function DashboardPage() {
                     </span>
                     <div>
                       <p className="font-semibold">{label}</p>
-                      <p className="text-xs text-muted-foreground">{description}</p>
                     </div>
                   </button>
                 </DialogTrigger>
@@ -547,5 +542,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
