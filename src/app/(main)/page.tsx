@@ -259,8 +259,8 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-                    <div className="flex flex-1 items-center gap-4">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/25 text-xl">
+                    <div className="flex flex-1 items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
                           {categoryInfo.icon}
                       </span>
                       <div>
@@ -271,7 +271,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="text-right">
+                        <div className="text-end">
                           <p className="font-semibold text-foreground whitespace-nowrap">
                               {expense.amount.toLocaleString()}&nbsp;د.ع
                           </p>
