@@ -258,34 +258,36 @@ export default function DashboardPage() {
               {recentExpensesToDisplay.map((expense) => {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
-                  <li key={expense.id} className="group flex cursor-pointer items-center justify-between p-4 transition-colors hover:bg-muted/50">
-                    <div className="flex items-center gap-4">
-                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                  <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
+                    <div className="flex flex-1 items-center gap-4">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted/25 text-xl">
                           {categoryInfo.icon}
                       </span>
                       <div>
                           <p className="font-semibold">{expense.title}</p>
                           <p className="text-sm text-muted-foreground">
-                              {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
+                              {categoryInfo.name}
                           </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="font-semibold text-foreground whitespace-nowrap">
                               {expense.amount.toLocaleString()}&nbsp;د.ع
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                              {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
                           </p>
                         </div>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteExpense(expense.id); }}
+                            className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                            onClick={() => handleDeleteExpense(expense.id)}
                             aria-label="حذف المصروف"
                         >
                             <Trash2Icon className="h-4 w-4" />
                         </Button>
-                        <ChevronLeft className="h-5 w-5 text-muted-foreground transition-transform group-hover:translate-x-[-2px]" />
                     </div>
                   </li>
                 );
