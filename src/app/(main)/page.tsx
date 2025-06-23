@@ -90,51 +90,61 @@ export default function DashboardPage() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'amountHighToLow' | 'amountLowToHigh'>('newest');
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
 
-  const refreshExpensesAndBudget = useCallback(() => {
-    const storedBudget = localStorage.getItem('userBudgetSettings');
-    if (storedBudget) {
-      setUserBudget(JSON.parse(storedBudget));
-    } else {
-      setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
-    }
-
-    const storedExpenses = localStorage.getItem('expenses');
-    if (storedExpenses) {
-      try {
-        const parsedExpenses = JSON.parse(storedExpenses);
-        if (Array.isArray(parsedExpenses)) {
-          setExpenses(parsedExpenses);
-        } else {
-          setExpenses([]);
-          localStorage.setItem('expenses', '[]'); 
-        }
-      } catch (error) {
-        console.error("Failed to parse expenses from localStorage", error);
-        setExpenses([]);
-        toast({
-          title: "خطأ في قراءة البيانات",
-          description: "تم إعادة تعيين بيانات المصاريف بسبب وجود بيانات تالفة.",
-          variant: "destructive",
-        });
-        localStorage.setItem('expenses', '[]');
-      }
-    } else {
-      setExpenses([]);
-    }
-  }, [toast]);
-
   useEffect(() => {
     setIsMounted(true);
-    refreshExpensesAndBudget();
+    
+    const refreshData = () => {
+      // Refresh Budget
+      const storedBudget = localStorage.getItem('userBudgetSettings');
+      if (storedBudget) {
+        try {
+          const parsedBudget = JSON.parse(storedBudget);
+          setUserBudget(parsedBudget);
+        } catch {
+          setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+        }
+      } else {
+        setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+      }
+
+      // Refresh Expenses
+      const storedExpenses = localStorage.getItem('expenses');
+      if (storedExpenses) {
+        try {
+          const parsedExpenses = JSON.parse(storedExpenses);
+          if (Array.isArray(parsedExpenses)) {
+            setExpenses(parsedExpenses);
+          } else {
+            setExpenses([]);
+            localStorage.setItem('expenses', '[]'); 
+          }
+        } catch (error) {
+          console.error("Failed to parse expenses from localStorage", error);
+          setExpenses([]);
+          toast({
+            title: "خطأ في قراءة البيانات",
+            description: "تم إعادة تعيين بيانات المصاريف بسبب وجود بيانات تالفة.",
+            variant: "destructive",
+          });
+          localStorage.setItem('expenses', '[]');
+        }
+      } else {
+        setExpenses([]);
+      }
+    };
+    
+    refreshData();
     setIsLoading(false);
 
-    window.addEventListener('expensesUpdated', refreshExpensesAndBudget);
-    window.addEventListener('budgetUpdated', refreshExpensesAndBudget);
+    window.addEventListener('expensesUpdated', refreshData);
+    window.addEventListener('budgetUpdated', refreshData);
+    
     return () => {
-      window.removeEventListener('expensesUpdated', refreshExpensesAndBudget);
-      window.removeEventListener('budgetUpdated', refreshExpensesAndBudget);
+      window.removeEventListener('expensesUpdated', refreshData);
+      window.removeEventListener('budgetUpdated', refreshData);
     };
-  }, [refreshExpensesAndBudget]);
+  }, [toast]);
+
 
   useEffect(() => {
     if (isMounted) {
@@ -170,7 +180,7 @@ export default function DashboardPage() {
   const weeklySpendingProgress = userBudget.weeklyBudget > 0 ? (currentWeekExpensesTotal / userBudget.weeklyBudget) * 100 : 0;
 
 
-  if (!isMounted && isLoading) {
+  if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -365,12 +375,7 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading && !isMounted? ( 
-            <div className="flex justify-center items-center py-4">
-                <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-                <p className="mr-2">جاري تحميل المصاريف...</p>
-            </div>
-          ) : recentExpensesToDisplay.length === 0 ? (
+          {recentExpensesToDisplay.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-2" />
               <p>
@@ -387,16 +392,13 @@ export default function DashboardPage() {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
                   <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4 flex-1">
-                      <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                    <div className="flex items-center gap-3">
+                       <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
                         {categoryInfo.icon}
                       </span>
                       <div className="flex-1 text-right">
                         <p className="font-semibold">{expense.title}</p>
-                        {expense.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{expense.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1">
+                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                       </div>
@@ -432,5 +434,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

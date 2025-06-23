@@ -212,13 +212,12 @@ export default function SettingsPage() {
         }
 
         const titleIndex = headerIndexMap.title;
-        const amountIndex = headerIndexMap.amount;
-
-        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : '';
+        let titleValue = (titleIndex > -1 && row[titleIndex] != null) ? String(row[titleIndex]).trim() : 'مصروف مستورد بدون عنوان';
         if (titleValue === '') {
           titleValue = 'مصروف مستورد بدون عنوان';
         }
 
+        const amountIndex = headerIndexMap.amount;
         const amountValue = (amountIndex > -1 && row[amountIndex] != null) ? row[amountIndex] : 0;
         let parsedAmount = parseFloat(String(amountValue).replace(/[^0-9.-]+/g,""));
         if (isNaN(parsedAmount)) {
@@ -260,21 +259,24 @@ export default function SettingsPage() {
         newExpenses.push(newExp as Expense);
       });
       
-      if (newExpenses.length > 0) {
-        let existingExpenses: Expense[] = [];
-        try {
-            const storedExpenses = localStorage.getItem('expenses');
-            if (storedExpenses) {
-                existingExpenses = JSON.parse(storedExpenses);
-            }
-        } catch (e) {
-            console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
-        }
-        
-        localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...newExpenses]));
-        window.dispatchEvent(new CustomEvent('expensesUpdated'));
-        localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap));
+      let existingExpenses: Expense[] = [];
+      try {
+          const storedExpenses = localStorage.getItem('expenses');
+          if (storedExpenses) {
+              const parsed = JSON.parse(storedExpenses);
+              if (Array.isArray(parsed)) {
+                  existingExpenses = parsed;
+              }
+          }
+      } catch (e) {
+          console.error("Could not parse existing expenses from localStorage, starting fresh.", e);
+          existingExpenses = []; // Ensure it's an array on error
       }
+      
+      const combinedExpenses = [...existingExpenses, ...newExpenses];
+      localStorage.setItem('expenses', JSON.stringify(combinedExpenses));
+      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+      localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(finalMap));
       
       toast({
         title: "اكتمل الاستيراد",
@@ -431,5 +433,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
