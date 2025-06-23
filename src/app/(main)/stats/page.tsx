@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, subDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
@@ -29,8 +30,17 @@ interface PieChartDataItem {
 }
 
 interface TrendChartDataItem {
-  name: string; // Date string
+  name: string; // Date string or month string
   expenses: number;
+}
+
+interface CategorySummaryItem {
+  id: string;
+  name: string;
+  icon: string;
+  total: number;
+  percentage: number;
+  color: string;
 }
 
 export default function StatisticsPage() {
@@ -38,138 +48,176 @@ export default function StatisticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Filter state
+  const [view, setView] = useState<'month' | 'year'>('month');
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]); // "YYYY-MM" format
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+
+  // Chart data state
   const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
   const [trendChartData, setTrendChartData] = useState<TrendChartDataItem[]>([]);
-  const [monthlyTrendData, setMonthlyTrendData] = useState<TrendChartDataItem[]>([]);
-  const [largestExpenses, setLargestExpenses] = useState<Expense[]>([]);
+  const [categorySummary, setCategorySummary] = useState<CategorySummaryItem[]>([]);
+  const [totalForPeriod, setTotalForPeriod] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
-    const storedExpenses = localStorage.getItem('expenses');
-    if (storedExpenses) {
-      try {
-        const parsedExpenses = JSON.parse(storedExpenses) as Expense[];
-        setExpenses(parsedExpenses);
-        processChartData(parsedExpenses);
-      } catch {
-        setExpenses([]);
-        processChartData([]);
-      }
-    }
-    setIsLoading(false);
-
+    
     const handleExpensesUpdate = () => {
-        const updatedStoredExpenses = localStorage.getItem('expenses');
-        if (updatedStoredExpenses) {
+        const storedExpenses = localStorage.getItem('expenses');
+        if (storedExpenses) {
           try {
-            const updatedParsedExpenses = JSON.parse(updatedStoredExpenses) as Expense[];
-            setExpenses(updatedParsedExpenses);
-            processChartData(updatedParsedExpenses);
+            const parsedExpenses = JSON.parse(storedExpenses) as Expense[];
+            setExpenses(parsedExpenses);
+
+            if (parsedExpenses.length > 0) {
+              const dates = parsedExpenses.map(e => parseISO(e.date));
+              const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
+              setAvailableYears(uniqueYears);
+
+              const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
+              setAvailableMonths(uniqueMonths);
+              
+              // Set initial selection to the latest available data
+              if (uniqueYears.length > 0 && !availableYears.includes(selectedYear)) {
+                setSelectedYear(uniqueYears[0]);
+              }
+              if (uniqueMonths.length > 0 && !availableMonths.includes(selectedMonth)) {
+                setSelectedMonth(uniqueMonths[0]);
+              }
+            } else {
+              // No data, clear filters
+              setAvailableYears([]);
+              setAvailableMonths([]);
+            }
           } catch {
             setExpenses([]);
-            processChartData([]);
           }
         } else {
-            setExpenses([]);
-            processChartData([]);
+          setExpenses([]);
         }
     };
+    
+    handleExpensesUpdate(); // Initial load
+    setIsLoading(false);
+
     window.addEventListener('expensesUpdated', handleExpensesUpdate);
     return () => window.removeEventListener('expensesUpdated', handleExpensesUpdate);
 
   }, []);
 
-  const processChartData = (currentExpenses: Expense[]) => {
-    if (!currentExpenses || currentExpenses.length === 0) {
+  useEffect(() => {
+    if (expenses.length > 0) {
+      processChartData(expenses, view, selectedYear, selectedMonth);
+    } else {
+      // Clear all data if there are no expenses
       setPieChartData([]);
       setTrendChartData([]);
-      setLargestExpenses([]);
-      setMonthlyTrendData([]);
-      return;
+      setCategorySummary([]);
+      setTotalForPeriod(0);
     }
-    
-    const today = new Date();
-    const startOfCurrentMonth = startOfMonth(today);
-    const endOfCurrentMonth = endOfMonth(today);
+  }, [expenses, view, selectedYear, selectedMonth, isMounted]);
 
-    const monthlyExpenses = currentExpenses.filter(exp => {
+  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string) => {
+    if (!isMounted) return;
+
+    let filteredExpenses: Expense[];
+    let periodStart: Date, periodEnd: Date;
+
+    if (currentView === 'year') {
+        periodStart = startOfYear(new Date(year, 0, 1));
+        periodEnd = endOfYear(new Date(year, 0, 1));
+    } else { // 'month' view
+        periodStart = parseISO(`${monthStr}-01`);
+        periodEnd = endOfMonth(periodStart);
+    }
+
+    filteredExpenses = currentExpenses.filter(exp => {
       try {
         const expenseDate = parseISO(exp.date);
-        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
+        return isWithinInterval(expenseDate, { start: periodStart, end: periodEnd });
       } catch {
         return false;
       }
     });
+    
+    const totalExpensesInPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    setTotalForPeriod(totalExpensesInPeriod);
 
-
-    // Pie Chart Data (current month)
+    // Pie Chart & Category Summary Data
     const categoryTotals: { [key: string]: number } = {};
-    monthlyExpenses.forEach(exp => {
+    filteredExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
-    const pieData = Object.entries(categoryTotals).map(([catKey, total]) => ({
+
+    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total]) => ({
       name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
       value: total,
       key: catKey,
       fill: defaultCategories[catKey as keyof typeof defaultCategories]?.chartColor || 'hsl(var(--muted))',
     }));
     setPieChartData(pieData);
-
-    // Trend Chart Data (last 7 days)
-    const dailyTotals: { [date: string]: number } = {};
-    for (let i = 6; i >= 0; i--) {
-      const date = subDays(today, i);
-      const formattedDate = format(date, 'MMM d', { locale: arSA });
-      dailyTotals[formattedDate] = 0;
-    }
-    currentExpenses.forEach(exp => {
-      try {
-        const expenseDate = parseISO(exp.date);
-        if (expenseDate >= subDays(today, 6)) { // consider expenses from last 7 days
-          const formattedDate = format(expenseDate, 'MMM d', { locale: arSA });
-          if (dailyTotals.hasOwnProperty(formattedDate)) {
-               dailyTotals[formattedDate] += exp.amount;
-          }
-        }
-      } catch (e) {
-        // Ignore invalid dates
-      }
-    });
-    const trendData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
-      name: dateStr,
-      expenses: total,
-    }));
-    setTrendChartData(trendData);
     
-    // Largest Expenses (current month)
-    const sortedExpenses = [...monthlyExpenses].sort((a, b) => b.amount - a.amount);
-    setLargestExpenses(sortedExpenses.slice(0, 3));
+    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
+        .map(([catKey, total]) => {
+            const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
+            return {
+                id: catKey,
+                name: categoryInfo.name,
+                icon: categoryInfo.icon,
+                total,
+                percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+                color: categoryInfo.color,
+            };
+        })
+        .sort((a, b) => b.total - a.total);
+    setCategorySummary(summaryData);
 
-    // Monthly Trend Data (all time)
-    const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
-    currentExpenses.forEach(exp => {
-      try {
-        const monthKey = format(parseISO(exp.date), 'yyyy-MM');
-        monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + exp.amount;
-      } catch (e) {
-        // Ignore invalid dates
-      }
-    });
 
-    const trendDataForMonths = Object.entries(monthlyTotals)
-      .sort(([monthA], [monthB]) => monthA.localeCompare(monthB))
-      .map(([monthKey, total]) => {
-          const monthDate = parseISO(`${monthKey}-01`);
-          const monthName = format(monthDate, 'MMM yy', { locale: arSA });
-          return {
-              name: monthName,
-              expenses: total,
-          };
-      });
-    setMonthlyTrendData(trendDataForMonths);
+    // Trend Chart Data
+    if (currentView === 'year') {
+        const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
+        for (let i = 0; i < 12; i++) {
+            const monthKey = format(new Date(year, i, 1), 'yyyy-MM');
+            monthlyTotals[monthKey] = 0;
+        }
+        filteredExpenses.forEach(exp => {
+            const monthKey = format(parseISO(exp.date), 'yyyy-MM');
+            if (monthlyTotals.hasOwnProperty(monthKey)) {
+              monthlyTotals[monthKey] += exp.amount;
+            }
+        });
+
+        const trendData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
+            name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arSA }),
+            expenses: total,
+        }));
+        setTrendChartData(trendData);
+    } else { // 'month' view, show daily trend
+        const dailyTotals: { [date: string]: number } = {};
+        let day = periodStart;
+        while (day <= periodEnd) {
+            const formattedDate = format(day, 'd');
+            dailyTotals[formattedDate] = 0;
+            day = subDays(day, -1); // next day
+        }
+
+        filteredExpenses.forEach(exp => {
+            const formattedDate = format(parseISO(exp.date), 'd');
+            if (dailyTotals.hasOwnProperty(formattedDate)) {
+                dailyTotals[formattedDate] += exp.amount;
+            }
+        });
+        const trendData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
+            name: dateStr,
+            expenses: total,
+        }));
+        setTrendChartData(trendData);
+    }
   };
-
-  if (!isMounted && isLoading) {
+  
+  if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -185,21 +233,80 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-6 pb-8">
+       <Card>
+            <CardContent className="p-4">
+                <Tabs value={view} onValueChange={(v) => setView(v as 'month' | 'year')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="month">شهري</TabsTrigger>
+                        <TabsTrigger value="year">سنوي</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="month" className="mt-4">
+                        <div className="relative">
+                           <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                                <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
+                                    <TabsList>
+                                        {availableMonths.map(m => (
+                                            <TabsTrigger key={m} value={m} className="whitespace-nowrap">
+                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arSA})}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                </Tabs>
+                           </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="year" className="mt-4">
+                         <div className="relative">
+                           <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                                <Tabs value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))} className="w-full">
+                                    <TabsList>
+                                        {availableYears.map(y => (
+                                            <TabsTrigger key={y} value={String(y)}>
+                                                {y}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                </Tabs>
+                           </div>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChartIcon className="h-6 w-6 text-primary" />
-            توزيع مصاريف الشهر الحالي
+            توزيع المصاريف
           </CardTitle>
-           {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة هذا الشهر.</CardDescription>}
+           {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
         <CardContent className="h-[350px] flex justify-center">
           {pieChartData.length > 0 ? (
             <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
               <PieChart>
-                <ChartTooltip
+                <RechartsTooltip
                   cursor={false}
-                  content={<ChartTooltipContent hideLabel formatter={(value, name, props) => `${props.payload.name}: ${Number(value).toLocaleString()} د.ع`} />}
+                  content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-lg border bg-background p-2 shadow-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex flex-col">
+                                <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                  {payload[0].payload.name}
+                                </span>
+                                <span className="font-bold text-muted-foreground">
+                                  {payload[0].value?.toLocaleString()} د.ع
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+                      return null
+                  }}
                 />
                 <Pie
                   data={pieChartData}
@@ -208,13 +315,14 @@ export default function StatisticsPage() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
+                  innerRadius={70}
                   labelLine={false}
                   label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
                     const RADIAN = Math.PI / 180;
                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                     const x = cx + radius * Math.cos(-midAngle * RADIAN);
                     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                    if (percent * 100 < 5) return null; // Hide small percentage labels
+                    if (percent * 100 < 5) return null;
                     return (
                       <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs fill-primary-foreground font-semibold">
                         {`${(percent * 100).toFixed(0)}%`}
@@ -226,10 +334,16 @@ export default function StatisticsPage() {
                     <Cell key={`cell-${entry.key}`} fill={entry.fill} />
                   ))}
                 </Pie>
+                 <foreignObject width="100%" height="100%">
+                    <div className="w-full h-full flex flex-col justify-center items-center">
+                      <p className="text-sm text-muted-foreground">الإجمالي</p>
+                      <p className="text-xl font-bold">{totalForPeriod.toLocaleString()}</p>
+                    </div>
+                 </foreignObject>
                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>
-          ) : (!isLoading && <p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها في هذا الرسم.</p>)}
+          ) : (!isLoading && <p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 
@@ -237,8 +351,11 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUpIcon className="h-6 w-6 text-primary" />
-            اتجاه المصاريف (آخر 7 أيام)
+            اتجاه المصاريف
           </CardTitle>
+          <CardDescription>
+            {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arSA })}`}
+          </CardDescription>
           {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
         <CardContent className="h-[300px]">
@@ -251,13 +368,13 @@ export default function StatisticsPage() {
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
-                    labelFormatter={(label: string) => `التاريخ: ${label}`}
+                    labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
                   />
                 <ChartLegend content={<ChartLegendContent />} />
                 <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
               </LineChart>
             </ChartContainer>
-          ) : (!isLoading && <p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها في هذا الرسم.</p>)}
+          ) : (!isLoading && <p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
       
@@ -265,55 +382,29 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ListOrderedIcon className="h-6 w-6 text-primary" />
-            أكبر مصاريف الشهر الحالي (أعلى 3)
+            ملخص الفئات
           </CardTitle>
-          {largestExpenses.length === 0 && <CardDescription>لا توجد مصاريف مسجلة هذا الشهر.</CardDescription>}
+          {categorySummary.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
         <CardContent>
-          {largestExpenses.length > 0 ? (
-            <ul className="space-y-2">
-                {largestExpenses.map(exp => {
-                    const categoryInfo = defaultCategories[exp.category as keyof typeof defaultCategories] || defaultCategories.other;
-                    return (
-                        <li key={exp.id} className="flex justify-between items-center p-3 border-b last:border-b-0 rounded-md hover:bg-muted/50">
-                            <div>
-                                <p className="font-medium">{exp.title}</p>
-                                <p className="text-xs text-muted-foreground">{categoryInfo.name} - {new Date(exp.date).toLocaleDateString('ar-IQ')}</p>
-                            </div>
-                            <p className="text-destructive font-semibold">{exp.amount.toLocaleString()} د.ع</p>
-                        </li>
-                    );
-                })}
+          {categorySummary.length > 0 ? (
+            <ul className="space-y-4">
+                {categorySummary.map(item => (
+                    <li key={item.id} className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                           <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl`}>
+                              {item.icon}
+                           </span>
+                           <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">{item.percentage.toFixed(2)}%</p>
+                           </div>
+                        </div>
+                        <p className="font-semibold">{item.total.toLocaleString()} د.ع</p>
+                    </li>
+                ))}
             </ul>
           ) : (!isLoading && <p className="text-muted-foreground text-center py-4">لا توجد مصاريف لعرضها.</p>)}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <TrendingUpIcon className="h-6 w-6 text-primary" />
-                اتجاه المصاريف الشهرية
-            </CardTitle>
-            {monthlyTrendData.length < 2 && <CardDescription>تحتاج إلى بيانات شهرين على الأقل لعرض الاتجاه.</CardDescription>}
-        </CardHeader>
-        <CardContent className="h-[300px]">
-            {monthlyTrendData.length > 1 ? (
-              <ChartContainer config={chartConfig} className="w-full h-full">
-                <LineChart data={monthlyTrendData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                  <YAxis tickFormatter={(value) => `${(Number(value) / 1000)} ألف`} tickLine={false} axisLine={false} tickMargin={8} />
-                   <RechartsTooltip
-                      contentStyle={{ direction: 'rtl' }}
-                      formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
-                      labelFormatter={(label: string) => `الشهر: ${label}`}
-                    />
-                  <ChartLegend content={<ChartLegendContent />} />
-                  <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
-                </LineChart>
-              </ChartContainer>
-            ) : (!isLoading && <p className="text-muted-foreground text-center pt-10">لا توجد بيانات كافية لعرض اتجاه شهري.</p>)}
         </CardContent>
       </Card>
 
