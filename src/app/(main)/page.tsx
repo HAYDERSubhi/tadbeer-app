@@ -38,29 +38,29 @@ const AddExpenseDialogs = [
     label: "إدخال يدوي",
     IconComponent: FilePenLine,
     formComponent: <ManualExpenseForm />,
-    iconBg: "bg-primary",
-    iconColor: "text-primary-foreground"
+    iconBg: "bg-blue-100 dark:bg-blue-900/50",
+    iconColor: "text-blue-600 dark:text-blue-300"
   },
   {
     label: "إدخال صوتي",
     IconComponent: Mic,
     formComponent: <VoiceExpenseForm />,
-    iconBg: "bg-primary",
-    iconColor: "text-primary-foreground"
+    iconBg: "bg-rose-100 dark:bg-rose-900/50",
+    iconColor: "text-rose-600 dark:text-rose-300"
   },
   {
     label: "مسح الفاتورة",
     IconComponent: ScanLine,
     formComponent: <ReceiptScanForm />,
-    iconBg: "bg-primary",
-    iconColor: "text-primary-foreground"
+    iconBg: "bg-teal-100 dark:bg-teal-900/50",
+    iconColor: "text-teal-600 dark:text-teal-300"
   },
   {
     label: "بطاقة إلكترونية",
     IconComponent: CreditCardIcon,
     formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
-    iconBg: "bg-primary",
-    iconColor: "text-primary-foreground"
+    iconBg: "bg-amber-100 dark:bg-amber-900/50",
+    iconColor: "text-amber-600 dark:text-amber-300"
   },
 ];
 
@@ -278,16 +278,16 @@ export default function DashboardPage() {
           <CardTitle>طرق إدخال المصاريف</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
               <Dialog key={label}>
                 <DialogTrigger asChild>
-                   <Button variant="secondary" className="w-full h-auto py-4 px-3 text-sm sm:text-base flex flex-row items-center justify-start gap-3">
-                    <span className={cn("p-2.5 rounded-lg", iconBg)}>
-                      <IconComponent className={cn("h-5 w-5 sm:h-6 sm:w-6", iconColor)} />
+                   <button className="w-full text-right p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors flex items-center gap-4">
+                    <span className={cn("p-3 rounded-full", iconBg)}>
+                      <IconComponent className={cn("h-6 w-6", iconColor)} />
                     </span>
-                    <span className="flex-1 text-right">{label}</span>
-                  </Button>
+                    <span className="font-medium">{label}</span>
+                  </button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
@@ -395,35 +395,31 @@ export default function DashboardPage() {
               {recentExpensesToDisplay.map((expense) => {
                 const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                 return (
-                  <li key={expense.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    {/* Right side group: Icon + Text */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="flex-1 text-right min-w-0">
-                            <p className="font-semibold truncate">{expense.title}</p>
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                                {categoryInfo.name} - {new Date(expense.date).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' })}
-                            </p>
-                        </div>
-                        <span className={`flex-shrink-0 flex items-center justify-center text-xl h-12 w-12 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
-                            {categoryInfo.icon}
-                        </span>
+                  <li key={expense.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card transition-colors">
+                    <span className={`flex-shrink-0 flex items-center justify-center text-xl h-10 w-10 rounded-full ${categoryInfo.color} ${categoryInfo.color === 'bg-yellow-500' ? 'text-black' : 'text-white'}`}>
+                        {categoryInfo.icon}
+                    </span>
+                    
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{expense.title}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                            {categoryInfo.name} &bull; {new Date(expense.date).toLocaleDateString('ar-IQ', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        </p>
                     </div>
 
-                    {/* Left side group: Amount + Delete button */}
-                    <div className="flex flex-col items-end gap-1 text-left flex-shrink-0">
-                        <div className="font-bold text-lg text-primary whitespace-nowrap">
-                            {expense.amount.toLocaleString()} د.ع
-                        </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive/80"
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            aria-label="حذف المصروف"
-                        >
-                            <Trash2Icon className="h-4 w-4" />
-                        </Button>
+                    <div className="font-semibold text-base text-right whitespace-nowrap text-foreground">
+                        {expense.amount.toLocaleString()}&nbsp;د.ع
                     </div>
+
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        aria-label="حذف المصروف"
+                    >
+                        <Trash2Icon className="h-4 w-4" />
+                    </Button>
                   </li>
                 );
               })}
