@@ -30,7 +30,7 @@ import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
 const AddExpenseDialogs = [
@@ -149,19 +149,35 @@ export default function DashboardPage() {
       description: "تم حذف المصروف بنجاح.",
     });
   };
+  
+  const today = new Date();
+  const startOfCurrentMonth = startOfMonth(today);
+  const endOfCurrentMonth = endOfMonth(today);
+  
+  const monthlyExpenses = expenses.filter(exp => {
+    try {
+        const expenseDate = new Date(exp.date);
+        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
+    } catch {
+        return false;
+    }
+  });
 
-  const currentExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const outOfBudgetExpenses = expenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
+  const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const outOfBudgetExpenses = monthlyExpenses.filter(exp => exp.isOutOfBudget).reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
 
-  const today = new Date();
   const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 6 }); 
   const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 6 });
 
   const currentWeekExpensesTotal = expenses
     .filter(exp => {
-      const expenseDate = new Date(exp.date);
-      return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
+      try {
+        const expenseDate = new Date(exp.date);
+        return isWithinInterval(expenseDate, { start: startOfCurrentWeek, end: endOfCurrentWeek });
+      } catch {
+        return false;
+      }
     })
     .reduce((sum, exp) => sum + exp.amount, 0);
   

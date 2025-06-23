@@ -8,7 +8,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { Expense } from '@/types';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 
@@ -87,10 +87,24 @@ export default function StatisticsPage() {
       setMonthlyTrendData([]);
       return;
     }
+    
+    const today = new Date();
+    const startOfCurrentMonth = startOfMonth(today);
+    const endOfCurrentMonth = endOfMonth(today);
 
-    // Pie Chart Data
+    const monthlyExpenses = currentExpenses.filter(exp => {
+      try {
+        const expenseDate = parseISO(exp.date);
+        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
+      } catch {
+        return false;
+      }
+    });
+
+
+    // Pie Chart Data (current month)
     const categoryTotals: { [key: string]: number } = {};
-    currentExpenses.forEach(exp => {
+    monthlyExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
     const pieData = Object.entries(categoryTotals).map(([catKey, total]) => ({
@@ -103,7 +117,6 @@ export default function StatisticsPage() {
 
     // Trend Chart Data (last 7 days)
     const dailyTotals: { [date: string]: number } = {};
-    const today = new Date();
     for (let i = 6; i >= 0; i--) {
       const date = subDays(today, i);
       const formattedDate = format(date, 'MMM d', { locale: arSA });
@@ -128,11 +141,11 @@ export default function StatisticsPage() {
     }));
     setTrendChartData(trendData);
     
-    // Largest Expenses
-    const sortedExpenses = [...currentExpenses].sort((a, b) => b.amount - a.amount);
+    // Largest Expenses (current month)
+    const sortedExpenses = [...monthlyExpenses].sort((a, b) => b.amount - a.amount);
     setLargestExpenses(sortedExpenses.slice(0, 3));
 
-    // Monthly Trend Data
+    // Monthly Trend Data (all time)
     const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
     currentExpenses.forEach(exp => {
       try {
@@ -176,9 +189,9 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <PieChartIcon className="h-6 w-6 text-primary" />
-            توزيع المصاريف حسب الفئة
+            توزيع مصاريف الشهر الحالي
           </CardTitle>
-           {pieChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
+           {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة هذا الشهر.</CardDescription>}
         </CardHeader>
         <CardContent className="h-[350px] flex justify-center">
           {pieChartData.length > 0 ? (
@@ -252,9 +265,9 @@ export default function StatisticsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <ListOrderedIcon className="h-6 w-6 text-primary" />
-            أكبر المصاريف (أعلى 3)
+            أكبر مصاريف الشهر الحالي (أعلى 3)
           </CardTitle>
-          {largestExpenses.length === 0 && <CardDescription>لا توجد مصاريف مسجلة.</CardDescription>}
+          {largestExpenses.length === 0 && <CardDescription>لا توجد مصاريف مسجلة هذا الشهر.</CardDescription>}
         </CardHeader>
         <CardContent>
           {largestExpenses.length > 0 ? (
