@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign } from "lucide-react";
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -19,9 +19,11 @@ import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
+import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Grouping the dialogs for easier mapping
 const AddExpenseDialogs = [
@@ -51,7 +53,21 @@ const AddExpenseDialogs = [
 interface UserBudgetSettings {
   totalBudget: number;
   weeklyBudget: number;
+  zeroSpendDaysTarget: number;
 }
+
+const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
+  const icons: { [key: string]: React.ElementType } = {
+    Trophy,
+    Salad,
+    CookingPot,
+    TrendingUp,
+    Lightbulb,
+    PiggyBank,
+  };
+  const LucideIcon = icons[name] || Sparkles;
+  return <LucideIcon className={className} />;
+};
 
 // Main Dashboard Component
 export default function DashboardPage() {
@@ -59,7 +75,9 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const [isMounted, setIsMounted] = useState(false);
-  const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0 });
+  const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
+  const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
 
   // === Voice Recording State ===
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -80,12 +98,17 @@ export default function DashboardPage() {
       const storedBudget = localStorage.getItem('userBudgetSettings');
       if (storedBudget) {
         try {
-          setUserBudget(JSON.parse(storedBudget));
+          const budget = JSON.parse(storedBudget);
+          setUserBudget({
+            totalBudget: budget.totalBudget || 0,
+            weeklyBudget: budget.weeklyBudget || 0,
+            zeroSpendDaysTarget: budget.zeroSpendDaysTarget || 4,
+          });
         } catch {
-          setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+          setUserBudget({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
         }
       } else {
-         setUserBudget({ totalBudget: 0, weeklyBudget: 0 });
+         setUserBudget({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
       }
 
       // Refresh Expenses
@@ -127,6 +150,54 @@ export default function DashboardPage() {
       }
     };
   }, []);
+  
+  const today = new Date();
+  const startOfCurrentMonth = startOfMonth(today);
+  const endOfCurrentMonth = endOfMonth(today);
+
+  const monthlyExpenses = expenses.filter(exp => {
+    try {
+        const expenseDate = new Date(exp.date);
+        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
+    } catch {
+        return false;
+    }
+  });
+
+  // Effect for calling the AI coach
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const getInsights = async () => {
+      if (monthlyExpenses.length > 0 && userBudget.totalBudget > 0) {
+        setIsInsightsLoading(true);
+        try {
+          const coachInput = {
+            totalBudget: userBudget.totalBudget,
+            zeroSpendDaysTarget: userBudget.zeroSpendDaysTarget,
+            expenses: monthlyExpenses.map(e => ({
+              title: e.title,
+              amount: e.amount,
+              category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+              date: format(new Date(e.date), 'yyyy-MM-dd'),
+            })),
+          };
+          const result = await financialCoach(coachInput);
+          setInsights(result.insights);
+        } catch (e) {
+          console.error("Failed to get financial insights", e);
+          setInsights(null);
+        } finally {
+          setIsInsightsLoading(false);
+        }
+      } else {
+        setInsights([]);
+      }
+    };
+
+    getInsights();
+  }, [expenses, userBudget, isMounted]); // Rerun when expenses or budget change
+
 
   const handleDeleteExpense = (expenseId: string) => {
     if (!isMounted) return;
@@ -299,19 +370,6 @@ export default function DashboardPage() {
   
   // ===================================
   
-  const today = new Date();
-  const startOfCurrentMonth = startOfMonth(today);
-  const endOfCurrentMonth = endOfMonth(today);
-  
-  const monthlyExpenses = expenses.filter(exp => {
-    try {
-        const expenseDate = new Date(exp.date);
-        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
-    } catch {
-        return false;
-    }
-  });
-
   const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBudget = userBudget.totalBudget - currentExpenses;
 
@@ -472,6 +530,55 @@ export default function DashboardPage() {
             </Dialog>
           ))}
       </div>
+      
+      {/* Smart Insights Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            نصائح ذكية
+          </CardTitle>
+          <CardDescription>تحليلات ونصائح مخصصة من مدربك المالي الذكي.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isInsightsLoading ? (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[200px]" />
+                  <Skeleton className="h-4 w-[250px]" />
+                </div>
+              </div>
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[180px]" />
+                  <Skeleton className="h-4 w-[220px]" />
+                </div>
+              </div>
+            </div>
+          ) : insights && insights.length > 0 ? (
+            <ul className="space-y-4">
+              {insights.map((insight, index) => (
+                <li key={index} className="flex items-start gap-4">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <InsightIcon name={insight.icon} className="h-6 w-6 text-primary" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">{insight.title}</p>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-center text-muted-foreground py-4">
+              <p>لا توجد نصائح حاليًا. أضف بعض المصاريف لتبدأ!</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Expenses List */}
       <Card>

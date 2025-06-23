@@ -34,6 +34,7 @@ import { CATEGORIES } from '@/lib/constants';
 interface UserBudgetSettings {
   totalBudget: number;
   weeklyBudget: number;
+  zeroSpendDaysTarget: number;
 }
 
 const COLUMN_MAP_CONFIG = {
@@ -72,6 +73,7 @@ export default function SettingsPage() {
 
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
+  const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
@@ -88,33 +90,42 @@ export default function SettingsPage() {
         const budgetData = JSON.parse(storedBudget) as UserBudgetSettings;
         setTotalBudgetInput(budgetData.totalBudget.toString());
         setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
+        setZeroSpendDaysTargetInput(budgetData.zeroSpendDaysTarget?.toString() || '4');
       } catch {
         setTotalBudgetInput("0");
         setWeeklyBudgetInput("0");
+        setZeroSpendDaysTargetInput("4");
       }
     } else {
       setTotalBudgetInput("0");
       setWeeklyBudgetInput("0");
+      setZeroSpendDaysTargetInput("4");
     }
   }, []);
 
   const handleSaveBudget = () => {
     const totalString = totalBudgetInput.trim() === "" ? "0" : totalBudgetInput.trim();
     const weeklyString = weeklyBudgetInput.trim() === "" ? "0" : weeklyBudgetInput.trim();
+    const zeroSpendString = zeroSpendDaysTargetInput.trim() === "" ? "0" : zeroSpendDaysTargetInput.trim();
 
     const total = parseFloat(totalString);
     const weekly = parseFloat(weeklyString);
+    const zeroSpendDays = parseInt(zeroSpendString, 10);
 
-    if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0) {
+    if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0 || isNaN(zeroSpendDays) || zeroSpendDays < 0) {
       toast({
         title: "خطأ في الإدخال",
-        description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية.",
+        description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية والأهداف.",
         variant: "destructive",
       });
       return;
     }
 
-    const newBudgetSettings: UserBudgetSettings = { totalBudget: total, weeklyBudget: weekly };
+    const newBudgetSettings: UserBudgetSettings = { 
+        totalBudget: total, 
+        weeklyBudget: weekly, 
+        zeroSpendDaysTarget: zeroSpendDays 
+    };
     localStorage.setItem('userBudgetSettings', JSON.stringify(newBudgetSettings));
     toast({
       title: "تم الحفظ",
@@ -344,6 +355,7 @@ export default function SettingsPage() {
 
       setTotalBudgetInput("0");
       setWeeklyBudgetInput("0");
+      setZeroSpendDaysTargetInput("4");
       
       toast({
         title: "تم الحذف بنجاح",
@@ -400,9 +412,9 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <SlidersHorizontalIcon className="h-6 w-6 text-primary" />
-            إعدادات الميزانية
+            إعدادات الميزانية والأهداف
           </CardTitle>
-          <CardDescription>قم بتعيين ميزانيتك الشهرية والأسبوعية المتوقعة.</CardDescription>
+          <CardDescription>قم بتعيين ميزانيتك الشهرية والأهداف التحفيزية.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -413,11 +425,15 @@ export default function SettingsPage() {
             <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
             <Input id="weeklyBudget" type="number" value={weeklyBudgetInput} onChange={(e) => setWeeklyBudgetInput(e.target.value)} placeholder="مثال: 1000000" min="0" />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
+            <Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} placeholder="مثال: 4" min="0" />
+          </div>
         </CardContent>
         <CardFooter>
           <Button onClick={handleSaveBudget} className="w-full">
             <SaveIcon className="ml-2 h-4 w-4" />
-            حفظ إعدادات الميزانية
+            حفظ الإعدادات
           </Button>
         </CardFooter>
       </Card>
