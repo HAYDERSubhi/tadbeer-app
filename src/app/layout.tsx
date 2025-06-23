@@ -1,14 +1,14 @@
 
 import type { Metadata } from 'next';
-import { Noto_Naskh_Arabic } from 'next/font/google';
+import { Cairo } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
 
-const notoNaskhArabic = Noto_Naskh_Arabic({
-  variable: '--font-noto-naskh-arabic',
-  subsets: ['arabic'],
-  weight: ['400', '500', '600', '700'],
+const cairo = Cairo({
+  variable: '--font-cairo',
+  subsets: ['arabic', 'latin'],
+  weight: ['400', '500', '600', '700', '900'],
   display: 'swap',
 });
 
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`${notoNaskhArabic.variable} font-sans antialiased`}>
+      <body className={`${cairo.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

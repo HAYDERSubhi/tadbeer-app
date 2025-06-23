@@ -12,8 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-noto-naskh-arabic)", ...fontFamily.sans],
-        display: ["var(--font-noto-naskh-arabic)"],
+        sans: ["var(--font-cairo)", ...fontFamily.sans],
+        display: ["var(--font-cairo)", ...fontFamily.sans],
         mono: [...fontFamily.mono],
       },
       colors: {
