@@ -48,7 +48,20 @@ const COLUMN_MAP_CONFIG = {
 
 
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount'];
-const LOCAL_STORAGE_MAP_KEY = 'userColumnMap';
+// Changed key to prevent conflicts with old string-based map format
+const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased'; 
+
+// Helper function to get Excel-like column names (A, B, C, ...)
+const getColumnName = (colIndex: number): string => {
+  let name = '';
+  let dividend = colIndex + 1;
+  while (dividend > 0) {
+    const modulo = (dividend - 1) % 26;
+    name = String.fromCharCode(65 + modulo) + name;
+    dividend = Math.floor((dividend - 1) / 26);
+  }
+  return name;
+};
 
 
 export default function SettingsPage() {
@@ -62,7 +75,8 @@ export default function SettingsPage() {
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  const [columnMap, setColumnMap] = useState<Record<string, string>>({}); // Maps field -> header name
+  // NEW: columnMap now stores field -> column INDEX
+  const [columnMap, setColumnMap] = useState<Record<string, number | null>>({});
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
 
@@ -185,21 +199,25 @@ export default function SettingsPage() {
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
 
-        const savedMap = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
-        const autoMap: Record<string, string> = {};
+        // Auto-map from saved indices if they are valid for the current file
+        const savedMap: Record<string, number | null> = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
+        const autoMap: Record<string, number | null> = {};
         
         for (const [field] of Object.entries(COLUMN_MAP_CONFIG)) {
-          if (savedMap[field] && headers.includes(savedMap[field])) {
-             autoMap[field] = savedMap[field];
+          const savedIndex = savedMap[field];
+          if (savedIndex !== null && savedIndex !== undefined && savedIndex < headers.length) {
+             autoMap[field] = savedIndex;
           }
         }
         
         setColumnMap(autoMap);
         setIsMappingColumns(true);
-        toast({
-          title: "يرجى تأكيد ربط الأعمدة",
-          description: "إذا قمت بالاستيراد من قبل، فقد تم حفظ اختياراتك.",
-        });
+        if (Object.keys(autoMap).length > 0) {
+          toast({
+            title: "يرجى تأكيد ربط الأعمدة",
+            description: "إذا قمت بالاستيراد من قبل، فقد تم حفظ اختياراتك.",
+          });
+        }
 
       } catch (error: any) {
         console.error("Failed to parse file:", error);
@@ -212,7 +230,7 @@ export default function SettingsPage() {
   };
   
   const processAndSaveExpenses = () => {
-      const missingRequired = REQUIRED_FIELDS.filter(field => !columnMap[field] || columnMap[field] === '_EMPTY_');
+      const missingRequired = REQUIRED_FIELDS.filter(field => columnMap[field] === null || columnMap[field] === undefined);
       if (missingRequired.length > 0) {
           toast({
               title: "حقول مطلوبة مفقودة",
@@ -222,36 +240,31 @@ export default function SettingsPage() {
           return;
       }
       
-      const headerToIndexMap = new Map<string, number>();
-      fileHeaders.forEach((header, index) => {
-        headerToIndexMap.set(header, index);
-      });
-
       const categoryNameToIdMap = new Map<string, string>();
       Object.entries(CATEGORIES).forEach(([id, catData]) => {
-          categoryNameToIdMap.set(catData.name.trim(), id);
+          // Normalize to handle subtle character differences (e.g. ي vs ى)
+          const normalizedName = catData.name.trim().normalize("NFKD");
+          categoryNameToIdMap.set(normalizedName, id);
       });
 
       const newExpenses: Expense[] = [];
 
       parsedDataCache.forEach((row, rowIndex) => {
-        if (!Array.isArray(row) || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return;
+        if (!row || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
+            return; // Skip empty rows
         }
 
         const getCellData = (fieldName: keyof typeof COLUMN_MAP_CONFIG): any => {
-            const headerName = columnMap[fieldName];
-            if (!headerName) return null;
-            const headerIndex = headerToIndexMap.get(headerName);
-            if (headerIndex === undefined) return null;
-            return row[headerIndex];
+            const colIndex = columnMap[fieldName];
+            if (colIndex === null || colIndex === undefined) return null;
+            return row[colIndex];
         };
 
         const title = String(getCellData('title') || `مصروف مستورد - صف ${rowIndex + 2}`).trim();
         const rawAmount = getCellData('amount');
         const amount = rawAmount !== null ? parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,"")) || 0 : 0;
         
-        const rawCategoryName = String(getCellData('category') || '').trim();
+        const rawCategoryName = String(getCellData('category') || '').trim().normalize("NFKD");
         const foundCategoryId = categoryNameToIdMap.get(rawCategoryName) || 'other';
 
         const rawDate = getCellData('date');
@@ -326,7 +339,7 @@ export default function SettingsPage() {
 
     try {
       localStorage.removeItem('expenses');
-      localStorage.removeItem('userColumnMap');
+      localStorage.removeItem(LOCAL_STORAGE_MAP_KEY);
       localStorage.removeItem('userBudgetSettings');
 
       setTotalBudgetInput("0");
@@ -427,8 +440,11 @@ export default function SettingsPage() {
                         {config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}
                     </Label>
                     <Select
-                        value={columnMap[field] || '_EMPTY_'}
-                        onValueChange={(value) => setColumnMap(prev => ({...prev, [field]: value === '_EMPTY_' ? '' : value}))}
+                        value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'}
+                        onValueChange={(value) => {
+                          const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10);
+                          setColumnMap(prev => ({ ...prev, [field]: newIndex }));
+                        }}
                     >
                         <SelectTrigger id={`map-${field}`} className="col-span-2">
                             <SelectValue placeholder="اختر عمودًا..." />
@@ -436,7 +452,9 @@ export default function SettingsPage() {
                         <SelectContent>
                             <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
                             {fileHeaders.map((header, index) => (
-                                <SelectItem key={`${header}-${index}`} value={header}>{header}</SelectItem>
+                                <SelectItem key={index} value={String(index)}>
+                                  {`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}
+                                </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -511,4 +529,3 @@ export default function SettingsPage() {
 
     </div>
   );
-}
