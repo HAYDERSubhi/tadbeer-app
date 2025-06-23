@@ -429,7 +429,6 @@ export default function DashboardPage() {
 
       {/* Add Expense Section */}
       <div>
-        <h2 className="text-xl font-bold tracking-tight mb-4">إضافة مصروف جديد</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             
             {/* INLINE VOICE BUTTON */}
