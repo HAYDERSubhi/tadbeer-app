@@ -10,7 +10,7 @@ import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, isAfter } from 'date-fns';
-import { arSA } from 'date-fns/locale';
+import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -257,7 +257,7 @@ export default function StatisticsPage() {
         });
 
         const trendData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
-            name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arSA }),
+            name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
             expenses: total,
         }));
         setTrendChartData(trendData);
@@ -314,7 +314,7 @@ export default function StatisticsPage() {
                                     <TabsList>
                                         {(availableMonths.length > 0 ? availableMonths : [format(new Date(), 'yyyy-MM')]).map(m => (
                                             <TabsTrigger key={m} value={m} className="whitespace-nowrap">
-                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arSA})}
+                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arIQ})}
                                             </TabsTrigger>
                                         ))}
                                     </TabsList>
@@ -444,7 +444,7 @@ export default function StatisticsPage() {
               )}
           </div>
           <CardDescription>
-            {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arSA })}`}
+            {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}`}
           </CardDescription>
           {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>

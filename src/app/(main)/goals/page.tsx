@@ -15,7 +15,7 @@ import { Target, PlusCircle, Trash2Icon, Loader2Icon, Flag, CalendarIcon, Chevro
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format, differenceInMonths, isFuture } from 'date-fns';
-import { arSA } from 'date-fns/locale';
+import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -159,7 +159,7 @@ export default function GoalsPage() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, "PPP", { locale: arSA }) : <span>اختر تاريخ الهدف</span>}
+                          {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخ الهدف</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -169,7 +169,7 @@ export default function GoalsPage() {
                           onSelect={field.onChange}
                           initialFocus
                           dir="rtl"
-                          locale={arSA}
+                          locale={arIQ}
                           disabled={(date) => date < new Date()}
                         />
                       </PopoverContent>
@@ -225,7 +225,7 @@ export default function GoalsPage() {
                         </AlertDialog>
                       </CardTitle>
                       <CardDescription>
-                        تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: arSA })}
+                        تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: arIQ })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-2">
