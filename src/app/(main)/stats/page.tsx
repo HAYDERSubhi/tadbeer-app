@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2, BarChart3 } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2, BarChart3, ActivityIcon } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltipContent } from "@/components/ui/chart";
@@ -121,7 +121,7 @@ export default function StatisticsPage() {
     trendChartData,
     categorySummary,
     totalForPeriod,
-    categoryComparisonData,
+    topCategoriesTrendData,
   } = useMemo(() => {
     if (!isMounted || !expenses) {
       return {
@@ -129,7 +129,7 @@ export default function StatisticsPage() {
         trendChartData: [],
         categorySummary: [],
         totalForPeriod: 0,
-        categoryComparisonData: { chartData: [], topCategoryKeys: [] },
+        topCategoriesTrendData: [],
       };
     }
 
@@ -229,50 +229,56 @@ export default function StatisticsPage() {
       }));
     }
     
-    // Category Comparison Chart Data
-    const lastFourMonths = availableMonths.slice(0, 4).reverse();
-    const comparisonExpenses = expenses.filter(exp => {
-      try {
-        const monthKey = format(parseISO(exp.date), 'yyyy-MM');
-        return lastFourMonths.includes(monthKey);
-      } catch {
-        return false;
-      }
-    });
-    
-    const totalSpendingOverPeriod: { [key: string]: number } = {};
-    comparisonExpenses.forEach(exp => {
-        totalSpendingOverPeriod[exp.category] = (totalSpendingOverPeriod[exp.category] || 0) + exp.amount;
-    });
+    // Top 6 categories trend data
+    const lastSixMonths = availableMonths.length > 1 ? availableMonths.slice(0, 6).reverse() : [];
+    let categoriesTrendData: any[] = [];
 
-    const topCategoryKeys = Object.entries(totalSpendingOverPeriod)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-        .map(([key]) => key);
-        
-    const comparisonChartData = lastFourMonths.map(monthKey => {
-        const monthName = format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ });
-        const monthData: { month: string, [key: string]: number | string } = { month: monthName };
-
-        const expensesInMonth = comparisonExpenses.filter(exp => format(parseISO(exp.date), 'yyyy-MM') === monthKey);
-
-        topCategoryKeys.forEach(catKey => {
-            monthData[catKey] = expensesInMonth
-                .filter(exp => exp.category === catKey)
-                .reduce((sum, exp) => sum + exp.amount, 0);
+    if(lastSixMonths.length > 1) {
+        const trendAnalysisExpenses = expenses.filter(exp => {
+            try {
+                const monthKey = format(parseISO(exp.date), 'yyyy-MM');
+                return lastSixMonths.includes(monthKey);
+            } catch { return false; }
         });
-        return monthData;
-    });
+
+        const totalSpendingInTrendPeriod: { [key: string]: number } = {};
+        trendAnalysisExpenses.forEach(exp => {
+            totalSpendingInTrendPeriod[exp.category] = (totalSpendingInTrendPeriod[exp.category] || 0) + exp.amount;
+        });
+
+        const top6CategoryKeys = Object.entries(totalSpendingInTrendPeriod)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 6)
+            .map(([key]) => key);
+
+        categoriesTrendData = top6CategoryKeys.map(catKey => {
+            const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
+            const monthlyTrend = lastSixMonths.map(monthKey => {
+                const amount = trendAnalysisExpenses
+                    .filter(exp => exp.category === catKey && format(parseISO(exp.date), 'yyyy-MM') === monthKey)
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+                return {
+                    month: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+                    amount: amount,
+                };
+            });
+            
+            return {
+                categoryId: catKey,
+                categoryName: categoryInfo.name,
+                categoryIcon: categoryInfo.icon,
+                totalAmount: totalSpendingInTrendPeriod[catKey],
+                monthlyTrend: monthlyTrend,
+            };
+        });
+    }
 
     return {
       pieChartData: pieData,
       trendChartData: trendData,
       categorySummary: summaryData,
       totalForPeriod: totalExpensesInPeriod,
-      categoryComparisonData: {
-        chartData: comparisonChartData,
-        topCategoryKeys: topCategoryKeys
-      }
+      topCategoriesTrendData: categoriesTrendData,
     };
   }, [isMounted, expenses, view, selectedYear, selectedMonth, categoryBudgets, focusedCategory, availableMonths]);
   
@@ -583,77 +589,53 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-6 w-6 text-primary" />
-                مقارنة الفئات الشهرية
-            </CardTitle>
-            <CardDescription>
-                مقارنة بين أعلى 5 فئات إنفاقاً خلال الشهور القليلة الماضية.
-            </CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <ActivityIcon className="h-6 w-6 text-primary" />
+            تحليل اتجاهات الفئات
+          </CardTitle>
+          <CardDescription>
+            نظرة على تطور الإنفاق في أعلى 6 فئات لديك خلال الشهور الماضية.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="h-[350px]">
-            {categoryComparisonData && categoryComparisonData.chartData.length > 1 ? (
-                <ChartContainer config={chartConfig} className="w-full h-full">
-                    <BarChart data={categoryComparisonData.chartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                            dataKey="month"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            stroke="hsl(var(--muted-foreground))"
-                        />
-                        <YAxis
-                            tickFormatter={formatYAxisTick}
-                            tickLine={false}
-                            axisLine={false}
-                            stroke="hsl(var(--muted-foreground))"
-                        />
+        <CardContent className="space-y-8 pt-4">
+          {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
+            topCategoriesTrendData.map((catTrend) => (
+              <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
+                <h3 className="text-lg font-semibold flex items-center gap-3 mb-3">
+                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
+                    {catTrend.categoryIcon}
+                  </span>
+                  <span>{catTrend.categoryName}</span>
+                </h3>
+                <div className="h-[200px] w-full">
+                  <ChartContainer config={chartConfig} className="h-full w-full">
+                    <ResponsiveContainer>
+                      <BarChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                        <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={80} fontSize={12} />
                         <RechartsTooltip
-                            cursor={false}
-                            content={({ active, payload, label }) => {
-                                if (active && payload && payload.length) {
-                                return (
-                                    <div className="rounded-lg border bg-background p-2 shadow-sm">
-                                    <div className="grid gap-1.5">
-                                        <p className="font-medium">{label}</p>
-                                        {payload.map((item) => (
-                                        <div key={item.dataKey} className="flex items-center justify-between gap-2 text-sm" style={{color: item.color}}>
-                                            <div className="flex items-center gap-2">
-                                              <div className="h-2 w-2 rounded-full" style={{backgroundColor: item.color}} />
-                                              <span>{item.name}:</span>
-                                            </div>
-                                            <span className="font-mono font-semibold">{item.value?.toLocaleString()} د.ع</span>
-                                        </div>
-                                        ))}
-                                    </div>
-                                    </div>
-                                )
-                                }
-                                return null
-                            }}
+                          cursor={{ fill: 'hsla(var(--muted), 0.5)' }}
+                          contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
+                          formatter={(value: number) => [`${value.toLocaleString()} د.ع`, null]}
+                          labelFormatter={(label: string) => `الشهر: ${label}`}
                         />
-                        <ChartLegend content={<ChartLegendContent />} />
-                        {categoryComparisonData.topCategoryKeys.map((catKey) => (
-                            <Bar
-                                key={catKey}
-                                dataKey={catKey}
-                                fill={`var(--color-${catKey})`}
-                                name={defaultCategories[catKey as keyof typeof defaultCategories]?.name}
-                                radius={[4, 4, 0, 0]}
-                            />
-                        ))}
-                    </BarChart>
-                </ChartContainer>
-            ) : (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-muted-foreground text-center">
-                        لا توجد بيانات كافية للمقارنة بين الشهور (تحتاج لشهرين من البيانات على الأقل).
-                    </p>
+                        <Bar dataKey="amount" fill={`var(--color-${catTrend.categoryId})`} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
                 </div>
-            )}
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center justify-center h-full py-10">
+              <p className="text-muted-foreground text-center">
+                لا توجد بيانات كافية لعرض اتجاهات الفئات (تحتاج لبيانات في شهرين على الأقل).
+              </p>
+            </div>
+          )}
         </CardContent>
-    </Card>
+      </Card>
 
       <Card>
         <CardHeader>
