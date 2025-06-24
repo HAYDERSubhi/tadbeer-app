@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -179,7 +180,7 @@ export default function SettingsPage() {
   const handleSaveCategoryBudgets = () => {
     const numericBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
         const amount = parseFloat(parseFormattedNumber(value));
-        if (!isNaN(amount) && amount > 0) {
+        if (!isNaN(amount) && amount >= 0) {
             acc[key] = amount;
         }
         return acc;
@@ -487,15 +488,42 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label>
-            <Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} placeholder="مثال: 5,000,000" />
+            <Input
+              id="totalBudget"
+              type="text"
+              inputMode="decimal"
+              value={totalBudgetInput}
+              onChange={handleNumericInputChange(setTotalBudgetInput)}
+              onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }}
+              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }}
+              placeholder="مثال: 5,000,000"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
-            <Input id="weeklyBudget" type="text" inputMode="decimal" value={weeklyBudgetInput} onChange={handleNumericInputChange(setWeeklyBudgetInput)} placeholder="مثال: 1,000,000" />
+            <Input
+              id="weeklyBudget"
+              type="text"
+              inputMode="decimal"
+              value={weeklyBudgetInput}
+              onChange={handleNumericInputChange(setWeeklyBudgetInput)}
+              onFocus={(e) => { if (e.target.value === '0') setWeeklyBudgetInput(''); }}
+              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setWeeklyBudgetInput('0'); }}
+              placeholder="مثال: 1,000,000"
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
-            <Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} placeholder="مثال: 4" min="0" />
+            <Input
+              id="zeroSpendDaysTarget"
+              type="number"
+              value={zeroSpendDaysTargetInput}
+              onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)}
+              onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }}
+              onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }}
+              placeholder="مثال: 4"
+              min="0"
+            />
           </div>
         </CardContent>
         <CardFooter>
@@ -527,6 +555,8 @@ export default function SettingsPage() {
                 inputMode="decimal"
                 value={categoryBudgets[id] || ''}
                 onChange={(e) => handleCategoryBudgetChange(id, e.target.value)}
+                onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(id, ''); }}
+                onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(id, '0'); }}
                 placeholder="0"
                 className="flex-1"
               />
