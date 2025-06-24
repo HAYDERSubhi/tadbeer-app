@@ -514,7 +514,7 @@ export default function StatisticsPage() {
               <LineChart data={trendChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={80} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
@@ -735,3 +735,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
