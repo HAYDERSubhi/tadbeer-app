@@ -66,56 +66,59 @@ export default function AllExpensesPage() {
   }
 
   return (
-    <Card>
-        <CardContent className="p-0">
-            {allExpenses.length === 0 ? (
-                <div className="px-6 py-20 text-center text-muted-foreground">
-                    <DollarSign className="mx-auto h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">لا توجد مصاريف مسجلة</h3>
-                    <p className="text-sm">ابدأ بإضافة أول مصروف لك من الصفحة الرئيسية.</p>
-                </div>
-            ) : (
-                <ul className="divide-y divide-border">
-                {allExpenses.map((expense) => {
-                    const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
-                    return (
-                    <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-                        <div className="flex flex-1 items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
-                            {categoryInfo.icon}
-                        </span>
-                        <div>
-                            <p className="font-semibold">{expense.title}</p>
-                            <p className="text-sm text-muted-foreground">
-                                {categoryInfo.name}
-                            </p>
-                        </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-end">
-                            <p className="font-semibold text-foreground whitespace-nowrap">
-                                {expense.amount.toLocaleString()}&nbsp;د.ع
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                                onClick={() => handleDeleteExpense(expense.id)}
-                                aria-label="حذف المصروف"
-                            >
-                                <Trash2Icon className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </li>
-                    );
-                })}
-                </ul>
-            )}
-        </CardContent>
-    </Card>
+    <div className="space-y-6 pb-20">
+      <h1 className="text-2xl font-bold">كل المصاريف</h1>
+      <Card>
+          <CardContent className="p-0">
+              {allExpenses.length === 0 ? (
+                  <div className="px-6 py-20 text-center text-muted-foreground">
+                      <DollarSign className="mx-auto h-12 w-12 mb-4" />
+                      <h3 className="text-lg font-semibold">لا توجد مصاريف مسجلة</h3>
+                      <p className="text-sm">ابدأ بإضافة أول مصروف لك من الصفحة الرئيسية.</p>
+                  </div>
+              ) : (
+                  <ul className="divide-y divide-border">
+                  {allExpenses.map((expense) => {
+                      const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+                      return (
+                      <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
+                          <div className="flex flex-1 items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
+                              {categoryInfo.icon}
+                          </span>
+                          <div>
+                              <p className="font-semibold">{expense.title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                  {categoryInfo.name}
+                              </p>
+                          </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                              <div className="text-end">
+                              <p className="font-semibold text-foreground whitespace-nowrap">
+                                  {expense.amount.toLocaleString()}&nbsp;د.ع
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                  {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              </p>
+                              </div>
+                              <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  aria-label="حذف المصروف"
+                              >
+                                  <Trash2Icon className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      </li>
+                      );
+                  })}
+                  </ul>
+              )}
+          </CardContent>
+      </Card>
+    </div>
   );
 }
