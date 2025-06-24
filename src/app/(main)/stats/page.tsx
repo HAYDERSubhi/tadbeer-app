@@ -46,6 +46,7 @@ interface CategorySummaryItem {
   total: number;
   percentage: number;
   color: string;
+  chartColor: string;
   budget?: number;
 }
 
@@ -231,6 +232,7 @@ export default function StatisticsPage() {
                 total,
                 percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
                 color: categoryInfo.color,
+                chartColor: categoryInfo.chartColor,
                 budget,
             };
         })
@@ -510,7 +512,7 @@ export default function StatisticsPage() {
                         <p className="text-lg font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
                             <div className='w-24 mt-1'>
-                                <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : categoryInfo.chartColor } />
+                                <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
                             </div>
                         )}
                       </div>
