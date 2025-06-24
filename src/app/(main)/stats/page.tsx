@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, Wand2, ActivityIcon } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
@@ -73,6 +73,8 @@ export default function StatisticsPage() {
   // Forecast state
   const [forecast, setForecast] = useState<ForecastExpensesOutput | null>(null);
   const [isForecastLoading, setIsForecastLoading] = useState(true);
+
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     setIsMounted(true);
@@ -540,8 +542,18 @@ export default function StatisticsPage() {
           {categorySummary.length > 0 ? (
             <Accordion type="single" collapsible className="w-full">
               {categorySummary.map(item => (
-                <AccordionItem value={item.id} key={item.id} className="border-b">
-                  <AccordionTrigger className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50 text-base font-medium">
+                <AccordionItem value={item.id} key={item.id} className="border-b" ref={(el) => (itemRefs.current[item.id] = el)}>
+                  <AccordionTrigger 
+                    className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50 text-base font-medium"
+                    onClick={() => {
+                      setTimeout(() => {
+                        const itemEl = itemRefs.current[item.id];
+                        if (itemEl && itemEl.dataset.state === 'open') {
+                          itemEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      }, 250);
+                    }}
+                  >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
