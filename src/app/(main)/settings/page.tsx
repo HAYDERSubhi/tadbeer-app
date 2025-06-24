@@ -48,7 +48,7 @@ const COLUMN_MAP_CONFIG = {
 };
 
 
-const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['title', 'amount'];
+const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['amount'];
 // Changed key to prevent conflicts with old string-based map format
 const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased'; 
 
