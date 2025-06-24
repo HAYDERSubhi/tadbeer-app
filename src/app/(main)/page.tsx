@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target } from "lucide-react";
@@ -162,47 +162,91 @@ export default function DashboardPage() {
     };
   }, []);
   
-  const today = new Date();
-  const startOfCurrentMonth = startOfMonth(today);
-  const endOfCurrentMonth = endOfMonth(today);
+  const {
+    monthlyExpenses,
+    currentExpenses,
+    remainingBudget,
+    weeklySpending,
+    recentExpensesToDisplay,
+    allExpensesCount,
+  } = useMemo(() => {
+    const today = new Date();
+    const startOfCurrentMonth = startOfMonth(today);
+    const endOfCurrentMonth = endOfMonth(today);
 
-  const monthlyExpenses = expenses.filter(exp => {
-    try {
-        const expenseDate = new Date(exp.date);
-        return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
-    } catch {
-        return false;
-    }
-  });
+    const currentMonthExpenses = expenses.filter(exp => {
+        try {
+            const expenseDate = new Date(exp.date);
+            return isWithinInterval(expenseDate, { start: startOfCurrentMonth, end: endOfCurrentMonth });
+        } catch {
+            return false;
+        }
+    });
+
+    const totalCurrentExpenses = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    const budgetRemaining = userBudget.totalBudget - totalCurrentExpenses;
+
+    const weeklyIntervals = [
+      { start: startOfCurrentMonth, end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 7, 23, 59, 59) },
+      { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 8), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 14, 23, 59, 59) },
+      { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 15), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 21, 23, 59, 59) },
+      { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 22), end: endOfCurrentMonth }
+    ];
+
+    const spendingByWeek = weeklyIntervals.map(interval =>
+        currentMonthExpenses
+            .filter(exp => {
+                try {
+                    return isWithinInterval(new Date(exp.date), interval);
+                } catch {
+                    return false;
+                }
+            })
+            .reduce((sum, exp) => sum + exp.amount, 0)
+    );
+    
+    const sorted = [...currentMonthExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const recentToDisplay = sorted.slice(0, 5);
+    const totalCount = expenses.length;
+
+    return {
+        monthlyExpenses: currentMonthExpenses,
+        currentExpenses: totalCurrentExpenses,
+        remainingBudget: budgetRemaining,
+        weeklySpending: spendingByWeek,
+        recentExpensesToDisplay: recentToDisplay,
+        allExpensesCount: totalCount,
+    };
+  }, [expenses, userBudget.totalBudget]);
+
+  const expensesForAnalysis = useMemo(() => {
+    if (expenses.length === 0) return [];
+    
+    // Sort to find the latest expense date
+    const sorted = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (!sorted[0]) return [];
+    const latestExpenseDate = new Date(sorted[0].date);
+
+    // Define the month for analysis
+    const startOfAnalysisMonth = startOfMonth(latestExpenseDate);
+    const endOfAnalysisMonth = endOfMonth(latestExpenseDate);
+    
+    // Filter expenses for that month
+    return expenses.filter(exp => {
+        try {
+            const expenseDate = new Date(exp.date);
+            return isWithinInterval(expenseDate, { start: startOfAnalysisMonth, end: endOfAnalysisMonth });
+        } catch {
+            return false;
+        }
+    });
+  }, [expenses]);
+
 
   // Effect for calling the AI coach
   useEffect(() => {
     if (!isMounted) return;
-
-    // Analyze the most recent month with expenses, not just the current calendar month.
-    const expensesForAnalysis = (() => {
-      if (expenses.length === 0) return [];
-      
-      // Sort to find the latest expense date
-      const sorted = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      if (!sorted[0]) return [];
-      const latestExpenseDate = new Date(sorted[0].date);
-
-      // Define the month for analysis
-      const startOfAnalysisMonth = startOfMonth(latestExpenseDate);
-      const endOfAnalysisMonth = endOfMonth(latestExpenseDate);
-      
-      // Filter expenses for that month
-      return expenses.filter(exp => {
-          try {
-              const expenseDate = new Date(exp.date);
-              return isWithinInterval(expenseDate, { start: startOfAnalysisMonth, end: endOfAnalysisMonth });
-          } catch {
-              return false;
-          }
-      });
-    })();
-
 
     const getInsights = async () => {
       if (expensesForAnalysis.length > 0 && userBudget.totalBudget > 0) {
@@ -233,7 +277,7 @@ export default function DashboardPage() {
     };
 
     getInsights();
-  }, [expenses, userBudget, categoryBudgets, isMounted]); // Rerun when expenses or budget change
+  }, [expensesForAnalysis, userBudget, categoryBudgets, isMounted]);
 
 
   const handleDeleteExpense = (expenseId: string) => {
@@ -404,39 +448,12 @@ export default function DashboardPage() {
   
   // ===================================
   
-  const currentExpenses = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const remainingBudget = userBudget.totalBudget - currentExpenses;
-
-  // Weekly spending calculation
-  const weeklyIntervals = [
-    { start: startOfCurrentMonth, end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 7, 23, 59, 59) },
-    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 8), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 14, 23, 59, 59) },
-    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 15), end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 21, 23, 59, 59) },
-    { start: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 22), end: endOfCurrentMonth }
-  ];
-
-  const weeklySpending = weeklyIntervals.map(interval => 
-      monthlyExpenses
-          .filter(exp => {
-              try {
-                  return isWithinInterval(new Date(exp.date), interval);
-              } catch {
-                  return false;
-              }
-          })
-          .reduce((sum, exp) => sum + exp.amount, 0)
-  );
   const weeklyTarget = userBudget.totalBudget > 0 ? userBudget.totalBudget / 4 : 0;
 
 
   if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-
-  const sortedExpenses = [...monthlyExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
-  const allExpensesCount = expenses.length;
 
   return (
     <div className="space-y-6 pb-24 sm:pb-8">

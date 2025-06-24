@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
@@ -63,12 +63,7 @@ export default function StatisticsPage() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([]); // "YYYY-MM" format
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [focusedCategory, setFocusedCategory] = useState<string | null>(null);
-
-  // Chart data state
-  const [pieChartData, setPieChartData] = useState<PieChartDataItem[]>([]);
-  const [trendChartData, setTrendChartData] = useState<TrendChartDataItem[]>([]);
-  const [categorySummary, setCategorySummary] = useState<CategorySummaryItem[]>([]);
-  const [totalForPeriod, setTotalForPeriod] = useState(0);
+  
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
   // Forecast state
@@ -120,17 +115,125 @@ export default function StatisticsPage() {
     };
 
   }, []);
-
-  useEffect(() => {
-    if (expenses) {
-      processChartData(expenses, view, selectedYear, selectedMonth, categoryBudgets, focusedCategory);
-    } else {
-      setPieChartData([]);
-      setTrendChartData([]);
-      setCategorySummary([]);
-      setTotalForPeriod(0);
+  
+  const {
+    pieChartData,
+    trendChartData,
+    categorySummary,
+    totalForPeriod,
+  } = useMemo(() => {
+    if (!isMounted || !expenses) {
+      return {
+        pieChartData: [],
+        trendChartData: [],
+        categorySummary: [],
+        totalForPeriod: 0,
+      };
     }
-  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, isMounted, focusedCategory]);
+
+    let filteredExpenses: Expense[];
+    let periodStart: Date, periodEnd: Date;
+
+    if (view === 'year') {
+      periodStart = startOfYear(new Date(selectedYear, 0, 1));
+      periodEnd = endOfYear(new Date(selectedYear, 0, 1));
+    } else {
+      // 'month' view
+      periodStart = parseISO(`${selectedMonth}-01`);
+      periodEnd = endOfMonth(periodStart);
+    }
+
+    filteredExpenses = expenses.filter(exp => {
+      try {
+        const expenseDate = parseISO(exp.date);
+        return isWithinInterval(expenseDate, { start: periodStart, end: periodEnd });
+      } catch {
+        return false;
+      }
+    });
+
+    const totalExpensesInPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+
+    // Pie Chart & Category Summary Data
+    const categoryTotals: { [key: string]: number } = {};
+    filteredExpenses.forEach(exp => {
+      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+    });
+
+    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total]) => ({
+      name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
+      value: total,
+      key: catKey,
+      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.chartColor || 'hsl(var(--muted))',
+    }));
+
+    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
+      .map(([catKey, total]) => {
+        const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
+        const budget = categoryBudgets[catKey];
+        return {
+          id: catKey,
+          name: categoryInfo.name,
+          icon: categoryInfo.icon,
+          total,
+          percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+          color: categoryInfo.color,
+          chartColor: categoryInfo.chartColor,
+          budget,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    // Trend Chart Data
+    const trendSourceData = focusedCategory
+      ? filteredExpenses.filter(exp => exp.category === focusedCategory)
+      : filteredExpenses;
+
+    let trendData: TrendChartDataItem[] = [];
+    if (view === 'year') {
+      const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
+      for (let i = 0; i < 12; i++) {
+        const monthKey = format(new Date(selectedYear, i, 1), 'yyyy-MM');
+        monthlyTotals[monthKey] = 0;
+      }
+      trendSourceData.forEach(exp => {
+        const monthKey = format(parseISO(exp.date), 'yyyy-MM');
+        if (monthlyTotals.hasOwnProperty(monthKey)) {
+          monthlyTotals[monthKey] += exp.amount;
+        }
+      });
+      trendData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
+        name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+        expenses: total,
+      }));
+    } else {
+      // 'month' view, show daily trend
+      const dailyTotals: { [date: string]: number } = {};
+      let day = periodStart;
+      while (day <= periodEnd) {
+        const formattedDate = format(day, 'd');
+        dailyTotals[formattedDate] = 0;
+        day = subDays(day, -1); // next day
+      }
+      trendSourceData.forEach(exp => {
+        const formattedDate = format(parseISO(exp.date), 'd');
+        if (dailyTotals.hasOwnProperty(formattedDate)) {
+          dailyTotals[formattedDate] += exp.amount;
+        }
+      });
+      trendData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
+        name: dateStr,
+        expenses: total,
+      }));
+    }
+
+    return {
+      pieChartData: pieData,
+      trendChartData: trendData,
+      categorySummary: summaryData,
+      totalForPeriod: totalExpensesInPeriod,
+    };
+  }, [isMounted, expenses, view, selectedYear, selectedMonth, categoryBudgets, focusedCategory]);
   
   // Effect for fetching forecast
   useEffect(() => {
@@ -181,111 +284,6 @@ export default function StatisticsPage() {
     }
   }, [expenses, isMounted]);
 
-  const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string, currentCategoryBudgets: Record<string, number>, focusedCategoryId: string | null) => {
-    if (!isMounted) return;
-
-    let filteredExpenses: Expense[];
-    let periodStart: Date, periodEnd: Date;
-
-    if (currentView === 'year') {
-        periodStart = startOfYear(new Date(year, 0, 1));
-        periodEnd = endOfYear(new Date(year, 0, 1));
-    } else { // 'month' view
-        periodStart = parseISO(`${monthStr}-01`);
-        periodEnd = endOfMonth(periodStart);
-    }
-
-    filteredExpenses = currentExpenses.filter(exp => {
-      try {
-        const expenseDate = parseISO(exp.date);
-        return isWithinInterval(expenseDate, { start: periodStart, end: periodEnd });
-      } catch {
-        return false;
-      }
-    });
-    
-    const totalExpensesInPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    setTotalForPeriod(totalExpensesInPeriod);
-
-    // Pie Chart & Category Summary Data (always based on all expenses in period)
-    const categoryTotals: { [key: string]: number } = {};
-    filteredExpenses.forEach(exp => {
-      categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
-    });
-
-    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total]) => ({
-      name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
-      value: total,
-      key: catKey,
-      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.chartColor || 'hsl(var(--muted))',
-    }));
-    setPieChartData(pieData);
-    
-    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
-        .map(([catKey, total]) => {
-            const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
-            const budget = currentCategoryBudgets[catKey];
-            return {
-                id: catKey,
-                name: categoryInfo.name,
-                icon: categoryInfo.icon,
-                total,
-                percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-                color: categoryInfo.color,
-                chartColor: categoryInfo.chartColor,
-                budget,
-            };
-        })
-        .sort((a, b) => b.total - a.total);
-    setCategorySummary(summaryData);
-
-
-    // Trend Chart Data (based on focused category if one is selected)
-    const trendSourceData = focusedCategoryId
-        ? filteredExpenses.filter(exp => exp.category === focusedCategoryId)
-        : filteredExpenses;
-        
-    if (currentView === 'year') {
-        const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
-        for (let i = 0; i < 12; i++) {
-            const monthKey = format(new Date(year, i, 1), 'yyyy-MM');
-            monthlyTotals[monthKey] = 0;
-        }
-        trendSourceData.forEach(exp => {
-            const monthKey = format(parseISO(exp.date), 'yyyy-MM');
-            if (monthlyTotals.hasOwnProperty(monthKey)) {
-              monthlyTotals[monthKey] += exp.amount;
-            }
-        });
-
-        const trendData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
-            name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
-            expenses: total,
-        }));
-        setTrendChartData(trendData);
-    } else { // 'month' view, show daily trend
-        const dailyTotals: { [date: string]: number } = {};
-        let day = periodStart;
-        while (day <= periodEnd) {
-            const formattedDate = format(day, 'd');
-            dailyTotals[formattedDate] = 0;
-            day = subDays(day, -1); // next day
-        }
-
-        trendSourceData.forEach(exp => {
-            const formattedDate = format(parseISO(exp.date), 'd');
-            if (dailyTotals.hasOwnProperty(formattedDate)) {
-                dailyTotals[formattedDate] += exp.amount;
-            }
-        });
-        const trendData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
-            name: dateStr,
-            expenses: total,
-        }));
-        setTrendChartData(trendData);
-    }
-  };
-  
   if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
@@ -387,25 +385,26 @@ export default function StatisticsPage() {
                   innerRadius={70}
                   labelLine={false}
                   onMouseEnter={(data) => {
-                    setActiveDonutSlice(data);
+                    setActiveDonutSlice(data.payload);
                   }}
                   onMouseLeave={() => {
                     setActiveDonutSlice(null);
                   }}
-                  label={({ name, percent, x, y }) => {
-                    if (percent * 100 < 8) return null; // Only show for larger slices to avoid clutter
-                    const displayName = name.length > 10 ? `${name.substring(0, 8)}...` : name;
+                  label={({ name, percent, x, y, payload }) => {
+                    if (percent * 100 < 5) return null; // Only show for larger slices to avoid clutter
+                     const displayName = name.length > 10 ? `${name.substring(0, 8)}...` : name;
                     return (
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        className="text-[10px] fill-primary-foreground font-semibold pointer-events-none"
-                      >
-                        <tspan x={x} dy="-0.5em">{displayName}</tspan>
-                        <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
-                      </text>
+                        <text
+                          x={x}
+                          y={y}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          className="text-[10px] fill-foreground font-semibold pointer-events-none"
+                          style={{ fill: payload.fill }}
+                        >
+                          <tspan x={x} dy="-0.5em">{displayName}</tspan>
+                          <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
+                        </text>
                     );
                   }}
                 >
