@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
@@ -216,6 +216,7 @@ export default function DashboardPage() {
     const updatedExpenses = expenses.filter(exp => exp.id !== expenseId);
     setExpenses(updatedExpenses);
     localStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+    window.dispatchEvent(new CustomEvent('expensesUpdated'));
     toast({
       title: "تم الحذف",
       description: "تم حذف المصروف بنجاح.",
@@ -238,12 +239,12 @@ export default function DashboardPage() {
       if (!analysisResult || !analysisResult.amount) {
         throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل المصروف. يرجى المحاولة بصوت أوضح.");
       }
-
+      
       const newExpense: Expense = {
         id: crypto.randomUUID(),
         title: analysisResult.description || `مصروف صوتي (${analysisResult.category})`,
         amount: analysisResult.amount,
-        category: (analysisResult.category.toLowerCase().replace(/\s+/g, '') || 'other') as keyof typeof defaultCategories,
+        category: (Object.keys(defaultCategories).find(key => defaultCategories[key as keyof typeof defaultCategories].name === analysisResult.category) || 'other'),
         date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
         description: analysisResult.description,
         createdAt: new Date().toISOString(),
@@ -263,7 +264,6 @@ export default function DashboardPage() {
       console.error("Error processing and saving voice expense:", e);
       const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
       setVoiceError(errorMessage);
-      toast({ title: "خطأ", description: errorMessage, variant: "destructive" });
     } finally {
       setIsVoiceLoading(false);
     }
@@ -282,7 +282,6 @@ export default function DashboardPage() {
   const startVoiceRecording = useCallback(async () => {
     if (!isMounted || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setVoiceError("الوصول إلى الميكروفون غير مدعوم أو مسموح به.");
-      toast({ title: "خطأ", description: "تأكد من صلاحيات الميكروفون.", variant: "destructive" });
       return;
     }
     
@@ -324,7 +323,7 @@ export default function DashboardPage() {
       setIsVoiceRecording(false);
       setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
     }
-  }, [isMounted, processVoiceAndSave, toast]);
+  }, [isMounted, processVoiceAndSave]);
   
   const renderVoiceButtonContent = () => {
     if (isVoiceLoading) {
@@ -373,9 +372,7 @@ export default function DashboardPage() {
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
                 <Mic className={cn("h-8 w-8", "text-rose-600 dark:text-rose-300")} />
             </span>
-            <div>
-                <p className="font-semibold">إدخال صوتي</p>
-            </div>
+            <p className="font-semibold">إدخال صوتي</p>
         </>
     );
   };
@@ -414,17 +411,17 @@ export default function DashboardPage() {
   const sortedExpenses = [...monthlyExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const recentExpensesToDisplay = sortedExpenses.slice(0, 5);
-  const allExpensesCount = sortedExpenses.length;
+  const allExpensesCount = expenses.length;
 
   return (
-    <div className="space-y-8 pb-24 sm:pb-8">
+    <div className="space-y-6 pb-24 sm:pb-8">
       
       {/* Hero Balance Card */}
       <Card className="relative overflow-hidden bg-slate-900 text-primary-foreground shadow-2xl rounded-2xl">
         <CardHeader className="z-10 relative border-b border-white/10">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-xl font-bold text-white">ملخص الميزانية الشهرية</CardTitle>
+              <CardTitle as="h2" className="text-xl font-bold text-white">ملخص الميزانية الشهرية</CardTitle>
             </div>
             <Link href="/settings">
               <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-slate-700 hover:text-white rounded-full">
@@ -527,9 +524,7 @@ export default function DashboardPage() {
                   <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", iconBg)}>
                      <IconComponent className={cn("h-8 w-8", iconColor)} />
                   </span>
-                  <div>
-                    <p className="font-semibold">{label}</p>
-                  </div>
+                  <p className="font-semibold">{label}</p>
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
@@ -545,7 +540,7 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle as="h2" className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
             نصائح ذكية
           </CardTitle>
@@ -648,10 +643,10 @@ export default function DashboardPage() {
         </CardContent>
          {allExpensesCount > 5 && (
            <CardFooter className="border-t p-4">
-            <Button variant="outline" className="w-full" onClick={() => toast({ title: "قيد التطوير", description: "صفحة عرض كل المصاريف ستتوفر قريباً." })}>
+             <Link href="/expenses" className={cn(buttonVariants({ variant: 'outline' }), "w-full")}>
               عرض كل المصاريف ({allExpensesCount})
               <ChevronLeft className="mr-2 h-4 w-4"/>
-            </Button>
+            </Link>
           </CardFooter>
         )}
       </Card>
