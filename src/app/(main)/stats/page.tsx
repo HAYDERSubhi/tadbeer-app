@@ -3,20 +3,25 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2, BarChart3, ActivityIcon } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, Wand2, ActivityIcon } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, isAfter } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, isAfter, compareDesc } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { forecastExpenses, ForecastExpensesOutput } from '@/ai/flows/forecast-expenses';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
@@ -62,7 +67,6 @@ export default function StatisticsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [availableMonths, setAvailableMonths] = useState<string[]>([]); // "YYYY-MM" format
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  const [focusedCategory, setFocusedCategory] = useState<string | null>(null);
   
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
@@ -122,6 +126,7 @@ export default function StatisticsPage() {
     categorySummary,
     totalForPeriod,
     topCategoriesTrendData,
+    filteredExpenses
   } = useMemo(() => {
     if (!isMounted || !expenses) {
       return {
@@ -130,10 +135,11 @@ export default function StatisticsPage() {
         categorySummary: [],
         totalForPeriod: 0,
         topCategoriesTrendData: [],
+        filteredExpenses: [],
       };
     }
 
-    let filteredExpenses: Expense[];
+    let currentFilteredExpenses: Expense[];
     let periodStart: Date, periodEnd: Date;
 
     if (view === 'year') {
@@ -145,7 +151,7 @@ export default function StatisticsPage() {
       periodEnd = endOfMonth(periodStart);
     }
 
-    filteredExpenses = expenses.filter(exp => {
+    currentFilteredExpenses = expenses.filter(exp => {
       try {
         const expenseDate = parseISO(exp.date);
         return isWithinInterval(expenseDate, { start: periodStart, end: periodEnd });
@@ -154,11 +160,11 @@ export default function StatisticsPage() {
       }
     });
 
-    const totalExpensesInPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpensesInPeriod = currentFilteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
     // Pie Chart & Category Summary Data
     const categoryTotals: { [key: string]: number } = {};
-    filteredExpenses.forEach(exp => {
+    currentFilteredExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
 
@@ -187,9 +193,7 @@ export default function StatisticsPage() {
       .sort((a, b) => b.total - a.total);
 
     // Trend Chart Data
-    const trendSourceData = focusedCategory
-      ? filteredExpenses.filter(exp => exp.category === focusedCategory)
-      : filteredExpenses;
+    const trendSourceData = currentFilteredExpenses;
 
     let trendData: TrendChartDataItem[] = [];
     if (view === 'year') {
@@ -279,8 +283,9 @@ export default function StatisticsPage() {
       categorySummary: summaryData,
       totalForPeriod: totalExpensesInPeriod,
       topCategoriesTrendData: categoriesTrendData,
+      filteredExpenses: currentFilteredExpenses,
     };
-  }, [isMounted, expenses, view, selectedYear, selectedMonth, categoryBudgets, focusedCategory, availableMonths]);
+  }, [isMounted, expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths]);
   
   // Effect for fetching forecast
   useEffect(() => {
@@ -492,18 +497,10 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUpIcon className="h-6 w-6 text-primary" />
-                {focusedCategory ? `اتجاه مصاريف: ${defaultCategories[focusedCategory as keyof typeof defaultCategories]?.name}` : 'اتجاه المصاريف'}
-              </CardTitle>
-              {focusedCategory && (
-                  <Button variant="ghost" size="sm" onClick={() => setFocusedCategory(null)} className="flex items-center gap-1 text-sm">
-                      <XCircle className="h-4 w-4" />
-                      عرض الكل
-                  </Button>
-              )}
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUpIcon className="h-6 w-6 text-primary" />
+            اتجاه المصاريف
+          </CardTitle>
           <CardDescription>
             {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}`}
           </CardDescription>
@@ -531,43 +528,31 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <ListOrderedIcon className="h-6 w-6 text-primary" />
-              ملخص الفئات
-            </CardTitle>
-             <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFocusedCategory(null)} 
-                className={cn('flex items-center gap-1 text-sm', !focusedCategory && 'hidden')}>
-                <XCircle className="h-4 w-4" />
-                عرض الكل
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <ListOrderedIcon className="h-6 w-6 text-primary" />
+            ملخص الفئات
+          </CardTitle>
           <CardDescription>
-            {categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض اتجاهها البياني.'}
+            {categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض تفاصيلها.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {categorySummary.length > 0 ? (
-            <ul className="divide-y divide-border">
-                {categorySummary.map(item => (
-                    <li 
-                      key={item.id}
-                      className={cn("flex items-center justify-between p-4 cursor-pointer transition-colors hover:bg-muted/50", focusedCategory === item.id && "bg-muted/50")}
-                      onClick={() => setFocusedCategory(prev => prev === item.id ? null : item.id)}
-                    >
+            <Accordion type="single" collapsible className="w-full">
+              {categorySummary.map(item => (
+                <AccordionItem value={item.id} key={item.id} className="border-b">
+                  <AccordionTrigger className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50 text-base font-medium">
+                    <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
                             {item.icon}
                          </span>
-                         <div className="flex-1 min-w-0">
+                         <div className="flex-1 min-w-0 text-right">
                               <p className="font-semibold truncate">{item.name}</p>
                               <p className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                          </div>
                       </div>
-                      <div className='text-left'>
+                      <div className='text-left ml-4'>
                         <p className="text-lg font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
                             <div className='w-24 mt-1'>
@@ -575,10 +560,27 @@ export default function StatisticsPage() {
                             </div>
                         )}
                       </div>
-
-                    </li>
-                ))}
-            </ul>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 bg-muted/20">
+                      <ul className="space-y-3 pt-3 border-t">
+                          {filteredExpenses
+                              .filter(exp => exp.category === item.id)
+                              .sort((a,b) => compareDesc(parseISO(a.date), parseISO(b.date)))
+                              .map(expense => (
+                                  <li key={expense.id} className="flex justify-between items-center text-sm animate-in fade-in duration-300">
+                                      <div className="flex flex-col items-start">
+                                          <span className="font-medium text-foreground/90">{expense.title}</span>
+                                          <span className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</span>
+                                      </div>
+                                      <span className="font-semibold text-foreground/80 whitespace-nowrap">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
+                                  </li>
+                              ))}
+                      </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           ) : (!isLoading && 
                 <div className="px-6 py-10 text-center text-muted-foreground">
                     <p>لا توجد مصاريف لعرضها.</p>
