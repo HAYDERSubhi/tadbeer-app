@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School } from "lucide-react";
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History } from "lucide-react";
 import type { Expense, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -20,10 +20,12 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
+import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 
 // Grouping the dialogs for easier mapping
 const AddExpenseDialogs = [
@@ -180,8 +182,7 @@ export default function DashboardPage() {
     currentExpenses,
     remainingBudget,
     weeklySpending,
-    recentExpensesToDisplay,
-    allExpensesCount,
+    allSortedExpenses,
   } = useMemo(() => {
     const today = new Date();
     const startOfCurrentMonth = startOfMonth(today);
@@ -219,17 +220,14 @@ export default function DashboardPage() {
             .reduce((sum, exp) => sum + exp.amount, 0)
     );
     
-    const sorted = [...currentMonthExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const recentToDisplay = sorted.slice(0, 5);
-    const totalCount = expenses.length;
+    const sorted = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return {
         monthlyExpenses: currentMonthExpenses,
         currentExpenses: totalCurrentExpenses,
         remainingBudget: budgetRemaining,
         weeklySpending: spendingByWeek,
-        recentExpensesToDisplay: recentToDisplay,
-        allExpensesCount: totalCount,
+        allSortedExpenses: sorted,
     };
   }, [expenses, userBudget.totalBudget]);
 
@@ -646,65 +644,88 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Expenses List */}
+      {/* All Expenses List */}
       <Card>
-        <CardContent className="p-0">
-          {recentExpensesToDisplay.length === 0 ? (
+        <CardHeader>
+           <CardTitle as="h2" className="flex items-center gap-2">
+                <History className="h-6 w-6 text-primary" />
+                سجل المصاريف
+            </CardTitle>
+            <CardDescription>
+                هنا قائمة بجميع مصاريفك، مرتبة من الأحدث إلى الأقدم.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 max-h-[60vh] overflow-y-auto">
+          {allSortedExpenses.length === 0 ? (
             <div className="px-6 py-10 text-center text-muted-foreground">
               <DollarSign className="mx-auto h-12 w-12 mb-4" />
               <h3 className="text-lg font-semibold">لا توجد مصاريف بعد</h3>
               <p className="text-sm">ابدأ بإضافة أول مصروف لك من الأعلى!</p>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
-              {recentExpensesToDisplay.map((expense) => {
-                const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
-                return (
-                  <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-                    <div className="flex flex-1 items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
-                          {categoryInfo.icon}
-                      </span>
-                      <div>
-                          <p className="font-semibold">{expense.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                              {categoryInfo.name}
-                          </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="text-end">
-                          <p className="font-semibold text-foreground whitespace-nowrap">
-                              {expense.amount.toLocaleString()}&nbsp;د.ع
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                              {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
-                          </p>
+            <ul className="relative">
+              {(() => {
+                let lastMonth: string | null = null;
+                return allSortedExpenses.map((expense) => {
+                  const expenseDate = new Date(expense.date);
+                  const currentMonth = format(expenseDate, 'yyyy-MM');
+                  const showSeparator = currentMonth !== lastMonth;
+                  lastMonth = currentMonth;
+
+                  const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+                  
+                  return (
+                    <Fragment key={expense.id}>
+                      {showSeparator && (
+                        <li className="p-2 bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-t">
+                            <div className="flex items-center gap-3">
+                                <Separator className="flex-1" />
+                                <p className="text-sm font-semibold text-muted-foreground shrink-0">
+                                    {format(expenseDate, 'MMMM yyyy', { locale: arIQ })}
+                                </p>
+                                <Separator className="flex-1" />
+                            </div>
+                        </li>
+                      )}
+                      <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50 border-b">
+                        <div className="flex flex-1 items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
+                              {categoryInfo.icon}
+                          </span>
+                          <div>
+                              <p className="font-semibold">{expense.title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                  {categoryInfo.name}
+                              </p>
+                          </div>
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                            onClick={() => handleDeleteExpense(expense.id)}
-                            aria-label="حذف المصروف"
-                        >
-                            <Trash2Icon className="h-4 w-4" />
-                        </Button>
-                    </div>
-                  </li>
-                );
-              })}
+                        <div className="flex items-center gap-4">
+                            <div className="text-end">
+                              <p className="font-semibold text-foreground whitespace-nowrap">
+                                  {expense.amount.toLocaleString()}&nbsp;د.ع
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                  {expenseDate.toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
+                              </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                                onClick={() => handleDeleteExpense(expense.id)}
+                                aria-label="حذف المصروف"
+                            >
+                                <Trash2Icon className="h-4 w-4" />
+                            </Button>
+                        </div>
+                      </li>
+                    </Fragment>
+                  );
+                });
+              })()}
             </ul>
           )}
         </CardContent>
-         {allExpensesCount > 5 && (
-           <CardFooter className="border-t p-4">
-             <Link href="/expenses" className={cn(buttonVariants({ variant: 'outline' }), "w-full")}>
-              عرض كل المصاريف ({allExpensesCount})
-              <ChevronLeft className="mr-2 h-4 w-4"/>
-            </Link>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
