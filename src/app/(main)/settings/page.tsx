@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -83,6 +82,39 @@ export default function SettingsPage() {
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
 
+  // Helper functions for number formatting
+  const formatNumberWithCommas = (value: string | number | undefined) => {
+    if (value === null || value === undefined || value === '') return '';
+    const numericString = String(value).replace(/,/g, '');
+    const number = Number(numericString);
+    if (isNaN(number)) return '';
+    if (number === 0) return '0';
+    return new Intl.NumberFormat('en-US').format(number);
+  };
+
+  const parseFormattedNumber = (value: string | undefined) => {
+    if (!value) return '';
+    return value.replace(/,/g, '');
+  };
+
+  const handleNumericInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const numericString = parseFormattedNumber(rawValue);
+
+    // Only allow numbers
+    if (numericString !== '' && isNaN(Number(numericString))) {
+        return;
+    }
+    setter(formatNumberWithCommas(numericString));
+  };
+  
+  const handleCategoryBudgetChange = (id: string, value: string) => {
+    const numericString = parseFormattedNumber(value);
+    if (numericString !== '' && isNaN(Number(numericString))) {
+        return;
+    }
+    setCategoryBudgets(prev => ({...prev, [id]: formatNumberWithCommas(numericString)}));
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -91,8 +123,8 @@ export default function SettingsPage() {
     if (storedBudget) {
       try {
         const budgetData = JSON.parse(storedBudget) as UserBudgetSettings;
-        setTotalBudgetInput(budgetData.totalBudget.toString());
-        setWeeklyBudgetInput(budgetData.weeklyBudget.toString());
+        setTotalBudgetInput(formatNumberWithCommas(budgetData.totalBudget));
+        setWeeklyBudgetInput(formatNumberWithCommas(budgetData.weeklyBudget));
         setZeroSpendDaysTargetInput(budgetData.zeroSpendDaysTarget?.toString() || '4');
       } catch {
         // handle error
@@ -106,7 +138,7 @@ export default function SettingsPage() {
             const budgets = JSON.parse(storedCategoryBudgets);
             // Convert numbers to strings for input fields
             const stringBudgets = Object.entries(budgets).reduce((acc, [key, value]) => {
-                acc[key] = String(value);
+                acc[key] = formatNumberWithCommas(value as number);
                 return acc;
             }, {} as Record<string, string>);
             setCategoryBudgets(stringBudgets);
@@ -118,13 +150,9 @@ export default function SettingsPage() {
   }, []);
 
   const handleSaveBudget = () => {
-    const totalString = totalBudgetInput.trim() === "" ? "0" : totalBudgetInput.trim();
-    const weeklyString = weeklyBudgetInput.trim() === "" ? "0" : weeklyBudgetInput.trim();
-    const zeroSpendString = zeroSpendDaysTargetInput.trim() === "" ? "0" : zeroSpendDaysTargetInput.trim();
-
-    const total = parseFloat(totalString);
-    const weekly = parseFloat(weeklyString);
-    const zeroSpendDays = parseInt(zeroSpendString, 10);
+    const total = parseFloat(parseFormattedNumber(totalBudgetInput) || "0");
+    const weekly = parseFloat(parseFormattedNumber(weeklyBudgetInput) || "0");
+    const zeroSpendDays = parseInt(zeroSpendDaysTargetInput || "0", 10);
 
     if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0 || isNaN(zeroSpendDays) || zeroSpendDays < 0) {
       toast({
@@ -150,7 +178,7 @@ export default function SettingsPage() {
 
   const handleSaveCategoryBudgets = () => {
     const numericBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
-        const amount = parseFloat(value);
+        const amount = parseFloat(parseFormattedNumber(value));
         if (!isNaN(amount) && amount > 0) {
             acc[key] = amount;
         }
@@ -459,11 +487,11 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label>
-            <Input id="totalBudget" type="number" value={totalBudgetInput} onChange={(e) => setTotalBudgetInput(e.target.value)} placeholder="مثال: 5000000" min="0" />
+            <Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} placeholder="مثال: 5,000,000" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
-            <Input id="weeklyBudget" type="number" value={weeklyBudgetInput} onChange={(e) => setWeeklyBudgetInput(e.target.value)} placeholder="مثال: 1000000" min="0" />
+            <Input id="weeklyBudget" type="text" inputMode="decimal" value={weeklyBudgetInput} onChange={handleNumericInputChange(setWeeklyBudgetInput)} placeholder="مثال: 1,000,000" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
@@ -495,11 +523,11 @@ export default function SettingsPage() {
                 </span>
               <Input
                 id={`category-${id}`}
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={categoryBudgets[id] || ''}
-                onChange={(e) => setCategoryBudgets(prev => ({...prev, [id]: e.target.value}))}
+                onChange={(e) => handleCategoryBudgetChange(id, e.target.value)}
                 placeholder="0"
-                min="0"
                 className="flex-1"
               />
             </div>
