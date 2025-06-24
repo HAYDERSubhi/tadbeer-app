@@ -179,14 +179,39 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isMounted) return;
 
+    // Analyze the most recent month with expenses, not just the current calendar month.
+    const expensesForAnalysis = (() => {
+      if (expenses.length === 0) return [];
+      
+      // Sort to find the latest expense date
+      const sorted = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      if (!sorted[0]) return [];
+      const latestExpenseDate = new Date(sorted[0].date);
+
+      // Define the month for analysis
+      const startOfAnalysisMonth = startOfMonth(latestExpenseDate);
+      const endOfAnalysisMonth = endOfMonth(latestExpenseDate);
+      
+      // Filter expenses for that month
+      return expenses.filter(exp => {
+          try {
+              const expenseDate = new Date(exp.date);
+              return isWithinInterval(expenseDate, { start: startOfAnalysisMonth, end: endOfAnalysisMonth });
+          } catch {
+              return false;
+          }
+      });
+    })();
+
+
     const getInsights = async () => {
-      if (monthlyExpenses.length > 0 && userBudget.totalBudget > 0) {
+      if (expensesForAnalysis.length > 0 && userBudget.totalBudget > 0) {
         setIsInsightsLoading(true);
         try {
           const coachInput = {
             totalBudget: userBudget.totalBudget,
             zeroSpendDaysTarget: userBudget.zeroSpendDaysTarget,
-            expenses: monthlyExpenses.map(e => ({
+            expenses: expensesForAnalysis.map(e => ({
               title: e.title,
               amount: e.amount,
               category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
