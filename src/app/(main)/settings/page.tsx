@@ -301,8 +301,15 @@ export default function SettingsPage() {
             if (colIndex === null || colIndex === undefined) return null;
             return row[colIndex];
         };
+        
+        const importedTitle = String(getCellData('title') || '').trim();
+        const importedDescription = String(getCellData('description') || '').trim();
+        
+        let title = importedTitle;
+        if (!title) {
+          title = importedDescription || `مصروف مستورد - صف ${rowIndex + 2}`;
+        }
 
-        const title = String(getCellData('title') || `مصروف مستورد - صف ${rowIndex + 2}`).trim();
         const rawAmount = getCellData('amount');
         const amount = rawAmount !== null ? parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,"")) || 0 : 0;
         
@@ -328,7 +335,7 @@ export default function SettingsPage() {
           amount: amount,
           category: foundCategoryId,
           date: date,
-          description: String(getCellData('description') || '').trim() || undefined,
+          description: importedDescription || undefined,
           isOutOfBudget: ['نعم', 'yes', 'true', true, '1', 1].includes(String(getCellData('isOutOfBudget') || '').trim().toLowerCase()),
           outOfBudgetDetails: String(getCellData('outOfBudgetDetails') || '').trim() || undefined,
         };
