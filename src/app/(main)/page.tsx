@@ -677,10 +677,10 @@ export default function DashboardPage() {
                   return (
                     <Fragment key={expense.id}>
                       {showSeparator && (
-                        <li className="p-2 bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b border-t">
-                            <div className="flex items-center gap-3">
+                        <li className="py-1 px-4 bg-muted/80 backdrop-blur-sm sticky top-0 z-10 border-b">
+                            <div className="flex items-center gap-2">
                                 <Separator className="flex-1" />
-                                <p className="text-sm font-semibold text-muted-foreground shrink-0">
+                                <p className="text-xs font-medium text-muted-foreground shrink-0">
                                     {format(expenseDate, 'MMMM yyyy', { locale: arIQ })}
                                 </p>
                                 <Separator className="flex-1" />
