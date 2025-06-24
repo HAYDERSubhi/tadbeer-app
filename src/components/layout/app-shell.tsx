@@ -15,8 +15,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-xl font-display">
             <WalletIcon className="h-7 w-7 text-primary" />
-            <span className="hidden sm:inline">كي - راقب مصروفك</span>
-            <span className="sm:hidden">كي</span>
+            <span>مصروفات</span>
           </Link>
           <div className="flex items-center gap-2">
             <Button
