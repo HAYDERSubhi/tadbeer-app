@@ -4,8 +4,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target } from "lucide-react";
-import type { Expense } from '@/types';
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School } from "lucide-react";
+import type { Expense, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -64,6 +64,8 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
     TrendingUp,
     Lightbulb,
     PiggyBank,
+    Baby,
+    School,
   };
   const LucideIcon = icons[name] || Sparkles;
   return <LucideIcon className={className} />;
@@ -77,6 +79,7 @@ export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
 
@@ -119,6 +122,16 @@ export default function DashboardPage() {
           setCategoryBudgets(JSON.parse(storedCategoryBudgets));
         } catch {
           setCategoryBudgets({});
+        }
+      }
+      
+      // Refresh User Profile
+      const storedUserProfile = localStorage.getItem('userProfile');
+      if (storedUserProfile) {
+        try {
+          setUserProfile(JSON.parse(storedUserProfile));
+        } catch {
+          setUserProfile(null);
         }
       }
 
@@ -262,6 +275,10 @@ export default function DashboardPage() {
               date: format(new Date(e.date), 'yyyy-MM-dd'),
             })),
             categoryBudgets: categoryBudgets,
+            userProfile: userProfile ? {
+              monthlyIncome: userProfile.monthlyIncome,
+              familyMembers: userProfile.familyMembers.map(({ id, ...rest }) => rest), // Strip id for AI
+            } : undefined,
           };
           const result = await financialCoach(coachInput);
           setInsights(result.insights);
@@ -277,7 +294,7 @@ export default function DashboardPage() {
     };
 
     getInsights();
-  }, [expensesForAnalysis, userBudget, categoryBudgets, isMounted]);
+  }, [expensesForAnalysis, userBudget, categoryBudgets, userProfile, isMounted]);
 
 
   const handleDeleteExpense = (expenseId: string) => {

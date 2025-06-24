@@ -13,7 +13,10 @@ import {z} from 'genkit';
 
 const UserProfileSchema = z.object({
     monthlyIncome: z.number().describe("The user's approximate monthly income in IQD."),
-    familySize: z.number().describe("The number of people in the user's family."),
+    familyMembers: z.array(z.object({
+        type: z.enum(['adult', 'child']).describe("The type of family member."),
+        age: z.number().describe("The age of the family member.")
+    })).describe("A list of all family members, including the user. The AI should infer if a member is a child or an adult based on their age (e.g., age < 18 is a child)."),
 }).describe("The user's personal profile information.");
 
 const FinancialGoalSchema = z.object({
@@ -66,7 +69,14 @@ const prompt = ai.definePrompt({
     **User's Financial Context:**
     - **Profile:**
         - Monthly Income: {{userProfile.monthlyIncome}} د.ع
-        - Family Size: {{userProfile.familySize}}
+        - **Family Members:** 
+        {{#if userProfile.familyMembers}}
+            {{#each userProfile.familyMembers}}
+            - A {{this.type}} aged {{this.age}}
+            {{/each}}
+        {{else}}
+            - Just the user.
+        {{/if}}
     - **Goal:**
         - Goal Name: "{{goal.name}}"
         - Target Amount: {{goal.targetAmount}} د.ع
@@ -90,7 +100,7 @@ const prompt = ai.definePrompt({
         -   **Analyze Spending:** Scrutinize the user's expense history to identify categories with high or non-essential spending (e.g., 'ترفيه', 'كماليات شخصية', 'طعام' if it contains many restaurant items).
         -   **Create Actionable Steps:** For each step, provide a clear \`title\` and a detailed \`description\`. Instead of just saying "spend less," give specific, creative ideas. For example, "تحدي الطبخ المنزلي" instead of "قلل مصاريف المطاعم".
         -   **Assign Savings Targets:** For each step, estimate a realistic \`suggestedMonthlySaving\` amount. The sum of these savings should ideally get close to the \`savingsRequiredPerMonth\`.
-        -   **Be Logical and Realistic:** The plan should make sense for someone with the user's income and family size. Do not suggest impossible cuts.
+        -   **Be Logical and Realistic:** The plan should make sense for someone with the user's income and family structure. Take the ages of family members into account, as children have different financial implications than adults (e.g., education, healthcare, supplies).
 
     5.  **Write a Motivational Message:** Conclude with a powerful and encouraging \`motivationalMessage\` to inspire the user to begin their financial journey.
 

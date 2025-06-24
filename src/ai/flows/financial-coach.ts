@@ -22,6 +22,13 @@ const FinancialCoachInputSchema = z.object({
       })
   ).describe("An array of the user's expenses for the current month."),
   categoryBudgets: z.record(z.string(), z.number()).optional().describe("A map of category IDs to their specific monthly budget in IQD. The key is the category ID and the value is the budget amount."),
+  userProfile: z.object({
+    monthlyIncome: z.number().describe("The user's approximate monthly income in IQD."),
+    familyMembers: z.array(z.object({
+        type: z.enum(['adult', 'child']).describe("The type of family member."),
+        age: z.number().describe("The age of the family member.")
+    })).describe("A list of all family members, including the user."),
+  }).optional().describe("The user's profile, including income and family members."),
 });
 export type FinancialCoachInput = z.infer<typeof FinancialCoachInputSchema>;
 
@@ -30,7 +37,7 @@ const FinancialCoachOutputSchema = z.object({
         z.object({
             title: z.string().describe("A short, catchy title for the insight."),
             description: z.string().describe("A one-sentence description of the advice or observation."),
-            icon: z.enum(["Trophy", "Salad", "CookingPot", "TrendingUp", "Lightbulb", "PiggyBank"]).describe("A suitable Lucide icon name for the insight."),
+            icon: z.enum(["Trophy", "Salad", "CookingPot", "TrendingUp", "Lightbulb", "PiggyBank", "Baby", "School"]).describe("A suitable Lucide icon name for the insight."),
             type: z.enum(['praise', 'tip', 'warning']).describe("The type of insight, used for styling."),
         })
     ).describe("An array of 2-4 personalized financial insights."),
@@ -54,16 +61,23 @@ const prompt = ai.definePrompt({
     prompt: `You are a friendly and encouraging financial coach for an Iraqi user. Your goal is to help them stick to their budget and build healthy spending habits.
 Analyze their spending for the current month based on the data provided and generate 2-4 short, actionable, and encouraging tips in Arabic. Speak in a positive and motivational tone.
 
-User's monthly budget: {{totalBudget}} د.ع.
-User's monthly goal for low-spending days: {{zeroSpendDaysTarget}} يوم.
-Their expenses this month:
+**User's Context:**
+- Monthly budget: {{totalBudget}} د.ع.
+- Goal for low-spending days: {{zeroSpendDaysTarget}} يوم.
+- Expenses this month:
 {{#each expenses}}
 - "{{this.title}}" بمبلغ {{this.amount}} د.ع في فئة "{{this.category}}" بتاريخ {{this.date}}.
 {{/each}}
+{{#if userProfile}}
+- **Family Members:**
+  {{#each userProfile.familyMembers}}
+  - A {{this.type}} aged {{this.age}}
+  {{/each}}
+{{/if}}
 
 The user has also set specific budgets for some categories, which are provided in the 'categoryBudgets' object in the input.
 
-Here are your instructions for generating insights:
+**Your Instructions for Generating Insights:**
 
 1.  **Analyze Low-Spending Days:** Calculate the number of days with very low or zero spending. A low-spending day has total expenses under 15,000 IQD. Compare this to their goal of {{zeroSpendDaysTarget}} days. If they are on track, praise them! (e.g., "أداء رائع في الأيام الموفرة!"). Use the "Trophy" or "PiggyBank" icon for this.
 
@@ -72,8 +86,10 @@ Here are your instructions for generating insights:
 3.  **Provide General Motivation:** Give a general motivational tip based on their overall progress towards their {{totalBudget}} budget. If they are doing well (spending is less than the proportional amount for the time of the month), encourage them. If they are over budget, offer a simple, non-stressful tip to get back on track. Use icons like "TrendingUp" or "Lightbulb".
 
 4.  **Analyze Category Budgets**: Review the \`categoryBudgets\` object. For each category with a defined budget, calculate the total spending for that category from the expenses list. If spending is over 85% of its budget, generate a 'warning' insight (e.g., "تنبيه: قاربت على استهلاك ميزانية التسوق!"). If they are doing well (e.g., spending is low relative to the budget and time of month), generate a 'praise' insight (e.g., "إدارة ممتازة لميزانية الفواتير هذا الشهر!"). Use icons like "TrendingUp", "PiggyBank", or "Lightbulb".
+    
+5.  **Consider Family Context**: If the user profile is provided, use the family members' ages to give more specific advice. For example, if there are children, you could suggest saving on school-related expenses or planning for family-friendly, low-cost activities. Use icons like "Baby" or "School".
 
-5.  **Format:** The output must be in JSON. The language for title and description must be Arabic.
+6.  **Format:** The output must be in JSON. The language for title and description must be Arabic.
 `,
 });
 

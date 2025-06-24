@@ -1,7 +1,7 @@
 // src/app/(main)/planner/page.tsx
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Goal, Expense, UserProfile } from '@/types';
 import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
@@ -56,16 +56,16 @@ function PlannerContent() {
     }
     setIsDataLoaded(true);
   }, [goalIdFromQuery]);
+  
+  const selectedGoal = useMemo(() => goals.find(g => g.id === selectedGoalId), [goals, selectedGoalId]);
 
   const handleGeneratePlan = async () => {
-    const selectedGoal = goals.find(g => g.id === selectedGoalId);
-
     if (!selectedGoal) {
       setError("الرجاء اختيار هدف أولاً.");
       return;
     }
-    if (!userProfile || !userProfile.monthlyIncome) {
-      setError("الرجاء إكمال ملفك الشخصي في الإعدادات، خاصة الدخل الشهري.");
+    if (!userProfile || !userProfile.monthlyIncome || !userProfile.familyMembers || userProfile.familyMembers.length === 0) {
+      setError("الرجاء إكمال ملفك الشخصي في الإعدادات، خاصة الدخل الشهري وتفاصيل أفراد الأسرة.");
       return;
     }
 
@@ -82,7 +82,7 @@ function PlannerContent() {
             },
             userProfile: {
                 monthlyIncome: userProfile.monthlyIncome,
-                familySize: userProfile.familySize || 1,
+                familyMembers: userProfile.familyMembers.map(({ id, ...rest}) => rest), // remove id for AI
             },
             expenses: expenses.map(e => ({
                 ...e,
@@ -111,7 +111,7 @@ function PlannerContent() {
                     {plan.isAchievable ? 
                         <CheckCircle2 className='h-7 w-7 text-green-500' /> : 
                         <XCircle className='h-7 w-7 text-orange-500' />}
-                    خطة تحقيق هدف: {goals.find(g => g.id === selectedGoalId)?.name}
+                    خطة تحقيق هدف: {selectedGoal?.name}
                 </CardTitle>
                 <CardDescription>{plan.initialAssessment}</CardDescription>
             </CardHeader>
@@ -183,13 +183,13 @@ function PlannerContent() {
             </Card>
         )
     }
-    if (!userProfile || !userProfile.monthlyIncome) {
+    if (!userProfile || !userProfile.monthlyIncome || !userProfile.familyMembers || userProfile.familyMembers.length === 0) {
          return (
              <Alert variant="destructive">
                 <BrainCircuit className="h-4 w-4" />
                 <AlertTitle>معلومات غير مكتملة</AlertTitle>
                 <AlertDescription>
-                    لإنشاء خطة مالية دقيقة، يرجى <Link href="/settings" className='font-bold underline'>إضافة دخلك الشهري</Link> في ملفك الشخصي بالإعدادات.
+                    لإنشاء خطة مالية دقيقة، يرجى <Link href="/settings" className='font-bold underline'>إضافة دخلك الشهري وتفاصيل أفراد أسرتك</Link> في ملفك الشخصي بالإعدادات.
                 </AlertDescription>
             </Alert>
         )
@@ -209,7 +209,7 @@ function PlannerContent() {
         </p>
       </div>
 
-      {(goals.length > 0 && userProfile) ? (
+      {(goals.length > 0 && userProfile && userProfile.familyMembers && userProfile.familyMembers.length > 0) ? (
         <Card>
             <CardContent className="p-6 space-y-4">
                  <div>

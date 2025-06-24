@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,9 +27,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Expense, UserProfile } from '@/types';
+import type { Expense, UserProfile, FamilyMember } from '@/types';
 import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 interface UserBudgetSettings {
   totalBudget: number;
@@ -82,7 +83,10 @@ export default function SettingsPage() {
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
-  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
+  
+  // New state for profile management
+  const [monthlyIncomeInput, setMonthlyIncomeInput] = useState('');
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
   // Helper functions for number formatting
   const formatNumberWithCommas = (value: string | number | undefined) => {
@@ -153,35 +157,70 @@ export default function SettingsPage() {
     const storedUserProfile = localStorage.getItem('userProfile');
     if (storedUserProfile) {
       try {
-        setUserProfile(JSON.parse(storedUserProfile));
+        const profile: UserProfile = JSON.parse(storedUserProfile);
+        setMonthlyIncomeInput(formatNumberWithCommas(profile.monthlyIncome));
+        if (profile.familyMembers && Array.isArray(profile.familyMembers)) {
+          setFamilyMembers(profile.familyMembers);
+        } else {
+          // Initialize for users migrating from old data structure
+          setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
+        }
       } catch {
         // handle error
       }
+    } else {
+      // For brand new users, initialize with one adult member
+      setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
     }
 
   }, []);
   
-  const handleProfileChange = (field: keyof UserProfile, value: string) => {
-    setUserProfile(prev => ({ ...prev, [field]: value }));
+  const handleAddMember = () => {
+    setFamilyMembers(prev => [...prev, { id: crypto.randomUUID(), type: 'child', age: 0 }]);
+  };
+  
+  const handleRemoveMember = (id: string) => {
+    if (familyMembers.length > 1) {
+      setFamilyMembers(prev => prev.filter(m => m.id !== id));
+    } else {
+      toast({
+        title: "لا يمكن الحذف",
+        description: "يجب أن يبقى فرد واحد على الأقل في الملف الشخصي.",
+        variant: "destructive",
+      });
+    }
   };
 
+  const handleMemberChange = (id: string, field: keyof Omit<FamilyMember, 'id'>, value: string | number) => {
+    setFamilyMembers(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+  };
+
+
   const handleSaveProfile = () => {
-    // Basic validation
-    const income = parseFloat(parseFormattedNumber(userProfile.monthlyIncome?.toString()));
-    const familySize = parseInt(userProfile.familySize?.toString() || "0", 10);
+    const income = parseFloat(parseFormattedNumber(monthlyIncomeInput));
     
-    if (isNaN(income) || income < 0 || isNaN(familySize) || familySize < 0) {
+    if (isNaN(income) || income < 0) {
        toast({
         title: "خطأ في الإدخال",
-        description: "الرجاء إدخال أرقام صحيحة وموجبة للملف الشخصي.",
+        description: "الرجاء إدخال رقم صحيح وموجب للدخل الشهري.",
         variant: "destructive",
       });
       return;
     }
     
+    const areAgesValid = familyMembers.every(m => m.age >= 0 && m.age < 150);
+    if (!areAgesValid) {
+        toast({
+            title: "خطأ في الإدخال",
+            description: "الرجاء إدخال أعمار صحيحة لجميع أفراد الأسرة.",
+            variant: "destructive",
+        });
+        return;
+    }
+    
     const profileToSave: UserProfile = {
       monthlyIncome: income,
-      familySize: familySize
+      familyMembers: familyMembers,
     };
 
     localStorage.setItem('userProfile', JSON.stringify(profileToSave));
@@ -189,6 +228,7 @@ export default function SettingsPage() {
       title: "تم الحفظ",
       description: "تم حفظ بيانات ملفك الشخصي بنجاح.",
     });
+    window.dispatchEvent(new CustomEvent('budgetUpdated')); // To notify other components
   };
 
   const handleSaveBudget = () => {
@@ -468,7 +508,8 @@ export default function SettingsPage() {
       setWeeklyBudgetInput("0");
       setZeroSpendDaysTargetInput("4");
       setCategoryBudgets({});
-      setUserProfile({});
+      setMonthlyIncomeInput('');
+      setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       
       toast({
         title: "تم الحذف بنجاح",
@@ -536,25 +577,46 @@ export default function SettingsPage() {
               id="monthlyIncome"
               type="text"
               inputMode="decimal"
-              value={formatNumberWithCommas(userProfile.monthlyIncome)}
-              onChange={(e) => handleProfileChange('monthlyIncome', parseFormattedNumber(e.target.value))}
-              onFocus={(e) => { if (e.target.value === '0') handleProfileChange('monthlyIncome', ''); }}
-              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleProfileChange('monthlyIncome', '0'); }}
+              value={monthlyIncomeInput}
+              onChange={handleNumericInputChange(setMonthlyIncomeInput)}
+              onFocus={(e) => { if (e.target.value === '0') setMonthlyIncomeInput(''); }}
+              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setMonthlyIncomeInput('0'); }}
               placeholder="مثال: 1,500,000"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="familySize">عدد أفراد الأسرة</Label>
-            <Input
-              id="familySize"
-              type="number"
-              value={userProfile.familySize || ''}
-              onChange={(e) => handleProfileChange('familySize', e.target.value)}
-              onFocus={(e) => { if (e.target.value === '0') handleProfileChange('familySize', ''); }}
-              onBlur={(e) => { if (e.target.value === '') handleProfileChange('familySize', '0'); }}
-              placeholder="مثال: 4"
-              min="1"
-            />
+          <div className="space-y-3">
+             <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
+             <div className="space-y-3 rounded-lg border p-4">
+                {familyMembers.map((member, index) => (
+                  <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
+                    <span className='text-muted-foreground'>{index + 1}.</span>
+                    <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="adult">بالغ</SelectItem>
+                            <SelectItem value="child">طفل</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="العمر"
+                      value={member.age}
+                      onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)}
+                      className="w-[100px]"
+                      min="0"
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
+                        <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                 <Button variant="outline" onClick={handleAddMember} className="w-full">
+                    <PlusCircle className="ml-2 h-4 w-4" />
+                    إضافة فرد
+                </Button>
+             </div>
           </div>
         </CardContent>
         <CardFooter>

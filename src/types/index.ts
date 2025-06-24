@@ -19,9 +19,15 @@ export type Goal = {
   createdAt: string; // ISO string format
 };
 
+export type FamilyMember = {
+  id: string;
+  type: 'adult' | 'child';
+  age: number;
+}
+
 export type UserProfile = {
   monthlyIncome: number;
-  familySize: number;
+  familyMembers: FamilyMember[];
 };
 
 export type Category = {
