@@ -3,18 +3,20 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
+import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2 } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, isAfter } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { forecastExpenses, ForecastExpensesOutput } from '@/ai/flows/forecast-expenses';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
@@ -67,6 +69,10 @@ export default function StatisticsPage() {
   const [categorySummary, setCategorySummary] = useState<CategorySummaryItem[]>([]);
   const [totalForPeriod, setTotalForPeriod] = useState(0);
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
+
+  // Forecast state
+  const [forecast, setForecast] = useState<ForecastExpensesOutput | null>(null);
+  const [isForecastLoading, setIsForecastLoading] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -124,6 +130,55 @@ export default function StatisticsPage() {
       setTotalForPeriod(0);
     }
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, isMounted, focusedCategory]);
+  
+  // Effect for fetching forecast
+  useEffect(() => {
+    const getForecast = async () => {
+      if (expenses.length < 10) { // Don't run if not enough data
+        setIsForecastLoading(false);
+        setForecast(null);
+        return;
+      }
+      
+      // Get expenses from the last 90 days for better forecasting
+      const ninetyDaysAgo = subDays(new Date(), 90);
+      const historicalExpenses = expenses
+        .filter(exp => {
+            try {
+                return isAfter(parseISO(exp.date), ninetyDaysAgo);
+            } catch {
+                return false;
+            }
+        })
+        .map(e => ({
+          title: e.title,
+          amount: e.amount,
+          category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+          date: format(new Date(e.date), 'yyyy-MM-dd'),
+      }));
+
+      if(historicalExpenses.length < 10) {
+         setIsForecastLoading(false);
+         setForecast(null);
+         return;
+      }
+
+      setIsForecastLoading(true);
+      try {
+        const result = await forecastExpenses({ expenses: historicalExpenses });
+        setForecast(result);
+      } catch (e) {
+        console.error("Failed to get forecast", e);
+        setForecast(null);
+      } finally {
+        setIsForecastLoading(false);
+      }
+    };
+
+    if (isMounted) {
+        getForecast();
+    }
+  }, [expenses, isMounted]);
 
   const processChartData = (currentExpenses: Expense[], currentView: 'month' | 'year', year: number, monthStr: string, currentCategoryBudgets: Record<string, number>, focusedCategoryId: string | null) => {
     if (!isMounted) return;
@@ -459,16 +514,75 @@ export default function StatisticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3Icon className="h-6 w-6 text-primary" />
+            <Wand2 className="h-6 w-6 text-primary" />
             تنبؤات المصاريف
           </CardTitle>
+          <CardDescription>توقعات الإنفاق للشهر القادم بناءً على بياناتك التاريخية.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-8">سيتم عرض تنبؤات المصاريف هنا قريباً.</p>
+          {isForecastLoading ? (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 space-x-reverse">
+                  <Skeleton className="h-8 w-1/3" />
+              </div>
+              <div className="flex items-center space-x-4 space-x-reverse">
+                  <Skeleton className="h-12 w-1/2" />
+              </div>
+              <div className="space-y-2 pt-4">
+                <Skeleton className="h-4 w-[150px]" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+               <div className="space-y-2 pt-4">
+                <Skeleton className="h-4 w-[200px]" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+              </div>
+            </div>
+          ) : forecast ? (
+             <div className="space-y-6">
+                <div>
+                  <p className="text-sm text-muted-foreground">إجمالي المصروف المتوقع للشهر القادم</p>
+                  <p className="text-3xl font-bold text-primary">{forecast.totalForecastAmount.toLocaleString()} د.ع</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="font-semibold">نصيحة ذكية:</p>
+                  <p className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">{forecast.advice}</p>
+                </div>
+
+                <div className="space-y-3">
+                    <p className="font-semibold">التوقعات حسب الفئة:</p>
+                    <div className="space-y-4">
+                        {forecast.categoryForecasts.sort((a,b) => b.predictedAmount - a.predictedAmount).map(catForecast => {
+                            const categoryId = Object.keys(defaultCategories).find(key => defaultCategories[key as keyof typeof defaultCategories].name === catForecast.categoryName);
+                            const categoryInfo = categoryId ? defaultCategories[categoryId as keyof typeof defaultCategories] : defaultCategories.other;
+                            const percentage = forecast.totalForecastAmount > 0 ? (catForecast.predictedAmount / forecast.totalForecastAmount) * 100 : 0;
+
+                            return (
+                                <div key={catForecast.categoryName}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{categoryInfo.icon}</span>
+                                            <span className="text-sm font-medium">{catForecast.categoryName}</span>
+                                        </div>
+                                        <span className="text-sm font-semibold">{catForecast.predictedAmount.toLocaleString()} د.ع</span>
+                                    </div>
+                                    <Progress value={percentage} className="h-2" indicatorcolor={categoryInfo.chartColor} />
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+
+              </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              لا توجد بيانات كافية لإنشاء تنبؤ. أضف المزيد من المصاريف لتبدأ.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
