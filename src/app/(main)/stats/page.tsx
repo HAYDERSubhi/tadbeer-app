@@ -284,6 +284,19 @@ export default function StatisticsPage() {
     }
   }, [expenses, isMounted]);
 
+  const formatYAxisTick = (tick: any) => {
+    const value = Number(tick);
+    if (isNaN(value)) return tick;
+
+    if (value >= 1000000) {
+      return `${(value / 1000000).toLocaleString('ar-IQ', { maximumFractionDigits: 1 })} مليون`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toLocaleString('ar-IQ', { maximumFractionDigits: 0 })} ألف`;
+    }
+    return value.toLocaleString('ar-IQ');
+  };
+
   if (!isMounted || isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
@@ -455,7 +468,7 @@ export default function StatisticsPage() {
               <LineChart data={trendChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={(value) => `${(Number(value) / 1000)} ألف`} tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
