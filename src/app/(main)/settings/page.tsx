@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Expense } from '@/types';
+import type { Expense, UserProfile } from '@/types';
 import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
 
@@ -82,6 +82,7 @@ export default function SettingsPage() {
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
+  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({});
 
   // Helper functions for number formatting
   const formatNumberWithCommas = (value: string | number | undefined) => {
@@ -147,8 +148,48 @@ export default function SettingsPage() {
             // handle error
         }
     }
+    
+     // Load user profile
+    const storedUserProfile = localStorage.getItem('userProfile');
+    if (storedUserProfile) {
+      try {
+        setUserProfile(JSON.parse(storedUserProfile));
+      } catch {
+        // handle error
+      }
+    }
 
   }, []);
+  
+  const handleProfileChange = (field: keyof UserProfile, value: string) => {
+    setUserProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    // Basic validation
+    const income = parseFloat(parseFormattedNumber(userProfile.monthlyIncome?.toString()));
+    const familySize = parseInt(userProfile.familySize?.toString() || "0", 10);
+    
+    if (isNaN(income) || income < 0 || isNaN(familySize) || familySize < 0) {
+       toast({
+        title: "خطأ في الإدخال",
+        description: "الرجاء إدخال أرقام صحيحة وموجبة للملف الشخصي.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const profileToSave: UserProfile = {
+      monthlyIncome: income,
+      familySize: familySize
+    };
+
+    localStorage.setItem('userProfile', JSON.stringify(profileToSave));
+    toast({
+      title: "تم الحفظ",
+      description: "تم حفظ بيانات ملفك الشخصي بنجاح.",
+    });
+  };
 
   const handleSaveBudget = () => {
     const total = parseFloat(parseFormattedNumber(totalBudgetInput) || "0");
@@ -417,6 +458,8 @@ export default function SettingsPage() {
 
     try {
       localStorage.removeItem('expenses');
+      localStorage.removeItem('goals');
+      localStorage.removeItem('userProfile');
       localStorage.removeItem(LOCAL_STORAGE_MAP_KEY);
       localStorage.removeItem('userBudgetSettings');
       localStorage.removeItem('categoryBudgets');
@@ -425,6 +468,7 @@ export default function SettingsPage() {
       setWeeklyBudgetInput("0");
       setZeroSpendDaysTargetInput("4");
       setCategoryBudgets({});
+      setUserProfile({});
       
       toast({
         title: "تم الحذف بنجاح",
@@ -448,7 +492,7 @@ export default function SettingsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -475,6 +519,50 @@ export default function SettingsPage() {
             </Select>
           </div>
         </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCircle className="h-6 w-6 text-primary" />
+            الملف الشخصي
+          </CardTitle>
+          <CardDescription>هذه المعلومات تساعد في تخصيص النصائح والخطط المالية لك.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="monthlyIncome">الدخل الشهري التقريبي (د.ع)</Label>
+            <Input
+              id="monthlyIncome"
+              type="text"
+              inputMode="decimal"
+              value={formatNumberWithCommas(userProfile.monthlyIncome)}
+              onChange={(e) => handleProfileChange('monthlyIncome', parseFormattedNumber(e.target.value))}
+              onFocus={(e) => { if (e.target.value === '0') handleProfileChange('monthlyIncome', ''); }}
+              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleProfileChange('monthlyIncome', '0'); }}
+              placeholder="مثال: 1,500,000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="familySize">عدد أفراد الأسرة</Label>
+            <Input
+              id="familySize"
+              type="number"
+              value={userProfile.familySize || ''}
+              onChange={(e) => handleProfileChange('familySize', e.target.value)}
+              onFocus={(e) => { if (e.target.value === '0') handleProfileChange('familySize', ''); }}
+              onBlur={(e) => { if (e.target.value === '') handleProfileChange('familySize', '0'); }}
+              placeholder="مثال: 4"
+              min="1"
+            />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleSaveProfile} className="w-full">
+            <SaveIcon className="ml-2 h-4 w-4" />
+            حفظ الملف الشخصي
+          </Button>
+        </CardFooter>
       </Card>
 
       <Card>
@@ -647,7 +735,7 @@ export default function SettingsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
                         <AlertDialogDescription>
-                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والميزانية وإعدادات الاستيراد بشكل دائم من هذا الجهاز.
+                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والميزانية والأهداف والملف الشخصي بشكل دائم من هذا الجهاز.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

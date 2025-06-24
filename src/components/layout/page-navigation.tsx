@@ -3,14 +3,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, BarChart3Icon, SettingsIcon } from 'lucide-react';
+import { HomeIcon, BrainCircuit, SettingsIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { buttonVariants } from '@/components/ui/button';
 
 const navItems = [
   { href: '/', label: 'الرئيسية', icon: HomeIcon },
-  { href: '/stats', label: 'الإحصائيات', icon: BarChart3Icon },
+  { href: '/planner', label: 'المخطط', icon: BrainCircuit },
   { href: '/settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
 
@@ -23,7 +23,7 @@ export default function PageNavigation() {
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 p-1 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 justify-around">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/');
             return (
               <Link key={item.href} href={item.href} legacyBehavior passHref>
                 <a className={cn(
@@ -51,7 +51,7 @@ export default function PageNavigation() {
             <a
               className={cn(
                 buttonVariants({ 
-                  variant: pathname === item.href ? 'default' : 'outline', 
+                  variant: pathname.startsWith(item.href) && (item.href !== '/' || pathname === '/') ? 'default' : 'outline', 
                   size: 'lg' 
                 }),
                 "w-full sm:w-auto flex-grow sm:flex-none text-base"

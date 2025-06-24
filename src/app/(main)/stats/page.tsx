@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3Icon, PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2 } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, XCircle, Wand2 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
@@ -299,7 +299,7 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-24">
        <Card>
             <CardContent className="p-4">
                 <Tabs value={view} onValueChange={(v) => setView(v as 'month' | 'year')} className="w-full">
@@ -470,42 +470,57 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListOrderedIcon className="h-6 w-6 text-primary" />
-            ملخص الفئات
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center gap-2">
+              <ListOrderedIcon className="h-6 w-6 text-primary" />
+              ملخص الفئات
+            </CardTitle>
+             <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setFocusedCategory(null)} 
+                className={cn('flex items-center gap-1 text-sm', !focusedCategory && 'hidden')}>
+                <XCircle className="h-4 w-4" />
+                عرض الكل
+            </Button>
+          </div>
           <CardDescription>
-            {focusedCategory 
-                ? 'تم تحديد فئة. قم بإلغاء الفلترة لعرض الملخص.' 
-                : (categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض اتجاهها البياني.')
-            }
+            {categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض اتجاهها البياني.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {categorySummary.length > 0 && !focusedCategory ? (
+          {categorySummary.length > 0 ? (
             <ul className="divide-y divide-border">
                 {categorySummary.map(item => (
                     <li 
                       key={item.id}
-                      className="flex items-center justify-between p-4 cursor-pointer transition-colors hover:bg-muted/50"
-                      onClick={() => setFocusedCategory(item.id)}
+                      className={cn("flex items-center justify-between p-4 cursor-pointer transition-colors hover:bg-muted/50", focusedCategory === item.id && "bg-muted/50")}
+                      onClick={() => setFocusedCategory(prev => prev === item.id ? null : item.id)}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
                          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
                             {item.icon}
                          </span>
-                         <div>
-                              <p className="font-semibold">{item.name}</p>
+                         <div className="flex-1 min-w-0">
+                              <p className="font-semibold truncate">{item.name}</p>
                               <p className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                          </div>
                       </div>
-                      <p className="text-lg font-bold text-end shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                      <div className='text-left'>
+                        <p className="text-lg font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                        {item.budget && (
+                            <div className='w-24 mt-1'>
+                                <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : categoryInfo.chartColor } />
+                            </div>
+                        )}
+                      </div>
+
                     </li>
                 ))}
             </ul>
           ) : (!isLoading && 
                 <div className="px-6 py-10 text-center text-muted-foreground">
-                    <p>{focusedCategory ? ' ' : 'لا توجد مصاريف لعرضها.'}</p>
+                    <p>لا توجد مصاريف لعرضها.</p>
                 </div>
           )}
         </CardContent>

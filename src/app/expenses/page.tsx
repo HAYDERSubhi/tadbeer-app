@@ -67,7 +67,6 @@ export default function AllExpensesPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      <h1 className="text-2xl font-bold">كل المصاريف</h1>
       <Card>
           <CardContent className="p-0">
               {allExpenses.length === 0 ? (

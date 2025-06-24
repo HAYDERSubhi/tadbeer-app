@@ -1,0 +1,256 @@
+// src/app/(main)/planner/page.tsx
+"use client";
+
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import type { Goal, Expense, UserProfile } from '@/types';
+import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
+import { CATEGORIES as defaultCategories } from '@/lib/constants';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2Icon, BrainCircuit, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb } from 'lucide-react';
+import { format } from 'date-fns';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import Link from 'next/link';
+
+function PlannerContent() {
+  const searchParams = useSearchParams();
+  const goalIdFromQuery = searchParams.get('goalId');
+
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [selectedGoalId, setSelectedGoalId] = useState<string>('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  
+  const [plan, setPlan] = useState<FinancialPlannerOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  useEffect(() => {
+    // Load all necessary data from localStorage
+    const storedGoals = localStorage.getItem('goals');
+    const storedProfile = localStorage.getItem('userProfile');
+    const storedExpenses = localStorage.getItem('expenses');
+
+    setGoals(storedGoals ? JSON.parse(storedGoals) : []);
+    setUserProfile(storedProfile ? JSON.parse(storedProfile) : null);
+    setExpenses(storedExpenses ? JSON.parse(storedExpenses) : []);
+    
+    // Set initial goal from query params if available
+    if (goalIdFromQuery) {
+        setSelectedGoalId(goalIdFromQuery);
+    } else if (storedGoals) {
+        const parsedGoals = JSON.parse(storedGoals);
+        if(parsedGoals.length > 0) {
+            setSelectedGoalId(parsedGoals[0].id);
+        }
+    }
+    setIsDataLoaded(true);
+  }, [goalIdFromQuery]);
+
+  const handleGeneratePlan = async () => {
+    const selectedGoal = goals.find(g => g.id === selectedGoalId);
+
+    if (!selectedGoal) {
+      setError("الرجاء اختيار هدف أولاً.");
+      return;
+    }
+    if (!userProfile || !userProfile.monthlyIncome) {
+      setError("الرجاء إكمال ملفك الشخصي في الإعدادات، خاصة الدخل الشهري.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setPlan(null);
+
+    try {
+        const plannerInput: FinancialPlannerInput = {
+            goal: {
+                name: selectedGoal.name,
+                targetAmount: selectedGoal.targetAmount,
+                targetDate: format(new Date(selectedGoal.targetDate), 'yyyy-MM-dd'),
+            },
+            userProfile: {
+                monthlyIncome: userProfile.monthlyIncome,
+                familySize: userProfile.familySize || 1,
+            },
+            expenses: expenses.map(e => ({
+                ...e,
+                category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+            })),
+            userMessage: "أريد خطة مفصلة لتحقيق هذا الهدف.",
+        };
+
+        const result = await financialPlanner(plannerInput);
+        setPlan(result);
+    } catch (e: any) {
+        console.error("Error generating financial plan:", e);
+        setError("حدث خطأ غير متوقع أثناء إنشاء الخطة. يرجى المحاولة مرة أخرى.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+  
+  const renderPlan = () => {
+    if (!plan) return null;
+
+    return (
+        <Card className='mt-6 animate-in fade-in duration-500'>
+            <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                    {plan.isAchievable ? 
+                        <CheckCircle2 className='h-7 w-7 text-green-500' /> : 
+                        <XCircle className='h-7 w-7 text-orange-500' />}
+                    خطة تحقيق هدف: {goals.find(g => g.id === selectedGoalId)?.name}
+                </CardTitle>
+                <CardDescription>{plan.initialAssessment}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Alert variant={plan.isAchievable ? "default" : "destructive"}>
+                    <Lightbulb className="h-4 w-4" />
+                    <AlertTitle>
+                        {plan.isAchievable ? "الهدف قابل للتحقيق!" : "الهدف قد يكون صعب التحقيق"}
+                    </AlertTitle>
+                    <AlertDescription>
+                        تحتاج لتوفير مبلغ <span className='font-bold'>{plan.savingsRequiredPerMonth.toLocaleString()} د.ع</span> شهريًا.
+                        {!plan.isAchievable && " بناءً على دخلك ومصاريفك الحالية، قد يكون هذا المبلغ مرتفعاً. الخطة أدناه ستساعدك على محاولة الوصول إليه."}
+                    </AlertDescription>
+                </Alert>
+
+                <div>
+                    <h3 className='text-lg font-semibold mb-2'>خطواتك المقترحة:</h3>
+                    <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+                        {plan.suggestedPlan.map((step, index) => (
+                           <AccordionItem value={`item-${index}`} key={index}>
+                                <AccordionTrigger className='text-base'>
+                                    <div className='flex items-center gap-3 text-right'>
+                                        <div className='bg-primary/10 text-primary p-2 rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg'>{index + 1}</div>
+                                        <span>{step.title}</span>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4 space-y-2 text-base">
+                                    <p>{step.description}</p>
+                                    <p className='text-sm text-muted-foreground'>
+                                        <span className='font-semibold text-primary'>التوفير الشهري المقترح:</span> {step.suggestedMonthlySaving.toLocaleString()} د.ع
+                                    </p>
+                                    {step.categoryToImpact && (
+                                        <p className='text-sm text-muted-foreground'>
+                                            <span className='font-semibold'>الفئة المتأثرة:</span> {step.categoryToImpact}
+                                        </p>
+                                    )}
+                                </AccordionContent>
+                           </AccordionItem>
+                        ))}
+                    </Accordion>
+                </div>
+                
+                 <div className="p-4 bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-200 rounded-lg border border-teal-200 dark:border-teal-700">
+                    <p className="font-bold">رسالة من مدربك المالي:</p>
+                    <p>{plan.motivationalMessage}</p>
+                </div>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  const renderInitialState = () => {
+    if (!isDataLoaded) return <Skeleton className='w-full h-48' />;
+    
+    if (goals.length === 0) {
+        return (
+             <Card className="text-center py-12">
+                <CardContent className="flex flex-col items-center gap-4">
+                    <Target className="h-12 w-12 text-muted-foreground" />
+                    <h3 className="text-xl font-bold">ليس لديك أهداف بعد!</h3>
+                    <p className="text-muted-foreground">اذهب إلى صفحة الأهداف وأضف هدفك الأول لتبدأ التخطيط.</p>
+                    <Button asChild>
+                        <Link href="/goals">
+                            اذهب إلى صفحة الأهداف
+                            <ArrowRight className='mr-2 h-4 w-4' />
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
+    }
+    if (!userProfile || !userProfile.monthlyIncome) {
+         return (
+             <Alert variant="destructive">
+                <BrainCircuit className="h-4 w-4" />
+                <AlertTitle>معلومات غير مكتملة</AlertTitle>
+                <AlertDescription>
+                    لإنشاء خطة مالية دقيقة، يرجى <Link href="/settings" className='font-bold underline'>إضافة دخلك الشهري</Link> في ملفك الشخصي بالإعدادات.
+                </AlertDescription>
+            </Alert>
+        )
+    }
+    return null;
+  }
+
+  return (
+    <div className="space-y-6 pb-24">
+      <div>
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+            <BrainCircuit className="h-8 w-8 text-primary" />
+            المخطط المالي الذكي
+        </h1>
+        <p className="text-muted-foreground mt-2">
+            اختر هدفًا، ودع الذكاء الاصطناعي يرسم لك خريطة الطريق لتحقيقه.
+        </p>
+      </div>
+
+      {(goals.length > 0 && userProfile) ? (
+        <Card>
+            <CardContent className="p-6 space-y-4">
+                 <div>
+                    <label htmlFor="goal-select" className="text-sm font-medium mb-2 block">اختر الهدف الذي تريد التخطيط له:</label>
+                    <Select value={selectedGoalId} onValueChange={setSelectedGoalId}>
+                        <SelectTrigger id="goal-select">
+                            <SelectValue placeholder="اختر هدفاً..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {goals.map(goal => (
+                                <SelectItem key={goal.id} value={goal.id}>
+                                    {goal.name} ( {goal.targetAmount.toLocaleString()} د.ع )
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Button onClick={handleGeneratePlan} disabled={isLoading || !selectedGoalId} className="w-full">
+                    {isLoading ? <Loader2Icon className="h-5 w-5 animate-spin" /> : "أنشئ الخطة لي"}
+                </Button>
+            </CardContent>
+        </Card>
+      ) : renderInitialState()}
+
+      {error && <Alert variant="destructive"><XCircle className="h-4 w-4" /><AlertTitle>خطأ</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      {isLoading && 
+        <div className='space-y-4 mt-6'>
+            <Skeleton className='h-12 w-full' />
+            <Skeleton className='h-24 w-full' />
+            <Skeleton className='h-48 w-full' />
+        </div>
+      }
+      {plan && renderPlan()}
+    </div>
+  );
+}
+
+export default function PlannerPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <PlannerContent />
+        </Suspense>
+    )
+}

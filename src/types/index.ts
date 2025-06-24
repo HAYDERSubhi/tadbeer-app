@@ -11,6 +11,19 @@ export type Expense = {
   updatedAt: string; // ISO string format
 };
 
+export type Goal = {
+  id: string;
+  name: string;
+  targetAmount: number;
+  targetDate: string; // ISO string format
+  createdAt: string; // ISO string format
+};
+
+export type UserProfile = {
+  monthlyIncome: number;
+  familySize: number;
+};
+
 export type Category = {
   id: string;
   name: string;

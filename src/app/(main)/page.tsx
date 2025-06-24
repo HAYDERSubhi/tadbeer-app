@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles } from "lucide-react";
+import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, ChevronLeft, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -561,6 +561,24 @@ export default function DashboardPage() {
             </Dialog>
           ))}
       </div>
+
+       {/* Goal Setting CTA Card */}
+      <Card className="bg-gradient-to-br from-primary/20 to-transparent">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className='space-y-1.5'>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-6 w-6 text-primary" />
+              حدد أهدافك المالية
+            </CardTitle>
+            <CardDescription>
+              هل تخطط لشراء سيارة أو منزل؟ دعنا نساعدك في تحقيق ذلك.
+            </CardDescription>
+          </div>
+           <Link href="/goals" className={cn(buttonVariants({ size: "lg" }))}>
+              إدارة الأهداف
+            </Link>
+        </CardHeader>
+      </Card>
       
       {/* Smart Insights Card */}
       <Card>
