@@ -597,31 +597,40 @@ export default function StatisticsPage() {
             نظرة على تطور الإنفاق في أعلى 6 فئات لديك خلال الشهور الماضية.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8 pt-4">
+        <CardContent className="space-y-4">
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
               <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
-                <h3 className="text-lg font-semibold flex items-center gap-3 mb-3">
-                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
-                    {catTrend.categoryIcon}
-                  </span>
-                  <span>{catTrend.categoryName}</span>
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold flex items-center gap-3">
+                        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
+                            {catTrend.categoryIcon}
+                        </span>
+                        <span>{catTrend.categoryName}</span>
+                    </h3>
+                    <span className="text-lg font-bold text-muted-foreground whitespace-nowrap">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</span>
+                </div>
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                      <BarChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                        <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={80} fontSize={12} />
-                        <RechartsTooltip
-                          cursor={{ fill: 'hsla(var(--muted), 0.5)' }}
-                          contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
-                          formatter={(value: number) => [`${value.toLocaleString()} د.ع`, null]}
-                          labelFormatter={(label: string) => `الشهر: ${label}`}
-                        />
-                        <Bar dataKey="amount" fill={`var(--color-${catTrend.categoryId})`} radius={[4, 4, 0, 0]} />
-                      </BarChart>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={80} fontSize={12} />
+                          <RechartsTooltip
+                              cursor={{ strokeDasharray: '3 3' }}
+                              contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
+                              formatter={(value: number) => [`${value.toLocaleString()} د.ع`, null]}
+                              labelFormatter={(label: string) => `الشهر: ${label}`}
+                          />
+                          <Line
+                              type="monotone"
+                              dataKey="amount"
+                              stroke={`var(--color-${catTrend.categoryId})`}
+                              strokeWidth={2.5}
+                              activeDot={{ r: 6 }}
+                          />
+                      </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
                 </div>
