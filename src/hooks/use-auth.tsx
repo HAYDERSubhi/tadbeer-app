@@ -21,20 +21,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If Firebase is not configured, auth will be null.
+    // In this case, we stop loading and the user remains null.
+    if (!auth) {
+        setLoading(false);
+        return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // User is signed in.
         setUser(currentUser);
         setLoading(false);
       } else {
-        // No user is signed in. Attempt to sign in anonymously.
         try {
-          const userCredential = await signInAnonymously(auth);
-          setUser(userCredential.user);
+          // This will be called by the onAuthStateChanged listener on success
+          await signInAnonymously(auth);
         } catch (error) {
           console.error("Anonymous sign-in failed", error);
-          // Optionally, handle the error (e.g., show an error message)
-        } finally {
+          // If sign-in fails (e.g. invalid config), stop loading.
+          // The user will remain null, triggering the error message in the layout.
           setLoading(false);
         }
       }

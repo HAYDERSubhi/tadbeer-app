@@ -1,7 +1,7 @@
 // src/lib/firebase.ts
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 // IMPORTANT: Replace the placeholder values with your actual Firebase project config.
@@ -16,10 +16,22 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
 
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Only initialize Firebase if the API key is provided
+if (firebaseConfig.apiKey) {
+  try {
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+  } catch (e) {
+    console.error("Firebase initialization failed:", e)
+  }
+} else {
+    console.warn("Firebase API key is missing. Firebase services will be disabled.");
+}
+
 
 export { db, auth };
