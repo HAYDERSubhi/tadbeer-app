@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,16 +27,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Expense, UserProfile, FamilyMember } from '@/types';
+import type { Expense, UserProfile, FamilyMember, UserSettings } from '@/types';
 import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-
-interface UserBudgetSettings {
-  totalBudget: number;
-  weeklyBudget: number;
-  zeroSpendDaysTarget: number;
-}
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection } from '@/services/firestore';
 
 const COLUMN_MAP_CONFIG = {
   title: { label: 'اسم التاجر' },
@@ -48,12 +45,9 @@ const COLUMN_MAP_CONFIG = {
   outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية' },
 };
 
-
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['amount'];
-// Changed key to prevent conflicts with old string-based map format
 const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased'; 
 
-// Helper function to get Excel-like column names (A, B, C, ...)
 const getColumnName = (colIndex: number): string => {
   let name = '';
   let dividend = colIndex + 1;
@@ -68,27 +62,35 @@ const getColumnName = (colIndex: number): string => {
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
-  const [weeklyBudgetInput, setWeeklyBudgetInput] = useState<string>("");
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  // NEW: columnMap now stores field -> column INDEX
   const [columnMap, setColumnMap] = useState<Record<string, number | null>>({});
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
-  
-  // New state for profile management
   const [monthlyIncomeInput, setMonthlyIncomeInput] = useState('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
-  // Helper functions for number formatting
+  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+      queryKey: ['userSettings', user?.uid],
+      queryFn: () => getUserSettings(user!.uid),
+      enabled: !!user,
+  });
+  
+  const { data: expenses, isLoading: isExpensesLoading } = useQuery<Expense[]>({
+    queryKey: ['expenses', user?.uid],
+    queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
+
   const formatNumberWithCommas = (value: string | number | undefined) => {
     if (value === null || value === undefined || value === '') return '';
     const numericString = String(value).replace(/,/g, '');
@@ -107,7 +109,6 @@ export default function SettingsPage() {
     const rawValue = e.target.value;
     const numericString = parseFormattedNumber(rawValue);
 
-    // Only allow numbers
     if (numericString !== '' && isNaN(Number(numericString))) {
         return;
     }
@@ -123,57 +124,24 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
-    setMounted(true);
-    // Load general budget settings
-    const storedBudget = localStorage.getItem('userBudgetSettings');
-    if (storedBudget) {
-      try {
-        const budgetData = JSON.parse(storedBudget) as UserBudgetSettings;
-        setTotalBudgetInput(formatNumberWithCommas(budgetData.totalBudget));
-        setWeeklyBudgetInput(formatNumberWithCommas(budgetData.weeklyBudget));
-        setZeroSpendDaysTargetInput(budgetData.zeroSpendDaysTarget?.toString() || '4');
-      } catch {
-        // handle error
+    if (userSettings) {
+      setTotalBudgetInput(formatNumberWithCommas(userSettings.budget?.totalBudget));
+      setZeroSpendDaysTargetInput(userSettings.budget?.zeroSpendDaysTarget?.toString() || '4');
+      
+      const stringBudgets = Object.entries(userSettings.categoryBudgets || {}).reduce((acc, [key, value]) => {
+          acc[key] = formatNumberWithCommas(value as number);
+          return acc;
+      }, {} as Record<string, string>);
+      setCategoryBudgets(stringBudgets);
+
+      if (userSettings.profile) {
+        setMonthlyIncomeInput(formatNumberWithCommas(userSettings.profile.monthlyIncome));
+        setFamilyMembers(userSettings.profile.familyMembers || [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
+      } else {
+        setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       }
     }
-
-    // Load category budgets
-    const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
-    if (storedCategoryBudgets) {
-        try {
-            const budgets = JSON.parse(storedCategoryBudgets);
-            // Convert numbers to strings for input fields
-            const stringBudgets = Object.entries(budgets).reduce((acc, [key, value]) => {
-                acc[key] = formatNumberWithCommas(value as number);
-                return acc;
-            }, {} as Record<string, string>);
-            setCategoryBudgets(stringBudgets);
-        } catch {
-            // handle error
-        }
-    }
-    
-     // Load user profile
-    const storedUserProfile = localStorage.getItem('userProfile');
-    if (storedUserProfile) {
-      try {
-        const profile: UserProfile = JSON.parse(storedUserProfile);
-        setMonthlyIncomeInput(formatNumberWithCommas(profile.monthlyIncome));
-        if (profile.familyMembers && Array.isArray(profile.familyMembers)) {
-          setFamilyMembers(profile.familyMembers);
-        } else {
-          // Initialize for users migrating from old data structure
-          setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
-        }
-      } catch {
-        // handle error
-      }
-    } else {
-      // For brand new users, initialize with one adult member
-      setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
-    }
-
-  }, []);
+  }, [userSettings]);
   
   const handleAddMember = () => {
     setFamilyMembers(prev => [...prev, { id: crypto.randomUUID(), type: 'child', age: 0 }]);
@@ -195,102 +163,79 @@ export default function SettingsPage() {
     setFamilyMembers(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
   };
 
+  const updateSettingsMutation = useMutation({
+      mutationFn: (newSettings: Partial<UserSettings>) => updateUserSettings(user!.uid, newSettings),
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
+          toast({
+              title: "تم الحفظ",
+              description: "تم تحديث إعداداتك بنجاح.",
+          });
+      },
+      onError: () => {
+          toast({
+              title: "خطأ",
+              description: "فشل تحديث الإعدادات.",
+              variant: "destructive",
+          });
+      }
+  });
 
   const handleSaveProfile = () => {
     const income = parseFloat(parseFormattedNumber(monthlyIncomeInput));
-    
     if (isNaN(income) || income < 0) {
-       toast({
-        title: "خطأ في الإدخال",
-        description: "الرجاء إدخال رقم صحيح وموجب للدخل الشهري.",
-        variant: "destructive",
-      });
-      return;
+       toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال رقم صحيح وموجب للدخل الشهري.", variant: "destructive" });
+       return;
     }
-    
     const areAgesValid = familyMembers.every(m => m.age >= 0 && m.age < 150);
     if (!areAgesValid) {
-        toast({
-            title: "خطأ في الإدخال",
-            description: "الرجاء إدخال أعمار صحيحة لجميع أفراد الأسرة.",
-            variant: "destructive",
-        });
+        toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أعمار صحيحة لجميع أفراد الأسرة.", variant: "destructive" });
         return;
     }
-    
-    const profileToSave: UserProfile = {
-      monthlyIncome: income,
-      familyMembers: familyMembers,
-    };
-
-    localStorage.setItem('userProfile', JSON.stringify(profileToSave));
-    toast({
-      title: "تم الحفظ",
-      description: "تم حفظ بيانات ملفك الشخصي بنجاح.",
-    });
-    window.dispatchEvent(new CustomEvent('budgetUpdated')); // To notify other components
+    const profileToSave: UserProfile = { monthlyIncome: income, familyMembers: familyMembers };
+    updateSettingsMutation.mutate({ profile: profileToSave });
   };
 
   const handleSaveBudget = () => {
     const total = parseFloat(parseFormattedNumber(totalBudgetInput) || "0");
-    const weekly = parseFloat(parseFormattedNumber(weeklyBudgetInput) || "0");
     const zeroSpendDays = parseInt(zeroSpendDaysTargetInput || "0", 10);
 
-    if (isNaN(total) || total < 0 || isNaN(weekly) || weekly < 0 || isNaN(zeroSpendDays) || zeroSpendDays < 0) {
-      toast({
-        title: "خطأ في الإدخال",
-        description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية والأهداف.",
-        variant: "destructive",
-      });
+    if (isNaN(total) || total < 0 || isNaN(zeroSpendDays) || zeroSpendDays < 0) {
+      toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية والأهداف.", variant: "destructive" });
       return;
     }
-
-    const newBudgetSettings: UserBudgetSettings = { 
-        totalBudget: total, 
-        weeklyBudget: weekly, 
-        zeroSpendDaysTarget: zeroSpendDays 
-    };
-    localStorage.setItem('userBudgetSettings', JSON.stringify(newBudgetSettings));
-    toast({
-      title: "تم الحفظ",
-      description: "تم حفظ إعدادات الميزانية بنجاح.",
-    });
-    window.dispatchEvent(new CustomEvent('budgetUpdated'));
+    updateSettingsMutation.mutate({ budget: { totalBudget: total, zeroSpendDaysTarget: zeroSpendDays, weeklyBudget: 0 } });
   };
 
   const handleSaveCategoryBudgets = () => {
     const numericBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
         const amount = parseFloat(parseFormattedNumber(value));
-        if (!isNaN(amount) && amount >= 0) {
-            acc[key] = amount;
-        }
+        if (!isNaN(amount) && amount >= 0) acc[key] = amount;
         return acc;
     }, {} as Record<string, number>);
-
-    localStorage.setItem('categoryBudgets', JSON.stringify(numericBudgets));
-    toast({
-      title: "تم الحفظ",
-      description: "تم حفظ ميزانيات الفئات بنجاح.",
-    });
-    window.dispatchEvent(new CustomEvent('budgetUpdated'));
+    updateSettingsMutation.mutate({ categoryBudgets: numericBudgets });
   };
+  
+  const addMultipleExpensesMutation = useMutation({
+    mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
+      const promises = newExpenses.map(exp => addExpense(user!.uid, exp));
+      return Promise.all(promises);
+    },
+    onSuccess: (results) => {
+        queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+        toast({
+          title: "اكتمل الاستيراد",
+          description: `تم استيراد ${results.length} مصروف بنجاح.`,
+        });
+        setIsMappingColumns(false);
+    },
+    onError: () => {
+      toast({ title: "فشل الاستيراد", description: "حدث خطأ أثناء حفظ البيانات.", variant: "destructive" });
+    }
+  });
 
   const handleExport = () => {
-    if (!mounted) return;
-
-    let expenses: Expense[] = [];
-    try {
-      const expensesJSON = localStorage.getItem('expenses');
-      if (expensesJSON) {
-          const parsed = JSON.parse(expensesJSON);
-          if(Array.isArray(parsed)) expenses = parsed;
-      }
-    } catch {
-       toast({ title: "خطأ", description: "بيانات المصاريف تالفة ولا يمكن تصديرها.", variant: "destructive" });
-       return;
-    }
-    
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
       toast({ title: "لا توجد بيانات", description: "ليس لديك أي مصاريف مسجلة لتصديرها.", variant: "destructive" });
       return;
     }
@@ -298,26 +243,14 @@ export default function SettingsPage() {
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
-      'العملة': 'د.ع',
       'الفئة': CATEGORIES[exp.category as keyof typeof CATEGORIES]?.name || exp.category,
       'التاريخ': new Date(exp.date),
       'الوصف': exp.description || '',
-      'طريقة الدفع': '',
-      'ملاحظات': '',
-      'رابط صورة الفاتورة': '',
-      'خارج الميزانية': exp.isOutOfBudget ? 'نعم' : 'لا',
-      'تفاصيل خارج الميزانية': exp.outOfBudgetDetails || '',
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "مصروفات");
-    
-    worksheet['!cols'] = [
-        { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 20 },
-        { wch: 40 }, { wch: 15 }, { wch: 40 }, { wch: 30 }, { wch: 15 }, { wch: 40 },
-    ];
-
+    worksheet['!cols'] = [ { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 40 } ];
     XLSX.writeFile(workbook, "masroofat-expenses.xlsx");
     toast({ title: "تم التصدير بنجاح", description: "تم تصدير بيانات مصاريفك إلى ملف Excel." });
   };
@@ -329,7 +262,6 @@ export default function SettingsPage() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!mounted) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -340,39 +272,24 @@ export default function SettingsPage() {
         const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
         const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
-
         if (rows.length < 1) throw new Error("الملف فارغ أو لا يحتوي على بيانات.");
-
         const headers: string[] = rows[0].map(h => String(h || '').trim());
         const dataRows = rows.slice(1);
-
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
 
-        // Auto-map from saved indices if they are valid for the current file
         const savedMap: Record<string, number | null> = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
         const autoMap: Record<string, number | null> = {};
-        
         for (const [field] of Object.entries(COLUMN_MAP_CONFIG)) {
           const savedIndex = savedMap[field];
           if (savedIndex !== null && savedIndex !== undefined && savedIndex < headers.length) {
              autoMap[field] = savedIndex;
           }
         }
-        
         setColumnMap(autoMap);
         setIsMappingColumns(true);
-        if (Object.keys(autoMap).length > 0) {
-          toast({
-            title: "يرجى تأكيد ربط الأعمدة",
-            description: "إذا قمت بالاستيراد من قبل، فقد تم حفظ اختياراتك.",
-          });
-        }
-
       } catch (error: any) {
-        console.error("Failed to parse file:", error);
         toast({ title: "فشل الاستيراد", description: error.message || "حدث خطأ أثناء قراءة الملف.", variant: "destructive" });
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -384,153 +301,72 @@ export default function SettingsPage() {
   const processAndSaveExpenses = () => {
       const missingRequired = REQUIRED_FIELDS.filter(field => columnMap[field] === null || columnMap[field] === undefined);
       if (missingRequired.length > 0) {
-          toast({
-              title: "حقول مطلوبة مفقودة",
-              description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f as keyof typeof COLUMN_MAP_CONFIG].label).join(', ')}`,
-              variant: "destructive",
-          });
+          toast({ title: "حقول مطلوبة مفقودة", description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f as keyof typeof COLUMN_MAP_CONFIG].label).join(', ')}`, variant: "destructive" });
           return;
       }
-      
       const categoryNameToIdMap = new Map<string, string>();
       Object.entries(CATEGORIES).forEach(([id, catData]) => {
-          // Normalize to handle subtle character differences (e.g. ي vs ى)
           const normalizedName = catData.name.trim().normalize("NFKD");
           categoryNameToIdMap.set(normalizedName, id);
       });
-
-      const newExpenses: Expense[] = [];
-
+      const newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[] = [];
       parsedDataCache.forEach((row, rowIndex) => {
-        if (!row || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) {
-            return; // Skip empty rows
-        }
-
+        if (!row || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) return;
         const getCellData = (fieldName: keyof typeof COLUMN_MAP_CONFIG): any => {
             const colIndex = columnMap[fieldName];
-            if (colIndex === null || colIndex === undefined) return null;
-            return row[colIndex];
+            return (colIndex === null || colIndex === undefined) ? null : row[colIndex];
         };
-        
-        const importedTitle = String(getCellData('title') || '').trim();
-        const importedDescription = String(getCellData('description') || '').trim();
-        
-        let title = importedTitle;
-        if (!title) {
-          title = importedDescription || `مصروف مستورد - صف ${rowIndex + 2}`;
-        }
-
-        const rawAmount = getCellData('amount');
-        const amount = rawAmount !== null ? parseFloat(String(rawAmount).replace(/[^0-9.-]+/g,"")) || 0 : 0;
-        
-        const rawCategoryName = String(getCellData('category') || '').trim().normalize("NFKD");
-        const foundCategoryId = categoryNameToIdMap.get(rawCategoryName) || 'other';
-
+        const title = String(getCellData('title') || `مصروف مستورد - صف ${rowIndex + 2}`).trim();
+        const amount = parseFloat(String(getCellData('amount')).replace(/[^0-9.-]+/g,"")) || 0;
+        const categoryName = String(getCellData('category') || '').trim().normalize("NFKD");
+        const category = categoryNameToIdMap.get(categoryName) || 'other';
         const rawDate = getCellData('date');
         let date = new Date().toISOString();
-        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
-          date = rawDate.toISOString();
-        } else if (typeof rawDate === 'string' && rawDate) {
-          const parsedDate = new Date(rawDate);
-          if (!isNaN(parsedDate.getTime())) {
-            date = parsedDate.toISOString();
-          }
-        }
-        
-        const newExp: Expense = {
-          id: crypto.randomUUID(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          title: title,
-          amount: amount,
-          category: foundCategoryId,
-          date: date,
-          description: importedDescription || undefined,
-          isOutOfBudget: ['نعم', 'yes', 'true', true, '1', 1].includes(String(getCellData('isOutOfBudget') || '').trim().toLowerCase()),
-          outOfBudgetDetails: String(getCellData('outOfBudgetDetails') || '').trim() || undefined,
-        };
-        
-        newExpenses.push(newExp);
+        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) date = rawDate.toISOString();
+        else if (typeof rawDate === 'string' && rawDate && !isNaN(new Date(rawDate).getTime())) date = new Date(rawDate).toISOString();
+        newExpenses.push({ title, amount, category, date, description: String(getCellData('description') || '').trim() || undefined });
       });
 
       if (newExpenses.length === 0) {
-        toast({
-            title: "لم يتم استيراد أي بيانات",
-            description: "لم يتم العثور على أي صفوف صالحة في الملف. يرجى التأكد من ربط الأعمدة المطلوبة بشكل صحيح.",
-            variant: "destructive",
-        });
+        toast({ title: "لم يتم استيراد أي بيانات", description: "لم يتم العثور على أي صفوف صالحة.", variant: "destructive" });
         return;
       }
-      
-      let existingExpenses: Expense[] = [];
-      try {
-          const storedExpenses = localStorage.getItem('expenses');
-          if (storedExpenses) {
-              const parsed = JSON.parse(storedExpenses);
-              if (Array.isArray(parsed)) {
-                  existingExpenses = parsed;
-              }
-          }
-      } catch (e) {
-          console.error("Could not parse existing expenses from localStorage. Overwriting.", e);
-          toast({
-            title: "تحذير",
-            description: "تم العثور على بيانات سابقة تالفة، سيتم الكتابة فوقها.",
-            variant: "destructive"
-          });
-      }
-      
-      const combinedExpenses = [...existingExpenses, ...newExpenses];
-      localStorage.setItem('expenses', JSON.stringify(combinedExpenses));
+      addMultipleExpensesMutation.mutate(newExpenses);
       localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(columnMap));
-      
-      toast({
-        title: "اكتمل الاستيراد",
-        description: `تم استيراد ${newExpenses.length} مصروف بنجاح.`,
-      });
-
-      setIsMappingColumns(false);
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
   };
   
-  const handleDeleteAllData = () => {
-    if (!mounted) return;
-
-    try {
-      localStorage.removeItem('expenses');
-      localStorage.removeItem('goals');
-      localStorage.removeItem('userProfile');
-      localStorage.removeItem(LOCAL_STORAGE_MAP_KEY);
-      localStorage.removeItem('userBudgetSettings');
-      localStorage.removeItem('categoryBudgets');
-
+  const deleteAllDataMutation = useMutation({
+    mutationFn: async () => {
+      await deleteCollection(user!.uid, 'expenses');
+      await deleteCollection(user!.uid, 'goals');
+      await updateUserSettings(user!.uid, {
+        budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
+        categoryBudgets: {},
+        profile: { monthlyIncome: 0, familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }] }
+      });
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      toast({ title: "تم الحذف بنجاح", description: "تم تصفير التطبيق وحذف جميع البيانات." });
+      // Reset local state after successful deletion
       setTotalBudgetInput("0");
-      setWeeklyBudgetInput("0");
       setZeroSpendDaysTargetInput("4");
       setCategoryBudgets({});
       setMonthlyIncomeInput('');
       setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
-      
-      toast({
-        title: "تم الحذف بنجاح",
-        description: "تم تصفير التطبيق وحذف جميع البيانات.",
-      });
-
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
-      window.dispatchEvent(new CustomEvent('budgetUpdated'));
-
-    } catch (error) {
-      console.error("Failed to delete data:", error);
-      toast({
-        title: "خطأ",
-        description: "لم نتمكن من حذف البيانات. الرجاء المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
+      queryClient.invalidateQueries(); // Force refetch of all data, which should now be empty/default
+    },
+    onError: () => {
+      toast({ title: "خطأ", description: "لم نتمكن من حذف البيانات.", variant: "destructive" });
     }
+  });
+
+  const handleDeleteAllData = () => {
+    if (!user) return;
+    deleteAllDataMutation.mutate();
   };
 
-
-  if (!mounted) return null;
+  if (isSettingsLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 pb-24">
@@ -620,8 +456,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveProfile} className="w-full">
-            <SaveIcon className="ml-2 h-4 w-4" />
+          <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
+            {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
             حفظ الملف الشخصي
           </Button>
         </CardFooter>
@@ -650,19 +486,6 @@ export default function SettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="weeklyBudget">الميزانية الأسبوعية المتوقعة (د.ع)</Label>
-            <Input
-              id="weeklyBudget"
-              type="text"
-              inputMode="decimal"
-              value={weeklyBudgetInput}
-              onChange={handleNumericInputChange(setWeeklyBudgetInput)}
-              onFocus={(e) => { if (e.target.value === '0') setWeeklyBudgetInput(''); }}
-              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setWeeklyBudgetInput('0'); }}
-              placeholder="مثال: 1,000,000"
-            />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
             <Input
               id="zeroSpendDaysTarget"
@@ -677,8 +500,8 @@ export default function SettingsPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveBudget} className="w-full">
-            <SaveIcon className="ml-2 h-4 w-4" />
+          <Button onClick={handleSaveBudget} className="w-full" disabled={updateSettingsMutation.isPending}>
+            {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
             حفظ إعدادات الميزانية
           </Button>
         </CardFooter>
@@ -714,8 +537,8 @@ export default function SettingsPage() {
           ))}
         </CardContent>
         <CardFooter>
-            <Button onClick={handleSaveCategoryBudgets} className="w-full">
-                <SaveIcon className="ml-2 h-4 w-4" />
+            <Button onClick={handleSaveCategoryBudgets} className="w-full" disabled={updateSettingsMutation.isPending}>
+                {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
                 حفظ ميزانيات الفئات
             </Button>
         </CardFooter>
@@ -762,7 +585,10 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-              <Button onClick={processAndSaveExpenses}>تأكيد و استيراد البيانات</Button>
+              <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>
+                  {addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+                  تأكيد واستيراد البيانات
+              </Button>
           </CardFooter>
         </Card>
       )}
@@ -771,24 +597,22 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DatabaseZapIcon className="h-6 w-6 text-primary" />
-            البيانات والتصنيفات
+            إدارة البيانات
           </CardTitle>
-           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه. وإدارة التصنيفات.</CardDescription>
+           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="w-full" variant="outline" onClick={handleExport}>تصدير البيانات (Excel)</Button>
+                <Button className="w-full" variant="outline" onClick={handleExport} disabled={isExpensesLoading}>تصدير البيانات (Excel)</Button>
                 <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
-            </div>
-            <div className="sm:col-span-2 p-4 text-center text-muted-foreground border rounded-lg">
-                سيتم إضافة إدارة التصنيفات هنا قريباً.
             </div>
 
             <div className="pt-4 border-t">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button className="w-full" variant="destructive">
+                    <Button className="w-full" variant="destructive" disabled={deleteAllDataMutation.isPending}>
+                        {deleteAllDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
                         <Trash2Icon className="ml-2 h-4 w-4" />
                         حذف جميع البيانات (تصفير التطبيق)
                     </Button>
@@ -797,7 +621,7 @@ export default function SettingsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
                         <AlertDialogDescription>
-                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والميزانية والأهداف والملف الشخصي بشكل دائم من هذا الجهاز.
+                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والأهداف والإعدادات بشكل دائم من حسابك السحابي.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -821,7 +645,7 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p>إصدار التطبيق: 1.0.0</p>
+          <p>إصدار التطبيق: 1.1.0 (Cloud Sync)</p>
           <p>جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
         </CardContent>
       </Card>

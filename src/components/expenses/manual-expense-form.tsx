@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2Icon } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,9 @@ import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { DialogClose } from '@/components/ui/dialog';
 import { CATEGORIES } from '@/lib/constants';
+import { useAuth } from '@/hooks/use-auth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { addExpense } from '@/services/firestore';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -40,13 +43,10 @@ const expenseSchema = z.object({
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export default function ManualExpenseForm() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
+  
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
@@ -60,48 +60,37 @@ export default function ManualExpenseForm() {
     },
   });
 
-  const onSubmit = (data: ExpenseFormData) => {
-    if (!isMounted) return;
+  const addExpenseMutation = useMutation({
+    mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
+    onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+        toast({
+          title: "تمت الإضافة بنجاح!",
+          description: `تم إضافة مصروف "${variables.title}" بمبلغ ${variables.amount} د.ع.`,
+        });
+        form.reset();
+        // Close dialog hack
+        document.querySelector('[data-radix-dialog-close]')?.dispatchEvent(new MouseEvent('click'));
+    },
+    onError: () => {
+        toast({
+          title: "خطأ في الحفظ",
+          description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
+          variant: "destructive",
+        });
+    }
+  });
 
-    const newExpense: Expense = {
-      id: crypto.randomUUID(),
+  const onSubmit = (data: ExpenseFormData) => {
+    if (!user) return;
+
+    const newExpenseData = {
       ...data,
       date: data.date.toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
-
-    try {
-      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
-      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, newExpense]));
-      
-      toast({
-        title: "تمت الإضافة بنجاح!",
-        description: `تم إضافة مصروف "${data.title}" بمبلغ ${data.amount} د.ع.`,
-      });
-      form.reset();
-       // Trigger a custom event to notify the dashboard to refresh
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
-
-      // Close dialog after submission. This is a bit of a hack.
-      // A better way would be to pass a close function from the Dialog.
-      document.querySelector('[data-radix-dialog-close]')?.dispatchEvent(new MouseEvent('click'));
-
-
-    } catch (error) {
-      console.error("Failed to save expense:", error);
-      toast({
-        title: "خطأ في الحفظ",
-        description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-    }
+    addExpenseMutation.mutate(newExpenseData);
   };
   
-  if (!isMounted) {
-    return <p>جاري التحميل...</p>; 
-  }
-
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
       <div>
@@ -167,6 +156,7 @@ export default function ManualExpenseForm() {
                   initialFocus
                   dir="rtl"
                   locale={arIQ}
+                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                 />
               </PopoverContent>
             </Popover>
@@ -201,15 +191,11 @@ export default function ManualExpenseForm() {
           <Input id="outOfBudgetDetails" {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" />
         </div>
       )}
-      <DialogClose asChild>
-        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-          {form.formState.isSubmitting ? 'جاري الحفظ...' : 'حفظ المصروف'}
-        </Button>
-      </DialogClose>
+      
+      <Button type="submit" className="w-full" disabled={addExpenseMutation.isPending}>
+        {addExpenseMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري الحفظ...</> : 'حفظ المصروف'}
+      </Button>
+      
     </form>
   );
 }
-// Need to install date-fns if not already, it is in package.json.
-// For Arabic date formatting, ar-SA locale from date-fns is commonly used.
-// If specific Iraqi locale is needed, it might require custom handling or a different library.
-// For now, ar-SA should be acceptable for basic date display.

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History } from "lucide-react";
-import type { Expense, UserProfile } from '@/types';
+import type { Expense, UserBudgetSettings, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -25,12 +25,11 @@ import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getExpenses, deleteExpense, addExpense } from '@/services/firestore';
+import { getUserSettings } from '@/services/firestore';
 
-interface UserBudgetSettings {
-  totalBudget: number;
-  weeklyBudget: number;
-  zeroSpendDaysTarget: number;
-}
 
 const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
   const icons: { [key: string]: React.ElementType } = {
@@ -49,13 +48,27 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
 
 // Main Dashboard Component
 export default function DashboardPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isMounted, setIsMounted] = useState(false);
-  const [userBudget, setUserBudget] = useState<UserBudgetSettings>({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
-  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Data fetching using react-query
+  const { data: expenses = [], isLoading: isExpensesLoading } = useQuery<Expense[]>({
+    queryKey: ['expenses', user?.uid],
+    queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
+
+  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+      queryKey: ['userSettings', user?.uid],
+      queryFn: () => getUserSettings(user!.uid),
+      enabled: !!user,
+  });
+
+  const userBudget = userSettings?.budget || { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
+  const categoryBudgets = userSettings?.categoryBudgets || {};
+  const userProfile = userSettings?.profile || null;
+  
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
 
@@ -70,85 +83,16 @@ export default function DashboardPage() {
   const voiceTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // =============================
 
-  useEffect(() => {
-    setIsMounted(true);
-    
-    const refreshData = () => {
-      // Refresh Budget
-      const storedBudget = localStorage.getItem('userBudgetSettings');
-      if (storedBudget) {
-        try {
-          const budget = JSON.parse(storedBudget);
-          setUserBudget({
-            totalBudget: budget.totalBudget || 0,
-            weeklyBudget: budget.weeklyBudget || 0,
-            zeroSpendDaysTarget: budget.zeroSpendDaysTarget || 4,
-          });
-        } catch {
-          setUserBudget({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
-        }
-      } else {
-         setUserBudget({ totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 });
-      }
-
-      // Refresh Category Budgets
-      const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
-      if (storedCategoryBudgets) {
-        try {
-          setCategoryBudgets(JSON.parse(storedCategoryBudgets));
-        } catch {
-          setCategoryBudgets({});
-        }
-      }
-      
-      // Refresh User Profile
-      const storedUserProfile = localStorage.getItem('userProfile');
-      if (storedUserProfile) {
-        try {
-          setUserProfile(JSON.parse(storedUserProfile));
-        } catch {
-          setUserProfile(null);
-        }
-      }
-
-      // Refresh Expenses
-      const storedExpenses = localStorage.getItem('expenses');
-      if (storedExpenses) {
-        try {
-          const parsedExpenses = JSON.parse(storedExpenses);
-           if (Array.isArray(parsedExpenses)) {
-            setExpenses(parsedExpenses);
-          } else {
-             setExpenses([]);
-          }
-        } catch (error) {
-          console.error("Failed to parse expenses from localStorage", error);
-          setExpenses([]);
-          localStorage.setItem('expenses', '[]');
-        }
-      } else {
-        setExpenses([]);
-      }
-    };
-    
-    refreshData();
-    setIsLoading(false);
-
-    window.addEventListener('expensesUpdated', refreshData);
-    window.addEventListener('budgetUpdated', refreshData);
-    
+   useEffect(() => {
+    // Cleanup for voice recorder
     return () => {
-      window.removeEventListener('expensesUpdated', refreshData);
-      window.removeEventListener('budgetUpdated', refreshData);
-      
-      // Cleanup for voice recorder
       if (voiceMediaRecorderRef.current && voiceMediaRecorderRef.current.state === 'recording') {
         voiceMediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       }
       if (voiceTimerIntervalRef.current) {
         clearInterval(voiceTimerIntervalRef.current);
       }
-    };
+    }
   }, []);
   
   const {
@@ -173,7 +117,7 @@ export default function DashboardPage() {
 
     const totalCurrentExpenses = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-    const budgetRemaining = userBudget.totalBudget - totalCurrentExpenses;
+    const budgetRemaining = (userBudget?.totalBudget || 0) - totalCurrentExpenses;
 
     const weeklyIntervals = [
       { start: startOfCurrentMonth, end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 7, 23, 59, 59) },
@@ -203,15 +147,14 @@ export default function DashboardPage() {
         weeklySpending: spendingByWeek,
         allSortedExpenses: sorted,
     };
-  }, [expenses, userBudget.totalBudget]);
+  }, [expenses, userBudget?.totalBudget]);
 
 
   // Effect for calling the AI coach
   useEffect(() => {
-    if (!isMounted) return;
+    if (!user) return;
 
     const getInsights = async () => {
-      // Use monthlyExpenses which is already calculated for the current calendar month.
       if (monthlyExpenses.length > 0 && userBudget.totalBudget > 0) {
         setIsInsightsLoading(true);
         try {
@@ -239,26 +182,51 @@ export default function DashboardPage() {
           setIsInsightsLoading(false);
         }
       } else {
-        // If there are no expenses this month, don't show any insights.
         setInsights([]);
       }
     };
 
     getInsights();
-  }, [monthlyExpenses, userBudget, categoryBudgets, userProfile, isMounted]);
+  }, [monthlyExpenses, userBudget, categoryBudgets, userProfile, user]);
 
+  const deleteMutation = useMutation({
+    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المصروف بنجاح.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "خطأ",
+        description: "لم نتمكن من حذف المصروف.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleDeleteExpense = (expenseId: string) => {
-    if (!isMounted) return;
-    const updatedExpenses = expenses.filter(exp => exp.id !== expenseId);
-    setExpenses(updatedExpenses);
-    localStorage.setItem('expenses', JSON.stringify(updatedExpenses));
-    window.dispatchEvent(new CustomEvent('expensesUpdated'));
-    toast({
-      title: "تم الحذف",
-      description: "تم حذف المصروف بنجاح.",
-    });
+    if (!user) return;
+    deleteMutation.mutate(expenseId);
   };
+  
+  const addExpenseMutation = useMutation({
+      mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+          toast({
+              title: "تمت الإضافة بنجاح!",
+              description: `أضيف مصروف صوتي جديد.`,
+          });
+      },
+      onError: (e: any) => {
+          console.error("Error adding voice expense:", e);
+          const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
+          setVoiceError(errorMessage);
+      }
+  });
 
   // === Voice Recording Functions ===
   const formatTime = (seconds: number) => {
@@ -277,26 +245,16 @@ export default function DashboardPage() {
         throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل المصروف. يرجى المحاولة بصوت أوضح.");
       }
       
-      const newExpense: Expense = {
-        id: crypto.randomUUID(),
+      const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
         title: analysisResult.description || `مصروف صوتي (${analysisResult.category})`,
         amount: analysisResult.amount,
         category: (Object.keys(defaultCategories).find(key => defaultCategories[key as keyof typeof defaultCategories].name === analysisResult.category) || 'other'),
         date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
         description: analysisResult.description,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
-      const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
-      localStorage.setItem('expenses', JSON.stringify([...existingExpenses, newExpense]));
-      
-      toast({
-        title: "تمت الإضافة بنجاح!",
-        description: `أضيف مصروف صوتي بمبلغ ${newExpense.amount.toLocaleString()} د.ع.`,
-      });
-      
-      window.dispatchEvent(new CustomEvent('expensesUpdated'));
+      await addExpenseMutation.mutateAsync(newExpense);
+
     } catch (e: any) {
       console.error("Error processing and saving voice expense:", e);
       const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
@@ -304,7 +262,7 @@ export default function DashboardPage() {
     } finally {
       setIsVoiceLoading(false);
     }
-  }, [toast]);
+  }, [addExpenseMutation]);
   
   const stopVoiceRecording = useCallback(() => {
     if (voiceMediaRecorderRef.current && isVoiceRecording) {
@@ -317,7 +275,7 @@ export default function DashboardPage() {
   }, [isVoiceRecording]);
 
   const startVoiceRecording = useCallback(async () => {
-    if (!isMounted || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setVoiceError("الوصول إلى الميكروفون غير مدعوم أو مسموح به.");
       return;
     }
@@ -360,7 +318,7 @@ export default function DashboardPage() {
       setIsVoiceRecording(false);
       setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
     }
-  }, [isMounted, processVoiceAndSave]);
+  }, [processVoiceAndSave]);
   
   const renderVoiceButtonContent = () => {
     if (isVoiceLoading) {
@@ -419,7 +377,7 @@ export default function DashboardPage() {
   const weeklyTarget = userBudget.totalBudget > 0 ? userBudget.totalBudget / 4 : 0;
 
 
-  if (!isMounted || isLoading) {
+  if (isExpensesLoading || isSettingsLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -507,7 +465,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
       
-      {userBudget.totalBudget === 0 && !isLoading && (
+      {userBudget.totalBudget === 0 && (
         <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
             <p>لم تقم بتعيين ميزانية شهرية بعد.</p>
             <p className="text-sm">اذهب إلى <Link href="/settings" className="text-primary underline font-semibold">الإعدادات</Link> لتعيين ميزانيتك.</p>

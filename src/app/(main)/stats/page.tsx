@@ -21,7 +21,11 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
+import { getExpenses, getUserSettings } from '@/services/firestore';
+
 
 // Chart config using keys from defaultCategories
 const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
@@ -56,10 +60,21 @@ interface CategorySummaryItem {
 }
 
 export default function StatisticsPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const { user } = useAuth();
+
+  const { data: expenses = [], isLoading: isExpensesLoading } = useQuery<Expense[]>({
+    queryKey: ['expenses', user?.uid],
+    queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
+
+  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+      queryKey: ['userSettings', user?.uid],
+      queryFn: () => getUserSettings(user!.uid),
+      enabled: !!user,
+  });
+
+  const categoryBudgets = userSettings?.categoryBudgets || {};
 
   // Filter state
   const [view, setView] = useState<'month' | 'year'>('month');
@@ -77,50 +92,25 @@ export default function StatisticsPage() {
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
-    setIsMounted(true);
-    
-    const handleDataUpdate = () => {
-        // Load expenses
-        const storedExpenses = localStorage.getItem('expenses');
-        const parsedExpenses = storedExpenses ? JSON.parse(storedExpenses) as Expense[] : [];
-        setExpenses(parsedExpenses);
+    if (expenses.length > 0) {
+        const dates = expenses.map(e => parseISO(e.date));
+        const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
+        setAvailableYears(uniqueYears);
 
-        // Load category budgets
-        const storedCategoryBudgets = localStorage.getItem('categoryBudgets');
-        const parsedCategoryBudgets = storedCategoryBudgets ? JSON.parse(storedCategoryBudgets) : {};
-        setCategoryBudgets(parsedCategoryBudgets);
-
-        if (parsedExpenses.length > 0) {
-            const dates = parsedExpenses.map(e => parseISO(e.date));
-            const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
-            setAvailableYears(uniqueYears);
-
-            const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
-            setAvailableMonths(uniqueMonths);
-            
-            if (uniqueYears.length > 0 && !uniqueYears.includes(selectedYear)) {
-                setSelectedYear(uniqueYears[0]);
-            }
-            if (uniqueMonths.length > 0 && !uniqueMonths.includes(selectedMonth)) {
-                setSelectedMonth(uniqueMonths[0]);
-            }
-        } else {
-            setAvailableYears([]);
-            setAvailableMonths([]);
+        const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
+        setAvailableMonths(uniqueMonths);
+        
+        if (uniqueYears.length > 0 && !uniqueYears.includes(selectedYear)) {
+            setSelectedYear(uniqueYears[0]);
         }
-    };
-    
-    handleDataUpdate();
-    setIsLoading(false);
-
-    window.addEventListener('expensesUpdated', handleDataUpdate);
-    window.addEventListener('budgetUpdated', handleDataUpdate);
-    return () => {
-        window.removeEventListener('expensesUpdated', handleDataUpdate);
-        window.removeEventListener('budgetUpdated', handleDataUpdate);
-    };
-
-  }, []);
+        if (uniqueMonths.length > 0 && !uniqueMonths.includes(selectedMonth)) {
+            setSelectedMonth(uniqueMonths[0]);
+        }
+    } else {
+        setAvailableYears([]);
+        setAvailableMonths([]);
+    }
+  }, [expenses, selectedMonth, selectedYear]);
   
   const {
     pieChartData,
@@ -130,7 +120,7 @@ export default function StatisticsPage() {
     topCategoriesTrendData,
     filteredExpenses
   } = useMemo(() => {
-    if (!isMounted || !expenses) {
+    if (!expenses) {
       return {
         pieChartData: [],
         trendChartData: [],
@@ -287,7 +277,7 @@ export default function StatisticsPage() {
       topCategoriesTrendData: categoriesTrendData,
       filteredExpenses: currentFilteredExpenses,
     };
-  }, [isMounted, expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths]);
   
   // Effect for fetching forecast
   useEffect(() => {
@@ -333,10 +323,8 @@ export default function StatisticsPage() {
       }
     };
 
-    if (isMounted) {
-        getForecast();
-    }
-  }, [expenses, isMounted]);
+    getForecast();
+  }, [expenses]);
 
   const formatYAxisTick = (tick: any) => {
     const value = Number(tick);
@@ -351,7 +339,9 @@ export default function StatisticsPage() {
     return value.toLocaleString('ar-IQ');
   };
 
-  if (!isMounted || isLoading) {
+  const isLoading = isExpensesLoading || isSettingsLoading;
+
+  if (isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
@@ -514,7 +504,7 @@ export default function StatisticsPage() {
               <LineChart data={trendChartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={80} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
@@ -630,7 +620,7 @@ export default function StatisticsPage() {
                        <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 10, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
@@ -735,5 +725,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    

@@ -16,11 +16,17 @@ import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { addExpense } from '@/services/firestore';
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
 
 export default function DetailedReceiptPage() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
+
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [analyzedItems, setAnalyzedItems] = useState<EditableItem[]>([]);
@@ -28,8 +34,7 @@ export default function DetailedReceiptPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { toast } = useToast();
-
+    
     const categoryMap = useMemo(() => {
         return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
             acc[id] = name;
@@ -121,17 +126,43 @@ export default function DetailedReceiptPage() {
         setAnalyzedItems(prev => [...prev, newItem]);
     };
     
+    const addMultipleExpensesMutation = useMutation({
+        mutationFn: (expenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
+            if (!user) throw new Error("User not authenticated");
+            const promises = expenses.map(exp => addExpense(user.uid, exp));
+            return Promise.all(promises);
+        },
+        onSuccess: (result, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+            toast({
+                title: "تم الحفظ بنجاح!",
+                description: `تم حفظ ${variables.length} مصروف جديد بنجاح.`,
+            });
+             // Reset state
+            setImageFiles([]);
+            setImagePreviews([]);
+            setAnalyzedItems([]);
+            setStoreInfo({name: '', date: ''});
+        },
+        onError: () => {
+            toast({
+                title: "خطأ في الحفظ",
+                description: "لم يتم حفظ المصاريف. الرجاء المحاولة مرة أخرى.",
+                variant: "destructive",
+            });
+        }
+    });
+
     const handleSaveAll = () => {
-        const expensesToSave: Expense[] = analyzedItems.map(item => {
+        if (!user) return;
+
+        const expensesToSave: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[] = analyzedItems.map(item => {
             return {
-                id: crypto.randomUUID(),
                 title: item.name,
                 amount: item.price,
                 category: item.suggestedCategory,
                 date: storeInfo.date ? new Date(storeInfo.date).toISOString() : new Date().toISOString(),
                 description: `عنصر من فاتورة ${storeInfo.name || 'ممسوحة'}.`,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
             }
         });
 
@@ -144,30 +175,7 @@ export default function DetailedReceiptPage() {
             return;
         }
 
-        try {
-            const existingExpenses: Expense[] = JSON.parse(localStorage.getItem('expenses') || '[]');
-            localStorage.setItem('expenses', JSON.stringify([...existingExpenses, ...expensesToSave]));
-            
-            toast({
-                title: "تم الحفظ بنجاح!",
-                description: `تم حفظ ${expensesToSave.length} مصروف جديد بنجاح.`,
-            });
-
-            // Reset state
-            setImageFiles([]);
-            setImagePreviews([]);
-            setAnalyzedItems([]);
-            setStoreInfo({name: '', date: ''});
-            
-            window.dispatchEvent(new CustomEvent('expensesUpdated'));
-
-        } catch (error) {
-            toast({
-                title: "خطأ في الحفظ",
-                description: "لم يتم حفظ المصاريف. الرجاء المحاولة مرة أخرى.",
-                variant: "destructive",
-            });
-        }
+        addMultipleExpensesMutation.mutate(expensesToSave);
     }
 
     return (
@@ -295,8 +303,8 @@ export default function DetailedReceiptPage() {
                         </Button>
                     </CardContent>
                     <CardFooter>
-                        <Button onClick={handleSaveAll} className="w-full">
-                            حفظ كل المصاريف ({analyzedItems.length})
+                        <Button onClick={handleSaveAll} className="w-full" disabled={addMultipleExpensesMutation.isPending}>
+                            {addMultipleExpensesMutation.isPending ? <><Loader2 className="ml-2 h-4 w-4 animate-spin"/> جاري الحفظ... </> : `حفظ كل المصاريف (${analyzedItems.length})`}
                         </Button>
                     </CardFooter>
                 </Card>

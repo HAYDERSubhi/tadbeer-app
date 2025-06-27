@@ -1,7 +1,7 @@
 // src/app/(main)/goals/page.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +29,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getGoals, addGoal, deleteGoal } from '@/services/firestore';
+
 
 const goalSchema = z.object({
   name: z.string().min(3, { message: 'اسم الهدف مطلوب (3 أحرف على الأقل)' }),
@@ -39,10 +43,15 @@ const goalSchema = z.object({
 type GoalFormData = z.infer<typeof goalSchema>;
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const { data: goals = [], isLoading } = useQuery<Goal[]>({
+    queryKey: ['goals', user?.uid],
+    queryFn: () => getGoals(user!.uid),
+    enabled: !!user,
+  });
 
   const form = useForm<GoalFormData>({
     resolver: zodResolver(goalSchema),
@@ -51,58 +60,54 @@ export default function GoalsPage() {
       targetAmount: 0,
     },
   });
-
-  useEffect(() => {
-    setIsMounted(true);
-    const storedGoals = localStorage.getItem('goals');
-    if (storedGoals) {
-      try {
-        const parsedGoals = JSON.parse(storedGoals);
-        if (Array.isArray(parsedGoals)) {
-          setGoals(parsedGoals);
-        }
-      } catch (error) {
-        console.error("Failed to parse goals:", error);
-      }
+  
+  const addGoalMutation = useMutation({
+    mutationFn: (newGoal: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => addGoal(user!.uid, newGoal),
+    onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
+        toast({
+          title: "تم إضافة الهدف!",
+          description: `هدف "${variables.name}" أضيف بنجاح.`,
+        });
+        form.reset();
+    },
+    onError: () => {
+         toast({
+          title: "خطأ",
+          description: "لم يتمكن من إضافة الهدف.",
+          variant: "destructive",
+        });
     }
-    setIsLoading(false);
-  }, []);
+  });
+
+  const deleteGoalMutation = useMutation({
+    mutationFn: (goalId: string) => deleteGoal(user!.uid, goalId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف الهدف المالي بنجاح.",
+      });
+    }
+  });
 
   const handleAddGoal = (data: GoalFormData) => {
-    if (!isMounted) return;
+    if (!user) return;
     
-    const newGoal: Goal = {
-      id: crypto.randomUUID(),
+    const newGoalData = {
       name: data.name,
       targetAmount: data.targetAmount,
       targetDate: data.targetDate.toISOString(),
-      createdAt: new Date().toISOString(),
     };
-
-    const updatedGoals = [...goals, newGoal];
-    setGoals(updatedGoals);
-    localStorage.setItem('goals', JSON.stringify(updatedGoals));
-
-    toast({
-      title: "تم إضافة الهدف!",
-      description: `هدف "${data.name}" أضيف بنجاح.`,
-    });
-    form.reset();
+    addGoalMutation.mutate(newGoalData);
   };
   
   const handleDeleteGoal = (goalId: string) => {
-    if (!isMounted) return;
-
-    const updatedGoals = goals.filter(g => g.id !== goalId);
-    setGoals(updatedGoals);
-    localStorage.setItem('goals', JSON.stringify(updatedGoals));
-    toast({
-      title: "تم الحذف",
-      description: "تم حذف الهدف المالي بنجاح.",
-    });
+    if (!user) return;
+    deleteGoalMutation.mutate(goalId);
   };
 
-  if (!isMounted || isLoading) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
   }
   
@@ -170,7 +175,7 @@ export default function GoalsPage() {
                           initialFocus
                           dir="rtl"
                           locale={arIQ}
-                          disabled={(date) => date < new Date()}
+                          disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
                         />
                       </PopoverContent>
                     </Popover>
@@ -178,8 +183,8 @@ export default function GoalsPage() {
                 />
               {form.formState.errors.targetDate && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}
             </div>
-             <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'جاري الإضافة...' : 'أضف الهدف'}
+             <Button type="submit" className="w-full" disabled={addGoalMutation.isPending}>
+                {addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}
             </Button>
           </form>
         </CardContent>

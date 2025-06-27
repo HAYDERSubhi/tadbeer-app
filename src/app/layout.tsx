@@ -1,8 +1,10 @@
-
+// src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from '@/hooks/use-auth';
+import { QueryProvider } from '@/components/query-provider';
 
 export const metadata: Metadata = {
   title: 'مصروفات',
@@ -23,8 +25,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
+          <QueryProvider>
+            <AuthProvider>
+              {children}
+              <Toaster />
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

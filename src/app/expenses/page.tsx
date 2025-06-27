@@ -1,65 +1,55 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Trash2Icon, DollarSign, Loader2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getExpenses, deleteExpense } from '@/services/firestore';
 
 export default function AllExpensesPage() {
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // This function can be called to refresh data from localStorage
-    const refreshData = () => {
-      setIsLoading(true);
-      const storedExpenses = localStorage.getItem('expenses');
-      if (storedExpenses) {
-        try {
-          const parsedExpenses = JSON.parse(storedExpenses);
-          if (Array.isArray(parsedExpenses)) {
-            // Sort by date, newest first
-            const sorted = [...parsedExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setAllExpenses(sorted);
-          } else {
-            setAllExpenses([]);
-          }
-        } catch (error) {
-          console.error("Failed to parse expenses from localStorage", error);
-          setAllExpenses([]);
-        }
-      }
-      setIsLoading(false);
-    };
+  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
+    queryKey: ['expenses', user?.uid],
+    queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
 
-    refreshData();
-    // Listen for updates from other components
-    window.addEventListener('expensesUpdated', refreshData);
-    
-    // Cleanup listener on unmount
-    return () => {
-      window.removeEventListener('expensesUpdated', refreshData);
-    };
-  }, []);
+  const deleteMutation = useMutation({
+    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المصروف بنجاح.",
+      });
+    },
+     onError: () => {
+      toast({
+        title: "خطأ",
+        description: "لم نتمكن من حذف المصروف.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleDeleteExpense = (expenseId: string) => {
-    const updatedExpenses = allExpenses.filter(exp => exp.id !== expenseId);
-    // Update state immediately for responsiveness
-    setAllExpenses(updatedExpenses); 
-    // Update localStorage
-    localStorage.setItem('expenses', JSON.stringify(updatedExpenses));
-    // Notify other components (like the main page badge)
-    window.dispatchEvent(new CustomEvent('expensesUpdated'));
-    toast({
-      title: "تم الحذف",
-      description: "تم حذف المصروف بنجاح.",
-    });
+    if (!user) return;
+    deleteMutation.mutate(expenseId);
   };
+  
+  const allSortedExpenses = useMemo(() => {
+     return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [expenses]);
+
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -69,7 +59,7 @@ export default function AllExpensesPage() {
     <div className="space-y-6 pb-20">
       <Card>
           <CardContent className="p-0">
-              {allExpenses.length === 0 ? (
+              {allSortedExpenses.length === 0 ? (
                   <div className="px-6 py-20 text-center text-muted-foreground">
                       <DollarSign className="mx-auto h-12 w-12 mb-4" />
                       <h3 className="text-lg font-semibold">لا توجد مصاريف مسجلة</h3>
@@ -77,7 +67,7 @@ export default function AllExpensesPage() {
                   </div>
               ) : (
                   <ul className="divide-y divide-border">
-                  {allExpenses.map((expense) => {
+                  {allSortedExpenses.map((expense) => {
                       const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                       return (
                       <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">

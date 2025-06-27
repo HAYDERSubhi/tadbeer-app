@@ -20,42 +20,51 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
+import { getGoals, getExpenses, getUserSettings } from '@/services/firestore';
 
 function PlannerContent() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const goalIdFromQuery = searchParams.get('goalId');
 
-  const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   
   const [plan, setPlan] = useState<FinancialPlannerOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+  // Fetch all necessary data using react-query
+  const { data: goals = [], isLoading: goalsLoading } = useQuery<Goal[]>({
+    queryKey: ['goals', user?.uid],
+    queryFn: () => getGoals(user!.uid),
+    enabled: !!user,
+  });
+
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery<Expense[]>({
+    queryKey: ['expenses', user?.uid],
+    queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
+  
+  const { data: userSettings, isLoading: settingsLoading } = useQuery({
+      queryKey: ['userSettings', user?.uid],
+      queryFn: () => getUserSettings(user!.uid),
+      enabled: !!user,
+  });
+  const userProfile = userSettings?.profile;
+
+  // Set initial goal from query params or first available goal
   useEffect(() => {
-    // Load all necessary data from localStorage
-    const storedGoals = localStorage.getItem('goals');
-    const storedProfile = localStorage.getItem('userProfile');
-    const storedExpenses = localStorage.getItem('expenses');
-
-    setGoals(storedGoals ? JSON.parse(storedGoals) : []);
-    setUserProfile(storedProfile ? JSON.parse(storedProfile) : null);
-    setExpenses(storedExpenses ? JSON.parse(storedExpenses) : []);
+    if (goalsLoading) return;
     
-    // Set initial goal from query params if available
-    if (goalIdFromQuery) {
+    if (goalIdFromQuery && goals.some(g => g.id === goalIdFromQuery)) {
         setSelectedGoalId(goalIdFromQuery);
-    } else if (storedGoals) {
-        const parsedGoals = JSON.parse(storedGoals);
-        if(parsedGoals.length > 0) {
-            setSelectedGoalId(parsedGoals[0].id);
-        }
+    } else if (goals.length > 0) {
+        setSelectedGoalId(goals[0].id);
     }
-    setIsDataLoaded(true);
-  }, [goalIdFromQuery]);
+  }, [goalIdFromQuery, goals, goalsLoading]);
   
   const selectedGoal = useMemo(() => goals.find(g => g.id === selectedGoalId), [goals, selectedGoalId]);
 
@@ -69,7 +78,7 @@ function PlannerContent() {
       return;
     }
 
-    setIsLoading(true);
+    setIsGenerating(true);
     setError(null);
     setPlan(null);
 
@@ -97,7 +106,7 @@ function PlannerContent() {
         console.error("Error generating financial plan:", e);
         setError("حدث خطأ غير متوقع أثناء إنشاء الخطة. يرجى المحاولة مرة أخرى.");
     } finally {
-        setIsLoading(false);
+        setIsGenerating(false);
     }
   };
   
@@ -164,7 +173,7 @@ function PlannerContent() {
   }
 
   const renderInitialState = () => {
-    if (!isDataLoaded) return <Skeleton className='w-full h-48' />;
+    if (goalsLoading || settingsLoading) return <Skeleton className='w-full h-48' />;
     
     if (goals.length === 0) {
         return (
@@ -195,6 +204,16 @@ function PlannerContent() {
         )
     }
     return null;
+  }
+  
+  if (goalsLoading || expensesLoading || settingsLoading) {
+      return (
+        <div className="space-y-6 pb-24">
+            <Skeleton className='h-12 w-1/2' />
+            <Skeleton className='h-8 w-1/3' />
+            <Skeleton className='h-48 w-full' />
+        </div>
+      );
   }
 
   return (
@@ -227,15 +246,15 @@ function PlannerContent() {
                         </SelectContent>
                     </Select>
                 </div>
-                <Button onClick={handleGeneratePlan} disabled={isLoading || !selectedGoalId} className="w-full">
-                    {isLoading ? <Loader2Icon className="h-5 w-5 animate-spin" /> : "أنشئ الخطة لي"}
+                <Button onClick={handleGeneratePlan} disabled={isGenerating || !selectedGoalId} className="w-full">
+                    {isGenerating ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إنشاء الخطة...</> : "أنشئ الخطة لي"}
                 </Button>
             </CardContent>
         </Card>
       ) : renderInitialState()}
 
       {error && <Alert variant="destructive"><XCircle className="h-4 w-4" /><AlertTitle>خطأ</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-      {isLoading && 
+      {isGenerating && 
         <div className='space-y-4 mt-6'>
             <Skeleton className='h-12 w-full' />
             <Skeleton className='h-24 w-full' />
