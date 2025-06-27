@@ -6,12 +6,14 @@ import {
   onAuthStateChanged,
   User,
   signInAnonymously,
+  FirebaseError // Import FirebaseError
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authError: FirebaseError | null; // Add authError to context
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,54 +21,61 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const authAttempted = useRef(false); // Ref to ensure sign-in is only attempted once.
+  const [authError, setAuthError] = useState<FirebaseError | null>(null); // State for auth errors
+  const authAttempted = useRef(false); 
 
   useEffect(() => {
-    // If Firebase is not configured (e.g., missing env vars), auth will be null.
-    // Stop loading immediately so the UI can show the configuration error message.
+    // This is a custom error object that looks like a FirebaseError for consistency.
+    // It's used when the .env file is not set up.
     if (!auth) {
+      setAuthError({
+        code: 'auth/configuration-missing',
+        message: 'Firebase configuration is incomplete in your .env file.',
+        name: 'FirebaseError'
+      } as FirebaseError);
       setLoading(false);
       return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // If a user is found (either from a previous session or after a successful sign-in),
-        // set the user and stop loading.
         setUser(currentUser);
+        setAuthError(null); // Clear any previous errors on successful login
         setLoading(false);
       } else if (!authAttempted.current) {
-        // If there's no user and we haven't tried signing in yet, this is our one shot.
-        authAttempted.current = true; // Mark that we are attempting to sign in.
+        authAttempted.current = true;
         
         try {
           await signInAnonymously(auth);
-          // After successful sign-in, onAuthStateChanged will be triggered again with
-          // the new user. The 'if (currentUser)' block will handle it. We don't need
-          // to do anything else here.
         } catch (error) {
-          // This is the critical error handling block. If anonymous sign-in fails
-          // (e.g., due to an invalid API key), we catch the error here.
-          console.error("Firebase anonymous sign-in failed. Please check your Firebase configuration.", error);
-          
-          // We stop loading and ensure user is null. The UI will then render the
-          // helpful error message instead of crashing.
+          console.error("Firebase anonymous sign-in failed.", error);
+          if (error instanceof FirebaseError) {
+            setAuthError(error); // Store the specific Firebase error
+          } else {
+             setAuthError({
+               code: 'auth/unknown-error',
+               message: 'An unknown error occurred during authentication.',
+               name: 'FirebaseError'
+             } as FirebaseError);
+          }
           setLoading(false);
         }
       } else {
-        // If we've already attempted to sign in and there's still no user,
-        // it means the sign-in attempt failed. Stop loading to show the error UI.
-        setLoading(false);
+        // This case handles when onAuthStateChanged fires with `null` after an attempt has already been made
+        // and failed. We just make sure loading is false, the authError is already set.
+        if (!authError) {
+            setLoading(false);
+        }
       }
     });
 
-    // Cleanup the subscription when the component unmounts.
     return () => unsubscribe();
-  }, []); // The empty dependency array ensures this effect runs only once.
+  }, []); 
 
   const value = {
     user,
     loading,
+    authError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
