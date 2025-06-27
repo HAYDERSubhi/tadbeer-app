@@ -32,11 +32,19 @@ export default function MainLayout({
           <AlertTitle>خطأ في إعدادات Firebase</AlertTitle>
           <AlertDescription>
             <p className="leading-relaxed">
-              تعذر الاتصال بخدمات Firebase. قد يكون السبب هو عدم وجود مفتاح API صالح أو مشكلة في الإعدادات.
+              تعذر الاتصال بخدمات Firebase. قد يكون السبب هو عدم اكتمال معلومات الربط في ملف الإعدادات.
             </p>
-            <p className="mt-2 leading-relaxed">
-              نتيجة لذلك، تم تعطيل المزامنة السحابية وجميع ميزات حفظ البيانات. يرجى مراجعة إعدادات Firebase في ملف <code>.env</code> والتأكد من صحتها.
+             <p className="mt-4 leading-relaxed">
+             لحل المشكلة، يرجى مراجعة ملف <code>.env</code> والتأكد من إضافة القيم الصحيحة للمتغيرات التالية من إعدادات مشروعك في Firebase:
             </p>
+            <ul className="my-2 list-disc list-inside rounded-md bg-slate-800/50 p-3 text-left font-mono text-sm text-slate-300">
+                <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
+                <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
+                <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
+                <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET</li>
+                <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</li>
+                <li>NEXT_PUBLIC_FIREBASE_APP_ID</li>
+            </ul>
           </AlertDescription>
         </Alert>
       </div>
