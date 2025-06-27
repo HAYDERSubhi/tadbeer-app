@@ -6,6 +6,7 @@ import type { Expense } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -87,7 +88,7 @@ export default function DetailedReceiptPage() {
 
         } catch (e: any) {
             console.error("Error during detailed analysis:", e);
-            setError("حدث خطأ أثناء تحليل الفاتورة. الرجاء التأكد من أن الصورة واضحة وحاول مرة أخرى.");
+            setError("حدث خطأ أثناء تحليل الفاتورة. الرجاء التأكد من أن الصور واضحة وحاول مرة أخرى.");
         } finally {
             setIsLoading(false);
         }
@@ -178,11 +179,19 @@ export default function DetailedReceiptPage() {
                         تحليل الفواتير المفصلة
                     </CardTitle>
                     <CardDescription>
-                        امسح الفواتير الطويلة. سيقوم الذكاء الاصطناعي باستخراج كل عنصر وتصنيفه لك.
+                       التقط صورًا واضحة لكل جزء من فاتورتك الطويلة. يمكنك إضافة صور متعددة، وسيقوم الذكاء الاصطناعي بتحليلها جميعًا كمستند واحد.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Input
+                <CardContent className="space-y-4">
+                     <div 
+                        className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <Upload className="h-12 w-12 text-muted-foreground" />
+                        <p className="mt-2 font-semibold">اضغط هنا لإضافة صور الفاتورة</p>
+                        <p className="text-sm text-muted-foreground">يمكنك اختيار صور متعددة</p>
+                    </div>
+                     <Input
                         type="file"
                         accept="image/*"
                         multiple
@@ -192,16 +201,16 @@ export default function DetailedReceiptPage() {
                     />
                     
                     {imagePreviews.length > 0 && (
-                        <div className="mb-4">
-                            <Label>الصور المرفوعة:</Label>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mt-2">
+                        <div>
+                            <h3 className="font-semibold mb-2">الصور المرفوعة ({imagePreviews.length}):</h3>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-2">
                                 {imagePreviews.map((src, index) => (
-                                    <div key={index} className="relative group">
-                                        <Image src={src} alt={`معاينة ${index + 1}`} width={100} height={150} className="w-full h-auto object-cover rounded-md border" data-ai-hint="receipt paper" />
+                                    <div key={index} className="relative group aspect-[2/3]">
+                                        <Image src={src} alt={`معاينة ${index + 1}`} layout="fill" objectFit="cover" className="rounded-md border" data-ai-hint="receipt paper" />
                                         <Button
                                             variant="destructive"
                                             size="icon"
-                                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                             onClick={() => removeImage(index)}
                                         >
                                             <XCircle className="h-4 w-4" />
@@ -212,16 +221,10 @@ export default function DetailedReceiptPage() {
                         </div>
                     )}
                     
-                    <div className="flex gap-2">
-                         <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-1">
-                            <Upload className="ml-2 h-4 w-4" />
-                            {imageFiles.length > 0 ? 'إضافة المزيد من الصور' : 'اختر صور الفاتورة'}
-                        </Button>
-                        <Button onClick={handleAnalyze} disabled={isLoading || imageFiles.length === 0} className="flex-1">
-                            {isLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Sparkles className="ml-2 h-4 w-4" />}
-                            بدء التحليل
-                        </Button>
-                    </div>
+                    <Button onClick={handleAnalyze} disabled={isLoading || imageFiles.length === 0} className="w-full" size="lg">
+                        {isLoading ? <Loader2 className="ml-2 h-5 w-5 animate-spin" /> : <Sparkles className="ml-2 h-5 w-5" />}
+                        بدء التحليل الذكي
+                    </Button>
                 </CardContent>
             </Card>
 
