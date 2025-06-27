@@ -56,8 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // If sign-in fails, we catch the error and update the authError state.
         // This is a safe way to handle promise rejections in useEffect.
         console.error("Firebase anonymous sign-in failed.", error);
-        if (error instanceof FirebaseError) {
-          setAuthError(error);
+        // Use property checking instead of 'instanceof' for better resilience.
+        if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
+          setAuthError(error as FirebaseError);
         } else {
           setAuthError({
             code: 'auth/unknown-error',
