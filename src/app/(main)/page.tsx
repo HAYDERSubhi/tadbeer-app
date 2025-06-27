@@ -443,56 +443,67 @@ export default function DashboardPage() {
 
         <CardContent className="z-10 relative p-6 space-y-6">
             {/* Main numbers */}
-            <div className="grid grid-cols-3 divide-x-reverse divide-x divide-slate-700 text-center">
+            <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3 sm:gap-0 sm:divide-x-reverse sm:divide-x sm:divide-slate-700">
               <div>
                   <p className="text-sm text-slate-400">الميزانية</p>
-                  <p className="text-xl md:text-2xl font-bold text-white whitespace-nowrap">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white whitespace-nowrap">{userBudget.totalBudget.toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المصروف</p>
-                  <p className="text-xl md:text-2xl font-bold text-white whitespace-nowrap">{currentExpenses.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white whitespace-nowrap">{currentExpenses.toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المتبقي</p>
-                  <p className={`text-xl md:text-2xl font-bold whitespace-nowrap ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+                  <p className={`text-lg sm:text-xl md:text-2xl font-bold whitespace-nowrap ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
               </div>
             </div>
 
             {/* Weekly progress section */}
-            {userBudget.totalBudget > 0 && (
-                <div className="pt-4">
-                  <div className="flex justify-around mb-2 text-xs text-slate-300">
+            <div className="pt-4">
+                <div className="flex justify-around mb-2 text-xs text-slate-300">
                     <span>الأسبوع 1</span>
                     <span>الأسبوع 2</span>
                     <span>الأسبوع 3</span>
                     <span>الأسبوع 4</span>
-                  </div>
-                  <div className="flex w-full space-x-2 space-x-reverse">
-                    {weeklySpending.map((spent, index) => {
-                      const percentage = weeklyTarget > 0 ? Math.min((spent / weeklyTarget) * 100, 100) : 0;
-                      const isOverBudget = spent > weeklyTarget;
-                      return (
-                        <div key={index} className="w-1/4 group relative">
-                          <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all duration-500 ${isOverBudget ? 'bg-red-500' : 'bg-teal-400'}`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max p-2 text-xs text-white bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                            <p>المصروف: {spent.toLocaleString()} د.ع</p>
-                            {isOverBudget && <p className="text-red-400 font-bold">تجاوزت الهدف!</p>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="text-center text-xs text-slate-400 mt-2">
-                    <span>الهدف الأسبوعي: {weeklyTarget.toLocaleString()} د.ع</span>
-                  </div>
                 </div>
-              )}
+                {userBudget.totalBudget > 0 ? (
+                    <>
+                    <div className="flex w-full space-x-2 space-x-reverse">
+                        {weeklySpending.map((spent, index) => {
+                        const percentage = weeklyTarget > 0 ? Math.min((spent / weeklyTarget) * 100, 100) : 0;
+                        const isOverBudget = spent > weeklyTarget;
+                        return (
+                            <div key={index} className="w-1/4 group relative">
+                            <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                className={`h-full transition-all duration-500 ${isOverBudget ? 'bg-red-500' : 'bg-teal-400'}`}
+                                style={{ width: `${percentage}%` }}
+                                />
+                            </div>
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max p-2 text-xs text-white bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                <p>المصروف: {spent.toLocaleString()} د.ع</p>
+                                {isOverBudget && <p className="text-red-400 font-bold">تجاوزت الهدف!</p>}
+                            </div>
+                            </div>
+                        );
+                        })}
+                    </div>
+                    <div className="text-center text-xs text-slate-400 mt-2">
+                        <span>الهدف الأسبوعي: {weeklyTarget.toLocaleString()} د.ع</span>
+                    </div>
+                    </>
+                ) : (
+                    <div className="grid grid-cols-4 gap-2 text-center mt-1">
+                        {weeklySpending.map((spent, index) => (
+                            <div key={index}>
+                                <p className="font-semibold text-white text-sm whitespace-nowrap">{spent.toLocaleString()}</p>
+                                <p className="text-xs text-slate-500">د.ع</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </CardContent>
       </Card>
       
