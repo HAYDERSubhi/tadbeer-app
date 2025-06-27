@@ -1,19 +1,19 @@
 // src/hooks/use-auth.tsx
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import {
   onAuthStateChanged,
   User,
   signInAnonymously,
-  FirebaseError // Import FirebaseError
+  FirebaseError
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  authError: FirebaseError | null; // Add authError to context
+  authError: FirebaseError | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,62 +21,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<FirebaseError | null>(null); // State for auth errors
-  const authAttempted = useRef(false); 
+  const [authError, setAuthError] = useState<FirebaseError | null>(null);
 
   useEffect(() => {
-    // This is a custom error object that looks like a FirebaseError for consistency.
-    // It's used when the .env file is not set up.
     if (!auth) {
       setAuthError({
         code: 'auth/configuration-missing',
-        message: 'Firebase configuration is incomplete in your .env file.',
+        message: 'Firebase configuration is incomplete. Please check your .env file.',
         name: 'FirebaseError'
       } as FirebaseError);
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    // This listener just updates user state and loading status.
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      // If there was a user before but now there isn't (e.g. logged out), we don't clear the error
+      // in case the error is the reason for the logout. But on successful login, clear it.
       if (currentUser) {
-        setUser(currentUser);
-        setAuthError(null); // Clear any previous errors on successful login
-        setLoading(false);
-      } else if (!authAttempted.current) {
-        authAttempted.current = true;
-        
-        try {
-          await signInAnonymously(auth);
-        } catch (error) {
-          console.error("Firebase anonymous sign-in failed.", error);
-          if (error instanceof FirebaseError) {
-            setAuthError(error); // Store the specific Firebase error
-          } else {
-             setAuthError({
-               code: 'auth/unknown-error',
-               message: 'An unknown error occurred during authentication.',
-               name: 'FirebaseError'
-             } as FirebaseError);
-          }
-          setLoading(false);
-        }
-      } else {
-        // This case handles when onAuthStateChanged fires with `null` after an attempt has already been made
-        // and failed. We just make sure loading is false, the authError is already set.
-        if (!authError) {
-            setLoading(false);
-        }
+        setAuthError(null);
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []); 
+  }, []); // Run only once on mount
 
-  const value = {
-    user,
-    loading,
-    authError,
-  };
+  useEffect(() => {
+    // This effect handles the action of signing in if needed.
+    // It runs after the initial auth state has been determined by the first effect.
+    if (!loading && !user && !authError) {
+      signInAnonymously(auth).catch((error) => {
+        // If sign-in fails, we catch the error and update the authError state.
+        // This is a safe way to handle promise rejections in useEffect.
+        console.error("Firebase anonymous sign-in failed.", error);
+        if (error instanceof FirebaseError) {
+          setAuthError(error);
+        } else {
+          setAuthError({
+            code: 'auth/unknown-error',
+            message: 'An unknown error occurred during authentication.',
+            name: 'FirebaseError'
+          } as FirebaseError);
+        }
+      });
+    }
+  }, [loading, user, authError]); // Reruns if loading, user, or authError state changes
+
+  const value = { user, loading, authError };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
