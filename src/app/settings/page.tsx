@@ -218,7 +218,8 @@ export default function SettingsPage() {
   
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
-      const promises = newExpenses.map(exp => addExpense(user!.uid, exp));
+      if (!user) throw new Error("User not authenticated");
+      const promises = newExpenses.map(exp => addExpense(user.uid, exp));
       return Promise.all(promises);
     },
     onSuccess: (results) => {
@@ -299,6 +300,7 @@ export default function SettingsPage() {
   };
   
   const processAndSaveExpenses = () => {
+      if (!user) return;
       const missingRequired = REQUIRED_FIELDS.filter(field => columnMap[field] === null || columnMap[field] === undefined);
       if (missingRequired.length > 0) {
           toast({ title: "حقول مطلوبة مفقودة", description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f as keyof typeof COLUMN_MAP_CONFIG].label).join(', ')}`, variant: "destructive" });
@@ -337,9 +339,10 @@ export default function SettingsPage() {
   
   const deleteAllDataMutation = useMutation({
     mutationFn: async () => {
-      await deleteCollection(user!.uid, 'expenses');
-      await deleteCollection(user!.uid, 'goals');
-      await updateUserSettings(user!.uid, {
+      if (!user) throw new Error("User not authenticated");
+      await deleteCollection(user.uid, 'expenses');
+      await deleteCollection(user.uid, 'goals');
+      await updateUserSettings(user.uid, {
         budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
         categoryBudgets: {},
         profile: { monthlyIncome: 0, familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }] }
