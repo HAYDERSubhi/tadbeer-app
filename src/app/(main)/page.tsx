@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, ScanLine, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History } from "lucide-react";
+import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History } from "lucide-react";
 import type { Expense, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,7 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import ReceiptScanForm from '@/components/expenses/receipt-scan-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -26,31 +25,6 @@ import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-
-// Grouping the dialogs for easier mapping
-const AddExpenseDialogs = [
-  {
-    label: "إدخال يدوي",
-    IconComponent: FilePenLine,
-    formComponent: <ManualExpenseForm />,
-    iconBg: "bg-blue-100 dark:bg-blue-900/50",
-    iconColor: "text-blue-600 dark:text-blue-300"
-  },
-  {
-    label: "مسح الفاتورة",
-    IconComponent: ScanLine,
-    formComponent: <ReceiptScanForm />,
-    iconBg: "bg-teal-100 dark:bg-teal-900/50",
-    iconColor: "text-teal-600 dark:text-teal-300"
-  },
-  {
-    label: "بطاقة إلكترونية",
-    IconComponent: CreditCardIcon,
-    formComponent: <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>,
-    iconBg: "bg-amber-100 dark:bg-amber-900/50",
-    iconColor: "text-amber-600 dark:text-amber-300"
-  },
-];
 
 interface UserBudgetSettings {
   totalBudget: number;
@@ -552,25 +526,50 @@ export default function DashboardPage() {
                 </div>
               )}
           </div>
+          
+          {/* Manual Entry Dialog */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+                <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
+                   <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+                </span>
+                <p className="font-semibold">إدخال يدوي</p>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle as="h2">إدخال يدوي</DialogTitle>
+              </DialogHeader>
+              <ManualExpenseForm />
+            </DialogContent>
+          </Dialog>
 
-          {AddExpenseDialogs.map(({ label, IconComponent, formComponent, iconBg, iconColor }) => (
-            <Dialog key={label}>
+          {/* Detailed Receipt Analysis Link */}
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+            <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
+               <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
+            </span>
+            <p className="font-semibold">تحليل فاتورة</p>
+          </Link>
+          
+          {/* E-Card Dialog */}
+          <Dialog>
               <DialogTrigger asChild>
                 <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
-                  <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", iconBg)}>
-                     <IconComponent className={cn("h-8 w-8", iconColor)} />
+                  <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
+                     <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
-                  <p className="font-semibold">{label}</p>
+                  <p className="font-semibold">بطاقة إلكترونية</p>
                 </button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle as="h2">{label}</DialogTitle>
+                  <DialogTitle as="h2">بطاقة إلكترونية</DialogTitle>
                 </DialogHeader>
-                {formComponent}
+                 <div className="p-6 text-center"><p>سيتم إضافة مزامنة البطاقة الإلكترونية قريباً.</p><Image src="https://placehold.co/200x150.png" alt="Coming soon" width={200} height={150} className="mx-auto mt-4 rounded-md" data-ai-hint="credit card technology" /></div>
               </DialogContent>
             </Dialog>
-          ))}
       </div>
 
        {/* Goal Setting CTA Card */}

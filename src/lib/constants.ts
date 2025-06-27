@@ -13,5 +13,4 @@ export const CATEGORIES = {
   "gifts_donations": { name: "الهدايا والتبرعات", icon: "🎁", color: "bg-pink-500", chartColor: "hsl(var(--chart-5))", id: "gifts_donations" },
   "personal_luxuries": { name: "الكماليات الشخصية", icon: "💎", color: "bg-teal-500", chartColor: "hsl(var(--chart-2))", id: "personal_luxuries" },
   "other": { name: "متفرقة", icon: "🧩", color: "bg-stone-500", chartColor: "hsl(var(--chart-4))", id: "other" },
-  "receipt-scan": { name: "فاتورة ممسوحة", icon: "📄", color: "bg-yellow-500", chartColor: "hsl(var(--chart-3))", id: "receipt-scan" },
 };
