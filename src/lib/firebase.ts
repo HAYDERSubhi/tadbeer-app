@@ -20,8 +20,13 @@ let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
 
-// Only initialize Firebase if the API key is provided
-if (firebaseConfig.apiKey) {
+// Only initialize Firebase if all required config values are provided
+if (
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId
+) {
   try {
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     db = getFirestore(app);
@@ -30,7 +35,7 @@ if (firebaseConfig.apiKey) {
     console.error("Firebase initialization failed:", e)
   }
 } else {
-    console.warn("Firebase API key is missing. Firebase services will be disabled.");
+    console.warn("Firebase configuration is incomplete. Firebase services will be disabled.");
 }
 
 
