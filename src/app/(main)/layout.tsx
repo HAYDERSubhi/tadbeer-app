@@ -32,6 +32,7 @@ export default function MainLayout({
               </p>
               <ol className="my-2 list-decimal list-inside space-y-2 rounded-md bg-slate-800/50 p-4 text-left text-slate-300">
                   <li>اذهب إلى لوحة تحكم Firebase وانتقل إلى قسم <strong>Authentication</strong>.</li>
+                  <li>اضغط على زر <strong>Get started</strong>.</li>
                   <li>اختر تبويب <strong>Settings</strong>.</li>
                   <li>ضمن <strong>Authorized domains</strong>, اضغط على <strong>Add domain</strong> وأضف <code>localhost</code>.</li>
               </ol>
