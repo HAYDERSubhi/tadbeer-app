@@ -22,28 +22,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // If Firebase is not configured, auth will be null.
-    // In this case, we stop loading and the user remains null.
+    // In this case, we stop loading, and the UI will show the config error.
     if (!auth) {
-        setLoading(false);
-        return;
+      setLoading(false);
+      return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
+        // User is signed in.
         setUser(currentUser);
         setLoading(false);
       } else {
-        try {
-          // This will be called by the onAuthStateChanged listener on success
-          await signInAnonymously(auth);
-        } catch (error) {
-          console.error("Anonymous sign-in failed", error);
-          // If sign-in fails (e.g. invalid config), stop loading.
-          // The user will remain null, triggering the error message in the layout.
-          setLoading(false);
-        }
+        // No user is signed in. Attempt to sign in anonymously.
+        signInAnonymously(auth)
+          // The successful sign-in will trigger onAuthStateChanged again.
+          .catch((error) => {
+            // This catch block handles failures, e.g., invalid API key.
+            // This prevents an unhandled promise rejection which causes the app to crash.
+            console.error("Firebase anonymous sign-in failed. Please check your Firebase configuration.", error);
+            // By setting loading to false, we allow the UI to show the error message.
+            setLoading(false);
+          });
       }
     });
+
+    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
