@@ -14,16 +14,7 @@ export default function MainLayout({
 }) {
   const { user, loading, authError } = useAuth();
 
-  // While checking for auth state, show a spinner.
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2Icon className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Handle auth errors first, as they are the most specific.
+  // PRIORITY 1: Handle authentication errors. This is the most critical state.
   if (authError) {
     // Specific, helpful message for network errors, which are often caused by unauthorized domains.
     if (authError.code === 'auth/network-request-failed') {
@@ -75,7 +66,16 @@ export default function MainLayout({
     );
   }
 
-  // If there's no error but still no user, something is wrong. This is a fallback.
+  // PRIORITY 2: If there's no error, show a loading indicator while we wait for auth state.
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2Icon className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // PRIORITY 3: If loading is done and there's no error, but also no user, it's a fallback failure state.
   if (!user) {
     return (
        <div className="flex h-screen w-full items-center justify-center p-4">
@@ -89,7 +89,7 @@ export default function MainLayout({
     );
   }
 
-  // If there is a user, render the main app layout.
+  // If all checks pass, render the main app layout.
   return (
     <AppShell>
       <div className="flex-1">
