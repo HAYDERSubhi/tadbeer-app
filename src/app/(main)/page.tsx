@@ -208,6 +208,7 @@ export default function DashboardPage() {
     };
 
     getInsights();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, coachEffectDependencies]);
   
 
@@ -727,3 +728,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
