@@ -44,6 +44,7 @@ import { arIQ } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -98,6 +99,14 @@ export default function SettingsPage() {
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+
+  const [deleteOptions, setDeleteOptions] = useState({
+    expenses: false,
+    goals: false,
+    incomes: false,
+    budgetSettings: false,
+    profileSettings: false,
+  });
 
   const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
@@ -329,7 +338,7 @@ export default function SettingsPage() {
     incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
   };
   
-  // --- Data Import/Export ---
+  // --- Data Import/Export & Reset ---
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error("User not authenticated");
@@ -451,36 +460,70 @@ export default function SettingsPage() {
       localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(columnMap));
   };
   
-  const deleteAllDataMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("User not authenticated");
-      await deleteCollection(user.uid, 'expenses');
-      await deleteCollection(user.uid, 'goals');
-      await deleteCollection(user.uid, 'incomes');
-      await updateUserSettings(user.uid, {
-        budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
-        categoryBudgets: {},
-        profile: { monthlyIncome: 0, familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }] }
-      });
+  const defaultSettings = {
+      budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
+      categoryBudgets: {},
+      profile: {
+          monthlyIncome: 0,
+          familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]
+      },
+  };
+  
+  const resetDataMutation = useMutation({
+    mutationFn: async (options: typeof deleteOptions) => {
+        if (!user) throw new Error("User not authenticated");
+        
+        const promises = [];
+
+        if (options.expenses) promises.push(deleteCollection(user.uid, 'expenses'));
+        if (options.goals) promises.push(deleteCollection(user.uid, 'goals'));
+        if (options.incomes) promises.push(deleteCollection(user.uid, 'incomes'));
+
+        const settingsToReset: Partial<UserSettings> = {};
+        if (options.budgetSettings) {
+            settingsToReset.budget = defaultSettings.budget;
+            settingsToReset.categoryBudgets = defaultSettings.categoryBudgets;
+        }
+        if (options.profileSettings) {
+            settingsToReset.profile = defaultSettings.profile;
+        }
+
+        if (Object.keys(settingsToReset).length > 0) {
+            promises.push(updateUserSettings(user.uid, settingsToReset));
+        }
+
+        await Promise.all(promises);
     },
-    onSuccess: () => {
-      queryClient.clear();
-      toast({ title: "تم الحذف بنجاح", description: "تم تصفير التطبيق وحذف جميع البيانات." });
-      // Reset local state after successful deletion
-      setTotalBudgetInput("0");
-      setZeroSpendDaysTargetInput("4");
-      setCategoryBudgets({});
-      setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
-      queryClient.invalidateQueries(); // Force refetch of all data, which should now be empty/default
+    onSuccess: (_, variables) => {
+        if (variables.expenses) queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+        if (variables.goals) queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
+        if (variables.incomes) queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
+        
+        if (variables.budgetSettings || variables.profileSettings || variables.incomes) {
+            queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
+        }
+
+        toast({ title: "تم الحذف بنجاح", description: "تم حذف البيانات المحددة بنجاح." });
+        
+        if (variables.budgetSettings) {
+            setTotalBudgetInput("0");
+            setZeroSpendDaysTargetInput("4");
+            setCategoryBudgets({});
+        }
+        if (variables.profileSettings) {
+            setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
+        }
+
+        setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false });
     },
     onError: () => {
-      toast({ title: "خطأ", description: "لم نتمكن من حذف البيانات.", variant: "destructive" });
+      toast({ title: "خطأ", description: "لم نتمكن من حذف البيانات المحددة.", variant: "destructive" });
     }
   });
 
-  const handleDeleteAllData = () => {
-    if (!user) return;
-    deleteAllDataMutation.mutate();
+  const handleCustomDelete = () => {
+    if (!user || !Object.values(deleteOptions).some(v => v)) return;
+    resetDataMutation.mutate(deleteOptions);
   };
 
   const isLoading = isSettingsLoading || isExpensesLoading || isIncomesLoading;
@@ -631,7 +674,7 @@ export default function SettingsPage() {
                       name="type"
                       control={incomeForm.control}
                       render={({ field }) => (
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <SelectTrigger id="income-type">
                                 <SelectValue placeholder="اختر النوع" />
                             </SelectTrigger>
@@ -875,28 +918,52 @@ export default function SettingsPage() {
             <div className="pt-4 border-t">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                    <Button className="w-full" variant="destructive" disabled={deleteAllDataMutation.isPending}>
-                        {deleteAllDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+                    <Button className="w-full" variant="destructive">
                         <Trash2Icon className="ml-2 h-4 w-4" />
-                        حذف جميع البيانات (تصفير التطبيق)
+                        حذف وتصفير البيانات
                     </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                        <AlertDialogTitle>حذف وتصفير البيانات</AlertDialogTitle>
                         <AlertDialogDescription>
-                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والأهداف والدخل والإعدادات بشكل دائم من حسابك السحابي.
+                            اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="font-semibold text-foreground">بيانات المعاملات:</div>
+                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
+                            <Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} />
+                            <Label htmlFor="delete-expenses" className="font-normal">حذف جميع المصاريف</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
+                            <Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} />
+                            <Label htmlFor="delete-goals" className="font-normal">حذف جميع الأهداف المالية</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
+                            <Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} />
+                            <Label htmlFor="delete-incomes" className="font-normal">حذف جميع مصادر الدخل</Label>
+                        </div>
+                        <Separator />
+                        <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
+                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
+                            <Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} />
+                            <Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والفئات</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
+                            <Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} />
+                            <Label htmlFor="delete-profile-settings" className="font-normal">تصفير الملف الشخصي</Label>
+                        </div>
+                    </div>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteAllData}>نعم، قم بالحذف</AlertDialogAction>
+                        <AlertDialogCancel onClick={() => setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false })}>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>
+                            {resetDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+                            نعم، قم بالحذف
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                  استخدم هذا الخيار لبدء سجل مصاريف جديد من الصفر.
-              </p>
             </div>
         </CardContent>
       </Card>
