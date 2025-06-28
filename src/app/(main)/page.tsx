@@ -46,6 +46,11 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
   return <LucideIcon className={className} />;
 };
 
+// Define stable default objects outside the component to prevent re-creation on each render.
+const DEFAULT_BUDGET_SETTINGS: UserBudgetSettings = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
+const DEFAULT_CATEGORY_BUDGETS = {};
+const DEFAULT_USER_PROFILE = null;
+
 // Main Dashboard Component
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -65,12 +70,12 @@ export default function DashboardPage() {
       enabled: !!user,
   });
 
-  // Memoize derived settings to prevent an infinite loop in the financialCoach useEffect
+  // Memoize derived settings to prevent an infinite loop. Using stable default objects is key.
   const { userBudget, categoryBudgets, userProfile } = useMemo(() => {
     return {
-      userBudget: userSettings?.budget || { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
-      categoryBudgets: userSettings?.categoryBudgets || {},
-      userProfile: userSettings?.profile || null,
+      userBudget: userSettings?.budget || DEFAULT_BUDGET_SETTINGS,
+      categoryBudgets: userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS,
+      userProfile: userSettings?.profile || DEFAULT_USER_PROFILE,
     };
   }, [userSettings]);
   
