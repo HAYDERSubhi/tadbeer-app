@@ -14,7 +14,7 @@ import {
     setDoc,
     writeBatch
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings } from '@/types';
+import type { Expense, Goal, UserSettings, Income } from '@/types';
 
 // =================================
 // Expenses Service
@@ -89,6 +89,42 @@ export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdA
 export const deleteGoal = async (uid: string, goalId: string) => {
     const goalDoc = doc(db, `users/${uid}/goals`, goalId);
     await deleteDoc(goalDoc);
+};
+
+// =================================
+// Income Service
+// =================================
+
+export const getIncomes = async (uid: string): Promise<Income[]> => {
+    const incomesCol = collection(db, `users/${uid}/incomes`);
+    const incomeSnapshot = await getDocs(incomesCol);
+    const incomes: Income[] = [];
+    incomeSnapshot.forEach((doc) => {
+        const data = doc.data();
+        incomes.push({
+            id: doc.id,
+            uid,
+            ...data,
+            date: (data.date as Timestamp).toDate().toISOString(),
+            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+        } as Income);
+    });
+    return incomes;
+};
+
+export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'createdAt' | 'uid'>) => {
+    const incomesCol = collection(db, `users/${uid}/incomes`);
+    const docRef = await addDoc(incomesCol, {
+        ...incomeData,
+        date: new Date(incomeData.date),
+        createdAt: serverTimestamp(),
+    });
+    return docRef.id;
+};
+
+export const deleteIncome = async (uid: string, incomeId: string) => {
+    const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
+    await deleteDoc(incomeDoc);
 };
 
 // =================================

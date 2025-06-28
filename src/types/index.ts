@@ -21,6 +21,16 @@ export type Goal = {
   createdAt: string; // ISO string format
 };
 
+export type Income = {
+  id: string;
+  uid: string;
+  title: string;
+  amount: number;
+  type: 'recurring' | 'one-time';
+  date: string; // ISO string format, relevant for one-time income
+  createdAt: string; // ISO string format
+};
+
 export type FamilyMember = {
   id: string;
   type: 'adult' | 'child';

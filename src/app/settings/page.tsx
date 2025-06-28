@@ -1,13 +1,16 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,14 +30,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Expense, UserProfile, FamilyMember, UserSettings } from '@/types';
+import type { Expense, UserProfile, FamilyMember, UserSettings, Income } from '@/types';
 import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection } from '@/services/firestore';
+import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection, getIncomes, addIncome, deleteIncome } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { Separator } from '@/components/ui/separator';
+import { format } from 'date-fns';
+import { arIQ } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 const COLUMN_MAP_CONFIG = {
   title: { label: 'اسم التاجر' },
@@ -60,6 +70,15 @@ const getColumnName = (colIndex: number): string => {
   return name;
 };
 
+const incomeSchema = z.object({
+  title: z.string().min(2, { message: 'اسم المصدر مطلوب' }),
+  amount: z.coerce.number().min(1, { message: 'المبلغ يجب أن يكون أكبر من صفر' }),
+  type: z.enum(['recurring', 'one-time'], { required_error: 'النوع مطلوب' }),
+  date: z.date({ required_error: 'التاريخ مطلوب' }),
+});
+
+type IncomeFormData = z.infer<typeof incomeSchema>;
+
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -77,7 +96,6 @@ export default function SettingsPage() {
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
-  const [monthlyIncomeInput, setMonthlyIncomeInput] = useState('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
   const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
@@ -89,6 +107,12 @@ export default function SettingsPage() {
   const { data: expenses, isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
+    enabled: !!user,
+  });
+
+  const { data: incomes = [], isLoading: isIncomesLoading, isError: isIncomesError, error: incomesError } = useQuery<Income[], Error>({
+    queryKey: ['incomes', user?.uid],
+    queryFn: () => getIncomes(user!.uid),
     enabled: !!user,
   });
 
@@ -136,7 +160,6 @@ export default function SettingsPage() {
       setCategoryBudgets(stringBudgets);
 
       if (userSettings.profile) {
-        setMonthlyIncomeInput(formatNumberWithCommas(userSettings.profile.monthlyIncome));
         setFamilyMembers(userSettings.profile.familyMembers || [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       } else {
         setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
@@ -182,18 +205,32 @@ export default function SettingsPage() {
       }
   });
 
+  const totalRecurringIncome = useMemo(() => {
+    if (isIncomesLoading || !incomes) return userSettings?.profile?.monthlyIncome || 0;
+    return incomes
+        .filter(income => income.type === 'recurring')
+        .reduce((sum, income) => sum + income.amount, 0);
+  }, [incomes, isIncomesLoading, userSettings]);
+
+  useEffect(() => {
+      const userProfile = userSettings?.profile;
+      if (user && userProfile && !isSettingsLoading && !isIncomesLoading) {
+          if (userProfile.monthlyIncome !== totalRecurringIncome) {
+              const updatedProfile = { ...userProfile, monthlyIncome: totalRecurringIncome };
+              updateSettingsMutation.mutate({ profile: updatedProfile });
+          }
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalRecurringIncome, isSettingsLoading, isIncomesLoading, user]);
+
+
   const handleSaveProfile = () => {
-    const income = parseFloat(parseFormattedNumber(monthlyIncomeInput));
-    if (isNaN(income) || income < 0) {
-       toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال رقم صحيح وموجب للدخل الشهري.", variant: "destructive" });
-       return;
-    }
     const areAgesValid = familyMembers.every(m => m.age >= 0 && m.age < 150);
     if (!areAgesValid) {
         toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أعمار صحيحة لجميع أفراد الأسرة.", variant: "destructive" });
         return;
     }
-    const profileToSave: UserProfile = { monthlyIncome: income, familyMembers: familyMembers };
+    const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };
     updateSettingsMutation.mutate({ profile: profileToSave });
   };
 
@@ -216,7 +253,49 @@ export default function SettingsPage() {
     }, {} as Record<string, number>);
     updateSettingsMutation.mutate({ categoryBudgets: numericBudgets });
   };
+
+  // --- Income Management ---
+  const incomeForm = useForm<IncomeFormData>({
+    resolver: zodResolver(incomeSchema),
+    defaultValues: {
+      title: '',
+      amount: 0,
+      date: new Date(),
+    }
+  });
+
+  const addIncomeMutation = useMutation({
+    mutationFn: (newIncome: Omit<Income, 'id'|'createdAt'|'uid'>) => addIncome(user!.uid, newIncome),
+    onSuccess: () => {
+      toast({ title: "تمت الإضافة", description: "تم إضافة مصدر الدخل بنجاح." });
+      queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
+      incomeForm.reset();
+    },
+    onError: () => {
+       toast({ title: "خطأ", description: "فشل إضافة مصدر الدخل.", variant: "destructive" });
+    }
+  });
+
+  const deleteIncomeMutation = useMutation({
+    mutationFn: (incomeId: string) => deleteIncome(user!.uid, incomeId),
+    onSuccess: () => {
+      toast({ title: "تم الحذف", description: "تم حذف مصدر الدخل." });
+      queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
+    },
+    onError: () => {
+      toast({ title: "خطأ", description: "فشل حذف مصدر الدخل.", variant: "destructive" });
+    }
+  });
+
+  const onAddIncome = (data: IncomeFormData) => {
+    if (!user) return;
+    addIncomeMutation.mutate({
+      ...data,
+      date: data.date.toISOString(),
+    });
+  };
   
+  // --- Data Import/Export ---
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error("User not authenticated");
@@ -343,6 +422,7 @@ export default function SettingsPage() {
       if (!user) throw new Error("User not authenticated");
       await deleteCollection(user.uid, 'expenses');
       await deleteCollection(user.uid, 'goals');
+      await deleteCollection(user.uid, 'incomes');
       await updateUserSettings(user.uid, {
         budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
         categoryBudgets: {},
@@ -356,7 +436,6 @@ export default function SettingsPage() {
       setTotalBudgetInput("0");
       setZeroSpendDaysTargetInput("4");
       setCategoryBudgets({});
-      setMonthlyIncomeInput('');
       setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       queryClient.invalidateQueries(); // Force refetch of all data, which should now be empty/default
     },
@@ -370,10 +449,13 @@ export default function SettingsPage() {
     deleteAllDataMutation.mutate();
   };
 
+  const isLoading = isSettingsLoading || isExpensesLoading || isIncomesLoading;
+
   if (isSettingsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
   if (isExpensesError) return <FirestoreErrorAlert error={expensesError} context="بيانات المصاريف للتصدير" />;
+  if (isIncomesError) return <FirestoreErrorAlert error={incomesError} context="بيانات الدخل" />;
 
-  if (isSettingsLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
+  if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6 pb-24">
@@ -419,13 +501,11 @@ export default function SettingsPage() {
             <Input
               id="monthlyIncome"
               type="text"
-              inputMode="decimal"
-              value={monthlyIncomeInput}
-              onChange={handleNumericInputChange(setMonthlyIncomeInput)}
-              onFocus={(e) => { if (e.target.value === '0') setMonthlyIncomeInput(''); }}
-              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setMonthlyIncomeInput('0'); }}
-              placeholder="مثال: 1,500,000"
+              readOnly
+              value={formatNumberWithCommas(totalRecurringIncome)}
+              className="bg-muted/50 font-bold text-lg cursor-not-allowed focus-visible:ring-0"
             />
+            <p className="text-xs text-muted-foreground mt-1">يتم احتساب الدخل الشهري تلقائياً من مجموع مصادر الدخل الشهرية المتكررة أدناه.</p>
           </div>
           <div className="space-y-3">
              <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
@@ -469,6 +549,118 @@ export default function SettingsPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Banknote className="h-6 w-6 text-primary" />
+            إدارة الدخل
+          </CardTitle>
+          <CardDescription>أضف مصادر دخلك، سواء كانت شهرية متكررة أو لمرة واحدة.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form onSubmit={incomeForm.handleSubmit(onAddIncome)} className="p-4 border rounded-lg space-y-4">
+            <h3 className="font-semibold">إضافة مصدر دخل جديد</h3>
+            <div className="space-y-2">
+                <Label htmlFor="income-title">اسم المصدر</Label>
+                <Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />
+                {incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="income-amount">المبلغ (د.ع)</Label>
+                <Input id="income-amount" type="number" {...incomeForm.register('amount')} placeholder="مثال: 1,500,000" />
+                {incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="income-type">النوع</Label>
+                    <Controller
+                      name="type"
+                      control={incomeForm.control}
+                      render={({ field }) => (
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger id="income-type">
+                                <SelectValue placeholder="اختر النوع" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="recurring">شهري متكرر</SelectItem>
+                                <SelectItem value="one-time">لمرة واحدة</SelectItem>
+                            </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label>تاريخ الاستلام</Label>
+                    <Controller
+                      name="date"
+                      control={incomeForm.control}
+                      render={({ field }) => (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ}
+                              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    />
+                    {incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}
+                </div>
+            </div>
+             <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending}>
+                {addIncomeMutation.isPending ? <Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> : <PlusCircle className="ml-2 h-4 w-4" />}
+                إضافة الدخل
+            </Button>
+          </form>
+
+          <Separator className="my-6" />
+
+          <div>
+             <h3 className="text-lg font-medium mb-2">مصادر الدخل الحالية</h3>
+             <div className="space-y-2">
+                {incomes.length === 0 ? (
+                    <p className="text-muted-foreground text-center p-4">لا توجد مصادر دخل مسجلة.</p>
+                ) : (
+                    <ul className="border rounded-lg max-h-60 overflow-y-auto">
+                        {incomes.map(income => (
+                            <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                <div className="flex items-center gap-3">
+                                    <span className={cn("p-2 rounded-full bg-muted", income.type === 'recurring' ? 'text-blue-500' : 'text-green-500')}>
+                                        {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
+                                    </span>
+                                    <div>
+                                        <p className="font-semibold">{income.title}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {income.type === 'recurring' ? 'شهري' : `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}`}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}>
+                                        <Trash2Icon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+             </div>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
@@ -628,7 +820,7 @@ export default function SettingsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
                         <AlertDialogDescription>
-                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والأهداف والإعدادات بشكل دائم من حسابك السحابي.
+                            هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات المصاريف والأهداف والدخل والإعدادات بشكل دائم من حسابك السحابي.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
