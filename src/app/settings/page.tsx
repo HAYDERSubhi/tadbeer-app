@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 const COLUMN_MAP_CONFIG = {
   title: { label: 'اسم التاجر' },
@@ -79,13 +80,13 @@ export default function SettingsPage() {
   const [monthlyIncomeInput, setMonthlyIncomeInput] = useState('');
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
-  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
       queryFn: () => getUserSettings(user!.uid),
       enabled: !!user,
   });
   
-  const { data: expenses, isLoading: isExpensesLoading } = useQuery<Expense[]>({
+  const { data: expenses, isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
     enabled: !!user,
@@ -368,6 +369,9 @@ export default function SettingsPage() {
     if (!user) return;
     deleteAllDataMutation.mutate();
   };
+
+  if (isSettingsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
+  if (isExpensesError) return <FirestoreErrorAlert error={expensesError} context="بيانات المصاريف للتصدير" />;
 
   if (isSettingsLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 

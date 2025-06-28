@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import { getGoals, getExpenses, getUserSettings } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 function PlannerContent() {
   const { user } = useAuth();
@@ -36,19 +37,19 @@ function PlannerContent() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch all necessary data using react-query
-  const { data: goals = [], isLoading: goalsLoading } = useQuery<Goal[]>({
+  const { data: goals = [], isLoading: goalsLoading, isError: goalsIsError, error: goalsError } = useQuery<Goal[], Error>({
     queryKey: ['goals', user?.uid],
     queryFn: () => getGoals(user!.uid),
     enabled: !!user,
   });
 
-  const { data: expenses = [], isLoading: expensesLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading: expensesLoading, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
     enabled: !!user,
   });
   
-  const { data: userSettings, isLoading: settingsLoading } = useQuery({
+  const { data: userSettings, isLoading: settingsLoading, isError: settingsIsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
       queryFn: () => getUserSettings(user!.uid),
       enabled: !!user,
@@ -206,6 +207,10 @@ function PlannerContent() {
     return null;
   }
   
+  if (goalsIsError) return <FirestoreErrorAlert error={goalsError} context="الأهداف" />;
+  if (expensesIsError) return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
+  if (settingsIsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
+
   if (goalsLoading || expensesLoading || settingsLoading) {
       return (
         <div className="space-y-6 pb-24">

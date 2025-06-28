@@ -32,6 +32,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGoals, addGoal, deleteGoal } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 
 const goalSchema = z.object({
@@ -47,7 +48,7 @@ export default function GoalsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: goals = [], isLoading } = useQuery<Goal[]>({
+  const { data: goals = [], isLoading, isError, error } = useQuery<Goal[], Error>({
     queryKey: ['goals', user?.uid],
     queryFn: () => getGoals(user!.uid),
     enabled: !!user,
@@ -106,6 +107,10 @@ export default function GoalsPage() {
     if (!user) return;
     deleteGoalMutation.mutate(goalId);
   };
+
+  if (isError) {
+    return <FirestoreErrorAlert error={error} context="الأهداف المالية" />;
+  }
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;

@@ -11,13 +11,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExpenses, deleteExpense } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading, isError, error } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
     enabled: !!user,
@@ -50,6 +51,10 @@ export default function AllExpensesPage() {
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses]);
 
+
+  if (isError) {
+    return <FirestoreErrorAlert error={error} context="المصاريف" />;
+  }
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;

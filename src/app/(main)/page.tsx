@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History } from "lucide-react";
+import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal } from "lucide-react";
 import type { Expense, UserBudgetSettings, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,6 +29,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getExpenses, deleteExpense, addExpense } from '@/services/firestore';
 import { getUserSettings } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 
 const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -58,13 +59,13 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   // Data fetching using react-query
-  const { data: expenses = [], isLoading: isExpensesLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
     enabled: !!user,
   });
 
-  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
       queryFn: () => getUserSettings(user!.uid),
       enabled: !!user,
@@ -397,6 +398,13 @@ export default function DashboardPage() {
   
   const weeklyTarget = userBudget.totalBudget > 0 ? userBudget.totalBudget / 4 : 0;
 
+
+  if (isExpensesError) {
+    return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
+  }
+  if (isSettingsError) {
+    return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
+  }
 
   if (isExpensesLoading || isSettingsLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;

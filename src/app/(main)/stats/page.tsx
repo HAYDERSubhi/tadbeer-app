@@ -25,6 +25,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import { getExpenses, getUserSettings } from '@/services/firestore';
+import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 
 
 // Chart config using keys from defaultCategories
@@ -62,13 +63,13 @@ interface CategorySummaryItem {
 export default function StatisticsPage() {
   const { user } = useAuth();
 
-  const { data: expenses = [], isLoading: isExpensesLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
     queryKey: ['expenses', user?.uid],
     queryFn: () => getExpenses(user!.uid),
     enabled: !!user,
   });
 
-  const { data: userSettings, isLoading: isSettingsLoading } = useQuery({
+  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
       queryFn: () => getUserSettings(user!.uid),
       enabled: !!user,
@@ -323,8 +324,10 @@ export default function StatisticsPage() {
       }
     };
 
-    getForecast();
-  }, [expenses]);
+    if (!isExpensesLoading) {
+      getForecast();
+    }
+  }, [expenses, isExpensesLoading]);
 
   const formatYAxisTick = (tick: any) => {
     const value = Number(tick);
@@ -340,6 +343,10 @@ export default function StatisticsPage() {
   };
 
   const isLoading = isExpensesLoading || isSettingsLoading;
+  
+  if (isExpensesError) return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
+  if (isSettingsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
+
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
