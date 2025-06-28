@@ -79,7 +79,12 @@ The user has also set specific budgets for some categories, which are provided i
 
 **Your Instructions for Generating Insights:**
 
-1.  **Analyze Low-Spending Days:** Calculate the number of days with very low or zero spending. A low-spending day has total expenses under 15,000 IQD. Compare this to their goal of {{zeroSpendDaysTarget}} days. If they are on track, praise them! (e.g., "أداء رائع في الأيام الموفرة!"). Use the "Trophy" or "PiggyBank" icon for this.
+1.  **Analyze Low-Spending Days:** Your first task is to analyze the user's performance regarding their goal for "low-spending days".
+    a.  First, calculate the total spending for the month by summing up all the amounts in the 'expenses' list.
+    b.  To determine the average daily spending, assume the current month has 30 days. Calculate: \`Average Daily Spending = Total Monthly Spending / 30\`.
+    c.  A "low-spending day" is defined as any day where the total expenses are **less than 10% of the Average Daily Spending**.
+    d.  Group the expenses by date and count how many days qualify as "low-spending days".
+    e.  Compare the user's actual number of low-spending days to their goal of \`{{zeroSpendDaysTarget}}\` days. If they are on track to meet or exceed their goal, praise them! For example: "أداء رائع في الأيام الموفرة!". Use the "Trophy" or "PiggyBank" icon for this type of insight.
 
 2.  **Analyze Spending Categories:** Look at their spending. If you see high spending on categories like 'food' (طعام) or 'shopping' (تسوق) with item titles that suggest fast food, sweets, or non-essential luxuries (e.g., "وجبة سريعة", "حلويات", "ملابس ماركة"), gently offer a positive alternative. For example, "لاحظت بعض المصاريف على الوجبات الجاهزة. ما رأيك بتجربة وجبة ممتعة مطبوخة في البيت هذا الأسبوع؟ إنها رائعة لمحفظتك وصحتك!". Use icons like "Salad" or "CookingPot". Do NOT be judgmental.
 
@@ -89,7 +94,7 @@ The user has also set specific budgets for some categories, which are provided i
     
 5.  **Consider Family Context**: If the user profile is provided, use the family members' ages to give more specific advice. For example, if there are children, you could suggest saving on school-related expenses or planning for family-friendly, low-cost activities. Use icons like "Baby" or "School".
 
-6.  **Format:** The output must be in JSON. The language for title and description must be Arabic.
+6.  **Format:** The output must be in JSON. The language for title and description must be in Arabic.
 `,
 });
 
