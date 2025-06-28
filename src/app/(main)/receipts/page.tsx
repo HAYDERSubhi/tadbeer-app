@@ -17,7 +17,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import type { Point, Area } from 'react-easy-crop';
@@ -268,6 +268,10 @@ export default function DetailedReceiptPage() {
             {/* Camera Dialog */}
             <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
                  <DialogContent className="p-0 w-screen h-screen max-w-full rounded-none sm:rounded-lg sm:max-w-3xl sm:w-full sm:h-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-0">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>واجهة الكاميرا</DialogTitle>
+                        <DialogDescription>استخدم كاميرا جهازك لالتقاط صورة للفاتورة.</DialogDescription>
+                    </DialogHeader>
                     <div className="relative w-full h-full bg-black">
                         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                         <canvas ref={photoRef} className="hidden" />
