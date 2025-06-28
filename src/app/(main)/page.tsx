@@ -71,13 +71,9 @@ export default function DashboardPage() {
   });
 
   // Memoize derived settings to prevent an infinite loop. Using stable default objects is key.
-  const { userBudget, categoryBudgets, userProfile } = useMemo(() => {
-    return {
-      userBudget: userSettings?.budget || DEFAULT_BUDGET_SETTINGS,
-      categoryBudgets: userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS,
-      userProfile: userSettings?.profile || DEFAULT_USER_PROFILE,
-    };
-  }, [userSettings]);
+  const userBudget = useMemo(() => userSettings?.budget || DEFAULT_BUDGET_SETTINGS, [userSettings]);
+  const categoryBudgets = useMemo(() => userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS, [userSettings]);
+  const userProfile = useMemo(() => userSettings?.profile || DEFAULT_USER_PROFILE, [userSettings]);
   
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
