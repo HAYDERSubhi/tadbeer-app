@@ -79,9 +79,7 @@ export default function StatisticsPage() {
 
   // Filter state
   const [view, setView] = useState<'month' | 'year'>('month');
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]); // "YYYY-MM" format
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
@@ -92,26 +90,42 @@ export default function StatisticsPage() {
 
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  useEffect(() => {
-    if (expenses.length > 0) {
-        const dates = expenses.map(e => parseISO(e.date));
-        const uniqueYears = Array.from(new Set(dates.map(d => getYear(d)))).sort((a,b) => b-a);
-        setAvailableYears(uniqueYears);
+  // Derive available years and months from expenses data.
+  // This is more efficient than using state and useEffect for derived data.
+  const availableYears = useMemo(() => {
+    if (expenses.length === 0) return [];
+    const dates = expenses.map(e => {
+        try { return parseISO(e.date); } catch { return null; }
+    }).filter(Boolean) as Date[];
+    return Array.from(new Set(dates.map(d => getYear(d)))).sort((a, b) => b - a);
+  }, [expenses]);
 
-        const uniqueMonths = Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a,b) => b.localeCompare(a));
-        setAvailableMonths(uniqueMonths);
-        
-        if (uniqueYears.length > 0 && !uniqueYears.includes(selectedYear)) {
-            setSelectedYear(uniqueYears[0]);
+  const availableMonths = useMemo(() => {
+    if (expenses.length === 0) return [];
+    const dates = expenses.map(e => {
+        try { return parseISO(e.date); } catch { return null; }
+    }).filter(Boolean) as Date[];
+    return Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a, b) => b.localeCompare(a));
+  }, [expenses]);
+
+  // This effect safely synchronizes the selected filter with the available options.
+  // It runs only when the available options change (i.e., when expenses change).
+  // Using the functional form of setState prevents an infinite loop.
+  useEffect(() => {
+    setSelectedYear(currentYear => {
+        if (availableYears.length > 0 && !availableYears.includes(currentYear)) {
+            return availableYears[0];
         }
-        if (uniqueMonths.length > 0 && !uniqueMonths.includes(selectedMonth)) {
-            setSelectedMonth(uniqueMonths[0]);
+        return currentYear;
+    });
+    
+    setSelectedMonth(currentMonth => {
+        if (availableMonths.length > 0 && !availableMonths.includes(currentMonth)) {
+            return availableMonths[0];
         }
-    } else {
-        setAvailableYears([]);
-        setAvailableMonths([]);
-    }
-  }, [expenses, selectedMonth, selectedYear]);
+        return currentMonth;
+    });
+  }, [availableYears, availableMonths]);
   
   const {
     pieChartData,
@@ -140,8 +154,16 @@ export default function StatisticsPage() {
       periodEnd = endOfYear(new Date(selectedYear, 0, 1));
     } else {
       // 'month' view
-      periodStart = parseISO(`${selectedMonth}-01`);
-      periodEnd = endOfMonth(periodStart);
+      const yearFromMonth = parseInt(selectedMonth.substring(0, 4), 10);
+      const monthFromMonth = parseInt(selectedMonth.substring(5, 7), 10) - 1;
+
+      if(isNaN(yearFromMonth) || isNaN(monthFromMonth)) {
+          periodStart = new Date();
+          periodEnd = new Date();
+      } else {
+         periodStart = startOfMonth(new Date(yearFromMonth, monthFromMonth));
+         periodEnd = endOfMonth(periodStart);
+      }
     }
 
     currentFilteredExpenses = expenses.filter(exp => {
@@ -501,7 +523,7 @@ export default function StatisticsPage() {
             اتجاه المصاريف
           </CardTitle>
           <CardDescription>
-            {view === 'year' ? `شهريًا لعام ${selectedYear}` : `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}`}
+            {view === 'year' ? `شهريًا لعام ${selectedYear}` : trendChartData.length > 0 ? `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}` : ''}
           </CardDescription>
           {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
