@@ -12,7 +12,8 @@ import {
     serverTimestamp,
     getDoc,
     setDoc,
-    writeBatch
+    writeBatch,
+    updateDoc
 } from 'firebase/firestore';
 import type { Expense, Goal, UserSettings, Income } from '@/types';
 
@@ -120,6 +121,15 @@ export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'cr
         createdAt: serverTimestamp(),
     });
     return docRef.id;
+};
+
+export const updateIncome = async (uid: string, incomeId: string, incomeData: Partial<Omit<Income, 'id' | 'createdAt' | 'uid'>>) => {
+    const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
+    const dataToUpdate: { [key: string]: any } = { ...incomeData };
+    if (incomeData.date) {
+        dataToUpdate.date = new Date(incomeData.date);
+    }
+    await updateDoc(incomeDoc, dataToUpdate);
 };
 
 export const deleteIncome = async (uid: string, incomeId: string) => {

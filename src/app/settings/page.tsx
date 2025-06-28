@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -36,7 +36,7 @@ import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection, getIncomes, addIncome, deleteIncome } from '@/services/firestore';
+import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection, getIncomes, addIncome, deleteIncome, updateIncome } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
@@ -97,6 +97,7 @@ export default function SettingsPage() {
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
 
   const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
       queryKey: ['userSettings', user?.uid],
@@ -121,7 +122,6 @@ export default function SettingsPage() {
     const numericString = String(value).replace(/,/g, '');
     const number = Number(numericString);
     if (isNaN(number)) return '';
-    if (number === 0) return '0';
     return new Intl.NumberFormat('en-US').format(number);
   };
 
@@ -269,10 +269,23 @@ export default function SettingsPage() {
     onSuccess: () => {
       toast({ title: "تمت الإضافة", description: "تم إضافة مصدر الدخل بنجاح." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
-      incomeForm.reset();
+      incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
     },
     onError: () => {
        toast({ title: "خطأ", description: "فشل إضافة مصدر الدخل.", variant: "destructive" });
+    }
+  });
+
+  const updateIncomeMutation = useMutation({
+    mutationFn: ({ incomeId, incomeData }: { incomeId: string, incomeData: Partial<Omit<Income, 'id'|'createdAt'|'uid'>> }) => updateIncome(user!.uid, incomeId, incomeData),
+    onSuccess: () => {
+      toast({ title: "تم التحديث", description: "تم تحديث مصدر الدخل بنجاح." });
+      queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
+      setEditingIncomeId(null);
+      incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
+    },
+    onError: () => {
+       toast({ title: "خطأ", description: "فشل تحديث مصدر الدخل.", variant: "destructive" });
     }
   });
 
@@ -287,12 +300,33 @@ export default function SettingsPage() {
     }
   });
 
-  const onAddIncome = (data: IncomeFormData) => {
+  const onIncomeSubmit = (data: IncomeFormData) => {
     if (!user) return;
-    addIncomeMutation.mutate({
+    const incomePayload = {
       ...data,
       date: data.date.toISOString(),
+    };
+  
+    if (editingIncomeId) {
+      updateIncomeMutation.mutate({ incomeId: editingIncomeId, incomeData: incomePayload });
+    } else {
+      addIncomeMutation.mutate(incomePayload);
+    }
+  };
+  
+  const handleEditClick = (income: Income) => {
+    setEditingIncomeId(income.id);
+    incomeForm.reset({
+        title: income.title,
+        amount: income.amount,
+        type: income.type,
+        date: new Date(income.date),
     });
+  };
+
+  const cancelEdit = () => {
+    setEditingIncomeId(null);
+    incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
   };
   
   // --- Data Import/Export ---
@@ -559,8 +593,8 @@ export default function SettingsPage() {
           <CardDescription>أضف مصادر دخلك، سواء كانت شهرية متكررة أو لمرة واحدة.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <form onSubmit={incomeForm.handleSubmit(onAddIncome)} className="p-4 border rounded-lg space-y-4">
-            <h3 className="font-semibold">إضافة مصدر دخل جديد</h3>
+          <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="p-4 border rounded-lg space-y-4">
+            <h3 className="font-semibold">{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</h3>
             <div className="space-y-2">
                 <Label htmlFor="income-title">اسم المصدر</Label>
                 <Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />
@@ -568,7 +602,26 @@ export default function SettingsPage() {
             </div>
              <div className="space-y-2">
                 <Label htmlFor="income-amount">المبلغ (د.ع)</Label>
-                <Input id="income-amount" type="number" {...incomeForm.register('amount')} placeholder="مثال: 1,500,000" />
+                <Controller
+                  name="amount"
+                  control={incomeForm.control}
+                  render={({ field: { onChange, value, ...restField } }) => (
+                    <Input
+                      {...restField}
+                      id="income-amount"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="مثال: 1,500,000"
+                      value={value === 0 ? '' : formatNumberWithCommas(value)}
+                      onChange={(e) => {
+                          const parsed = parseFormattedNumber(e.target.value);
+                          if (parsed === '' || !isNaN(Number(parsed))) {
+                              onChange(parsed === '' ? 0 : Number(parsed));
+                          }
+                      }}
+                    />
+                  )}
+                />
                 {incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -618,10 +671,17 @@ export default function SettingsPage() {
                     {incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}
                 </div>
             </div>
-             <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending}>
-                {addIncomeMutation.isPending ? <Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> : <PlusCircle className="ml-2 h-4 w-4" />}
-                إضافة الدخل
-            </Button>
+            <div className="flex w-full items-center gap-2">
+               {editingIncomeId && (
+                  <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
+                    إلغاء
+                  </Button>
+                )}
+                <Button type="submit" className="flex-1" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>
+                  {(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+                  {editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدخل</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدخل</>}
+                </Button>
+            </div>
           </form>
 
           <Separator className="my-6" />
@@ -646,11 +706,16 @@ export default function SettingsPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className='flex items-center'>
                                     <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}>
-                                        <Trash2Icon className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex items-center gap-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>
+                                            <PencilIcon className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}>
+                                            <Trash2Icon className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </li>
                         ))}
