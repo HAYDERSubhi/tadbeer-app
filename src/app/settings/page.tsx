@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -45,6 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert } from '@/components/ui/alert';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -546,6 +547,8 @@ export default function SettingsPage() {
 
   if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
+  const isAnonymous = user?.isAnonymous ?? true;
+
   return (
     <div className="space-y-6 pb-24">
       <Card>
@@ -582,13 +585,23 @@ export default function SettingsPage() {
             <UserCircle className="h-6 w-6 text-primary" />
             إدارة الحساب
           </CardTitle>
-          <CardDescription>عرض البريد الإلكتروني لحسابك وتسجيل الخروج.</CardDescription>
+          <CardDescription>عرض معلومات حسابك وتسجيل الخروج.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            <div className='p-3 border rounded-lg'>
-                <Label>البريد الإلكتروني المسجل</Label>
-                <p className="text-muted-foreground font-semibold">{user?.email}</p>
-            </div>
+            {isAnonymous ? (
+                <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <CardTitle>أنت تستخدم حساب زائر</CardTitle>
+                    <CardDescription>
+                       بياناتك محفوظة على هذا الجهاز فقط. للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب جديد دائم.
+                    </CardDescription>
+                </Alert>
+            ) : (
+                <div className='p-3 border rounded-lg'>
+                    <Label>البريد الإلكتروني المسجل</Label>
+                    <p className="text-muted-foreground font-semibold">{user?.email}</p>
+                </div>
+            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="w-full">
@@ -1029,3 +1042,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
