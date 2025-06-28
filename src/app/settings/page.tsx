@@ -450,19 +450,34 @@ export default function SettingsPage() {
       const newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[] = [];
       parsedDataCache.forEach((row, rowIndex) => {
         if (!row || row.every(cell => cell === null || cell === undefined || String(cell).trim() === '')) return;
+        
         const getCellData = (fieldName: keyof typeof COLUMN_MAP_CONFIG): any => {
             const colIndex = columnMap[fieldName];
             return (colIndex === null || colIndex === undefined) ? null : row[colIndex];
         };
-        const title = String(getCellData('title') || `مصروف مستورد - صف ${rowIndex + 2}`).trim();
-        const amount = parseFloat(String(getCellData('amount')).replace(/[^0-9.-]+/g,"")) || 0;
+
+        const amountStr = String(getCellData('amount') || '0').replace(/[^0-9.-]+/g,"");
+        const amount = parseFloat(amountStr) || 0;
+
+        if (amount <= 0) return;
+
+        const titleValue = String(getCellData('title') || '').trim();
+        const title = titleValue || `مصروف مستورد - صف ${rowIndex + 2}`;
+        
         const categoryName = String(getCellData('category') || '').trim().normalize("NFKD");
         const category = categoryNameToIdMap.get(categoryName) || 'other';
+
         const rawDate = getCellData('date');
         let date = new Date().toISOString();
-        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) date = rawDate.toISOString();
-        else if (typeof rawDate === 'string' && rawDate && !isNaN(new Date(rawDate).getTime())) date = new Date(rawDate).toISOString();
-        newExpenses.push({ title, amount, category, date, description: String(getCellData('description') || '').trim() || undefined });
+        if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
+          date = rawDate.toISOString();
+        } else if (typeof rawDate === 'string' && rawDate && !isNaN(new Date(rawDate).getTime())) {
+          date = new Date(rawDate).toISOString();
+        }
+        
+        const description = String(getCellData('description') || '').trim() || undefined;
+
+        newExpenses.push({ title, amount, category, date, description });
       });
 
       if (newExpenses.length === 0) {
@@ -1042,5 +1057,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
