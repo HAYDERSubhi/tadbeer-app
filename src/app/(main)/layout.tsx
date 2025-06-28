@@ -4,7 +4,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import AppShell from '@/components/layout/app-shell';
 import PageNavigation from '@/components/layout/page-navigation';
-import { Loader2Icon, Terminal } from 'lucide-react';
+import { Loader2Icon, Terminal, InfoIcon } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function MainLayout({
@@ -140,6 +140,15 @@ export default function MainLayout({
   return (
     <AppShell>
       <div className="flex-1">
+        {user?.isAnonymous && (
+           <Alert variant="default" className="mb-4 bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 text-yellow-900 dark:text-yellow-100 [&>svg]:text-yellow-700 dark:[&>svg]:text-yellow-300">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>ملاحظة حول المزامنة</AlertTitle>
+            <AlertDescription>
+              أنت تستخدم التطبيق كزائر مؤقت. البيانات المحفوظة على هذا الجهاز فقط ولن تظهر على أجهزة أخرى. للمزامنة، سيتم إضافة نظام تسجيل دخول قريباً.
+            </AlertDescription>
+        </Alert>
+        )}
         {children}
       </div>
       <PageNavigation />
