@@ -1,7 +1,7 @@
 // src/hooks/use-auth.tsx
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useMemo } from 'react';
 import {
   onAuthStateChanged,
   User,
@@ -68,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []); // The empty dependency array ensures this effect runs only once on mount.
 
-  const value = { user, loading, authError };
+  // The value provided to the context should be memoized to prevent unnecessary re-renders
+  // of consumers. This was the cause of the infinite loop.
+  const value = useMemo(() => ({ user, loading, authError }), [user, loading, authError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
