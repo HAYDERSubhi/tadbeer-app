@@ -366,7 +366,8 @@ export default function SettingsPage() {
         });
         setIsMappingColumns(false);
     },
-    onError: () => {
+    onError: (e) => {
+      console.error("Import error:", e);
       toast({ title: "فشل الاستيراد", description: "حدث خطأ أثناء حفظ البيانات.", variant: "destructive" });
     }
   });
@@ -463,12 +464,7 @@ export default function SettingsPage() {
 
         const titleValue = String(getCellData('title') || '').trim();
         const descriptionValue = String(getCellData('description') || '').trim();
-
-        // The title is the most important part. Prioritize the column mapped to 'title'.
-        // If it's empty, use the 'description' column value as a fallback, as per user's feedback.
         const title = titleValue || descriptionValue || `مصروف مستورد - صف ${rowIndex + 2}`;
-        
-        // Only set description if the mapped description value is different from what we used for the title.
         const description = (descriptionValue && descriptionValue !== title) ? descriptionValue : undefined;
 
         const categoryName = String(getCellData('category') || '').trim().normalize("NFKD");
@@ -477,12 +473,31 @@ export default function SettingsPage() {
         const rawDate = getCellData('date');
         let date = new Date().toISOString();
         if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
-          date = rawDate.toISOString();
+            date = rawDate.toISOString();
+        } else if (typeof rawDate === 'number' && rawDate > 0) {
+            // Handle Excel date serial number.
+            // 25569 is the number of days between Excel's epoch (1900-01-01, but with a bug) and Unix's epoch (1970-01-01).
+            const jsDate = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
+            if (!isNaN(jsDate.getTime())) {
+                date = jsDate.toISOString();
+            }
         } else if (typeof rawDate === 'string' && rawDate && !isNaN(new Date(rawDate).getTime())) {
-          date = new Date(rawDate).toISOString();
+            date = new Date(rawDate).toISOString();
         }
+        
+        const isOutOfBudgetCell = getCellData('isOutOfBudget');
+        const isOutOfBudget = /^(true|1|نعم|yes)$/i.test(String(isOutOfBudgetCell).trim());
+        const outOfBudgetDetailsValue = String(getCellData('outOfBudgetDetails') || '').trim();
  
-        newExpenses.push({ title, amount, category, date, description });
+        newExpenses.push({ 
+            title, 
+            amount, 
+            category, 
+            date, 
+            description,
+            isOutOfBudget: isOutOfBudget,
+            outOfBudgetDetails: isOutOfBudget ? outOfBudgetDetailsValue : undefined,
+        });
       });
 
       if (newExpenses.length === 0) {
@@ -1062,3 +1077,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
