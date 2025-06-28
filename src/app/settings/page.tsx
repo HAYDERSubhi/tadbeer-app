@@ -463,9 +463,7 @@ export default function SettingsPage() {
         if (amount <= 0) return;
 
         const titleValue = String(getCellData('title') || '').trim();
-        const descriptionValue = String(getCellData('description') || '').trim();
-        const title = titleValue || descriptionValue || `مصروف مستورد - صف ${rowIndex + 2}`;
-        const description = (descriptionValue && descriptionValue !== title) ? descriptionValue : undefined;
+        const title = titleValue || `مصروف مستورد - صف ${rowIndex + 2}`;
 
         const categoryName = String(getCellData('category') || '').trim().normalize("NFKD");
         const category = categoryNameToIdMap.get(categoryName) || 'other';
@@ -475,8 +473,6 @@ export default function SettingsPage() {
         if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
             date = rawDate.toISOString();
         } else if (typeof rawDate === 'number' && rawDate > 0) {
-            // Handle Excel date serial number.
-            // 25569 is the number of days between Excel's epoch (1900-01-01, but with a bug) and Unix's epoch (1970-01-01).
             const jsDate = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
             if (!isNaN(jsDate.getTime())) {
                 date = jsDate.toISOString();
@@ -485,19 +481,30 @@ export default function SettingsPage() {
             date = new Date(rawDate).toISOString();
         }
         
+        // Construct the expense payload, only including optional fields if they have a value.
+        const expensePayload: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
+            title,
+            amount,
+            category,
+            date,
+        };
+
+        const descriptionValue = String(getCellData('description') || '').trim();
+        if (descriptionValue) {
+            expensePayload.description = descriptionValue;
+        }
+
         const isOutOfBudgetCell = getCellData('isOutOfBudget');
         const isOutOfBudget = /^(true|1|نعم|yes)$/i.test(String(isOutOfBudgetCell).trim());
-        const outOfBudgetDetailsValue = String(getCellData('outOfBudgetDetails') || '').trim();
+        if (isOutOfBudget) {
+            expensePayload.isOutOfBudget = true;
+            const outOfBudgetDetailsValue = String(getCellData('outOfBudgetDetails') || '').trim();
+            if (outOfBudgetDetailsValue) {
+                expensePayload.outOfBudgetDetails = outOfBudgetDetailsValue;
+            }
+        }
  
-        newExpenses.push({ 
-            title, 
-            amount, 
-            category, 
-            date, 
-            description,
-            isOutOfBudget: isOutOfBudget,
-            outOfBudgetDetails: isOutOfBudget ? outOfBudgetDetailsValue : undefined,
-        });
+        newExpenses.push(expensePayload);
       });
 
       if (newExpenses.length === 0) {
@@ -1078,3 +1085,4 @@ export default function SettingsPage() {
   );
 }
 
+    
