@@ -61,35 +61,54 @@ export default function DetailedReceiptPage() {
     }, []);
 
     useEffect(() => {
-        const startCamera = async () => {
-            if (videoRef.current) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                    streamRef.current = stream;
-                    videoRef.current.srcObject = stream;
-                } catch (err) {
-                    console.error("Error accessing camera", err);
-                    toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
-                    setIsCameraOpen(false);
-                }
-            }
-        };
-
-        const stopCamera = () => {
+        // If the dialog is not open, ensure the camera is off and do nothing.
+        if (!isCameraOpen) {
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
                 streamRef.current = null;
             }
-        };
-
-        if (isCameraOpen) {
-            startCamera();
-        } else {
-            stopCamera();
+            return;
         }
-
+    
+        let isMounted = true;
+    
+        const startCameraStream = async () => {
+            try {
+                // Request camera access
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                
+                // If the component is still mounted and the video element exists...
+                if (isMounted && videoRef.current) {
+                    // Store the stream so we can stop it later.
+                    streamRef.current = stream;
+                    
+                    // Attach the stream to the video element.
+                    videoRef.current.srcObject = stream;
+                    
+                    // Explicitly play the video to handle browsers where autoplay might fail.
+                    videoRef.current.play().catch(err => {
+                        console.error("Video play failed:", err);
+                        // This could be a source of silent failure, good to log.
+                    });
+                }
+            } catch (err) {
+                console.error("Error accessing camera", err);
+                if (isMounted) {
+                    toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
+                    setIsCameraOpen(false); // Close the dialog on error
+                }
+            }
+        };
+    
+        startCameraStream();
+    
+        // Cleanup function: runs when the component unmounts or `isCameraOpen` changes to false.
         return () => {
-            stopCamera();
+            isMounted = false;
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
+            }
         };
     }, [isCameraOpen, toast]);
 
@@ -261,12 +280,12 @@ export default function DetailedReceiptPage() {
                     <DialogHeader className="p-4">
                         <DialogTitle>التقط صورة للفاتورة</DialogTitle>
                     </DialogHeader>
-                    <div className="relative bg-muted">
+                    <div className="relative bg-black">
                         <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
                         <canvas ref={photoRef} className="hidden" />
                     </div>
                     <DialogFooter className="p-4">
-                        <Button onClick={takePhoto} size="lg">التقاط صورة</Button>
+                        <Button onClick={takePhoto} size="lg" className="w-full">التقاط صورة</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
