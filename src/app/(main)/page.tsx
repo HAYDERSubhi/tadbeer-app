@@ -65,9 +65,14 @@ export default function DashboardPage() {
       enabled: !!user,
   });
 
-  const userBudget = userSettings?.budget || { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
-  const categoryBudgets = userSettings?.categoryBudgets || {};
-  const userProfile = userSettings?.profile || null;
+  // Memoize derived settings to prevent an infinite loop in the financialCoach useEffect
+  const { userBudget, categoryBudgets, userProfile } = useMemo(() => {
+    return {
+      userBudget: userSettings?.budget || { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
+      categoryBudgets: userSettings?.categoryBudgets || {},
+      userProfile: userSettings?.profile || null,
+    };
+  }, [userSettings]);
   
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
@@ -147,7 +152,7 @@ export default function DashboardPage() {
         weeklySpending: spendingByWeek,
         allSortedExpenses: sorted,
     };
-  }, [expenses, userBudget?.totalBudget]);
+  }, [expenses, userBudget]);
 
 
   // Effect for calling the AI coach
