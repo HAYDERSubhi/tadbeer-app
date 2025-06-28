@@ -46,6 +46,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert } from '@/components/ui/alert';
+import { version } from '../../../package.json';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -1076,7 +1077,7 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p>إصدار التطبيق: 1.2.0 (Full Auth)</p>
+          <p>إصدار التطبيق: {version}</p>
           <p>جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
         </CardContent>
       </Card>
