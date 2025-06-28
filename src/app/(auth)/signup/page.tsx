@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2Icon, WalletIcon } from 'lucide-react';
+import { addExpense } from '@/services/firestore';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -37,8 +38,21 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
-      await signUpWithEmailPassword(data.email, data.password);
-      toast({ title: 'تم إنشاء الحساب بنجاح!', description: 'أهلاً بك في مصروفات.' });
+      const userCredential = await signUpWithEmailPassword(data.email, data.password);
+      const newUser = userCredential.user;
+
+      // Add some sample data for a better first-time user experience
+      if (newUser) {
+        const sampleExpenses = [
+          { title: 'قهوة الصباح', amount: 3000, category: 'food', date: new Date().toISOString() },
+          { title: 'تعبئة وقود السيارة', amount: 45000, category: 'private_car', date: new Date(Date.now() - 86400000 * 2).toISOString() },
+          { title: 'فاتورة انترنت', amount: 30000, category: 'subscriptions', date: new Date(Date.now() - 86400000 * 5).toISOString() },
+        ];
+        
+        await Promise.all(sampleExpenses.map(exp => addExpense(newUser.uid, exp)));
+      }
+
+      toast({ title: 'تم إنشاء الحساب بنجاح!', description: 'أهلاً بك. أضفنا لك بعض المصاريف التجريبية لتبدأ.' });
       router.push('/');
     } catch (error: any) {
       const description = error.code === 'auth/email-already-in-use'
