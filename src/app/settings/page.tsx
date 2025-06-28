@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -83,7 +83,7 @@ type IncomeFormData = z.infer<typeof incomeSchema>;
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, signOutUser } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -338,6 +338,16 @@ export default function SettingsPage() {
     incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
   };
   
+  const handleLogout = async () => {
+    try {
+        await signOutUser();
+        toast({ title: 'تم تسجيل الخروج', description: 'نأمل أن نراك قريباً!' });
+        // The main layout will handle the redirect to /login automatically.
+    } catch (error) {
+        toast({ title: 'خطأ', description: 'لم نتمكن من تسجيل خروجك.', variant: 'destructive' });
+    }
+  }
+
   // --- Data Import/Export & Reset ---
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
@@ -564,6 +574,39 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCircle className="h-6 w-6 text-primary" />
+            إدارة الحساب
+          </CardTitle>
+          <CardDescription>عرض البريد الإلكتروني لحسابك وتسجيل الخروج.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className='p-3 border rounded-lg'>
+                <Label>البريد الإلكتروني المسجل</Label>
+                <p className="text-muted-foreground font-semibold">{user?.email}</p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <LogOut className="ml-2 h-4 w-4" />
+                    تسجيل الخروج
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>هل أنت متأكد من رغبتك في تسجيل الخروج؟</AlertDialogTitle>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>تسجيل الخروج</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -976,7 +1019,7 @@ export default function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p>إصدار التطبيق: 1.1.0 (Cloud Sync)</p>
+          <p>إصدار التطبيق: 1.2.0 (Full Auth)</p>
           <p>جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
         </CardContent>
       </Card>

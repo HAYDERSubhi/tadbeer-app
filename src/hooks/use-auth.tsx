@@ -5,15 +5,21 @@ import { useState, useEffect, createContext, useContext, ReactNode, useMemo } fr
 import {
   onAuthStateChanged,
   User,
-  signInAnonymously,
-  FirebaseError
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  FirebaseError,
+  Auth,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth as firebaseAuth } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   authError: FirebaseError | null;
+  signInWithEmailPassword: (email: string, password: string) => Promise<any>;
+  signUpWithEmailPassword: (email: string, password: string) => Promise<any>;
+  signOutUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<FirebaseError | null>(null);
+
+  const auth = firebaseAuth as Auth; // Cast to ensure auth is not null
 
   useEffect(() => {
     if (!auth) {
@@ -34,39 +42,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // This listener's only job is to sync React state with the Firebase auth state.
     const unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
-        setLoading(false); // The loading is finished once we have a definitive user state (or null).
+        setLoading(false);
     });
 
-    // On initial load, if there's no user, attempt to sign in anonymously.
-    // This runs only once.
-    if (!auth.currentUser) {
-        signInAnonymously(auth)
-            .catch((error) => {
-                console.error("Firebase anonymous sign-in failed.", error);
-                // Use property checking for resilience against different error shapes.
-                if (error && typeof error === 'object' && 'code' in error && 'message' in error) {
-                    setAuthError(error as FirebaseError);
-                } else {
-                    setAuthError({
-                        code: 'auth/unknown-error',
-                        message: 'An unknown error occurred during authentication.',
-                        name: 'FirebaseError'
-                    } as FirebaseError);
-                }
-                setLoading(false); // We are done loading, but with an error.
-            });
-    }
-
-    // Cleanup the listener when the component unmounts.
     return () => unsubscribe();
-  }, []); // The empty dependency array ensures this effect runs only once on mount.
+  }, [auth]);
 
-  // The value provided to the context should be memoized to prevent unnecessary re-renders
-  // of consumers.
-  const value = useMemo(() => ({ user, loading, authError }), [user, loading, authError]);
+  const signInWithEmailPassword = (email: string, password: string) => {
+    return signInWithEmailAndPassword(auth, email, password);
+  }
+
+  const signUpWithEmailPassword = (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
+  }
+  
+  const signOutUser = () => {
+    return signOut(auth);
+  }
+
+  const value = useMemo(() => ({ 
+    user, 
+    loading, 
+    authError,
+    signInWithEmailPassword,
+    signUpWithEmailPassword,
+    signOutUser,
+  }), [user, loading, authError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
