@@ -156,62 +156,59 @@ export default function DashboardPage() {
     };
   }, [expenses, userBudget]);
 
-  
-  // Create a stable dependency for the AI coach effect by serializing the data.
-  // This prevents re-running the effect due to object reference changes, which causes an infinite loop.
-  const coachEffectDependencies = JSON.stringify({
-    budget: userBudget,
-    categoryBudgets,
-    profile: userProfile,
-    monthlyExpenses: monthlyExpenses.map(e => ({ // Only include what's necessary for the AI
-      title: e.title,
-      amount: e.amount,
-      category: e.category,
-      date: e.date,
-    }))
-  });
+  // Memoize the input for the financial coach to prevent unnecessary re-renders and AI calls.
+  // This creates a stable, stringified representation of the data needed by the AI.
+  const financialCoachInputString = useMemo(() => {
+    if (monthlyExpenses.length === 0 || !userBudget || userBudget.totalBudget === 0) {
+      return null;
+    }
+    
+    const coachInput = {
+      totalBudget: userBudget.totalBudget,
+      zeroSpendDaysTarget: userBudget.zeroSpendDaysTarget,
+      expenses: monthlyExpenses.map(e => ({
+        title: e.title,
+        amount: e.amount,
+        // The AI needs the category name, not the ID.
+        category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+        date: format(new Date(e.date), 'yyyy-MM-dd'),
+      })),
+      categoryBudgets: categoryBudgets,
+      userProfile: userProfile ? {
+        monthlyIncome: userProfile.monthlyIncome,
+        // The AI doesn't need the local 'id' field for family members.
+        familyMembers: userProfile.familyMembers.map(({ id, ...rest }) => rest),
+      } : undefined,
+    };
+    
+    return JSON.stringify(coachInput);
+  }, [monthlyExpenses, userBudget, categoryBudgets, userProfile]);
 
-  // Effect for calling the AI coach
+
+  // Effect for calling the AI coach. It runs only when the memoized input string changes.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !financialCoachInputString) {
+      setInsights([]); // Set to empty if no data, preventing old insights from showing.
+      return;
+    }
 
     const getInsights = async () => {
-      if (monthlyExpenses.length > 0 && userBudget.totalBudget > 0) {
-        setIsInsightsLoading(true);
-        try {
-          const coachInput = {
-            totalBudget: userBudget.totalBudget,
-            zeroSpendDaysTarget: userBudget.zeroSpendDaysTarget,
-            expenses: monthlyExpenses.map(e => ({
-              title: e.title,
-              amount: e.amount,
-              category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
-              date: format(new Date(e.date), 'yyyy-MM-dd'),
-            })),
-            categoryBudgets: categoryBudgets,
-            userProfile: userProfile ? {
-              monthlyIncome: userProfile.monthlyIncome,
-              familyMembers: userProfile.familyMembers.map(({ id, ...rest }) => rest), // Strip id for AI
-            } : undefined,
-          };
-          const result = await financialCoach(coachInput);
-          setInsights(result.insights);
-        } catch (e) {
-          console.error("Failed to get financial insights", e);
-          setInsights(null);
-        } finally {
-          setIsInsightsLoading(false);
-        }
-      } else {
-        setInsights([]);
+      setIsInsightsLoading(true);
+      try {
+        const parsedInput = JSON.parse(financialCoachInputString);
+        const result = await financialCoach(parsedInput);
+        setInsights(result.insights);
+      } catch (e) {
+        console.error("Failed to get financial insights", e);
+        setInsights(null); // Set to null on error to potentially show an error state.
+      } finally {
+        setIsInsightsLoading(false);
       }
     };
 
     getInsights();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, coachEffectDependencies]);
+  }, [user, financialCoachInputString]);
   
-
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
     onSuccess: () => {
@@ -728,5 +725,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
