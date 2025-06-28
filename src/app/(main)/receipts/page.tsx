@@ -1,24 +1,26 @@
 // src/app/(main)/receipts/page.tsx
 "use client";
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import type { Expense } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon } from 'lucide-react';
+import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import Cropper from 'react-easy-crop';
+import type { Point, Area } from 'react-easy-crop';
+import getCroppedImg from '@/lib/crop-image';
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
 
@@ -27,14 +29,29 @@ export default function DetailedReceiptPage() {
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const [imageFiles, setImageFiles] = useState<File[]>([]);
-    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    // State for the final cropped images
+    const [finalImages, setFinalImages] = useState<{ id: string, src: string }[]>([]);
+
+    // State for the image processing flow
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+    // State for analysis results
     const [analyzedItems, setAnalyzedItems] = useState<EditableItem[]>([]);
     const [storeInfo, setStoreInfo] = useState({ name: '', date: '' });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     
+    // Refs
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const photoRef = useRef<HTMLCanvasElement>(null);
+
+    // Cropper State
+    const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
     const categoryMap = useMemo(() => {
         return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
             acc[id] = name;
@@ -42,55 +59,92 @@ export default function DetailedReceiptPage() {
         }, {} as Record<string, string>);
     }, []);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            const newFiles = Array.from(event.target.files);
-            setImageFiles(prev => [...prev, ...newFiles]);
+    const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
 
-            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-            setImagePreviews(prev => [...prev, ...newPreviews]);
+    const showCroppedImage = useCallback(async () => {
+        if (!imageToCrop || !croppedAreaPixels) return;
+        try {
+            const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+            setFinalImages(prev => [...prev, { id: crypto.randomUUID(), src: croppedImage }]);
+            setImageToCrop(null);
+            setZoom(1);
+            setCrop({ x: 0, y: 0 });
+        } catch (e) {
+            console.error(e);
+            toast({ title: "خطأ في الاقتصاص", description: "لم نتمكن من اقتصاص الصورة.", variant: "destructive" });
+        }
+    }, [imageToCrop, croppedAreaPixels, toast]);
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files.length > 0) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                setImageToCrop(reader.result as string);
+            };
+        }
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset input
         }
     };
     
-    const removeImage = (index: number) => {
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => {
-            const newPreviews = prev.filter((_, i) => i !== index);
-            URL.revokeObjectURL(prev[index]); // Clean up memory
-            return newPreviews;
-        });
+    const openCamera = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setIsCameraOpen(true);
+        } catch (err) {
+            console.error("Error accessing camera", err);
+            toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
+        }
     }
 
+    const takePhoto = () => {
+        if (!videoRef.current || !photoRef.current) return;
+        
+        const video = videoRef.current;
+        const photo = photoRef.current;
+        
+        photo.width = video.videoWidth;
+        photo.height = video.videoHeight;
+        
+        const ctx = photo.getContext('2d');
+        ctx?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+        
+        const dataUri = photo.toDataURL('image/jpeg');
+        setImageToCrop(dataUri);
+        
+        // Stop camera and close dialog
+        if (video.srcObject) {
+            (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+        }
+        setIsCameraOpen(false);
+    }
+    
+    const removeImage = (id: string) => {
+        setFinalImages(prev => prev.filter((img) => img.id !== id));
+    };
+
     const handleAnalyze = async () => {
-        if (imageFiles.length === 0) {
-            toast({ title: "لا توجد صور", description: "الرجاء اختيار صورة واحدة على الأقل.", variant: "destructive" });
+        if (finalImages.length === 0) {
+            toast({ title: "لا توجد صور", description: "الرجاء إضافة صورة واحدة على الأقل.", variant: "destructive" });
             return;
         }
-
         setIsLoading(true);
         setError(null);
         setAnalyzedItems([]);
-
         try {
-            const imagePromises = imageFiles.map(file => {
-                return new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result as string);
-                    reader.onerror = error => reject(error);
-                });
-            });
-
-            const imageDataUris = await Promise.all(imagePromises);
-
             const result = await analyzeDetailedReceipt({
-                receiptImages: imageDataUris,
+                receiptImages: finalImages.map(img => img.src),
                 categories: categoryMap,
             });
-            
             setStoreInfo({ name: result.storeName || '', date: result.transactionDate || '' });
             setAnalyzedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID() })));
-
         } catch (e: any) {
             console.error("Error during detailed analysis:", e);
             setError("حدث خطأ أثناء تحليل الفاتورة. الرجاء التأكد من أن الصور واضحة وحاول مرة أخرى.");
@@ -129,7 +183,7 @@ export default function DetailedReceiptPage() {
     const addMultipleExpensesMutation = useMutation({
         mutationFn: (expenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
             if (!user) throw new Error("User not authenticated");
-            const promises = expenses.map(exp => addExpense(user.uid, exp));
+            const promises = expenses.map(exp => addExpense(user!.uid, exp));
             return Promise.all(promises);
         },
         onSuccess: (result, variables) => {
@@ -139,8 +193,7 @@ export default function DetailedReceiptPage() {
                 description: `تم حفظ ${variables.length} مصروف جديد بنجاح.`,
             });
              // Reset state
-            setImageFiles([]);
-            setImagePreviews([]);
+            setFinalImages([]);
             setAnalyzedItems([]);
             setStoreInfo({name: '', date: ''});
         },
@@ -180,6 +233,48 @@ export default function DetailedReceiptPage() {
 
     return (
         <div className="space-y-6 pb-24">
+            {/* Camera Dialog */}
+            <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
+                <DialogContent className="max-w-3xl p-0">
+                    <DialogHeader className="p-4">
+                        <DialogTitle>التقط صورة للفاتورة</DialogTitle>
+                    </DialogHeader>
+                    <div className="relative">
+                        <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
+                        <canvas ref={photoRef} className="hidden" />
+                    </div>
+                    <DialogFooter className="p-4">
+                        <Button onClick={takePhoto} size="lg">التقاط صورة</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Cropper Dialog */}
+            <Dialog open={!!imageToCrop} onOpenChange={(open) => !open && setImageToCrop(null)}>
+                <DialogContent className="max-w-3xl p-0">
+                    <DialogHeader className="p-4">
+                        <DialogTitle>اقتصاص صورة الفاتورة</DialogTitle>
+                    </DialogHeader>
+                    <div className="relative h-[60vh] bg-muted">
+                        {imageToCrop && (
+                            <Cropper
+                                image={imageToCrop}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={3 / 4}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                            />
+                        )}
+                    </div>
+                    <DialogFooter className="p-4 flex justify-between w-full">
+                        <Button variant="ghost" onClick={() => setImageToCrop(null)}>إلغاء</Button>
+                        <Button onClick={showCroppedImage}><Check className="ml-2 h-4 w-4" /> تأكيد الاقتصاص</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
@@ -187,39 +282,40 @@ export default function DetailedReceiptPage() {
                         تحليل الفواتير المفصلة
                     </CardTitle>
                     <CardDescription>
-                       التقط صورًا واضحة لكل جزء من فاتورتك الطويلة. يمكنك إضافة صور متعددة، وسيقوم الذكاء الاصطناعي بتحليلها جميعًا كمستند واحد.
+                       التقط صورًا واضحة أو قم برفعها من جهازك. يمكنك إضافة صور متعددة، وسيقوم الذكاء الاصطناعي بتحليلها جميعًا.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div 
-                        className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <Upload className="h-12 w-12 text-muted-foreground" />
-                        <p className="mt-2 font-semibold">اضغط هنا لإضافة صور الفاتورة</p>
-                        <p className="text-sm text-muted-foreground">يمكنك اختيار صور متعددة</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="ml-2" />
+                            رفع ملف
+                        </Button>
+                        <Button variant="outline" size="lg" onClick={openCamera}>
+                            <Camera className="ml-2" />
+                            استخدام الكاميرا
+                        </Button>
                     </div>
-                     <Input
+                    <Input
                         type="file"
                         accept="image/*"
-                        multiple
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         className="hidden"
                     />
                     
-                    {imagePreviews.length > 0 && (
+                    {finalImages.length > 0 && (
                         <div>
-                            <h3 className="font-semibold mb-2">الصور المرفوعة ({imagePreviews.length}):</h3>
+                            <h3 className="font-semibold mb-2">الصور المضافة ({finalImages.length}):</h3>
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-2">
-                                {imagePreviews.map((src, index) => (
-                                    <div key={index} className="relative group aspect-[2/3]">
-                                        <Image src={src} alt={`معاينة ${index + 1}`} layout="fill" objectFit="cover" className="rounded-md border" data-ai-hint="receipt paper" />
+                                {finalImages.map((img) => (
+                                    <div key={img.id} className="relative group aspect-[3/4]">
+                                        <Image src={img.src} alt="معاينة الفاتورة" layout="fill" objectFit="cover" className="rounded-md border" data-ai-hint="receipt paper" />
                                         <Button
                                             variant="destructive"
                                             size="icon"
                                             className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                            onClick={() => removeImage(index)}
+                                            onClick={() => removeImage(img.id)}
                                         >
                                             <XCircle className="h-4 w-4" />
                                         </Button>
@@ -229,7 +325,7 @@ export default function DetailedReceiptPage() {
                         </div>
                     )}
                     
-                    <Button onClick={handleAnalyze} disabled={isLoading || imageFiles.length === 0} className="w-full" size="lg">
+                    <Button onClick={handleAnalyze} disabled={isLoading || finalImages.length === 0} className="w-full" size="lg">
                         {isLoading ? <Loader2 className="ml-2 h-5 w-5 animate-spin" /> : <Sparkles className="ml-2 h-5 w-5" />}
                         بدء التحليل الذكي
                     </Button>
@@ -240,7 +336,7 @@ export default function DetailedReceiptPage() {
                  <Card className="text-center py-12">
                     <CardContent className="flex flex-col items-center gap-4">
                         <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                        <p className="text-muted-foreground">جاري تحليل الفاتورة... قد يستغرق هذا بعض الوقت للفواتير الطويلة.</p>
+                        <p className="text-muted-foreground">جاري تحليل الفاتورة... قد يستغرق هذا بعض الوقت.</p>
                     </CardContent>
                 </Card>
             )}
