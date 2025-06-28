@@ -49,7 +49,7 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
 // Define stable default objects outside the component to prevent re-creation on each render.
 const DEFAULT_BUDGET_SETTINGS: UserBudgetSettings = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 const DEFAULT_CATEGORY_BUDGETS = {};
-const DEFAULT_USER_PROFILE = null;
+const DEFAULT_USER_PROFILE: UserProfile | null = null;
 
 // Main Dashboard Component
 export default function DashboardPage() {
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       enabled: !!user,
   });
 
-  // Memoize derived settings to prevent an infinite loop. Using stable default objects is key.
+  // Memoize derived settings to prevent an infinite loop.
   const userBudget = useMemo(() => userSettings?.budget || DEFAULT_BUDGET_SETTINGS, [userSettings]);
   const categoryBudgets = useMemo(() => userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS, [userSettings]);
   const userProfile = useMemo(() => userSettings?.profile || DEFAULT_USER_PROFILE, [userSettings]);
@@ -155,6 +155,19 @@ export default function DashboardPage() {
     };
   }, [expenses, userBudget]);
 
+  // Create a stable dependency for the AI coach effect by serializing the data.
+  // This prevents re-running the effect due to object reference changes, which causes an infinite loop.
+  const coachEffectDependencies = JSON.stringify({
+    budget: userBudget,
+    categoryBudgets,
+    profile: userProfile,
+    monthlyExpenses: monthlyExpenses.map(e => ({ // Only include what's necessary for the AI
+      title: e.title,
+      amount: e.amount,
+      category: e.category,
+      date: e.date,
+    }))
+  });
 
   // Effect for calling the AI coach
   useEffect(() => {
@@ -193,7 +206,8 @@ export default function DashboardPage() {
     };
 
     getInsights();
-  }, [monthlyExpenses, userBudget, categoryBudgets, userProfile, user]);
+  }, [user, coachEffectDependencies]);
+
 
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
