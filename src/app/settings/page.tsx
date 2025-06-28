@@ -49,11 +49,11 @@ import { Alert } from '@/components/ui/alert';
 
 
 const COLUMN_MAP_CONFIG = {
-  title: { label: 'اسم التاجر' },
+  title: { label: 'اسم السلعة / الوصف' },
   amount: { label: 'المبلغ' },
   category: { label: 'الفئة' },
   date: { label: 'التاريخ' },
-  description: { label: 'الوصف' },
+  description: { label: 'ملاحظات (اختياري)' },
   isOutOfBudget: { label: 'خارج الميزانية' },
   outOfBudgetDetails: { label: 'تفاصيل خارج الميزانية' },
 };
@@ -462,8 +462,15 @@ export default function SettingsPage() {
         if (amount <= 0) return;
 
         const titleValue = String(getCellData('title') || '').trim();
-        const title = titleValue || `مصروف مستورد - صف ${rowIndex + 2}`;
+        const descriptionValue = String(getCellData('description') || '').trim();
+
+        // The title is the most important part. Prioritize the column mapped to 'title'.
+        // If it's empty, use the 'description' column value as a fallback, as per user's feedback.
+        const title = titleValue || descriptionValue || `مصروف مستورد - صف ${rowIndex + 2}`;
         
+        // Only set description if the mapped description value is different from what we used for the title.
+        const description = (descriptionValue && descriptionValue !== title) ? descriptionValue : undefined;
+
         const categoryName = String(getCellData('category') || '').trim().normalize("NFKD");
         const category = categoryNameToIdMap.get(categoryName) || 'other';
 
@@ -474,9 +481,7 @@ export default function SettingsPage() {
         } else if (typeof rawDate === 'string' && rawDate && !isNaN(new Date(rawDate).getTime())) {
           date = new Date(rawDate).toISOString();
         }
-        
-        const description = String(getCellData('description') || '').trim() || undefined;
-
+ 
         newExpenses.push({ title, amount, category, date, description });
       });
 
