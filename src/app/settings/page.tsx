@@ -168,9 +168,11 @@ export default function SettingsPage() {
       }, {} as Record<string, string>);
       setCategoryBudgets(stringBudgets);
 
-      if (userSettings.profile) {
-        setFamilyMembers(userSettings.profile.familyMembers || [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
+      const initialFamilyMembers = userSettings.profile?.familyMembers;
+      if (initialFamilyMembers && initialFamilyMembers.length > 0) {
+        setFamilyMembers(initialFamilyMembers);
       } else {
+        // If no members exist, initialize with one default member
         setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       }
     }

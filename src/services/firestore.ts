@@ -146,7 +146,7 @@ const defaultSettings: UserSettings = {
     categoryBudgets: {},
     profile: {
         monthlyIncome: 0,
-        familyMembers: [{ id: 'default-member-id', type: 'adult', age: 30 }]
+        familyMembers: [],
     },
 };
 
@@ -162,11 +162,7 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
             categoryBudgets: { ...defaultSettings.categoryBudgets, ...data.categoryBudgets },
             profile: {
                 ...defaultSettings.profile,
-                ...data.profile,
-                // Ensure familyMembers is a valid array, otherwise use default
-                familyMembers: Array.isArray(data.profile?.familyMembers) && data.profile.familyMembers.length > 0
-                    ? data.profile.familyMembers
-                    : defaultSettings.profile.familyMembers,
+                ...data.profile
             }
         };
         return mergedSettings;

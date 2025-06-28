@@ -39,7 +39,7 @@ export type FamilyMember = {
 
 export type UserProfile = {
   monthlyIncome: number;
-  familyMembers: FamilyMember[];
+  familyMembers?: FamilyMember[];
 };
 
 export type UserBudgetSettings = {
