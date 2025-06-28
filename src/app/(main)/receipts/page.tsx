@@ -46,6 +46,7 @@ export default function DetailedReceiptPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const photoRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
     // Cropper State
     const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
@@ -60,28 +61,38 @@ export default function DetailedReceiptPage() {
     }, []);
 
     useEffect(() => {
-        let stream: MediaStream;
-        const getCameraStream = async () => {
-            if (isCameraOpen && videoRef.current) {
+        const startCamera = async () => {
+            if (videoRef.current) {
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    streamRef.current = stream;
                     videoRef.current.srcObject = stream;
                 } catch (err) {
                     console.error("Error accessing camera", err);
                     toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
-                    setIsCameraOpen(false); // Close dialog on error
+                    setIsCameraOpen(false);
                 }
             }
         };
 
-        getCameraStream();
-
-        return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+        const stopCamera = () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
             }
         };
+
+        if (isCameraOpen) {
+            startCamera();
+        } else {
+            stopCamera();
+        }
+
+        return () => {
+            stopCamera();
+        };
     }, [isCameraOpen, toast]);
+
 
     const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedAreaPixels(croppedAreaPixels);
