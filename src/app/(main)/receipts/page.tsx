@@ -1,7 +1,7 @@
 // src/app/(main)/receipts/page.tsx
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import type { Expense } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +59,30 @@ export default function DetailedReceiptPage() {
         }, {} as Record<string, string>);
     }, []);
 
+    useEffect(() => {
+        let stream: MediaStream;
+        const getCameraStream = async () => {
+            if (isCameraOpen && videoRef.current) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    videoRef.current.srcObject = stream;
+                } catch (err) {
+                    console.error("Error accessing camera", err);
+                    toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
+                    setIsCameraOpen(false); // Close dialog on error
+                }
+            }
+        };
+
+        getCameraStream();
+
+        return () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [isCameraOpen, toast]);
+
     const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedAreaPixels(croppedAreaPixels);
     }, []);
@@ -91,17 +115,8 @@ export default function DetailedReceiptPage() {
         }
     };
     
-    const openCamera = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-            setIsCameraOpen(true);
-        } catch (err) {
-            console.error("Error accessing camera", err);
-            toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
-        }
+    const openCamera = () => {
+        setIsCameraOpen(true);
     }
 
     const takePhoto = () => {
@@ -119,10 +134,6 @@ export default function DetailedReceiptPage() {
         const dataUri = photo.toDataURL('image/jpeg');
         setImageToCrop(dataUri);
         
-        // Stop camera and close dialog
-        if (video.srcObject) {
-            (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-        }
         setIsCameraOpen(false);
     }
     
@@ -239,7 +250,7 @@ export default function DetailedReceiptPage() {
                     <DialogHeader className="p-4">
                         <DialogTitle>التقط صورة للفاتورة</DialogTitle>
                     </DialogHeader>
-                    <div className="relative">
+                    <div className="relative bg-muted">
                         <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
                         <canvas ref={photoRef} className="hidden" />
                     </div>
