@@ -155,6 +155,7 @@ export default function DashboardPage() {
     };
   }, [expenses, userBudget]);
 
+  /*
   // Create a stable dependency for the AI coach effect by serializing the data.
   // This prevents re-running the effect due to object reference changes, which causes an infinite loop.
   const coachEffectDependencies = JSON.stringify({
@@ -207,7 +208,7 @@ export default function DashboardPage() {
 
     getInsights();
   }, [user, coachEffectDependencies]);
-
+  */
 
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
