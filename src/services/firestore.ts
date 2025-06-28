@@ -100,7 +100,7 @@ const defaultSettings: UserSettings = {
     categoryBudgets: {},
     profile: {
         monthlyIncome: 0,
-        familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]
+        familyMembers: [{ id: 'default-member-id', type: 'adult', age: 30 }]
     },
 };
 
@@ -109,10 +109,24 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
     const docSnap = await getDoc(settingsDocRef);
 
     if (docSnap.exists()) {
-        return docSnap.data() as UserSettings;
+        const data = docSnap.data();
+        // Deep merge with defaults to prevent crashes if parts of the settings are missing
+        const mergedSettings: UserSettings = {
+            budget: { ...defaultSettings.budget, ...data.budget },
+            categoryBudgets: { ...defaultSettings.categoryBudgets, ...data.categoryBudgets },
+            profile: {
+                ...defaultSettings.profile,
+                ...data.profile,
+                // Ensure familyMembers is a valid array, otherwise use default
+                familyMembers: Array.isArray(data.profile?.familyMembers) && data.profile.familyMembers.length > 0
+                    ? data.profile.familyMembers
+                    : defaultSettings.profile.familyMembers,
+            }
+        };
+        return mergedSettings;
     } else {
-        // If no settings exist, create with default values
-        await setDoc(settingsDocRef, defaultSettings);
+        // Document doesn't exist, just return the default object.
+        // The first save from the settings page will create the document.
         return defaultSettings;
     }
 };
