@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check } from 'lucide-react';
+import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
@@ -17,7 +17,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import type { Point, Area } from 'react-easy-crop';
@@ -267,17 +267,22 @@ export default function DetailedReceiptPage() {
         <div className="space-y-6 pb-24">
             {/* Camera Dialog */}
             <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-                <DialogContent className="max-w-3xl p-0">
-                    <DialogHeader className="p-4">
-                        <DialogTitle>التقط صورة للفاتورة</DialogTitle>
-                    </DialogHeader>
-                    <div className="relative bg-gray-900">
-                        <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline />
+                 <DialogContent className="p-0 w-screen h-screen max-w-full rounded-none sm:rounded-lg sm:max-w-3xl sm:w-full sm:h-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-0">
+                    <div className="relative w-full h-full bg-black">
+                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                         <canvas ref={photoRef} className="hidden" />
+
+                        <DialogClose className="absolute right-4 top-4 rounded-full p-2 bg-black/50 text-white z-10 ring-offset-0 focus:ring-0">
+                            <X className="h-6 w-6" />
+                            <span className="sr-only">Close</span>
+                        </DialogClose>
+
+                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex justify-center z-10">
+                            <Button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 p-0">
+                                <span className="sr-only">التقاط صورة</span>
+                            </Button>
+                        </div>
                     </div>
-                    <DialogFooter className="p-4">
-                        <Button onClick={takePhoto} size="lg" className="w-full">التقاط صورة</Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 
