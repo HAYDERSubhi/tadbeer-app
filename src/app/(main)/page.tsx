@@ -261,8 +261,8 @@ export default function DashboardPage() {
     try {
       const analysisResult = await recordExpenseWithVoice({ voiceRecordingDataUri: dataUri });
 
-      if (!analysisResult || !analysisResult.amount) {
-        throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل المصروف. يرجى المحاولة بصوت أوضح.");
+      if (!analysisResult || !analysisResult.amount || analysisResult.amount <= 0) {
+        throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل مبلغ صحيح من التسجيل. يرجى المحاولة بصوت أوضح.");
       }
       
       const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
@@ -284,17 +284,18 @@ export default function DashboardPage() {
     }
   }, [addExpenseMutation]);
   
-  const stopVoiceRecording = useCallback(() => {
-    if (voiceMediaRecorderRef.current && isVoiceRecording) {
-      voiceMediaRecorderRef.current.stop();
+  const handleToggleRecording = useCallback(async () => {
+    if (isVoiceRecording) {
+      if (voiceMediaRecorderRef.current) {
+        voiceMediaRecorderRef.current.stop();
+      }
       setIsVoiceRecording(false);
       if (voiceTimerIntervalRef.current) {
         clearInterval(voiceTimerIntervalRef.current);
       }
+      return;
     }
-  }, [isVoiceRecording]);
 
-  const startVoiceRecording = useCallback(async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setVoiceError("الوصول إلى الميكروفون غير مدعوم أو مسموح به.");
       return;
@@ -315,6 +316,14 @@ export default function DashboardPage() {
 
       voiceMediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(voiceAudioChunksRef.current, { type: 'audio/webm' });
+
+        if (audioBlob.size < 1000) { 
+            setIsVoiceLoading(false);
+            setVoiceError("لم يتم تسجيل صوت. يرجى المحاولة مرة أخرى والتحدث بوضوح.");
+            stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
@@ -338,7 +347,7 @@ export default function DashboardPage() {
       setIsVoiceRecording(false);
       setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
     }
-  }, [processVoiceAndSave]);
+  }, [isVoiceRecording, processVoiceAndSave]);
   
   const renderVoiceButtonContent = () => {
     if (isVoiceLoading) {
@@ -362,19 +371,12 @@ export default function DashboardPage() {
     if (isVoiceRecording) {
       return (
         <div className="flex flex-col h-full w-full items-center justify-center gap-4 text-center">
-          {/* Pulsing effect and the new stop button */}
-          <button
-            onClick={stopVoiceRecording}
-            className="relative group"
-            aria-label="إيقاف التسجيل"
-          >
+          <div className="relative group">
             <div className="absolute -inset-2.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
-            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg transition-transform group-hover:scale-110">
+            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
               <Mic className="w-8 h-8" />
             </div>
-          </button>
-
-          {/* Timer */}
+          </div>
           <p className="text-xl font-mono tracking-wider text-foreground">
             {formatTime(voiceRecordingTime)}
           </p>
@@ -382,7 +384,6 @@ export default function DashboardPage() {
       );
     }
 
-    // Default/Idle state
     return (
         <>
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
@@ -503,27 +504,27 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           
-          {/* INLINE VOICE BUTTON */}
-          <div 
-            onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
+          <button
+            onClick={handleToggleRecording}
+            disabled={isVoiceLoading}
             className={cn(
               "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
               isVoiceRecording ? '' : 'gap-3',
-              !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer hover:bg-muted/50",
+              !isVoiceRecording && "cursor-pointer hover:bg-muted/50",
               (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
               voiceError && "ring-2 ring-destructive/50"
             )}
           >
               {renderVoiceButtonContent()}
               {voiceError && (
-                <div className="w-full mt-auto pt-2">
-                  <Button onClick={startVoiceRecording} variant="ghost" size="sm" className="w-full text-xs">
+                <div className="absolute bottom-1 right-1 left-1 px-1">
+                  <Button onClick={(e) => { e.stopPropagation(); handleToggleRecording(); }} variant="ghost" size="sm" className="w-full text-xs">
                      <RefreshCwIcon className="ml-2 h-3 w-3" />
                      {'حاول مرة أخرى'}
                   </Button>
                 </div>
               )}
-          </div>
+          </button>
           
           {/* Manual Entry Dialog */}
           <Dialog>
@@ -731,4 +732,5 @@ export default function DashboardPage() {
     
 
     
+
 
