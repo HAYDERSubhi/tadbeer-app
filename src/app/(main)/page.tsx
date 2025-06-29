@@ -234,11 +234,11 @@ export default function DashboardPage() {
   
   const addExpenseMutation = useMutation({
       mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
-      onSuccess: () => {
+      onSuccess: (docId, variables) => {
           queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
           toast({
               title: "تمت الإضافة بنجاح!",
-              description: `أضيف مصروف صوتي جديد.`,
+              description: `أضيف مصروف "${variables.title}" بمبلغ ${variables.amount.toLocaleString()} د.ع.`,
           });
       },
       onError: (e: any) => {
@@ -249,6 +249,13 @@ export default function DashboardPage() {
   });
 
   // === Voice Recording Functions ===
+  const categoryMap = useMemo(() => {
+      return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
+          acc[id] = name;
+          return acc;
+      }, {} as Record<string, string>);
+  }, []);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
     const secs = (seconds % 60).toString().padStart(2, '0');
@@ -259,16 +266,19 @@ export default function DashboardPage() {
     setIsVoiceLoading(true);
     setVoiceError(null);
     try {
-      const analysisResult = await recordExpenseWithVoice({ voiceRecordingDataUri: dataUri });
+      const analysisResult = await recordExpenseWithVoice({ 
+        voiceRecordingDataUri: dataUri,
+        categories: categoryMap,
+       });
 
       if (!analysisResult || !analysisResult.amount || analysisResult.amount <= 0) {
         throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل مبلغ صحيح من التسجيل. يرجى المحاولة بصوت أوضح.");
       }
       
       const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
-        title: analysisResult.description || `مصروف صوتي (${analysisResult.category})`,
+        title: analysisResult.description || `مصروف صوتي`,
         amount: analysisResult.amount,
-        category: (Object.keys(defaultCategories).find(key => defaultCategories[key as keyof typeof defaultCategories].name === analysisResult.category) || 'other'),
+        category: analysisResult.category, // The AI now returns the ID directly.
         date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
         description: analysisResult.description,
       };
@@ -282,7 +292,7 @@ export default function DashboardPage() {
     } finally {
       setIsVoiceLoading(false);
     }
-  }, [addExpenseMutation]);
+  }, [addExpenseMutation, categoryMap]);
   
   const handleToggleRecording = useCallback(async () => {
     if (isVoiceRecording) {
@@ -370,27 +380,35 @@ export default function DashboardPage() {
     
     if (isVoiceRecording) {
       return (
-        <div className="flex flex-col h-full w-full items-center justify-center gap-4 text-center">
-          <div className="relative group">
-            <div className="absolute -inset-2.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
-            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
-              <Mic className="w-8 h-8" />
+        <div className="flex flex-col h-full w-full items-center justify-center gap-2 text-center">
+            <div className="relative group">
+                 <div className="absolute -inset-1.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
+                 <button 
+                    onClick={handleToggleRecording} 
+                    className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg"
+                    aria-label="إيقاف التسجيل"
+                 >
+                     <StopCircleIcon className="w-8 h-8" />
+                 </button>
             </div>
-          </div>
-          <p className="text-xl font-mono tracking-wider text-foreground">
-            {formatTime(voiceRecordingTime)}
-          </p>
+            <p className="text-lg font-mono tracking-wider text-foreground">
+                {formatTime(voiceRecordingTime)}
+            </p>
         </div>
       );
     }
 
     return (
-        <>
+        <button
+            onClick={handleToggleRecording}
+            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full"
+            aria-label="بدء التسجيل الصوتي"
+        >
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
                 <Mic className={cn("h-8 w-8", "text-rose-600 dark:text-rose-300")} />
             </span>
             <p className="font-semibold">إدخال صوتي</p>
-        </>
+        </button>
     );
   };
   
@@ -504,13 +522,11 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           
-          <button
-            onClick={handleToggleRecording}
-            disabled={isVoiceLoading}
+          <div
             className={cn(
               "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
               isVoiceRecording ? '' : 'gap-3',
-              !isVoiceRecording && "cursor-pointer hover:bg-muted/50",
+              "cursor-pointer hover:bg-muted/50",
               (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
               voiceError && "ring-2 ring-destructive/50"
             )}
@@ -518,13 +534,13 @@ export default function DashboardPage() {
               {renderVoiceButtonContent()}
               {voiceError && (
                 <div className="absolute bottom-1 right-1 left-1 px-1">
-                  <Button onClick={(e) => { e.stopPropagation(); handleToggleRecording(); }} variant="ghost" size="sm" className="w-full text-xs">
+                  <Button onClick={(e) => { e.stopPropagation(); setVoiceError(null); }} variant="ghost" size="sm" className="w-full text-xs">
                      <RefreshCwIcon className="ml-2 h-3 w-3" />
                      {'حاول مرة أخرى'}
                   </Button>
                 </div>
               )}
-          </button>
+          </div>
           
           {/* Manual Entry Dialog */}
           <Dialog>
@@ -732,5 +748,6 @@ export default function DashboardPage() {
     
 
     
+
 
 

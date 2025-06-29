@@ -18,14 +18,17 @@ const RecordExpenseWithVoiceInputSchema = z.object({
     .describe(
       "A voice recording of the expense in Iraqi dialect, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  categories: z
+    .record(z.string(), z.string())
+    .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),
 });
 export type RecordExpenseWithVoiceInput = z.infer<typeof RecordExpenseWithVoiceInputSchema>;
 
 const RecordExpenseWithVoiceOutputSchema = z.object({
   amount: z.number().describe('The amount of the expense.'),
-  category: z.string().describe('The category of the expense.'),
-  date: z.string().describe('The date of the expense.'),
-  description: z.string().optional().describe('A description of the expense.'),
+  category: z.string().describe('The ID of the most appropriate category for the expense from the provided list.'),
+  date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),
+  description: z.string().optional().describe('A short description of the expense.'),
 });
 export type RecordExpenseWithVoiceOutput = z.infer<typeof RecordExpenseWithVoiceOutputSchema>;
 
@@ -37,22 +40,23 @@ const prompt = ai.definePrompt({
   name: 'recordExpenseWithVoicePrompt',
   input: {schema: RecordExpenseWithVoiceInputSchema},
   output: {schema: RecordExpenseWithVoiceOutputSchema},
-  prompt: `You are an AI assistant that helps users record their expenses using voice input in Iraqi dialect.
-  You will receive a voice recording of the expense, and you need to extract the following information:
-  - amount: The amount of the expense.
-  - category: The category of the expense.
-  - date: The date of the expense.
-  - description: A description of the expense.
+  prompt: `You are an AI assistant that helps users record their expenses from a voice note in Iraqi Arabic dialect.
+  You will receive a voice recording of the expense, and you need to extract the information.
 
-  Here is the voice recording: {{media url=voiceRecordingDataUri}}
+  **Instructions:**
+  1.  Listen to the voice recording carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت غراض للبيت بعشرتالاف" (I bought home supplies for 10 thousand).
+  2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
+  3.  From the list of available categories below, choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category should be "private_car". For "غراض للبيت" (home supplies), it should be "home_supplies".
+  4.  Return the extracted information in the required JSON format. The 'category' field must be one of the provided IDs.
 
-  Please provide the information in the following JSON format:
-  {
-    "amount": amount,
-    "category": category,
-    "date": date,
-    "description": description
-  }`,
+  **Available Categories (ID: Name):**
+  {{#each categories}}
+  - {{ @key }}: {{ this }}
+  {{/each}}
+
+  **Voice Recording:**
+  {{media url=voiceRecordingDataUri}}
+  `,
 });
 
 const recordExpenseWithVoiceFlow = ai.defineFlow(
