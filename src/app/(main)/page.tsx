@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal, PencilIcon } from "lucide-react";
-import type { Expense, UserBudgetSettings, UserProfile } from '@/types';
+import type { Expense, UserBudgetSettings, UserProfile, UserSettings } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -66,14 +66,13 @@ export default function DashboardPage() {
     enabled: !!user,
   });
 
-  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
+  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<UserSettings, Error>({
       queryKey: ['userSettings', user?.uid],
       queryFn: () => getUserSettings(user!.uid),
       enabled: !!user,
   });
 
   // Memoize derived settings to prevent an infinite loop.
-  const userBudget = useMemo(() => userSettings?.budget || DEFAULT_BUDGET_SETTINGS, [userSettings]);
   const categoryBudgets = useMemo(() => userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS, [userSettings]);
   const userProfile = useMemo(() => userSettings?.profile || DEFAULT_USER_PROFILE, [userSettings]);
   
@@ -105,10 +104,13 @@ export default function DashboardPage() {
     remainingBudget,
     weeklySpending,
     allSortedExpenses,
+    userBudget,
   } = useMemo(() => {
     const today = new Date();
     const startOfCurrentMonth = startOfMonth(today);
     const endOfCurrentMonth = endOfMonth(today);
+    
+    const userBudget = userSettings?.budget || DEFAULT_BUDGET_SETTINGS;
 
     const currentMonthExpenses = expenses.filter(exp => {
         try {
@@ -150,8 +152,9 @@ export default function DashboardPage() {
         remainingBudget: budgetRemaining,
         weeklySpending: spendingByWeek,
         allSortedExpenses: sorted,
+        userBudget,
     };
-  }, [expenses, userBudget]);
+  }, [expenses, userSettings]);
 
   // Memoize the input for the financial coach to prevent unnecessary re-renders and AI calls.
   // This creates a stable, stringified representation of the data needed by the AI.
@@ -509,15 +512,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3 sm:gap-0 sm:divide-x-reverse sm:divide-x sm:divide-slate-700">
               <div>
                   <p className="text-sm text-slate-400">الميزانية</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{(userBudget?.totalBudget ?? 0).toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المصروف</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{currentExpenses.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{(currentExpenses ?? 0).toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المتبقي</p>
-                  <p className={`text-lg sm:text-xl md:text-2xl font-bold ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+                  <p className={`text-lg sm:text-xl md:text-2xl font-bold ${(remainingBudget ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>{(remainingBudget ?? 0).toLocaleString()} د.ع</p>
               </div>
             </div>
 
