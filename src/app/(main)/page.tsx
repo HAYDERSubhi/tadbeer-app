@@ -362,27 +362,22 @@ export default function DashboardPage() {
     if (isVoiceRecording) {
       return (
         <div className="flex flex-col h-full w-full items-center justify-center gap-4 text-center">
-          {/* Pulsing effect */}
-          <div className="relative">
+          {/* Pulsing effect and the new stop button */}
+          <button
+            onClick={stopVoiceRecording}
+            className="relative group"
+            aria-label="إيقاف التسجيل"
+          >
             <div className="absolute -inset-2.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
-            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
+            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg transition-transform group-hover:scale-110">
               <Mic className="w-8 h-8" />
             </div>
-          </div>
+          </button>
 
-          {/* Timer and Stop Button */}
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-3xl font-mono tracking-wider text-foreground">
-              {formatTime(voiceRecordingTime)}
-            </p>
-            <button
-              onClick={stopVoiceRecording}
-              className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive transition-colors"
-            >
-              <StopCircleIcon className="h-5 w-5" />
-              <span>إيقاف</span>
-            </button>
-          </div>
+          {/* Timer */}
+          <p className="text-xl font-mono tracking-wider text-foreground">
+            {formatTime(voiceRecordingTime)}
+          </p>
         </div>
       );
     }
@@ -736,3 +731,4 @@ export default function DashboardPage() {
     
 
     
+
