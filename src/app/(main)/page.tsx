@@ -361,22 +361,28 @@ export default function DashboardPage() {
     
     if (isVoiceRecording) {
       return (
-        <div className="flex flex-col h-full items-center justify-center space-y-4 w-full">
-          <div className="flex-1 flex flex-col items-center justify-center">
-             <p className="text-sm text-muted-foreground animate-pulse">جاري التسجيل...</p>
-             <p className="text-4xl font-mono tracking-wider text-foreground mt-1">
+        <div className="flex flex-col h-full w-full items-center justify-evenly text-center">
+          {/* Pulsing effect */}
+          <div className="relative">
+            <div className="absolute -inset-2.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
+            <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
+              <Mic className="w-8 h-8" />
+            </div>
+          </div>
+
+          {/* Timer and Stop Button */}
+          <div className="flex flex-col items-center">
+            <p className="text-4xl font-mono tracking-wider text-foreground">
               {formatTime(voiceRecordingTime)}
             </p>
+            <button
+              onClick={stopVoiceRecording}
+              className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <StopCircleIcon className="h-5 w-5" />
+              <span>إيقاف</span>
+            </button>
           </div>
-          <Button
-            onClick={stopVoiceRecording}
-            variant="destructive"
-            size="sm"
-            className="w-full"
-          >
-            <StopCircleIcon />
-            إيقاف
-          </Button>
         </div>
       );
     }
@@ -506,7 +512,8 @@ export default function DashboardPage() {
           <div 
             onClick={!isVoiceRecording && !isVoiceLoading && !voiceError ? startVoiceRecording : undefined}
             className={cn(
-              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
+              "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
+              isVoiceRecording ? '' : 'gap-3',
               !isVoiceRecording && !isVoiceLoading && !voiceError && "cursor-pointer hover:bg-muted/50",
               (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
               voiceError && "ring-2 ring-destructive/50"
