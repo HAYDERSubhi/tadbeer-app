@@ -6,6 +6,7 @@ import { AppProviders } from '@/components/providers';
 export const metadata: Metadata = {
   title: 'مصروفات',
   description: 'تطبيق مالي لإدارة المصروفات الشخصية للمستخدمين الناطقين بالعربية في العراق.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
