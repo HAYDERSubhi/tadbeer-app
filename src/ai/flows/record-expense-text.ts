@@ -11,7 +11,14 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { RecordExpenseWithVoiceOutputSchema } from './record-expense-voice';
+
+// This schema is duplicated from record-expense-voice.ts to avoid exporting a non-function from a 'use server' file.
+const RecordExpenseOutputSchema = z.object({
+  amount: z.number().describe('The amount of the expense.'),
+  category: z.string().describe('The ID of the most appropriate category for the expense from the provided list.'),
+  date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),
+  description: z.string().optional().describe('A short description of the expense.'),
+});
 
 const RecordExpenseWithTextInputSchema = z.object({
   expenseText: z
@@ -22,7 +29,7 @@ const RecordExpenseWithTextInputSchema = z.object({
     .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),
 });
 export type RecordExpenseWithTextInput = z.infer<typeof RecordExpenseWithTextInputSchema>;
-export type RecordExpenseWithTextOutput = z.infer<typeof RecordExpenseWithVoiceOutputSchema>;
+export type RecordExpenseWithTextOutput = z.infer<typeof RecordExpenseOutputSchema>;
 
 
 export async function recordExpenseWithText(input: RecordExpenseWithTextInput): Promise<RecordExpenseWithTextOutput> {
@@ -32,7 +39,7 @@ export async function recordExpenseWithText(input: RecordExpenseWithTextInput): 
 const prompt = ai.definePrompt({
   name: 'recordExpenseWithTextPrompt',
   input: {schema: RecordExpenseWithTextInputSchema},
-  output: {schema: RecordExpenseWithVoiceOutputSchema},
+  output: {schema: RecordExpenseOutputSchema},
   prompt: `You are an AI assistant that helps users record their expenses from a transcribed text in Iraqi Arabic dialect.
   You will receive a text of the expense, and you need to extract the information.
 
@@ -56,7 +63,7 @@ const recordExpenseWithTextFlow = ai.defineFlow(
   {
     name: 'recordExpenseWithTextFlow',
     inputSchema: RecordExpenseWithTextInputSchema,
-    outputSchema: RecordExpenseWithVoiceOutputSchema,
+    outputSchema: RecordExpenseOutputSchema,
   },
   async input => {
     const {output} = await prompt(input);

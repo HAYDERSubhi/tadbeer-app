@@ -25,7 +25,7 @@ const FinancialGoalSchema = z.object({
     targetDate: z.string().describe("The target date to achieve the goal in YYYY-MM-DD format."),
 }).describe("The user's financial goal.");
 
-export const FinancialPlannerInputSchema = z.object({
+const FinancialPlannerInputSchema = z.object({
   userProfile: UserProfileSchema,
   goal: FinancialGoalSchema,
   expenses: z.array(
@@ -47,7 +47,7 @@ const PlanStepSchema = z.object({
     categoryToImpact: z.string().optional().describe("The spending category most impacted by this step (e.g., 'Entertainment', 'Food').")
 });
 
-export const FinancialPlannerOutputSchema = z.object({
+const FinancialPlannerOutputSchema = z.object({
     initialAssessment: z.string().describe("A brief (2-3 sentences) opening assessment of the user's situation regarding their goal, written in a professional and encouraging tone."),
     savingsRequiredPerMonth: z.number().describe("The calculated amount the user must save each month to reach their goal on time."),
     isAchievable: z.boolean().describe("A realistic assessment of whether the goal is achievable with the user's current income and spending habits."),
