@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { WalletIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
+import React from 'react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -30,10 +31,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-
-      <div className="flex flex-1 container mx-auto py-6">
-        <main className="flex-1">{children}</main>
-      </div>
+      
+      {/* The children will be <main> and <PageNavigation> */}
+      {children}
+      
     </div>
   );
 }

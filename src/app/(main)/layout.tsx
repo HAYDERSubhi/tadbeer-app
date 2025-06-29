@@ -54,13 +54,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }
 
   // If there is a user, render the main app shell.
-  // The useEffect above will handle the case where the user logs out.
   if (user) {
     return (
       <AppShell>
-        <div className="flex-1">
+        <main className="container mx-auto flex-1 py-6">
           {children}
-        </div>
+        </main>
         <PageNavigation />
       </AppShell>
     );

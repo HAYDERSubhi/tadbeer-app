@@ -599,12 +599,12 @@ export default function StatisticsPage() {
                               .filter(exp => exp.category === item.id)
                               .sort((a,b) => compareDesc(parseISO(a.date), parseISO(b.date)))
                               .map(expense => (
-                                  <li key={expense.id} className="flex justify-between items-center text-sm animate-in fade-in duration-300">
-                                      <div className="flex flex-col items-start">
-                                          <span className="font-medium text-foreground/90">{expense.title}</span>
-                                          <span className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</span>
+                                  <li key={expense.id} className="flex justify-between items-center gap-4 text-sm animate-in fade-in duration-300">
+                                      <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-foreground/90 truncate">{expense.title}</p>
+                                          <p className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
                                       </div>
-                                      <span className="font-semibold text-foreground/80">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
+                                      <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
                                   </li>
                               ))}
                       </ul>

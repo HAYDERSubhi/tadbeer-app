@@ -446,9 +446,9 @@ export default function DashboardPage() {
               </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
             <div className="text-end">
-              <p className="font-semibold text-foreground">
+              <p className="font-semibold text-foreground whitespace-nowrap">
                   {expense.amount.toLocaleString()}&nbsp;د.ع
               </p>
               <p className="text-sm text-muted-foreground">
