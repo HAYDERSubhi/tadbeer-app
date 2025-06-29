@@ -24,7 +24,7 @@ const RecordExpenseWithVoiceInputSchema = z.object({
 });
 export type RecordExpenseWithVoiceInput = z.infer<typeof RecordExpenseWithVoiceInputSchema>;
 
-const RecordExpenseWithVoiceOutputSchema = z.object({
+export const RecordExpenseWithVoiceOutputSchema = z.object({
   amount: z.number().describe('The amount of the expense.'),
   category: z.string().describe('The ID of the most appropriate category for the expense from the provided list.'),
   date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),

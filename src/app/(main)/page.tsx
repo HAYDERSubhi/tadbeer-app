@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
-import { recordExpenseWithVoice } from '@/ai/flows/record-expense-voice';
+import { recordExpenseWithText } from '@/ai/flows/record-expense-text';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -81,23 +81,19 @@ export default function DashboardPage() {
 
   // === Voice Recording State ===
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
-  const [voiceRecordingTime, setVoiceRecordingTime] = useState(0);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState('');
   
-  const voiceMediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const voiceAudioChunksRef = useRef<Blob[]>([]);
-  const voiceTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recognitionRef = useRef<any | null>(null);
   // =============================
 
    useEffect(() => {
     // Cleanup for voice recorder
     return () => {
-      if (voiceMediaRecorderRef.current && voiceMediaRecorderRef.current.state === 'recording') {
-        voiceMediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      }
-      if (voiceTimerIntervalRef.current) {
-        clearInterval(voiceTimerIntervalRef.current);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
       }
     }
   }, []);
@@ -245,6 +241,11 @@ export default function DashboardPage() {
           console.error("Error adding voice expense:", e);
           const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
           setVoiceError(errorMessage);
+          toast({
+              title: "خطأ في الحفظ",
+              description: errorMessage,
+              variant: "destructive"
+          });
       }
   });
 
@@ -256,108 +257,108 @@ export default function DashboardPage() {
       }, {} as Record<string, string>);
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const secs = (seconds % 60).toString().padStart(2, '0');
-    return `${mins}:${secs}`;
-  };
-
-  const processVoiceAndSave = useCallback(async (dataUri: string) => {
+  const processTranscriptAndSave = useCallback(async (transcript: string) => {
+    if (!transcript.trim()) {
+        setVoiceError("لم يتم التعرف على أي كلام. يرجى المحاولة مرة أخرى.");
+        setIsVoiceLoading(false);
+        return;
+    }
+    
     setIsVoiceLoading(true);
     setVoiceError(null);
+
     try {
-      const analysisResult = await recordExpenseWithVoice({ 
-        voiceRecordingDataUri: dataUri,
-        categories: categoryMap,
-       });
+        const analysisResult = await recordExpenseWithText({
+            expenseText: transcript,
+            categories: categoryMap,
+        });
 
-      if (!analysisResult || !analysisResult.amount || analysisResult.amount <= 0) {
-        throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل مبلغ صحيح من التسجيل. يرجى المحاولة بصوت أوضح.");
-      }
-      
-      const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
-        title: analysisResult.description || `مصروف صوتي`,
-        amount: analysisResult.amount,
-        category: analysisResult.category, // The AI now returns the ID directly.
-        date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
-        description: analysisResult.description,
-      };
+        if (!analysisResult || !analysisResult.amount || analysisResult.amount <= 0) {
+            throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل مبلغ صحيح من النص. يرجى المحاولة بصوت أوضح.");
+        }
 
-      await addExpenseMutation.mutateAsync(newExpense);
+        const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
+            title: analysisResult.description || `مصروف صوتي`,
+            amount: analysisResult.amount,
+            category: analysisResult.category,
+            date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
+            description: analysisResult.description,
+        };
 
+        await addExpenseMutation.mutateAsync(newExpense);
+        
     } catch (e: any) {
-      console.error("Error processing and saving voice expense:", e);
-      const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
-      setVoiceError(errorMessage);
+        console.error("Error processing and saving voice expense:", e);
+        const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
+        setVoiceError(errorMessage);
     } finally {
-      setIsVoiceLoading(false);
+        setIsVoiceLoading(false);
     }
   }, [addExpenseMutation, categoryMap]);
   
-  const handleToggleRecording = useCallback(async () => {
+  const handleToggleRecording = useCallback(() => {
     if (isVoiceRecording) {
-      if (voiceMediaRecorderRef.current) {
-        voiceMediaRecorderRef.current.stop();
-      }
-      setIsVoiceRecording(false);
-      if (voiceTimerIntervalRef.current) {
-        clearInterval(voiceTimerIntervalRef.current);
-      }
+      recognitionRef.current?.stop();
+      // onend will handle the state change
       return;
     }
 
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setVoiceError("الوصول إلى الميكروفون غير مدعوم أو مسموح به.");
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت. الرجاء استخدام متصفح Chrome أو Edge.");
       return;
     }
-    
+
     setVoiceError(null);
-    setVoiceRecordingTime(0);
-    if (voiceTimerIntervalRef.current) clearInterval(voiceTimerIntervalRef.current);
-    voiceAudioChunksRef.current = [];
+    setLiveTranscript('');
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      voiceMediaRecorderRef.current = new MediaRecorder(stream);
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
 
-      voiceMediaRecorderRef.current.ondataavailable = (event) => {
-        voiceAudioChunksRef.current.push(event.data);
-      };
+    recognition.lang = 'ar-IQ';
+    recognition.interimResults = true;
+    recognition.continuous = true; // We will stop it manually
 
-      voiceMediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(voiceAudioChunksRef.current, { type: 'audio/webm' });
+    let finalTranscript = '';
 
-        if (audioBlob.size < 1000) { 
-            setIsVoiceLoading(false);
-            setVoiceError("لم يتم تسجيل صوت. يرجى المحاولة مرة أخرى والتحدث بوضوح.");
-            stream.getTracks().forEach(track => track.stop());
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-          const dataUri = reader.result as string;
-          if (dataUri) {
-            processVoiceAndSave(dataUri);
-          }
-        };
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      voiceMediaRecorderRef.current.start();
+    recognition.onstart = () => {
       setIsVoiceRecording(true);
-      
-      voiceTimerIntervalRef.current = setInterval(() => {
-        setVoiceRecordingTime(prevTime => prevTime + 1);
-      }, 1000);
-      
-    } catch (err) {
-      console.error("Error starting recording:", err);
+    };
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      finalTranscript = '';
+      for (let i = 0; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+      setLiveTranscript(finalTranscript + interimTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+       if (event.error === 'no-speech') {
+             setVoiceError("لم يتم التقاط أي صوت. يرجى المحاولة مرة أخرى.");
+        } else if (event.error === 'not-allowed') {
+             setVoiceError("تم رفض الوصول إلى الميكروفون.");
+        } else {
+             setVoiceError("حدث خطأ أثناء التعرف على الصوت.");
+        }
       setIsVoiceRecording(false);
-      setVoiceError("لم يتمكن من بدء التسجيل. تأكد من صلاحيات الميكروفون.");
-    }
-  }, [isVoiceRecording, processVoiceAndSave]);
+    };
+
+    recognition.onend = () => {
+      setIsVoiceRecording(false);
+      if (finalTranscript.trim()) {
+        processTranscriptAndSave(finalTranscript);
+      }
+    };
+
+    recognition.start();
+  }, [isVoiceRecording, processTranscriptAndSave]);
   
   const renderVoiceButtonContent = () => {
     if (isVoiceLoading) {
@@ -381,18 +382,18 @@ export default function DashboardPage() {
     if (isVoiceRecording) {
       return (
         <div className="flex flex-col h-full w-full items-center justify-center gap-2 text-center">
-            <div className="relative group">
-                 <div className="absolute -inset-1.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
-                 <button 
-                    onClick={handleToggleRecording} 
-                    className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg"
-                    aria-label="إيقاف التسجيل"
-                 >
-                     <StopCircleIcon className="w-8 h-8" />
-                 </button>
-            </div>
-            <p className="text-lg font-mono tracking-wider text-foreground">
-                {formatTime(voiceRecordingTime)}
+            <button 
+              onClick={handleToggleRecording} 
+              className="relative flex items-center justify-center"
+              aria-label="إيقاف التسجيل"
+            >
+               <div className="absolute -inset-2 rounded-full bg-rose-500/20 animate-ping"></div>
+               <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
+                   <Mic className="w-8 h-8" />
+               </div>
+            </button>
+            <p className="text-base font-semibold text-foreground min-h-[24px] mt-2 px-2">
+                {liveTranscript || 'جاري الاستماع...'}
             </p>
         </div>
       );
@@ -525,7 +526,6 @@ export default function DashboardPage() {
           <div
             className={cn(
               "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
-              isVoiceRecording ? '' : 'gap-3',
               "cursor-pointer hover:bg-muted/50",
               (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
               voiceError && "ring-2 ring-destructive/50"
@@ -744,10 +744,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
