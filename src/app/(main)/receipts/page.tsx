@@ -301,6 +301,7 @@ export default function DetailedReceiptPage() {
                         image={imageToCrop}
                         crop={crop}
                         zoom={zoom}
+                        aspect={3 / 4}
                         onCropChange={setCrop}
                         onZoomChange={setZoom}
                         onCropComplete={onCropComplete}
