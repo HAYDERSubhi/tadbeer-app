@@ -361,7 +361,7 @@ export default function DashboardPage() {
     
     if (isVoiceRecording) {
       return (
-        <div className="flex flex-col h-full w-full items-center justify-evenly text-center">
+        <div className="flex flex-col h-full w-full items-center justify-center gap-4 text-center">
           {/* Pulsing effect */}
           <div className="relative">
             <div className="absolute -inset-2.5 rounded-full bg-rose-500/30 animate-ping delay-500"></div>
@@ -371,13 +371,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Timer and Stop Button */}
-          <div className="flex flex-col items-center">
-            <p className="text-4xl font-mono tracking-wider text-foreground">
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-3xl font-mono tracking-wider text-foreground">
               {formatTime(voiceRecordingTime)}
             </p>
             <button
               onClick={stopVoiceRecording}
-              className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive transition-colors"
+              className="inline-flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-destructive transition-colors"
             >
               <StopCircleIcon className="h-5 w-5" />
               <span>إيقاف</span>
