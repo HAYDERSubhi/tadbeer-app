@@ -509,15 +509,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3 sm:gap-0 sm:divide-x-reverse sm:divide-x sm:divide-slate-700">
               <div>
                   <p className="text-sm text-slate-400">الميزانية</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white whitespace-nowrap">{userBudget.totalBudget.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{userBudget.totalBudget.toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المصروف</p>
-                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white whitespace-nowrap">{currentExpenses.toLocaleString()} د.ع</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{currentExpenses.toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المتبقي</p>
-                  <p className={`text-lg sm:text-xl md:text-2xl font-bold whitespace-nowrap ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
+                  <p className={`text-lg sm:text-xl md:text-2xl font-bold ${remainingBudget >= 0 ? 'text-green-400' : 'text-red-400'}`}>{remainingBudget.toLocaleString()} د.ع</p>
               </div>
             </div>
 
@@ -560,7 +560,7 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-4 gap-2 text-center mt-1">
                         {weeklySpending.map((spent, index) => (
                             <div key={index}>
-                                <p className="font-semibold text-white text-sm whitespace-nowrap">{spent.toLocaleString()}</p>
+                                <p className="font-semibold text-white text-sm">{spent.toLocaleString()}</p>
                                 <p className="text-xs text-slate-500">د.ع</p>
                             </div>
                         ))}
