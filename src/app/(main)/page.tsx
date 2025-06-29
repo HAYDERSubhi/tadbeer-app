@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'rea
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal, PencilIcon } from "lucide-react";
-import type { Expense, UserBudgetSettings, UserProfile, UserSettings } from '@/types';
+import type { Expense, UserBudgetSettings, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -27,10 +27,9 @@ import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getExpenses, deleteExpense, addExpense } from '@/services/firestore';
-import { getUserSettings } from '@/services/firestore';
-import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteExpense, addExpense } from '@/services/firestore';
+import { useAppData } from '@/hooks/use-app-data';
 
 
 const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -59,18 +58,8 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Data fetching using react-query
-  const { data: expenses = [], isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
-    queryKey: ['expenses', user?.uid],
-    queryFn: () => getExpenses(user!.uid),
-    enabled: !!user,
-  });
-
-  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<UserSettings, Error>({
-      queryKey: ['userSettings', user?.uid],
-      queryFn: () => getUserSettings(user!.uid),
-      enabled: !!user,
-  });
+  // Get data from the central provider
+  const { expenses, userSettings } = useAppData();
 
   // Memoize derived settings to prevent an infinite loop.
   const categoryBudgets = useMemo(() => userSettings?.categoryBudgets || DEFAULT_CATEGORY_BUDGETS, [userSettings]);
@@ -123,7 +112,7 @@ export default function DashboardPage() {
 
     const totalCurrentExpenses = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-    const budgetRemaining = (userBudget?.totalBudget || 0) - totalCurrentExpenses;
+    const budgetRemaining = (userBudget?.totalBudget ?? 0) - totalCurrentExpenses;
 
     const weeklyIntervals = [
       { start: startOfCurrentMonth, end: new Date(startOfCurrentMonth.getFullYear(), startOfCurrentMonth.getMonth(), 7, 23, 59, 59) },
@@ -417,19 +406,7 @@ export default function DashboardPage() {
   
   // ===================================
   
-  const weeklyTarget = userBudget.totalBudget > 0 ? userBudget.totalBudget / 4 : 0;
-
-
-  if (isExpensesError) {
-    return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
-  }
-  if (isSettingsError) {
-    return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
-  }
-
-  if (isExpensesLoading || isSettingsLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
-  }
+  const weeklyTarget = (userBudget?.totalBudget ?? 0) > 0 ? (userBudget?.totalBudget ?? 0) / 4 : 0;
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -532,7 +509,7 @@ export default function DashboardPage() {
                     <span>الأسبوع 3</span>
                     <span>الأسبوع 4</span>
                 </div>
-                {userBudget.totalBudget > 0 ? (
+                {(userBudget?.totalBudget ?? 0) > 0 ? (
                     <>
                     <div className="flex w-full space-x-2 space-x-reverse">
                         {weeklySpending.map((spent, index) => {
@@ -573,7 +550,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
       
-      {userBudget.totalBudget === 0 && (
+      {(userBudget?.totalBudget ?? 0) === 0 && (
         <div className="text-center p-4 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md">
             <p>لم تقم بتعيين ميزانية شهرية بعد.</p>
             <p className="text-sm">اذهب إلى <Link href="/settings" className="text-primary underline font-semibold">الإعدادات</Link> لتعيين ميزانيتك.</p>

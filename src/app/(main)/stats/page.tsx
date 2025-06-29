@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Loader2Icon, Wand2, ActivityIcon } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Wand2, ActivityIcon } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
@@ -23,9 +23,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery } from '@tanstack/react-query';
-import { getExpenses, getUserSettings } from '@/services/firestore';
-import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { useAppData } from '@/hooks/use-app-data';
 
 
 // Chart config using keys from defaultCategories
@@ -62,18 +60,7 @@ interface CategorySummaryItem {
 
 export default function StatisticsPage() {
   const { user } = useAuth();
-
-  const { data: expenses = [], isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
-    queryKey: ['expenses', user?.uid],
-    queryFn: () => getExpenses(user!.uid),
-    enabled: !!user,
-  });
-
-  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<any, Error>({
-      queryKey: ['userSettings', user?.uid],
-      queryFn: () => getUserSettings(user!.uid),
-      enabled: !!user,
-  });
+  const { expenses, userSettings } = useAppData();
 
   const categoryBudgets = userSettings?.categoryBudgets || {};
 
@@ -346,10 +333,8 @@ export default function StatisticsPage() {
       }
     };
 
-    if (!isExpensesLoading) {
-      getForecast();
-    }
-  }, [expenses, isExpensesLoading]);
+    getForecast();
+  }, [expenses]);
 
   const formatYAxisTick = (tick: any) => {
     const value = Number(tick);
@@ -364,17 +349,7 @@ export default function StatisticsPage() {
     return value.toLocaleString('ar-IQ');
   };
 
-  const isLoading = isExpensesLoading || isSettingsLoading;
-  
-  if (isExpensesError) return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
-  if (isSettingsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
-
-
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
-  }
-
-  if (expenses.length === 0 && !isLoading) {
+  if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
@@ -512,7 +487,7 @@ export default function StatisticsPage() {
                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>
-          ) : (!isLoading && <p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها.</p>)}
+          ) : (<p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 
@@ -543,7 +518,7 @@ export default function StatisticsPage() {
                 <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
               </LineChart>
             </ChartContainer>
-          ) : (!isLoading && <p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
+          ) : (<p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
       
@@ -612,7 +587,7 @@ export default function StatisticsPage() {
                 </AccordionItem>
               ))}
             </Accordion>
-          ) : (!isLoading && 
+          ) : (
                 <div className="px-6 py-10 text-center text-muted-foreground">
                     <p>لا توجد مصاريف لعرضها.</p>
                 </div>

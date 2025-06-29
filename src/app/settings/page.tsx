@@ -35,9 +35,8 @@ import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserSettings, updateUserSettings, getExpenses, addExpense, deleteCollection, getIncomes, addIncome, deleteIncome, updateIncome } from '@/services/firestore';
-import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -47,6 +46,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert } from '@/components/ui/alert';
 import { version } from '../../../package.json';
+import { useAppData } from '@/hooks/use-app-data';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -90,6 +90,8 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { userSettings, expenses, incomes } = useAppData();
+
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
@@ -108,24 +110,6 @@ export default function SettingsPage() {
     incomes: false,
     budgetSettings: false,
     profileSettings: false,
-  });
-
-  const { data: userSettings, isLoading: isSettingsLoading, isError: isSettingsError, error: settingsError } = useQuery<UserSettings, Error>({
-      queryKey: ['userSettings', user?.uid],
-      queryFn: () => getUserSettings(user!.uid),
-      enabled: !!user,
-  });
-  
-  const { data: expenses, isLoading: isExpensesLoading, isError: isExpensesError, error: expensesError } = useQuery<Expense[], Error>({
-    queryKey: ['expenses', user?.uid],
-    queryFn: () => getExpenses(user!.uid),
-    enabled: !!user,
-  });
-
-  const { data: incomes = [], isLoading: isIncomesLoading, isError: isIncomesError, error: incomesError } = useQuery<Income[], Error>({
-    queryKey: ['incomes', user?.uid],
-    queryFn: () => getIncomes(user!.uid),
-    enabled: !!user,
   });
 
   const formatNumberWithCommas = (value: string | number | undefined) => {
@@ -219,22 +203,22 @@ export default function SettingsPage() {
   });
 
   const totalRecurringIncome = useMemo(() => {
-    if (isIncomesLoading || !incomes) return userSettings?.profile?.monthlyIncome || 0;
+    if (!incomes) return userSettings?.profile?.monthlyIncome || 0;
     return incomes
         .filter(income => income.type === 'recurring')
         .reduce((sum, income) => sum + income.amount, 0);
-  }, [incomes, isIncomesLoading, userSettings]);
+  }, [incomes, userSettings]);
 
   useEffect(() => {
       const userProfile = userSettings?.profile;
-      if (user && userProfile && !isSettingsLoading && !isIncomesLoading) {
+      if (user && userProfile && incomes) {
           if (userProfile.monthlyIncome !== totalRecurringIncome) {
               const updatedProfile = { ...userProfile, monthlyIncome: totalRecurringIncome };
               updateSettingsMutation.mutate({ profile: updatedProfile });
           }
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalRecurringIncome, isSettingsLoading, isIncomesLoading, user]);
+  }, [totalRecurringIncome, userSettings, incomes, user]);
 
 
   const handleSaveProfile = () => {
@@ -581,15 +565,7 @@ export default function SettingsPage() {
     if (!user || !Object.values(deleteOptions).some(v => v)) return;
     resetDataMutation.mutate(deleteOptions);
   };
-
-  const isLoading = isSettingsLoading || isExpensesLoading || isIncomesLoading;
-
-  if (isSettingsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
-  if (isExpensesError) return <FirestoreErrorAlert error={expensesError} context="بيانات المصاريف للتصدير" />;
-  if (isIncomesError) return <FirestoreErrorAlert error={incomesError} context="بيانات الدخل" />;
-
-  if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
-
+  
   const isAnonymous = user?.isAnonymous ?? true;
 
   return (
@@ -1011,7 +987,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="w-full" variant="outline" onClick={handleExport} disabled={isExpensesLoading}>تصدير البيانات (Excel)</Button>
+                <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
                 <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
             </div>
@@ -1085,5 +1061,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

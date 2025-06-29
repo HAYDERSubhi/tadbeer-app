@@ -8,6 +8,7 @@ import AppShell from '@/components/layout/app-shell';
 import PageNavigation from '@/components/layout/page-navigation';
 import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -53,15 +54,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // If there is a user, render the main app shell.
+  // If there is a user, render the main app shell with the data provider.
   if (user) {
     return (
-      <AppShell>
-        <main className="container mx-auto flex-1 py-6">
-          {children}
-        </main>
-        <PageNavigation />
-      </AppShell>
+      <AppDataProvider>
+        <AppShell>
+          <main className="container mx-auto flex-1 py-6">
+            {children}
+          </main>
+          <PageNavigation />
+        </AppShell>
+      </AppDataProvider>
     );
   }
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import type { Goal, Expense, UserProfile } from '@/types';
+import type { UserProfile } from '@/types';
 import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
@@ -21,51 +21,31 @@ import {
 } from "@/components/ui/accordion";
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery } from '@tanstack/react-query';
-import { getGoals, getExpenses, getUserSettings } from '@/services/firestore';
-import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { useAppData } from '@/hooks/use-app-data';
 
 function PlannerContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const goalIdFromQuery = searchParams.get('goalId');
 
+  const { goals, expenses, userSettings } = useAppData();
+
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
   
   const [plan, setPlan] = useState<FinancialPlannerOutput | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Fetch all necessary data using react-query
-  const { data: goals = [], isLoading: goalsLoading, isError: goalsIsError, error: goalsError } = useQuery<Goal[], Error>({
-    queryKey: ['goals', user?.uid],
-    queryFn: () => getGoals(user!.uid),
-    enabled: !!user,
-  });
-
-  const { data: expenses = [], isLoading: expensesLoading, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
-    queryKey: ['expenses', user?.uid],
-    queryFn: () => getExpenses(user!.uid),
-    enabled: !!user,
-  });
   
-  const { data: userSettings, isLoading: settingsLoading, isError: settingsIsError, error: settingsError } = useQuery<any, Error>({
-      queryKey: ['userSettings', user?.uid],
-      queryFn: () => getUserSettings(user!.uid),
-      enabled: !!user,
-  });
-  const userProfile = userSettings?.profile;
+  const userProfile: UserProfile | undefined = userSettings?.profile;
 
   // Set initial goal from query params or first available goal
   useEffect(() => {
-    if (goalsLoading) return;
-    
     if (goalIdFromQuery && goals.some(g => g.id === goalIdFromQuery)) {
         setSelectedGoalId(goalIdFromQuery);
     } else if (goals.length > 0) {
         setSelectedGoalId(goals[0].id);
     }
-  }, [goalIdFromQuery, goals, goalsLoading]);
+  }, [goalIdFromQuery, goals]);
   
   const selectedGoal = useMemo(() => goals.find(g => g.id === selectedGoalId), [goals, selectedGoalId]);
 
@@ -174,8 +154,6 @@ function PlannerContent() {
   }
 
   const renderInitialState = () => {
-    if (goalsLoading || settingsLoading) return <Skeleton className='w-full h-48' />;
-    
     if (goals.length === 0) {
         return (
              <Card className="text-center py-12">
@@ -205,20 +183,6 @@ function PlannerContent() {
         )
     }
     return null;
-  }
-  
-  if (goalsIsError) return <FirestoreErrorAlert error={goalsError} context="الأهداف" />;
-  if (expensesIsError) return <FirestoreErrorAlert error={expensesError} context="المصاريف" />;
-  if (settingsIsError) return <FirestoreErrorAlert error={settingsError} context="الإعدادات" />;
-
-  if (goalsLoading || expensesLoading || settingsLoading) {
-      return (
-        <div className="space-y-6 pb-24">
-            <Skeleton className='h-12 w-1/2' />
-            <Skeleton className='h-8 w-1/3' />
-            <Skeleton className='h-48 w-full' />
-        </div>
-      );
   }
 
   return (
