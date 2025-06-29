@@ -51,6 +51,18 @@ export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 
     return docRef.id;
 };
 
+export const updateExpense = async (uid: string, expenseId: string, expenseData: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>>) => {
+    const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
+    const dataToUpdate: { [key: string]: any } = { 
+        ...expenseData,
+        updatedAt: serverTimestamp()
+    };
+    if (expenseData.date) {
+        dataToUpdate.date = new Date(expenseData.date);
+    }
+    await updateDoc(expenseDoc, dataToUpdate);
+};
+
 export const deleteExpense = async (uid: string, expenseId: string) => {
     const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
     await deleteDoc(expenseDoc);

@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, Fragment } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal } from "lucide-react";
+import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal, PencilIcon } from "lucide-react";
 import type { Expense, UserBudgetSettings, UserProfile } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
+import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -381,21 +382,19 @@ export default function DashboardPage() {
     
     if (isVoiceRecording) {
       return (
-        <div className="flex flex-col h-full w-full items-center justify-center gap-2 text-center">
-            <button 
-              onClick={handleToggleRecording} 
-              className="relative flex items-center justify-center"
-              aria-label="إيقاف التسجيل"
-            >
-               <div className="absolute -inset-2 rounded-full bg-rose-500/20 animate-ping"></div>
-               <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
-                   <Mic className="w-8 h-8" />
-               </div>
-            </button>
+        <button
+          onClick={handleToggleRecording}
+          className="relative flex flex-col h-full w-full items-center justify-center gap-2 text-center"
+          aria-label="إيقاف التسجيل"
+        >
+           <div className="absolute -inset-2 rounded-full bg-rose-500/20 animate-ping"></div>
+           <div className="relative flex items-center justify-center w-16 h-16 bg-rose-500 text-white rounded-full shadow-lg">
+               <StopCircleIcon className="w-8 h-8" />
+           </div>
             <p className="text-base font-semibold text-foreground min-h-[24px] mt-2 px-2">
                 {liveTranscript || 'جاري الاستماع...'}
             </p>
-        </div>
+        </button>
       );
     }
 
@@ -427,6 +426,64 @@ export default function DashboardPage() {
 
   if (isExpensesLoading || isSettingsLoading) {
     return <div className="flex justify-center items-center h-screen"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
+  }
+  
+  const ExpenseListItem = ({ expense }: { expense: Expense }) => {
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+    const expenseDate = new Date(expense.date);
+
+    return (
+       <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50 border-b">
+        <div className="flex flex-1 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
+              {categoryInfo.icon}
+          </span>
+          <div>
+              <p className="font-semibold">{expense.title}</p>
+              <p className="text-sm text-muted-foreground">
+                  {categoryInfo.name}
+              </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+            <div className="text-end">
+              <p className="font-semibold text-foreground whitespace-nowrap">
+                  {expense.amount.toLocaleString()}&nbsp;د.ع
+              </p>
+              <p className="text-sm text-muted-foreground">
+                  {expenseDate.toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-0 opacity-0 transition-opacity group-hover:opacity-100">
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary">
+                        <PencilIcon className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>تعديل المصروف</DialogTitle>
+                      </DialogHeader>
+                      <EditExpenseForm expense={expense} setOpen={setIsEditDialogOpen} />
+                  </DialogContent>
+                </Dialog>
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteExpense(expense.id)}
+                    aria-label="حذف المصروف"
+                >
+                    <Trash2Icon className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
+      </li>
+    )
   }
 
   return (
@@ -685,8 +742,6 @@ export default function DashboardPage() {
                   const currentMonth = format(expenseDate, 'yyyy-MM');
                   const showSeparator = currentMonth !== lastMonth;
                   lastMonth = currentMonth;
-
-                  const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                   
                   return (
                     <Fragment key={expense.id}>
@@ -701,38 +756,7 @@ export default function DashboardPage() {
                             </div>
                         </li>
                       )}
-                      <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50 border-b">
-                        <div className="flex flex-1 items-center gap-3">
-                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
-                              {categoryInfo.icon}
-                          </span>
-                          <div>
-                              <p className="font-semibold">{expense.title}</p>
-                              <p className="text-sm text-muted-foreground">
-                                  {categoryInfo.name}
-                              </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-end">
-                              <p className="font-semibold text-foreground whitespace-nowrap">
-                                  {expense.amount.toLocaleString()}&nbsp;د.ع
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                  {expenseDate.toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long' })}
-                              </p>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                                onClick={() => handleDeleteExpense(expense.id)}
-                                aria-label="حذف المصروف"
-                            >
-                                <Trash2Icon className="h-4 w-4" />
-                            </Button>
-                        </div>
-                      </li>
+                      <ExpenseListItem expense={expense} />
                     </Fragment>
                   );
                 });
