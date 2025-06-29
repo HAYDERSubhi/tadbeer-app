@@ -604,7 +604,7 @@ export default function StatisticsPage() {
                                           <span className="font-medium text-foreground/90">{expense.title}</span>
                                           <span className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</span>
                                       </div>
-                                      <span className="font-semibold text-foreground/80 whitespace-nowrap">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
+                                      <span className="font-semibold text-foreground/80">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
                                   </li>
                               ))}
                       </ul>

@@ -435,12 +435,12 @@ export default function DashboardPage() {
 
     return (
        <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50 border-b">
-        <div className="flex flex-1 items-center gap-3">
+        <div className="flex flex-1 items-center gap-3 min-w-0">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
               {categoryInfo.icon}
           </span>
-          <div>
-              <p className="font-semibold">{expense.title}</p>
+          <div className="min-w-0">
+              <p className="font-semibold truncate">{expense.title}</p>
               <p className="text-sm text-muted-foreground">
                   {categoryInfo.name}
               </p>
@@ -448,7 +448,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
             <div className="text-end">
-              <p className="font-semibold text-foreground whitespace-nowrap">
+              <p className="font-semibold text-foreground">
                   {expense.amount.toLocaleString()}&nbsp;د.ع
               </p>
               <p className="text-sm text-muted-foreground">

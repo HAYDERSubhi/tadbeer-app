@@ -89,7 +89,7 @@ export default function AllExpensesPage() {
                           </div>
                           <div className="flex items-center gap-4">
                               <div className="text-end">
-                              <p className="font-semibold text-foreground whitespace-nowrap">
+                              <p className="font-semibold text-foreground">
                                   {expense.amount.toLocaleString()}&nbsp;د.ع
                               </p>
                               <p className="text-sm text-muted-foreground">
