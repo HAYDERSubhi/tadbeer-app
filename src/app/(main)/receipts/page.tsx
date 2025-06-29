@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X } from 'lucide-react';
+import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
@@ -17,25 +17,30 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import type { Point, Area } from 'react-easy-crop';
 import getCroppedImg from '@/lib/crop-image';
+import { Slider } from '@/components/ui/slider';
+
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
+
+type ViewState = 'initial' | 'camera' | 'cropping';
 
 export default function DetailedReceiptPage() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
+    // State for overall page flow
+    const [viewState, setViewState] = useState<ViewState>('initial');
+    
     // State for the final cropped images
     const [finalImages, setFinalImages] = useState<{ id: string, src: string }[]>([]);
 
-    // State for the image processing flow
+    // State for the image being processed
     const [imageToCrop, setImageToCrop] = useState<string | null>(null);
-    const [isCameraOpen, setIsCameraOpen] = useState(false);
 
     // State for analysis results
     const [analyzedItems, setAnalyzedItems] = useState<EditableItem[]>([]);
@@ -64,30 +69,31 @@ export default function DetailedReceiptPage() {
     useEffect(() => {
         let isMounted = true;
     
-        const startCameraStream = async () => {
-            if (!isCameraOpen) {
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
-                    streamRef.current = null;
-                }
-                return;
+        const stopStream = () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
             }
-    
+        };
+
+        if (viewState !== 'camera') {
+            stopStream();
+            return;
+        }
+
+        const startCameraStream = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                
                 if (isMounted && videoRef.current) {
                     streamRef.current = stream;
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(err => {
-                        console.error("Video play failed:", err);
-                    });
+                    await videoRef.current.play();
                 }
             } catch (err) {
                 console.error("Error accessing camera", err);
                 if (isMounted) {
                     toast({ title: "خطأ في الكاميرا", description: "لم نتمكن من الوصول إلى الكاميرا. يرجى التحقق من الأذونات.", variant: "destructive"});
-                    setIsCameraOpen(false);
+                    setViewState('initial');
                 }
             }
         };
@@ -96,19 +102,16 @@ export default function DetailedReceiptPage() {
     
         return () => {
             isMounted = false;
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach(track => track.stop());
-                streamRef.current = null;
-            }
+            stopStream();
         };
-    }, [isCameraOpen, toast]);
+    }, [viewState, toast]);
 
 
     const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
         setCroppedAreaPixels(croppedAreaPixels);
     }, []);
 
-    const showCroppedImage = useCallback(async () => {
+    const confirmCrop = useCallback(async () => {
         if (!imageToCrop || !croppedAreaPixels) return;
         try {
             const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
@@ -116,11 +119,17 @@ export default function DetailedReceiptPage() {
             setImageToCrop(null);
             setZoom(1);
             setCrop({ x: 0, y: 0 });
+            setViewState('initial');
         } catch (e) {
             console.error(e);
             toast({ title: "خطأ في الاقتصاص", description: "لم نتمكن من اقتصاص الصورة.", variant: "destructive" });
         }
     }, [imageToCrop, croppedAreaPixels, toast]);
+    
+    const cancelCrop = () => {
+        setImageToCrop(null);
+        setViewState('initial');
+    };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files.length > 0) {
@@ -129,6 +138,7 @@ export default function DetailedReceiptPage() {
             reader.readAsDataURL(file);
             reader.onload = () => {
                 setImageToCrop(reader.result as string);
+                setViewState('cropping');
             };
         }
         if (fileInputRef.current) {
@@ -136,10 +146,6 @@ export default function DetailedReceiptPage() {
         }
     };
     
-    const openCamera = () => {
-        setIsCameraOpen(true);
-    }
-
     const takePhoto = () => {
         if (!videoRef.current || !photoRef.current) return;
         
@@ -154,8 +160,7 @@ export default function DetailedReceiptPage() {
         
         const dataUri = photo.toDataURL('image/jpeg');
         setImageToCrop(dataUri);
-        
-        setIsCameraOpen(false);
+        setViewState('cropping');
     }
     
     const removeImage = (id: string) => {
@@ -263,60 +268,61 @@ export default function DetailedReceiptPage() {
         addMultipleExpensesMutation.mutate(expensesToSave);
     }
 
+    if (viewState === 'camera') {
+        return (
+            <div className="fixed inset-0 z-50 bg-black flex flex-col">
+                <header className="absolute top-0 left-0 right-0 p-4 flex items-center z-10 bg-gradient-to-b from-black/50 to-transparent">
+                    <Button variant="ghost" size="icon" onClick={() => setViewState('initial')} className="text-white hover:bg-white/10 hover:text-white">
+                        <ArrowRight />
+                    </Button>
+                </header>
+                <div className="flex-1 relative">
+                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                    <canvas ref={photoRef} className="hidden" />
+                </div>
+                <footer className="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10 bg-gradient-to-t from-black/50 to-transparent">
+                    <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 p-0 flex items-center justify-center transition-transform active:scale-95" aria-label="التقاط صورة">
+                       <Camera className="h-8 w-8 text-white" />
+                    </button>
+                </footer>
+            </div>
+        );
+    }
+    
+    if (viewState === 'cropping' && imageToCrop) {
+        return (
+            <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                <header className="p-4 flex justify-between items-center border-b">
+                    <h2 className="text-lg font-bold flex items-center gap-2"><Crop className="h-5 w-5 text-primary" /> اقتصاص الفاتورة</h2>
+                    <Button variant="ghost" size="icon" onClick={cancelCrop}><X /></Button>
+                </header>
+                <div className="flex-1 relative bg-muted/50">
+                    <Cropper
+                        image={imageToCrop}
+                        crop={crop}
+                        zoom={zoom}
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={onCropComplete}
+                        showGrid={true}
+                    />
+                </div>
+                <div className="p-4 border-t space-y-4">
+                    <div className="flex items-center gap-4">
+                        <Label htmlFor="zoom-slider" className="flex items-center gap-2"><ZoomIn /> تكبير</Label>
+                        <Slider id="zoom-slider" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <Button variant="ghost" onClick={cancelCrop}>إلغاء</Button>
+                       <Button onClick={confirmCrop}><Check className="ml-2 h-4 w-4" /> تأكيد الاقتصاص</Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6 pb-24">
-            {/* Camera Dialog */}
-            <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
-                 <DialogContent className="p-0 w-screen h-screen max-w-full rounded-none sm:rounded-lg sm:max-w-3xl sm:w-full sm:h-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-0">
-                    <DialogHeader className="sr-only">
-                        <DialogTitle>واجهة الكاميرا</DialogTitle>
-                        <DialogDescription>استخدم كاميرا جهازك لالتقاط صورة للفاتورة.</DialogDescription>
-                    </DialogHeader>
-                    <div className="relative w-full h-full bg-black">
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                        <canvas ref={photoRef} className="hidden" />
-
-                        <DialogClose className="absolute right-4 top-4 rounded-full p-2 bg-black/50 text-white z-10 ring-offset-0 focus:ring-0">
-                            <X className="h-6 w-6" />
-                            <span className="sr-only">Close</span>
-                        </DialogClose>
-
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex justify-center z-10">
-                            <Button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 p-0">
-                                <span className="sr-only">التقاط صورة</span>
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Cropper Dialog */}
-            <Dialog open={!!imageToCrop} onOpenChange={(open) => !open && setImageToCrop(null)}>
-                <DialogContent className="max-w-3xl p-0">
-                    <DialogHeader className="p-4">
-                        <DialogTitle>اقتصاص صورة الفاتورة</DialogTitle>
-                    </DialogHeader>
-                    <div className="relative h-[60vh] bg-muted">
-                        {imageToCrop && (
-                            <Cropper
-                                image={imageToCrop}
-                                crop={crop}
-                                zoom={zoom}
-                                aspect={3 / 4}
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={onCropComplete}
-                                showGrid={true}
-                            />
-                        )}
-                    </div>
-                    <DialogFooter className="p-4 flex justify-between w-full">
-                        <Button variant="ghost" onClick={() => setImageToCrop(null)}>إلغاء</Button>
-                        <Button onClick={showCroppedImage}><Check className="ml-2 h-4 w-4" /> تأكيد الاقتصاص</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
@@ -333,7 +339,7 @@ export default function DetailedReceiptPage() {
                             <Upload className="ml-2" />
                             رفع ملف
                         </Button>
-                        <Button variant="outline" size="lg" onClick={openCamera}>
+                        <Button variant="outline" size="lg" onClick={() => setViewState('camera')}>
                             <Camera className="ml-2" />
                             استخدام الكاميرا
                         </Button>
