@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export default function PageNavigation() {
 
   if (isMobile) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 p-1 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <nav id="main-navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 p-1 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 justify-around">
           {navItems.map((item) => {
             const isActive = (item.href === '/' && pathname === '/') || (item.href !== '/' && pathname.startsWith(item.href));
@@ -44,7 +45,7 @@ export default function PageNavigation() {
   }
 
   return (
-    <nav className="mt-8 mb-4 py-6 border-t border-b border-border/50">
+    <nav id="main-navigation" className="mt-8 mb-4 py-6 border-t border-b border-border/50">
       <div className="container mx-auto flex flex-row justify-around items-center gap-4">
         {navItems.map((item) => {
            const isActive = (item.href === '/' && pathname === '/') || (item.href !== '/' && pathname.startsWith(item.href));

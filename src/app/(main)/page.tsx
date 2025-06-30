@@ -25,6 +25,7 @@ import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { recordExpenseWithText } from '@/ai/flows/record-expense-text';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
+import OnboardingTour from '@/components/tour/onboarding-tour';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -51,6 +52,40 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
 const DEFAULT_BUDGET_SETTINGS: UserBudgetSettings = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 const DEFAULT_CATEGORY_BUDGETS = {};
 const DEFAULT_USER_PROFILE: UserProfile = { monthlyIncome: 0, familyMembers: []};
+
+const tourSteps = [
+  {
+    title: 'أهلاً بك في مصروفات!',
+    content: 'لنأخذ جولة سريعة في التطبيق لتعريفك بالميزات الرئيسية. يمكنك تخطي الجولة في أي وقت.',
+    selector: '', // Centered
+    placement: 'center',
+  },
+  {
+    selector: '#budget-summary-card',
+    title: 'لوحة التحكم الرئيسية',
+    content: 'هنا يمكنك رؤية ملخص ميزانيتك الشهرية، مصاريفك، والمبلغ المتبقي بلمحة واحدة.',
+    placement: 'bottom',
+  },
+  {
+    selector: '#expense-input-methods',
+    title: 'طرق إضافة المصاريف',
+    content: 'لديك عدة طرق لإضافة مصاريفك: إدخال صوتي سريع، إدخال يدوي، أو تحليل فواتير مفصلة عبر الكاميرا.',
+    placement: 'bottom',
+  },
+  {
+    selector: '#smart-insights-card',
+    title: 'نصائح ذكية ومخصصة',
+    content: 'سيقوم مدربك المالي الذكي بتحليل إنفاقك وتقديم نصائح مخصصة لمساعدتك على تحقيق أهدافك.',
+    placement: 'top',
+  },
+  {
+    selector: '#main-navigation',
+    title: 'شريط التنقل',
+    content: 'استخدم هذا الشريط للتنقل بين الأقسام الرئيسية للتطبيق: الإحصائيات، المخطط المالي، والإعدادات. رحلة مالية موفقة!',
+    placement: 'top',
+  },
+];
+
 
 // Main Dashboard Component
 export default function DashboardPage() {
@@ -387,9 +422,9 @@ export default function DashboardPage() {
     
     if (isVoiceRecording) {
       return (
-        <button
+        <div
           onClick={handleToggleRecording}
-          className="relative flex flex-col h-full w-full items-center justify-center gap-2 text-center"
+          className="relative flex flex-col h-full w-full items-center justify-center gap-2 text-center cursor-pointer"
           aria-label="إيقاف التسجيل"
         >
            <div className="absolute -inset-2 rounded-full bg-rose-500/20 animate-ping"></div>
@@ -399,21 +434,21 @@ export default function DashboardPage() {
             <p className="text-base font-semibold text-foreground min-h-[24px] mt-2 px-2">
                 {liveTranscript || 'جاري الاستماع...'}
             </p>
-        </button>
+        </div>
       );
     }
 
     return (
-        <button
+        <div
             onClick={handleToggleRecording}
-            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full"
+            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl h-full w-full cursor-pointer"
             aria-label="بدء التسجيل الصوتي"
         >
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
                 <Mic className={cn("h-8 w-8", "text-rose-600 dark:text-rose-300")} />
             </span>
             <p className="font-semibold">إدخال صوتي</p>
-        </button>
+        </div>
     );
   };
   
@@ -481,9 +516,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24 sm:pb-8">
+      <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
       
       {/* Hero Balance Card */}
-      <Card className="relative overflow-hidden bg-slate-900 text-primary-foreground shadow-2xl rounded-2xl">
+      <Card id="budget-summary-card" className="relative overflow-hidden bg-slate-900 text-primary-foreground shadow-2xl rounded-2xl">
         <CardHeader className="z-10 relative border-b border-white/10">
           <div className="flex justify-between items-start">
             <div>
@@ -586,12 +622,12 @@ export default function DashboardPage() {
       )}
 
       {/* Add Expense Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           
           <div
             className={cn(
-              "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
-              (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
+              "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40 hover:bg-muted/50",
+              (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10 hover:bg-muted/30",
               voiceError && "ring-2 ring-destructive/50"
             )}
           >
@@ -609,12 +645,12 @@ export default function DashboardPage() {
           {/* Manual Entry Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50 cursor-pointer">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                    <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
                 </span>
                 <p className="font-semibold">إدخال يدوي</p>
-              </button>
+              </div>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -625,7 +661,7 @@ export default function DashboardPage() {
           </Dialog>
 
           {/* Detailed Receipt Analysis Link */}
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
             <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
                <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
             </span>
@@ -635,12 +671,12 @@ export default function DashboardPage() {
           {/* E-Card Dialog */}
           <Dialog>
               <DialogTrigger asChild>
-                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+                <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50 cursor-pointer">
                   <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                      <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
                   <p className="font-semibold">بطاقة إلكترونية</p>
-                </button>
+                </div>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -670,7 +706,7 @@ export default function DashboardPage() {
       </Card>
       
       {/* Smart Insights Card */}
-      <Card>
+      <Card id="smart-insights-card">
         <CardHeader>
           <CardTitle as="h2" className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
