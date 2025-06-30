@@ -235,11 +235,11 @@ export default function StatisticsPage() {
       }));
     }
     
-    // Top 6 categories trend data
+    // Top 6 categories trend data (OPTIMIZED)
     const lastSixMonths = availableMonths.length > 1 ? availableMonths.slice(0, 6).reverse() : [];
     let categoriesTrendData: any[] = [];
 
-    if(lastSixMonths.length > 1) {
+    if (lastSixMonths.length > 1) {
         const trendAnalysisExpenses = expenses.filter(exp => {
             try {
                 const monthKey = format(parseISO(exp.date), 'yyyy-MM');
@@ -247,22 +247,38 @@ export default function StatisticsPage() {
             } catch { return false; }
         });
 
-        const totalSpendingInTrendPeriod: { [key: string]: number } = {};
-        trendAnalysisExpenses.forEach(exp => {
-            totalSpendingInTrendPeriod[exp.category] = (totalSpendingInTrendPeriod[exp.category] || 0) + exp.amount;
+        // Pre-process data to avoid nested loops
+        const monthlyCategoryTotals: Record<string, Record<string, number>> = {};
+        lastSixMonths.forEach(monthKey => {
+            monthlyCategoryTotals[monthKey] = {};
         });
 
+        trendAnalysisExpenses.forEach(exp => {
+            const monthKey = format(parseISO(exp.date), 'yyyy-MM');
+            if (!monthlyCategoryTotals[monthKey]) {
+                monthlyCategoryTotals[monthKey] = {};
+            }
+            monthlyCategoryTotals[monthKey][exp.category] = (monthlyCategoryTotals[monthKey][exp.category] || 0) + exp.amount;
+        });
+        
+        // Calculate total spending per category over the period to find the top 6
+        const totalSpendingInTrendPeriod: Record<string, number> = {};
+        Object.values(monthlyCategoryTotals).forEach(categoryTotals => {
+            Object.entries(categoryTotals).forEach(([catKey, amount]) => {
+                totalSpendingInTrendPeriod[catKey] = (totalSpendingInTrendPeriod[catKey] || 0) + amount;
+            });
+        });
+        
         const top6CategoryKeys = Object.entries(totalSpendingInTrendPeriod)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 6)
             .map(([key]) => key);
-
+            
+        // Build the final structure using the pre-processed data
         categoriesTrendData = top6CategoryKeys.map(catKey => {
             const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
             const monthlyTrend = lastSixMonths.map(monthKey => {
-                const amount = trendAnalysisExpenses
-                    .filter(exp => exp.category === catKey && format(parseISO(exp.date), 'yyyy-MM') === monthKey)
-                    .reduce((sum, exp) => sum + exp.amount, 0);
+                const amount = monthlyCategoryTotals[monthKey]?.[catKey] || 0;
                 return {
                     month: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
                     amount: amount,
@@ -729,3 +745,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
