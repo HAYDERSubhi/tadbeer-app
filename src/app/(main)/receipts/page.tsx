@@ -190,12 +190,12 @@ export default function DetailedReceiptPage() {
         }
     };
     
-    const handleItemChange = (id: string, field: keyof EditableItem, value: string) => {
+    const handleItemChange = (id: string, field: keyof EditableItem, value: string | number) => {
         setAnalyzedItems(prev => prev.map(item => {
             if (item.id === id) {
                 const updatedItem = { ...item, [field]: value };
                 if (field === 'price') {
-                    updatedItem.price = parseFloat(value) || 0;
+                    updatedItem.price = Number(value) || 0;
                 }
                 return updatedItem;
             }
