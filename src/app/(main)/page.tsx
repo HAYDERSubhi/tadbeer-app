@@ -67,6 +67,7 @@ export default function DashboardPage() {
   
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [visibleExpensesCount, setVisibleExpensesCount] = useState(20);
 
   // === Voice Recording State ===
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -428,7 +429,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
             <div className="text-end min-w-0">
-              <p className="font-semibold text-foreground whitespace-nowrap">
+              <p className="font-semibold text-foreground">
                   {expense.amount.toLocaleString()}&nbsp;د.ع
               </p>
               <p className="text-sm text-muted-foreground">
@@ -702,7 +703,7 @@ export default function DashboardPage() {
                 سجل المصاريف
             </CardTitle>
             <CardDescription>
-                هنا قائمة بجميع مصاريفك، مرتبة من الأحدث إلى الأقدم.
+                هنا قائمة بآخر مصاريفك، مرتبة من الأحدث إلى الأقدم.
             </CardDescription>
         </CardHeader>
         <CardContent className="p-0 max-h-[60vh] overflow-y-auto">
@@ -716,7 +717,7 @@ export default function DashboardPage() {
             <ul className="relative">
               {(() => {
                 let lastMonth: string | null = null;
-                return allSortedExpenses.map((expense) => {
+                return allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => {
                   const expenseDate = new Date(expense.date);
                   const currentMonth = format(expenseDate, 'yyyy-MM');
                   const showSeparator = currentMonth !== lastMonth;
@@ -743,7 +744,19 @@ export default function DashboardPage() {
             </ul>
           )}
         </CardContent>
+        {allSortedExpenses.length > visibleExpensesCount && (
+            <CardFooter className="p-4 justify-center border-t">
+                <Button
+                    variant="outline"
+                    onClick={() => setVisibleExpensesCount(prev => prev + 20)}
+                >
+                    عرض المزيد
+                </Button>
+            </CardFooter>
+        )}
       </Card>
     </div>
   );
 }
+
+    
