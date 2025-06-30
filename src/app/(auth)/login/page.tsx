@@ -63,9 +63,17 @@ export default function LoginPage() {
       toast({ title: 'أهلاً بعودتك!', description: 'تم تسجيل دخولك بنجاح.' });
       router.push('/');
     } catch (error: any) {
+      let description = 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
+      if (error.code === 'auth/popup-closed-by-user') {
+        description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        description = 'هذا النطاق غير مصرح له. يرجى التحقق من إعدادات Firebase.';
+      } else if (error.code) {
+        description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
+      }
       toast({
         title: 'خطأ في تسجيل الدخول',
-        description: 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.',
+        description,
         variant: 'destructive',
       });
     } finally {

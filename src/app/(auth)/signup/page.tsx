@@ -99,11 +99,20 @@ export default function SignupPage() {
       
       router.push('/');
     } catch (error: any) {
+        let description = 'فشل إنشاء الحساب باستخدام Google. يرجى المحاولة مرة أخرى.';
+        if (error.code === 'auth/popup-closed-by-user') {
+          description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
+        } else if (error.code === 'auth/unauthorized-domain') {
+          description = 'هذا النطاق غير مصرح له. يرجى التحقق من إعدادات Firebase.';
+        } else if (error.code) {
+          description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
+        }
         toast({
             title: 'خطأ في إنشاء الحساب',
-            description: 'فشل إنشاء الحساب باستخدام Google. يرجى المحاولة مرة أخرى.',
+            description,
             variant: 'destructive',
         });
+    } finally {
         setIsGoogleLoading(false);
     }
   };
