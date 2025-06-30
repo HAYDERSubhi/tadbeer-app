@@ -10,8 +10,10 @@ import {
   signOut,
   FirebaseError,
   Auth,
+  signInWithPopup,
+  UserCredential
 } from 'firebase/auth';
-import { auth as firebaseAuth } from '@/lib/firebase';
+import { auth as firebaseAuth, googleProvider } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +21,7 @@ interface AuthContextType {
   authError: FirebaseError | null;
   signInWithEmailPassword: (email: string, password: string) => Promise<any>;
   signUpWithEmailPassword: (email: string, password: string) => Promise<any>;
+  signInWithGoogle: () => Promise<UserCredential>;
   signOutUser: () => Promise<void>;
 }
 
@@ -57,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithEmailPassword = (email: string, password: string) => {
     return createUserWithEmailAndPassword(auth, email, password);
   }
+
+  const signInWithGoogle = (): Promise<UserCredential> => {
+    if (!googleProvider || !auth) {
+      return Promise.reject(new Error("Google Auth provider or Firebase Auth not initialized."));
+    }
+    return signInWithPopup(auth, googleProvider);
+  }
   
   const signOutUser = () => {
     return signOut(auth);
@@ -68,7 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authError,
     signInWithEmailPassword,
     signUpWithEmailPassword,
+    signInWithGoogle,
     signOutUser,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, loading, authError]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

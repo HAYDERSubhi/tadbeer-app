@@ -1,7 +1,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { getAuth, type Auth } from "firebase/auth";
+import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
 
 // Your web app's Firebase configuration
 // IMPORTANT: Replace the placeholder values with your actual Firebase project config.
@@ -19,6 +19,7 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
 // Only initialize Firebase if all required config values are provided
 if (
@@ -31,6 +32,7 @@ if (
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
   } catch (e) {
     console.error("Firebase initialization failed:", e)
   }
@@ -39,4 +41,4 @@ if (
 }
 
 
-export { db, auth };
+export { db, auth, googleProvider };
