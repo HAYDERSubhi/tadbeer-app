@@ -1,3 +1,4 @@
+
 "use client";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,7 +53,8 @@ export default function LoginPage() {
         description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.',
         variant: 'destructive',
       });
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -67,7 +69,7 @@ export default function LoginPage() {
       if (error.code === 'auth/popup-closed-by-user') {
         description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
       } else if (error.code === 'auth/unauthorized-domain') {
-        description = 'هذا النطاق غير مصرح له. يرجى التحقق من إعدادات Firebase.';
+        description = "هذا النطاق غير مصرح له. يرجى إضافة نطاق التطبيق إلى قائمة 'النطاقات المصرح بها' في إعدادات المصادقة بمشروع Firebase.";
       } else if (error.code) {
         description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
       }
