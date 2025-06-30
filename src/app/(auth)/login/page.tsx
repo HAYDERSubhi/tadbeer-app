@@ -12,7 +12,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, WalletIcon } from 'lucide-react';
+import { Loader2Icon, WalletIcon, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -43,6 +45,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    setGoogleAuthError(null);
     try {
       await signInWithEmailPassword(data.email, data.password);
       toast({ title: 'أهلاً بعودتك!', description: 'تم تسجيل دخولك بنجاح.' });
@@ -60,24 +63,27 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    setGoogleAuthError(null);
     try {
       await signInWithGoogle();
       toast({ title: 'أهلاً بعودتك!', description: 'تم تسجيل دخولك بنجاح.' });
       router.push('/');
     } catch (error: any) {
-      let description = 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
-      if (error.code === 'auth/popup-closed-by-user') {
-        description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
-      } else if (error.code === 'auth/unauthorized-domain') {
-        description = "هذا النطاق غير مصرح له. يرجى إضافة نطاق التطبيق إلى قائمة 'النطاقات المصرح بها' في إعدادات المصادقة بمشروع Firebase.";
-      } else if (error.code) {
-        description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
+      if (error.code === 'auth/unauthorized-domain') {
+        setGoogleAuthError("هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى لوحة تحكم Firebase > Authentication > Settings > Authorized domains وأضف النطاق من شريط عنوان المتصفح.");
+      } else {
+        let description = 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
+        if (error.code === 'auth/popup-closed-by-user') {
+          description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
+        } else if (error.code) {
+          description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
+        }
+        toast({
+          title: 'خطأ في تسجيل الدخول',
+          description,
+          variant: 'destructive',
+        });
       }
-      toast({
-        title: 'خطأ في تسجيل الدخول',
-        description,
-        variant: 'destructive',
-      });
     } finally {
         setIsGoogleLoading(false);
     }
@@ -124,6 +130,16 @@ export default function LoginPage() {
                   {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
                   تسجيل الدخول باستخدام Google
                 </Button>
+
+                {googleAuthError && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>خطأ في الإعدادات</AlertTitle>
+                    <AlertDescription>
+                      {googleAuthError}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="mt-4 text-center text-sm">
                 ليس لديك حساب؟{' '}

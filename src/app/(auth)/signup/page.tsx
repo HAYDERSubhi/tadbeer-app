@@ -12,9 +12,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, WalletIcon } from 'lucide-react';
+import { Loader2Icon, WalletIcon, AlertTriangle } from 'lucide-react';
 import { addExpense } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -42,6 +43,7 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -49,6 +51,7 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
+    setGoogleAuthError(null);
     try {
       const userCredential = await signUpWithEmailPassword(data.email, data.password);
       const newUser = userCredential.user;
@@ -82,6 +85,7 @@ export default function SignupPage() {
 
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
+    setGoogleAuthError(null);
     try {
       const userCredential = await signInWithGoogle();
       const additionalInfo = getAdditionalUserInfo(userCredential);
@@ -101,11 +105,12 @@ export default function SignupPage() {
       
       router.push('/');
     } catch (error: any) {
+      if (error.code === 'auth/unauthorized-domain') {
+        setGoogleAuthError("هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى لوحة تحكم Firebase > Authentication > Settings > Authorized domains وأضف النطاق من شريط عنوان المتصفح.");
+      } else {
         let description = 'فشل إنشاء الحساب باستخدام Google. يرجى المحاولة مرة أخرى.';
         if (error.code === 'auth/popup-closed-by-user') {
           description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
-        } else if (error.code === 'auth/unauthorized-domain') {
-          description = "هذا النطاق غير مصرح له. يرجى إضافة نطاق التطبيق إلى قائمة 'النطاقات المصرح بها' في إعدادات المصادقة بمشروع Firebase.";
         } else if (error.code) {
           description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
         }
@@ -114,6 +119,7 @@ export default function SignupPage() {
             description,
             variant: 'destructive',
         });
+      }
     } finally {
         setIsGoogleLoading(false);
     }
@@ -165,6 +171,16 @@ export default function SignupPage() {
               {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
               إنشاء حساب باستخدام Google
             </Button>
+            
+            {googleAuthError && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>خطأ في الإعدادات</AlertTitle>
+                <AlertDescription>
+                  {googleAuthError}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="mt-4 text-center text-sm">
             لديك حساب بالفعل؟{' '}
