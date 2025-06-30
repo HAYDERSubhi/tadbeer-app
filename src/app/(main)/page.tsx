@@ -50,7 +50,7 @@ const InsightIcon = ({ name, className }: { name: string; className?: string }) 
 // Define stable default objects outside the component to prevent re-creation on each render.
 const DEFAULT_BUDGET_SETTINGS: UserBudgetSettings = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 const DEFAULT_CATEGORY_BUDGETS = {};
-const DEFAULT_USER_PROFILE: UserProfile | null = null;
+const DEFAULT_USER_PROFILE: UserProfile = { monthlyIncome: 0, familyMembers: []};
 
 // Main Dashboard Component
 export default function DashboardPage() {
@@ -166,7 +166,7 @@ export default function DashboardPage() {
       userProfile: userProfile ? {
         monthlyIncome: userProfile.monthlyIncome,
         // The AI doesn't need the local 'id' field for family members.
-        familyMembers: userProfile.familyMembers.map(({ id, ...rest }) => rest),
+        familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
       } : undefined,
     };
     
@@ -427,8 +427,8 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-            <div className="text-end">
-              <p className="font-semibold text-foreground whitespace-nowrap">
+            <div className="text-end min-w-0">
+              <p className="font-semibold text-foreground">
                   {expense.amount.toLocaleString()}&nbsp;د.ع
               </p>
               <p className="text-sm text-muted-foreground">
@@ -563,7 +563,6 @@ export default function DashboardPage() {
           <div
             className={cn(
               "relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40",
-              "cursor-pointer hover:bg-muted/50",
               (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10",
               voiceError && "ring-2 ring-destructive/50"
             )}
