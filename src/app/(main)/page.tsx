@@ -406,7 +406,7 @@ export default function DashboardPage() {
     return (
         <button
             onClick={handleToggleRecording}
-            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full hover:bg-muted/50"
+            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full"
             aria-label="بدء التسجيل الصوتي"
         >
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
@@ -513,38 +513,41 @@ export default function DashboardPage() {
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-300">{(dailySpend ?? 0).toLocaleString()} د.ع</p>
               </div>
               <div>
-                  <p className="text-sm text-slate-400">المتبقي</p>
+                  <p className={`text-sm text-slate-400 ${(remainingBudget ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>المتبقي</p>
                   <p className={`text-lg sm:text-xl md:text-2xl font-bold ${(remainingBudget ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>{(remainingBudget ?? 0).toLocaleString()} د.ع</p>
               </div>
             </div>
 
             {/* Weekly progress section */}
             <div className="pt-4">
-                <div className="flex justify-around mb-2 text-xs text-slate-300">
-                    <span>الأسبوع 1</span>
-                    <span>الأسبوع 2</span>
-                    <span>الأسبوع 3</span>
-                    <span>الأسبوع 4</span>
-                </div>
                 {(userBudget?.totalBudget ?? 0) > 0 ? (
                     <>
+                    <div className="flex justify-around mb-2 text-xs text-slate-300">
+                        <span>الأسبوع 1</span>
+                        <span>الأسبوع 2</span>
+                        <span>الأسبوع 3</span>
+                        <span>الأسبوع 4</span>
+                    </div>
                     <div className="flex w-full space-x-2 space-x-reverse">
                         {weeklySpending.map((spent, index) => {
                         const percentage = weeklyTarget > 0 ? Math.min((spent / weeklyTarget) * 100, 100) : 0;
                         const isOverBudget = spent > weeklyTarget;
                         return (
-                            <div key={index} className="w-1/4 group relative">
-                            <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden">
-                                <div
-                                className={`h-full transition-all duration-500 ${isOverBudget ? 'bg-red-500' : 'bg-teal-400'}`}
-                                style={{ width: `${percentage}%` }}
-                                />
-                            </div>
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max p-2 text-xs text-white bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-                                <p>المصروف: {spent.toLocaleString()} د.ع</p>
-                                {isOverBudget && <p className="text-red-400 font-bold">تجاوزت الهدف!</p>}
-                            </div>
+                            <div key={index} className="w-1/4">
+                                <div className="group relative">
+                                    <div className="h-3 w-full bg-slate-700 rounded-full overflow-hidden">
+                                        <div
+                                        className={`h-full transition-all duration-500 ${isOverBudget ? 'bg-red-500' : 'bg-teal-400'}`}
+                                        style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                    {/* Tooltip */}
+                                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max p-2 text-xs text-white bg-slate-800 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                                        <p>المصروف: {spent.toLocaleString()} د.ع</p>
+                                        {isOverBudget && <p className="text-red-400 font-bold">تجاوزت الهدف!</p>}
+                                    </div>
+                                </div>
+                                <p className="text-center text-xs text-white font-semibold mt-1">{spent.toLocaleString()} د.ع</p>
                             </div>
                         );
                         })}
@@ -554,14 +557,22 @@ export default function DashboardPage() {
                     </div>
                     </>
                 ) : (
-                    <div className="grid grid-cols-4 gap-2 text-center mt-1">
-                        {weeklySpending.map((spent, index) => (
-                            <div key={index}>
-                                <p className="font-semibold text-white text-sm">{spent.toLocaleString()}</p>
-                                <p className="text-xs text-slate-500">د.ع</p>
-                            </div>
-                        ))}
-                    </div>
+                    <>
+                        <div className="flex justify-around mb-1 text-xs text-slate-300">
+                            <span>الأسبوع 1</span>
+                            <span>الأسبوع 2</span>
+                            <span>الأسبوع 3</span>
+                            <span>الأسبوع 4</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-center mt-1">
+                            {weeklySpending.map((spent, index) => (
+                                <div key={index}>
+                                    <p className="font-semibold text-white text-sm">{spent.toLocaleString()}</p>
+                                    <p className="text-xs text-slate-500">د.ع</p>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
         </CardContent>
@@ -598,7 +609,7 @@ export default function DashboardPage() {
           {/* Manual Entry Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
+              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                    <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
                 </span>
@@ -614,7 +625,7 @@ export default function DashboardPage() {
           </Dialog>
 
           {/* Detailed Receipt Analysis Link */}
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
             <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
                <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
             </span>
@@ -624,7 +635,7 @@ export default function DashboardPage() {
           {/* E-Card Dialog */}
           <Dialog>
               <DialogTrigger asChild>
-                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
+                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
                   <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                      <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
