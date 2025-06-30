@@ -37,7 +37,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
+  const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,7 +45,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    setGoogleAuthError(null);
+    setUnauthorizedDomain(null);
     try {
       await signInWithEmailPassword(data.email, data.password);
       toast({ title: 'أهلاً بعودتك!', description: 'تم تسجيل دخولك بنجاح.' });
@@ -63,14 +63,14 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    setGoogleAuthError(null);
+    setUnauthorizedDomain(null);
     try {
       await signInWithGoogle();
       toast({ title: 'أهلاً بعودتك!', description: 'تم تسجيل دخولك بنجاح.' });
       router.push('/');
     } catch (error: any) {
       if (error.code === 'auth/unauthorized-domain') {
-        setGoogleAuthError("هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى لوحة تحكم Firebase > Authentication > Settings > Authorized domains وأضف النطاق من شريط عنوان المتصفح.");
+        setUnauthorizedDomain(window.location.hostname);
       } else {
         let description = 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
         if (error.code === 'auth/popup-closed-by-user') {
@@ -131,12 +131,13 @@ export default function LoginPage() {
                   تسجيل الدخول باستخدام Google
                 </Button>
 
-                {googleAuthError && (
+                {unauthorizedDomain && (
                   <Alert variant="destructive" className="mt-4">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>خطأ في الإعدادات</AlertTitle>
                     <AlertDescription>
-                      {googleAuthError}
+                      <p className="mb-2">هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى لوحة تحكم Firebase وأضف النطاق التالي بالضبط إلى قائمة 'Authorized domains':</p>
+                      <code className="block bg-muted text-foreground p-2 rounded-md my-2 text-center font-mono select-all">{unauthorizedDomain}</code>
                     </AlertDescription>
                   </Alert>
                 )}
