@@ -428,7 +428,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
             <div className="text-end min-w-0">
-              <p className="font-semibold text-foreground">
+              <p className="font-semibold text-foreground whitespace-nowrap">
                   {expense.amount.toLocaleString()}&nbsp;د.ع
               </p>
               <p className="text-sm text-muted-foreground">
@@ -581,7 +581,7 @@ export default function DashboardPage() {
           {/* Manual Entry Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                    <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
                 </span>
@@ -597,7 +597,7 @@ export default function DashboardPage() {
           </Dialog>
 
           {/* Detailed Receipt Analysis Link */}
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
             <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
                <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
             </span>
@@ -607,7 +607,7 @@ export default function DashboardPage() {
           {/* E-Card Dialog */}
           <Dialog>
               <DialogTrigger asChild>
-                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl hover:bg-muted/50 transition-colors h-40">
+                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
                   <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                      <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
