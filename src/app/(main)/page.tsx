@@ -19,7 +19,7 @@ import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format, isToday } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { recordExpenseWithText } from '@/ai/flows/record-expense-text';
@@ -95,6 +95,7 @@ export default function DashboardPage() {
     weeklySpending,
     allSortedExpenses,
     userBudget,
+    dailySpend,
   } = useMemo(() => {
     const today = new Date();
     const startOfCurrentMonth = startOfMonth(today);
@@ -110,6 +111,16 @@ export default function DashboardPage() {
             return false;
         }
     });
+    
+    const dailySpend = expenses
+        .filter(exp => {
+            try {
+                return isToday(new Date(exp.date));
+            } catch {
+                return false;
+            }
+        })
+        .reduce((sum, exp) => sum + exp.amount, 0);
 
     const totalCurrentExpenses = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
@@ -143,6 +154,7 @@ export default function DashboardPage() {
         weeklySpending: spendingByWeek,
         allSortedExpenses: sorted,
         userBudget,
+        dailySpend,
     };
   }, [expenses, userSettings]);
 
@@ -394,7 +406,7 @@ export default function DashboardPage() {
     return (
         <button
             onClick={handleToggleRecording}
-            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full"
+            className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-full w-full hover:bg-muted/50"
             aria-label="بدء التسجيل الصوتي"
         >
             <span className={cn("w-16 h-16 rounded-full flex items-center justify-center", "bg-rose-100 dark:bg-rose-900/50")}>
@@ -487,14 +499,18 @@ export default function DashboardPage() {
 
         <CardContent className="z-10 relative p-6 space-y-6">
             {/* Main numbers */}
-            <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-3 sm:gap-0 sm:divide-x-reverse sm:divide-x sm:divide-slate-700">
+            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4 sm:gap-0 sm:divide-x-reverse sm:divide-x sm:divide-slate-700">
               <div>
                   <p className="text-sm text-slate-400">الميزانية</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{(userBudget?.totalBudget ?? 0).toLocaleString()} د.ع</p>
               </div>
-              <div>
-                  <p className="text-sm text-slate-400">المصروف</p>
+               <div>
+                  <p className="text-sm text-slate-400">المصروف الشهري</p>
                   <p className="text-lg sm:text-xl md:text-2xl font-bold text-white">{(currentExpenses ?? 0).toLocaleString()} د.ع</p>
+              </div>
+              <div>
+                  <p className="text-sm text-slate-400">مصروف اليوم</p>
+                  <p className="text-lg sm:text-xl md:text-2xl font-bold text-yellow-300">{(dailySpend ?? 0).toLocaleString()} د.ع</p>
               </div>
               <div>
                   <p className="text-sm text-slate-400">المتبقي</p>
@@ -582,7 +598,7 @@ export default function DashboardPage() {
           {/* Manual Entry Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+              <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                    <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
                 </span>
@@ -598,7 +614,7 @@ export default function DashboardPage() {
           </Dialog>
 
           {/* Detailed Receipt Analysis Link */}
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
             <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
                <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
             </span>
@@ -608,7 +624,7 @@ export default function DashboardPage() {
           {/* E-Card Dialog */}
           <Dialog>
               <DialogTrigger asChild>
-                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+                <button className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
                   <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                      <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
@@ -758,5 +774,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
