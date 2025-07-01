@@ -362,6 +362,26 @@ export default function DashboardPage() {
     }
   }, [addExpenseMutation, categoryMap]);
   
+  const handleStartRecording = useCallback(() => {
+    if (recognitionRef.current) {
+        try {
+            finalTranscriptRef.current = '';
+            setLiveTranscript('');
+            setVoiceError(null);
+            recognitionRef.current.start();
+        } catch (e) {
+            console.error("Could not start recognition", e);
+            setVoiceError("فشل بدء التعرف. هل تم منح الإذن؟");
+        }
+    }
+  }, []);
+
+  const handleStopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+    }
+  }, []);
+
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -373,22 +393,18 @@ export default function DashboardPage() {
         recognitionRef.current.onstart = () => {
             setIsVoiceRecording(true);
             setVoiceError(null);
-            finalTranscriptRef.current = '';
-            setLiveTranscript('');
         };
 
         recognitionRef.current.onresult = (event: any) => {
             let interim_transcript = '';
-            let final_transcript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    final_transcript += event.results[i][0].transcript;
+                    finalTranscriptRef.current += event.results[i][0].transcript;
                 } else {
                     interim_transcript += event.results[i][0].transcript;
                 }
             }
-            finalTranscriptRef.current += final_transcript;
-            setLiveTranscript(interim_transcript);
+            setLiveTranscript(finalTranscriptRef.current + interim_transcript);
         };
 
         recognitionRef.current.onend = () => {
@@ -422,23 +438,6 @@ export default function DashboardPage() {
         }
     }
   }, [processTranscriptAndSave]);
-  
-  const handleToggleRecording = useCallback(() => {
-    if (isVoiceRecording) {
-      if(recognitionRef.current) {
-          recognitionRef.current.stop();
-      }
-    } else {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          console.error("Could not start recognition", e);
-          setVoiceError("فشل بدء التعرف. هل تم منح الإذن؟");
-        }
-      }
-    }
-  }, [isVoiceRecording]);
   
   // === Card Linking & Syncing Logic ===
   const updateSettingsMutation = useMutation({
@@ -650,13 +649,12 @@ export default function DashboardPage() {
         
         {/* Voice Button */}
         <button
-          onClick={voiceError ? () => setVoiceError(null) : handleToggleRecording}
+          onClick={voiceError ? () => { setVoiceError(null); setLiveTranscript(''); } : (isVoiceRecording ? handleStopRecording : handleStartRecording)}
           disabled={!recognitionRef.current || isVoiceLoading}
           className={cn(
             "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
             voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
             isVoiceLoading && "bg-muted/50",
-            !isVoiceRecording && !isVoiceLoading && !voiceError && "hover:bg-muted/50",
           )}
           aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
@@ -694,7 +692,7 @@ export default function DashboardPage() {
         
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
           <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
               <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                  <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
               </span>
@@ -707,7 +705,7 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
+        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
           <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
              <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
           </span>
@@ -716,7 +714,7 @@ export default function DashboardPage() {
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
             <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                    <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                 </span>
