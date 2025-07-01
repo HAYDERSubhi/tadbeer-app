@@ -9,7 +9,7 @@ import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, isAfter, compareDesc } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, isAfter, compareDesc, differenceInDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
@@ -58,6 +58,15 @@ interface CategorySummaryItem {
   budget?: number;
 }
 
+interface ForecastData {
+  totalForecastAmount: number;
+  categoryForecasts: {
+    categoryName: string;
+    predictedAmount: number;
+  }[];
+  advice: string;
+}
+
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings } = useAppData();
@@ -72,7 +81,7 @@ export default function StatisticsPage() {
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
   // Forecast state
-  const [forecast, setForecast] = useState<ForecastExpensesOutput | null>(null);
+  const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [isForecastLoading, setIsForecastLoading] = useState(true);
 
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -308,42 +317,80 @@ export default function StatisticsPage() {
   // Effect for fetching forecast
   useEffect(() => {
     const getForecast = async () => {
-      if (expenses.length < 10) { // Don't run if not enough data
+      // Need at least a few expenses to forecast
+      if (expenses.length < 5) {
         setIsForecastLoading(false);
         setForecast(null);
         return;
       }
       
-      // Get expenses from the last 90 days for better forecasting
-      const ninetyDaysAgo = subDays(new Date(), 90);
-      const historicalExpenses = expenses
-        .filter(exp => {
-            try {
-                return isAfter(parseISO(exp.date), ninetyDaysAgo);
-            } catch {
-                return false;
-            }
-        })
-        .map(e => ({
-          title: e.title,
-          amount: e.amount,
-          category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
-          date: format(new Date(e.date), 'yyyy-MM-dd'),
-      }));
+      setIsForecastLoading(true);
 
-      if(historicalExpenses.length < 10) {
+      const ninetyDaysAgo = subDays(new Date(), 90);
+      const relevantExpenses = expenses.filter(exp => {
+        try {
+            return isAfter(parseISO(exp.date), ninetyDaysAgo);
+        } catch { return false; }
+      });
+      
+      // Still need some data in the last 90 days
+      if(relevantExpenses.length < 5) {
          setIsForecastLoading(false);
          setForecast(null);
          return;
       }
 
-      setIsForecastLoading(true);
+      // Find the date of the first expense in the period to get an accurate duration
+      const firstExpenseDate = relevantExpenses.reduce((oldest, exp) => {
+        const expDate = parseISO(exp.date);
+        return expDate < oldest ? expDate : oldest;
+      }, new Date());
+
+      const daysInPeriod = Math.max(differenceInDays(new Date(), firstExpenseDate), 1);
+      
+      const totalSpentInPeriod = relevantExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const averageDailySpend = totalSpentInPeriod / daysInPeriod;
+      const totalForecastAmount = Math.round(averageDailySpend * 30);
+
+      const categoryTotals: { [key: string]: number } = {};
+      relevantExpenses.forEach(exp => {
+        categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+      });
+
+      const categoryForecasts = Object.entries(categoryTotals)
+        .map(([catKey, total]) => ({
+          categoryName: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
+          predictedAmount: Math.round((total / daysInPeriod) * 30),
+        }))
+        .sort((a,b) => b.predictedAmount - a.predictedAmount)
+        .slice(0, 5);
+
       try {
-        const result = await forecastExpenses({ expenses: historicalExpenses });
-        setForecast(result);
+        const aiResult = await forecastExpenses({ 
+          totalForecastAmount,
+          categoryForecasts,
+          historicalExpenses: relevantExpenses.slice(0, 20).map(e => ({ // send a sample for context
+            amount: e.amount,
+            category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+            date: format(new Date(e.date), 'yyyy-MM-dd'),
+          })),
+        });
+        
+        // Combine calculated data with AI advice
+        setForecast({
+            totalForecastAmount,
+            categoryForecasts,
+            advice: aiResult.advice,
+        });
+        
       } catch (e) {
-        console.error("Failed to get forecast", e);
-        setForecast(null);
+        console.error("Failed to get forecast advice", e);
+        // Fallback: Show calculated forecast even if AI fails
+        setForecast({
+            totalForecastAmount,
+            categoryForecasts,
+            advice: 'نوصي بمراجعة الفئات الأعلى إنفاقاً والنظر في وضع ميزانية لها.',
+        });
       } finally {
         setIsForecastLoading(false);
       }
