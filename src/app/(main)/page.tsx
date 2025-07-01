@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { FilePenLine, FileScan, CreditCardIcon, SettingsIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal, PencilIcon, Link2, Bell } from "lucide-react";
+import { FilePenLine, FileScan, CreditCardIcon, Trash2Icon, Loader2Icon, Mic, StopCircleIcon, RefreshCwIcon, AlertTriangleIcon, DollarSign, Trophy, Salad, CookingPot, TrendingUp, Lightbulb, PiggyBank, Sparkles, Target, Baby, School, History, Terminal, PencilIcon, Link2, Bell } from "lucide-react";
 import type { Expense, UserBudgetSettings, UserProfile, LinkedCard } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -128,9 +128,6 @@ export default function DashboardPage() {
   
   const recognitionRef = useRef<any | null>(null);
   const finalTranscriptRef = useRef('');
-
-  const isVoiceRecordingRef = useRef(isVoiceRecording);
-  isVoiceRecordingRef.current = isVoiceRecording;
   
   const cardForm = useForm<LinkCardFormData>({
     resolver: zodResolver(linkCardSchema),
@@ -427,7 +424,7 @@ export default function DashboardPage() {
   }, [processTranscriptAndSave]);
   
   const handleToggleRecording = useCallback(() => {
-    if (isVoiceRecordingRef.current) {
+    if (isVoiceRecording) {
       if(recognitionRef.current) {
           recognitionRef.current.stop();
       }
@@ -441,7 +438,7 @@ export default function DashboardPage() {
         }
       }
     }
-  }, []);
+  }, [isVoiceRecording]);
   
   // === Card Linking & Syncing Logic ===
   const updateSettingsMutation = useMutation({
@@ -656,9 +653,10 @@ export default function DashboardPage() {
           onClick={voiceError ? () => setVoiceError(null) : handleToggleRecording}
           disabled={!recognitionRef.current || isVoiceLoading}
           className={cn(
-              "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-              voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
-              isVoiceLoading && "bg-muted/50"
+            "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+            voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
+            isVoiceLoading && "bg-muted/50",
+            !isVoiceRecording && !isVoiceLoading && !voiceError && "hover:bg-muted/50",
           )}
           aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
@@ -820,3 +818,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
