@@ -443,7 +443,7 @@ export default function DashboardPage() {
   const renderVoiceButtonContent = () => {
     if (voiceError) {
       return (
-        <>
+        <div className="w-full h-full relative">
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-destructive p-2">
                 <AlertTriangleIcon className="h-6 w-6" />
                 <p className="text-xs font-semibold text-center">{voiceError}</p>
@@ -455,7 +455,7 @@ export default function DashboardPage() {
             >
                 <RefreshCwIcon className="h-4 w-4 text-primary" />
             </button>
-        </>
+        </div>
       );
     }
 
@@ -469,7 +469,7 @@ export default function DashboardPage() {
     }
 
     return (
-      <>
+      <div className="w-full h-full flex flex-col items-center justify-center relative">
         <button
           onClick={handleToggleRecording}
           disabled={!recognitionRef.current || isVoiceLoading}
@@ -495,7 +495,7 @@ export default function DashboardPage() {
               {liveTranscript || (isVoiceRecording ? "...استمع" : "سجل بالصوت")}
             </p>
         </div>
-      </>
+      </div>
     );
   };
   
@@ -626,22 +626,22 @@ export default function DashboardPage() {
               {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
             </p>
           </div>
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                 <DialogTrigger asChild>
                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary">
                         <PencilIcon className="h-4 w-4" />
                      </Button>
                 </DialogTrigger>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
-                    <Trash2Icon className="h-4 w-4" />
-                </Button>
-            </div>
-            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
-                <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-            </DialogContent>
-          </Dialog>
+                <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                    <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
+                    <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                </DialogContent>
+            </Dialog>
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
+                <Trash2Icon className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </li>
     );
