@@ -38,6 +38,7 @@ import { deleteExpense, addExpense, updateUserSettings } from '@/services/firest
 import { useAppData } from '@/hooks/use-app-data';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 
 
 const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -362,6 +363,7 @@ export default function DashboardPage() {
     }
   }, [addExpenseMutation, categoryMap]);
   
+  
   const handleStartRecording = useCallback(() => {
     if (recognitionRef.current) {
         try {
@@ -381,6 +383,7 @@ export default function DashboardPage() {
         recognitionRef.current.stop();
     }
   }, []);
+
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -616,13 +619,24 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-4 pt-4 border-t">
               <p className="text-center text-xs text-muted-foreground font-semibold">تتبع الإنفاق الأسبوعي</p>
-              <div className="grid grid-cols-4 gap-2">
-                {weeklySpending.map((spend, i) => (
-                  <div key={i} className="flex flex-col items-center text-center">
-                     <p className="text-xs text-muted-foreground mb-1">الأسبوع {i + 1}</p>
-                     <p className="text-xs font-bold">{spend.toLocaleString()} د.ع</p>
-                  </div>
-                ))}
+              <div className="grid grid-cols-4 gap-4">
+                {weeklySpending.map((spend, i) => {
+                   const percentage = weeklyTarget > 0 ? Math.min((spend / weeklyTarget) * 100, 100) : 0;
+                   let progressColor = 'hsl(var(--chart-2))'; // Green
+                   if (percentage > 85) {
+                       progressColor = 'hsl(var(--destructive))'; // Red
+                   } else if (percentage > 50) {
+                       progressColor = 'hsl(var(--primary))'; // Yellow
+                   }
+
+                   return (
+                      <div key={i} className="flex flex-col items-center text-center gap-2">
+                         <p className="text-xs text-muted-foreground">الأسبوع {i + 1}</p>
+                         <Progress value={percentage} className="h-2 w-full" indicatorcolor={progressColor} />
+                         <p className="text-xs font-bold">{spend.toLocaleString()} د.ع</p>
+                      </div>
+                   )
+                })}
               </div>
               <div className="text-center pt-2">
                 <p className="text-xs text-muted-foreground">الهدف الأسبوعي: <span className="font-semibold text-foreground">{weeklyTarget > 0 ? weeklyTarget.toLocaleString() : '---'} د.ع</span></p>
@@ -646,29 +660,28 @@ export default function DashboardPage() {
         
         {/* Voice Button */}
         <button
-          onClick={voiceError ? () => { setVoiceError(null); setLiveTranscript(''); } : (isVoiceRecording ? handleStopRecording : handleStartRecording)}
-          disabled={!recognitionRef.current || isVoiceLoading}
-          className={cn(
-            "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-            !isVoiceRecording && "hover:bg-muted/50"
-          )}
-          aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
+            onClick={isVoiceRecording ? handleStopRecording : handleStartRecording}
+            disabled={!recognitionRef.current || isVoiceLoading}
+            className={cn(
+                "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+            aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
             {voiceError ? (
-                <>
+                <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); setLiveTranscript(''); }} className="flex flex-col items-center justify-center gap-3">
                     <AlertTriangleIcon className="h-8 w-8 text-destructive" />
                     <p className="text-sm font-semibold text-center">{voiceError}</p>
                     <p className="text-xs text-destructive/80 mt-1">اضغط للمحاولة مرة أخرى</p>
-                </>
+                </div>
             ) : isVoiceLoading ? (
-                <>
+                 <div className="flex flex-col items-center justify-center gap-3">
                     <span className="w-16 h-16 rounded-full flex items-center justify-center">
                         <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
                     </span>
                     <p className="font-semibold">جاري التحليل...</p>
-                </>
+                 </div>
             ) : (
-                <>
+                 <div className="flex flex-col items-center justify-center gap-3">
                     <span className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
                          isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : ""
@@ -682,7 +695,7 @@ export default function DashboardPage() {
                     <p className="font-semibold h-5 truncate">
                         {liveTranscript || (isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت")}
                     </p>
-                </>
+                 </div>
             )}
         </button>
         
