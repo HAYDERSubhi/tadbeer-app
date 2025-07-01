@@ -615,7 +615,7 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground text-xs">مصروف اليوم</p>
                 <p className="font-semibold text-amber-500">{dailySpend.toLocaleString()} د.ع</p>
               </div>
-              <div className='col-span-2 md:col-span-1'>
+              <div>
                 <p className="text-muted-foreground text-xs">الهدف الأسبوعي</p>
                 <p className="font-semibold">{weeklyTarget > 0 ? weeklyTarget.toLocaleString() : '---'} د.ع</p>
               </div>
@@ -655,6 +655,7 @@ export default function DashboardPage() {
             "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
             voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
             isVoiceLoading && "bg-muted/50",
+            !isVoiceRecording && "hover:bg-muted/50"
           )}
           aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
@@ -675,7 +676,7 @@ export default function DashboardPage() {
                 <>
                     <span className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-                        isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : "bg-green-100 dark:bg-green-900/50"
+                        isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : ""
                     )}>
                         {isVoiceRecording ? (
                             <StopCircleIcon className="h-8 w-8" />
@@ -692,8 +693,8 @@ export default function DashboardPage() {
         
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
           <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
-              <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
+              <span className="w-16 h-16 rounded-full flex items-center justify-center">
                  <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
               </span>
               <p className="font-semibold">إدخال يدوي</p>
@@ -705,8 +706,8 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
-          <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
+        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
+          <span className="w-16 h-16 rounded-full flex items-center justify-center">
              <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
           </span>
           <p className="font-semibold">تحليل فاتورة</p>
@@ -714,8 +715,8 @@ export default function DashboardPage() {
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
             <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
-                <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
+                <span className="w-16 h-16 rounded-full flex items-center justify-center">
                    <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                 </span>
                 <p className="font-semibold">بطاقة إلكترونية</p>
