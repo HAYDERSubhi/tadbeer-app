@@ -103,6 +103,7 @@ export default function DashboardPage() {
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [visibleExpensesCount, setVisibleExpensesCount] = useState(20);
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
 
   // === Voice Recording State ===
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
@@ -643,7 +644,7 @@ export default function DashboardPage() {
           </div>
           
           {/* Manual Entry Dialog */}
-          <Dialog>
+          <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
             <DialogTrigger asChild>
               <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
@@ -656,7 +657,7 @@ export default function DashboardPage() {
               <DialogHeader>
                 <DialogTitle as="h2">إدخال يدوي</DialogTitle>
               </DialogHeader>
-              <ManualExpenseForm />
+              <ManualExpenseForm setOpen={setIsManualEntryOpen} />
             </DialogContent>
           </Dialog>
 

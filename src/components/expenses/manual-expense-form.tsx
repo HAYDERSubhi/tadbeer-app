@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,7 +23,6 @@ import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { DialogClose } from '@/components/ui/dialog';
 import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -42,7 +40,7 @@ const expenseSchema = z.object({
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
-export default function ManualExpenseForm() {
+export default function ManualExpenseForm({ setOpen }: { setOpen: (open: boolean) => void }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -66,11 +64,10 @@ export default function ManualExpenseForm() {
         queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
         toast({
           title: "تمت الإضافة بنجاح!",
-          description: `تم إضافة مصروف "${variables.title}" بمبلغ ${variables.amount} د.ع.`,
+          description: `تم إضافة مصروف "${variables.title}" بمبلغ ${variables.amount.toLocaleString()} د.ع.`,
         });
         form.reset();
-        // Close dialog hack
-        document.querySelector('[data-radix-dialog-close]')?.dispatchEvent(new MouseEvent('click'));
+        setOpen(false);
     },
     onError: () => {
         toast({
@@ -99,33 +96,35 @@ export default function ManualExpenseForm() {
         {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
       </div>
 
-      <div>
-        <Label htmlFor="amount">المبلغ (د.ع)</Label>
-        <Input id="amount" type="number" {...form.register('amount')} placeholder="مثال: 25000" />
-        {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="amount">المبلغ (د.ع)</Label>
+          <Input id="amount" type="number" {...form.register('amount')} placeholder="25000" />
+          {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
+        </div>
 
-      <div>
-        <Label htmlFor="category">الفئة</Label>
-        <Controller
-          name="category"
-          control={form.control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="اختر فئة" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(CATEGORIES).map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+        <div>
+          <Label htmlFor="category">الفئة</Label>
+          <Controller
+            name="category"
+            control={form.control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="اختر فئة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(CATEGORIES).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+        </div>
       </div>
       
       <div>

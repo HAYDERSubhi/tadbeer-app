@@ -93,33 +93,34 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
         {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
       </div>
 
-      <div>
-        <Label htmlFor="amount">المبلغ (د.ع)</Label>
-        <Input id="amount" type="number" {...form.register('amount')} placeholder="مثال: 25000" />
-        {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="category">الفئة</Label>
-        <Controller
-          name="category"
-          control={form.control}
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger id="category">
-                <SelectValue placeholder="اختر فئة" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.values(CATEGORIES).map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="amount">المبلغ (د.ع)</Label>
+          <Input id="amount" type="number" {...form.register('amount')} placeholder="25000" />
+          {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="category">الفئة</Label>
+          <Controller
+            name="category"
+            control={form.control}
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="اختر فئة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(CATEGORIES).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+        </div>
       </div>
       
       <div>
