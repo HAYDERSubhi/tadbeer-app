@@ -440,65 +440,6 @@ export default function DashboardPage() {
     }
   }, [isVoiceRecording]);
   
-  const renderVoiceButtonContent = () => {
-    if (voiceError) {
-      return (
-        <div className="w-full h-full relative">
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-destructive p-2">
-                <AlertTriangleIcon className="h-6 w-6" />
-                <p className="text-xs font-semibold text-center">{voiceError}</p>
-            </div>
-            <button
-                onClick={handleToggleRecording}
-                className="absolute bottom-2 right-2 p-1 bg-background/50 rounded-full hover:bg-muted"
-                aria-label="إعادة المحاولة"
-            >
-                <RefreshCwIcon className="h-4 w-4 text-primary" />
-            </button>
-        </div>
-      );
-    }
-
-    if(isVoiceLoading) {
-      return (
-         <div className="flex flex-col items-center justify-center text-center gap-3 p-4 h-full">
-              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-              <p className="font-semibold">جاري التحليل...</p>
-         </div>
-      );
-    }
-
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center relative">
-        <button
-          onClick={handleToggleRecording}
-          disabled={!recognitionRef.current || isVoiceLoading}
-          className={cn(
-            "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300",
-            isVoiceRecording ? "bg-red-500/20 hover:bg-red-500/30" : "bg-primary/20 hover:bg-primary/30"
-          )}
-          aria-label={isVoiceRecording ? "إيقاف التسجيل" : "بدء التسجيل الصوتي"}
-        >
-          <div className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center",
-            isVoiceRecording ? "bg-red-500 animate-pulse" : "bg-primary"
-          )}>
-            {isVoiceRecording ? (
-              <StopCircleIcon className="h-8 w-8 text-primary-foreground" />
-            ) : (
-              <Mic className="h-8 w-8 text-primary-foreground" />
-            )}
-          </div>
-        </button>
-        <div className="absolute bottom-4 text-center w-full px-2">
-            <p className="text-sm font-semibold text-muted-foreground truncate h-5">
-              {liveTranscript || (isVoiceRecording ? "...استمع" : "سجل بالصوت")}
-            </p>
-        </div>
-      </div>
-    );
-  };
-  
   // === Card Linking & Syncing Logic ===
   const updateSettingsMutation = useMutation({
       mutationFn: (newSettings: Partial<any>) => updateUserSettings(user!.uid, newSettings),
@@ -609,41 +550,43 @@ export default function DashboardPage() {
     const [isEditOpen, setIsEditOpen] = useState(false);
     const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
     return (
-      <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-        <div className="flex flex-1 items-center gap-3 overflow-hidden">
-          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-xl", categoryInfo.color)}>
-            {categoryInfo.icon}
-          </span>
-          <div className='overflow-hidden'>
-            <p className="font-semibold truncate">{expense.title}</p>
-            <p className="text-sm text-muted-foreground">{categoryInfo.name}</p>
+      <Fragment>
+        <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
+          <div className="flex flex-1 items-center gap-3 overflow-hidden">
+            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-xl", categoryInfo.color)}>
+              {categoryInfo.icon}
+            </span>
+            <div className='overflow-hidden'>
+              <p className="font-semibold truncate">{expense.title}</p>
+              <p className="text-sm text-muted-foreground">{categoryInfo.name}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="text-end">
-            <p className="font-semibold text-foreground">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
-            <p className="text-sm text-muted-foreground">
-              {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
-            </p>
+          <div className="flex items-center gap-2">
+            <div className="text-end">
+              <p className="font-semibold text-foreground">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
+              </p>
+            </div>
+            <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                  <DialogTrigger asChild>
+                       <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary">
+                          <PencilIcon className="h-4 w-4" />
+                       </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                      <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
+                      <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                  </DialogContent>
+              </Dialog>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
+                  <Trash2Icon className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogTrigger asChild>
-                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary">
-                        <PencilIcon className="h-4 w-4" />
-                     </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                    <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
-                    <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                </DialogContent>
-            </Dialog>
-            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
-                <Trash2Icon className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </li>
+        </li>
+      </Fragment>
     );
   }
 
@@ -704,47 +647,94 @@ export default function DashboardPage() {
 
       {/* Add Expense Section */}
       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          
-          <div className={cn("relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40", (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10", voiceError && "ring-2 ring-destructive/50")}>
-              {renderVoiceButtonContent()}
-          </div>
-          
-          <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+        
+        {/* Voice Button */}
+        <div 
+          className={cn(
+              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
+              voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
+              (isVoiceLoading || isVoiceRecording) && "bg-muted/50"
+          )}
+        >
+            {voiceError ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-destructive p-2">
+                    <AlertTriangleIcon className="h-8 w-8" />
+                    <p className="text-sm font-semibold text-center">{voiceError}</p>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setVoiceError(null)}
+                        className="mt-2"
+                    >
+                        <RefreshCwIcon className="ml-2 h-4 w-4" />
+                        حاول مرة أخرى
+                    </Button>
+                </div>
+            ) : isVoiceLoading ? (
+                <>
+                    <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                    <p className="font-semibold">جاري التحليل...</p>
+                </>
+            ) : (
+                <button
+                    onClick={handleToggleRecording}
+                    disabled={!recognitionRef.current}
+                    className="flex flex-col items-center justify-center text-center gap-3 w-full h-full disabled:opacity-50"
+                    aria-label={isVoiceRecording ? "إيقاف التسجيل" : "بدء التسجيل الصوتي"}
+                >
+                    <span className={cn(
+                        "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
+                        isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : "bg-green-100 dark:bg-green-900/50"
+                    )}>
+                        {isVoiceRecording ? (
+                            <StopCircleIcon className="h-8 w-8" />
+                        ) : (
+                            <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
+                        )}
+                    </span>
+                    <p className="font-semibold h-5 truncate">
+                        {liveTranscript || (isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت")}
+                    </p>
+                </button>
+            )}
+        </div>
+        
+        <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+          <DialogTrigger asChild>
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+              <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
+                 <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+              </span>
+              <p className="font-semibold">إدخال يدوي</p>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+          </DialogContent>
+        </Dialog>
+
+        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+          <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
+             <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
+          </span>
+          <p className="font-semibold">تحليل فاتورة</p>
+        </Link>
+        
+        <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
             <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
-                <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
-                   <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+                <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
+                   <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                 </span>
-                <p className="font-semibold">إدخال يدوي</p>
+                <p className="font-semibold">بطاقة إلكترونية</p>
               </div>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-              <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-              <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+            <DialogContent className="sm:max-w-[425px]">
+              {renderCardDialogContent()}
             </DialogContent>
           </Dialog>
-
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
-            <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
-               <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
-            </span>
-            <p className="font-semibold">تحليل فاتورة</p>
-          </Link>
-          
-          <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-              <DialogTrigger asChild>
-                <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
-                  <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
-                     <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
-                  </span>
-                  <p className="font-semibold">بطاقة إلكترونية</p>
-                </div>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                {renderCardDialogContent()}
-              </DialogContent>
-            </Dialog>
-      </div>
+    </div>
 
        {/* Goal Setting CTA Card */}
       <Card className="bg-gradient-to-br from-primary/20 to-transparent">
@@ -835,7 +825,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
