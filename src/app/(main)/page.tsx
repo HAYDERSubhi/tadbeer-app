@@ -651,9 +651,9 @@ export default function DashboardPage() {
         {/* Voice Button */}
         <div 
           className={cn(
-              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40",
+              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40 cursor-pointer",
               voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
-              (isVoiceLoading || isVoiceRecording) && "bg-muted/50"
+              isVoiceLoading && "bg-muted/50"
           )}
         >
             {voiceError ? (
@@ -672,7 +672,9 @@ export default function DashboardPage() {
                 </div>
             ) : isVoiceLoading ? (
                 <>
-                    <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                    <span className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-900/50">
+                        <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                    </span>
                     <p className="font-semibold">جاري التحليل...</p>
                 </>
             ) : (
