@@ -48,8 +48,14 @@ export type UserBudgetSettings = {
     zeroSpendDaysTarget: number;
 }
 
+export type LinkedCard = {
+  name: string;
+  last4: string;
+}
+
 export type UserSettings = {
   budget: UserBudgetSettings;
   categoryBudgets: Record<string, number>;
   profile: UserProfile;
+  linkedCard?: LinkedCard | null;
 };
