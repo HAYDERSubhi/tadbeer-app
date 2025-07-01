@@ -649,41 +649,32 @@ export default function DashboardPage() {
       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4">
         
         {/* Voice Button */}
-        <div 
+        <button
+          onClick={voiceError ? () => setVoiceError(null) : handleToggleRecording}
+          disabled={!recognitionRef.current || isVoiceLoading}
           className={cn(
-              "relative flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40 cursor-pointer",
-              voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
-              isVoiceLoading && "bg-muted/50"
+              "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+              voiceError && "ring-2 ring-destructive/50 bg-destructive/10 hover:bg-destructive/20",
+              isVoiceLoading && "bg-muted/50",
+              !voiceError && !isVoiceLoading && "hover:bg-muted/50"
           )}
+          aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
             {voiceError ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-destructive p-2">
-                    <AlertTriangleIcon className="h-8 w-8" />
+                <>
+                    <AlertTriangleIcon className="h-8 w-8 text-destructive" />
                     <p className="text-sm font-semibold text-center">{voiceError}</p>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setVoiceError(null)}
-                        className="mt-2"
-                    >
-                        <RefreshCwIcon className="ml-2 h-4 w-4" />
-                        حاول مرة أخرى
-                    </Button>
-                </div>
+                    <p className="text-xs text-destructive/80 mt-1">اضغط للمحاولة مرة أخرى</p>
+                </>
             ) : isVoiceLoading ? (
                 <>
-                    <span className="w-16 h-16 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-900/50">
+                    <span className="w-16 h-16 rounded-full flex items-center justify-center">
                         <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
                     </span>
                     <p className="font-semibold">جاري التحليل...</p>
                 </>
             ) : (
-                <button
-                    onClick={handleToggleRecording}
-                    disabled={!recognitionRef.current}
-                    className="flex flex-col items-center justify-center text-center gap-3 w-full h-full disabled:opacity-50"
-                    aria-label={isVoiceRecording ? "إيقاف التسجيل" : "بدء التسجيل الصوتي"}
-                >
+                <>
                     <span className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
                         isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : "bg-green-100 dark:bg-green-900/50"
@@ -697,13 +688,13 @@ export default function DashboardPage() {
                     <p className="font-semibold h-5 truncate">
                         {liveTranscript || (isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت")}
                     </p>
-                </button>
+                </>
             )}
-        </div>
+        </button>
         
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
           <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
               <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                  <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
               </span>
@@ -716,7 +707,7 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
           <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
              <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
           </span>
@@ -725,7 +716,7 @@ export default function DashboardPage() {
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
             <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                    <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                 </span>
