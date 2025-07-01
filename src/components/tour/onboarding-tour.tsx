@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,6 +17,19 @@ interface OnboardingTourProps {
   steps: TourStep[];
   tourKey: string;
 }
+
+const TooltipArrow = ({ placement }: { placement: TourStep['placement'] }) => {
+    const baseClasses = "absolute w-3 h-3 bg-popover border-border transform rotate-45";
+    const placementClasses = {
+        top: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 border-r border-b',
+        bottom: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 border-l border-t',
+        left: 'right-0 top-1/2 -translate-y-1/2 translate-x-1/2 border-t border-r',
+        right: 'left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 border-b border-l',
+        center: 'hidden',
+    };
+    const currentPlacement = placement || 'bottom';
+    return <div className={cn(baseClasses, placementClasses[currentPlacement])} />;
+};
 
 export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
@@ -102,7 +114,7 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
   const tooltipPosition: React.CSSProperties = {};
   if (targetRect && currentStepData.selector) {
     const { top, left, width, height } = targetRect;
-    const offset = 12; // 12px gap
+    const offset = 16; // Increased offset for arrow
 
     switch (currentStepData.placement) {
         case 'top':
@@ -148,35 +160,38 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
         />
 
       {/* Tooltip Card */}
-      <Card
+      <div
         className={cn(
-            "fixed z-[201] w-[min(90vw,350px)] shadow-2xl transition-all duration-300",
+            "fixed z-[201] w-[min(90vw,320px)] transition-all duration-300",
             "animate-in fade-in zoom-in-95"
         )}
         style={tooltipPosition}
       >
-        <CardHeader className="relative pb-2">
-          <CardTitle>{currentStepData.title}</CardTitle>
-          <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={handleComplete}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">إغلاق الجولة</span>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{currentStepData.content}</p>
-          <div className="mt-4 flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">
-              {currentStep + 1} / {steps.length}
-            </span>
-            <div className="flex gap-2">
-              {currentStep > 0 && <Button variant="outline" onClick={handlePrev}>السابق</Button>}
-              <Button onClick={handleNext}>
-                {currentStep === steps.length - 1 ? 'إنهاء' : 'التالي'}
-              </Button>
+        {!isCentered && <TooltipArrow placement={currentStepData.placement} />}
+        <div className="relative bg-popover text-popover-foreground p-4 space-y-3 rounded-lg border shadow-lg">
+            <div className='flex justify-between items-start'>
+                <h3 className="font-semibold text-lg leading-tight pr-8">{currentStepData.title}</h3>
+                <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={handleComplete}>
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">إغلاق الجولة</span>
+                </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            
+            <p className="text-sm text-popover-foreground/80">{currentStepData.content}</p>
+
+            <div className="mt-4 flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">
+                {currentStep + 1} / {steps.length}
+                </span>
+                <div className="flex gap-2">
+                {currentStep > 0 && <Button variant="ghost" size="sm" onClick={handlePrev}>السابق</Button>}
+                <Button size="sm" onClick={handleNext}>
+                    {currentStep === steps.length - 1 ? 'إنهاء' : 'التالي'}
+                </Button>
+                </div>
+            </div>
+        </div>
+      </div>
     </div>
   );
 }
