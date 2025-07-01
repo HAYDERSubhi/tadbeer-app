@@ -68,7 +68,36 @@ const linkCardSchema = z.object({
 type LinkCardFormData = z.infer<typeof linkCardSchema>;
 
 const tourSteps = [
-  // ... (tour steps remain the same)
+  {
+    selector: '',
+    title: 'أهلاً بك في تطبيق مصروفات!',
+    content: 'هذه جولة سريعة لمساعدتك على استكشاف الميزات الرئيسية. يمكنك تخطيها في أي وقت.',
+    placement: 'center',
+  },
+  {
+    selector: '#budget-summary-card',
+    title: 'لوحة التحكم الرئيسية',
+    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك، مصروفاتك، والمبلغ المتبقي لك هذا الشهر.',
+    placement: 'bottom',
+  },
+  {
+    selector: '#expense-input-methods',
+    title: 'طرق إضافة المصروفات',
+    content: 'يمكنك إضافة مصروفاتك يدويًا، عبر الصوت، من خلال تحليل فاتورة، أو بمزامنة بطاقتك الإلكترونية.',
+    placement: 'bottom',
+  },
+   {
+    selector: '#smart-insights-card',
+    title: 'النصائح الذكية',
+    content: 'يقوم مدربك المالي بتحليل إنفاقك وتقديم نصائح مخصصة لك هنا.',
+    placement: 'top',
+  },
+  {
+    selector: '#main-navigation',
+    title: 'التنقل في التطبيق',
+    content: 'استخدم هذا الشريط للتنقل بين الصفحات الرئيسية: الإحصائيات، المخطط المالي، والإعدادات.',
+    placement: 'top',
+  }
 ];
 
 
@@ -91,26 +120,19 @@ export default function DashboardPage() {
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   const [isSyncingCard, setIsSyncingCard] = useState(false);
 
+  // Voice recording state
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
   
   const recognitionRef = useRef<any | null>(null);
+  const finalTranscriptRef = useRef('');
   
   const cardForm = useForm<LinkCardFormData>({
     resolver: zodResolver(linkCardSchema),
     defaultValues: { name: '', last4: '' }
   });
-
-   useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-    }
-  }, []);
   
   const {
     monthlyExpenses,
@@ -304,7 +326,6 @@ export default function DashboardPage() {
 
   const processTranscriptAndSave = useCallback(async (transcript: string) => {
     if (!transcript.trim()) {
-        setVoiceError("لم يتم التعرف على أي كلام. يرجى المحاولة مرة أخرى.");
         setIsVoiceLoading(false);
         return;
     }
@@ -341,12 +362,141 @@ export default function DashboardPage() {
     }
   }, [addExpenseMutation, categoryMap]);
   
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'ar-IQ';
+
+        recognitionRef.current.onstart = () => {
+            setIsVoiceRecording(true);
+            setVoiceError(null);
+            finalTranscriptRef.current = '';
+            setLiveTranscript('');
+        };
+
+        recognitionRef.current.onresult = (event: any) => {
+            let interim_transcript = '';
+            let final_transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    final_transcript += event.results[i][0].transcript;
+                } else {
+                    interim_transcript += event.results[i][0].transcript;
+                }
+            }
+            finalTranscriptRef.current += final_transcript;
+            setLiveTranscript(interim_transcript);
+        };
+
+        recognitionRef.current.onend = () => {
+            setIsVoiceRecording(false);
+            if (finalTranscriptRef.current.trim()) {
+              processTranscriptAndSave(finalTranscriptRef.current);
+            }
+            setLiveTranscript('');
+        };
+        
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error', event.error);
+          let errorMsg = `خطأ في التعرف على الصوت: ${event.error}`;
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            errorMsg = 'الرجاء السماح بالوصول للميكروفون.';
+          } else if (event.error === 'no-speech') {
+            errorMsg = 'لم يتم اكتشاف أي كلام. حاول مرة أخرى.';
+          }
+          setVoiceError(errorMsg);
+          setIsVoiceRecording(false);
+        };
+
+    } else {
+        setVoiceError("متصفحك لا يدعم خاصية التعرف على الصوت.");
+    }
+    
+    return () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+        }
+    }
+  }, [processTranscriptAndSave]);
+  
   const handleToggleRecording = useCallback(() => {
-    // ... voice recording logic remains the same
-  }, [isVoiceRecording, processTranscriptAndSave]);
+    if (isVoiceRecording) {
+      if(recognitionRef.current) {
+          recognitionRef.current.stop();
+      }
+    } else {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          console.error("Could not start recognition", e);
+          setVoiceError("فشل بدء التعرف. هل تم منح الإذن؟");
+        }
+      }
+    }
+  }, [isVoiceRecording]);
   
   const renderVoiceButtonContent = () => {
-    // ... voice button rendering logic remains the same
+    if (voiceError) {
+      return (
+        <>
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-destructive p-2">
+                <AlertTriangleIcon className="h-6 w-6" />
+                <p className="text-xs font-semibold text-center">{voiceError}</p>
+            </div>
+            <button
+                onClick={handleToggleRecording}
+                className="absolute bottom-2 right-2 p-1 bg-background/50 rounded-full hover:bg-muted"
+                aria-label="إعادة المحاولة"
+            >
+                <RefreshCwIcon className="h-4 w-4 text-primary" />
+            </button>
+        </>
+      );
+    }
+
+    if(isVoiceLoading) {
+      return (
+         <div className="flex flex-col items-center justify-center text-center gap-3 p-4 h-full">
+              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+              <p className="font-semibold">جاري التحليل...</p>
+         </div>
+      );
+    }
+
+    return (
+      <>
+        <button
+          onClick={handleToggleRecording}
+          disabled={!recognitionRef.current || isVoiceLoading}
+          className={cn(
+            "w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300",
+            isVoiceRecording ? "bg-red-500/20 hover:bg-red-500/30" : "bg-primary/20 hover:bg-primary/30"
+          )}
+          aria-label={isVoiceRecording ? "إيقاف التسجيل" : "بدء التسجيل الصوتي"}
+        >
+          <div className={cn(
+            "w-16 h-16 rounded-full flex items-center justify-center",
+            isVoiceRecording ? "bg-red-500 animate-pulse" : "bg-primary"
+          )}>
+            {isVoiceRecording ? (
+              <StopCircleIcon className="h-8 w-8 text-primary-foreground" />
+            ) : (
+              <Mic className="h-8 w-8 text-primary-foreground" />
+            )}
+          </div>
+        </button>
+        <div className="absolute bottom-4 text-center w-full px-2">
+            <p className="text-sm font-semibold text-muted-foreground truncate h-5">
+              {liveTranscript || (isVoiceRecording ? "...استمع" : "سجل بالصوت")}
+            </p>
+        </div>
+      </>
+    );
   };
   
   // === Card Linking & Syncing Logic ===
@@ -358,6 +508,7 @@ export default function DashboardPage() {
               title: "تم الحفظ",
               description: "تم ربط بطاقتك بنجاح.",
           });
+          setIsCardDialogOpen(false);
       },
       onError: () => {
           toast({ title: "خطأ", description: "فشل ربط البطاقة.", variant: "destructive" });
@@ -404,16 +555,22 @@ export default function DashboardPage() {
   const renderCardDialogContent = () => {
       if(linkedCard) {
           return (
-            <div className='p-6 text-center space-y-6'>
-                <div className='flex flex-col items-center gap-2'>
-                    <CreditCardIcon className="h-16 w-16 text-primary" />
-                    <h3 className='text-xl font-bold'>{linkedCard.name}</h3>
-                    <p className='text-muted-foreground'>**** **** **** {linkedCard.last4}</p>
-                </div>
-                <Button onClick={handleSyncCard} disabled={isSyncingCard || addMultipleExpensesMutation.isPending} className="w-full" size="lg">
-                   {isSyncingCard ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري المزامنة...</> : <><Bell className="ml-2 h-4 w-4"/> مزامنة المعاملات</>}
-                </Button>
-            </div>
+            <>
+              <DialogHeader>
+                  <DialogTitle as="h2" className='text-center'>{linkedCard.name}</DialogTitle>
+                  <DialogDescription className='text-center'>
+                    بطاقة إلكترونية مرتبطة | **** **** **** {linkedCard.last4}
+                  </DialogDescription>
+              </DialogHeader>
+              <div className='p-6 text-center space-y-6'>
+                  <div className='flex flex-col items-center gap-2'>
+                      <CreditCardIcon className="h-16 w-16 text-primary" />
+                  </div>
+                  <Button onClick={handleSyncCard} disabled={isSyncingCard || addMultipleExpensesMutation.isPending} className="w-full" size="lg">
+                     {isSyncingCard ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري المزامنة...</> : <><Bell className="ml-2 h-4 w-4"/> مزامنة المعاملات</>}
+                  </Button>
+              </div>
+            </>
           );
       }
 
@@ -449,7 +606,45 @@ export default function DashboardPage() {
   const weeklyTarget = (userBudget?.totalBudget ?? 0) > 0 ? (userBudget?.totalBudget ?? 0) / 4 : 0;
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
-    // ... ExpenseListItem logic remains the same
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+    return (
+      <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
+        <div className="flex flex-1 items-center gap-3 overflow-hidden">
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-xl", categoryInfo.color)}>
+            {categoryInfo.icon}
+          </span>
+          <div className='overflow-hidden'>
+            <p className="font-semibold truncate">{expense.title}</p>
+            <p className="text-sm text-muted-foreground">{categoryInfo.name}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-end">
+            <p className="font-semibold text-foreground">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
+            </p>
+          </div>
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
+                <DialogTrigger asChild>
+                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary">
+                        <PencilIcon className="h-4 w-4" />
+                     </Button>
+                </DialogTrigger>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
+                    <Trash2Icon className="h-4 w-4" />
+                </Button>
+            </div>
+            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
+                <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+            </DialogContent>
+          </Dialog>
+        </div>
+      </li>
+    );
   }
 
   return (
@@ -457,12 +652,54 @@ export default function DashboardPage() {
       <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
       
       {/* Hero Balance Card */}
-      <Card id="budget-summary-card" className="relative overflow-hidden bg-slate-900 text-primary-foreground shadow-2xl rounded-2xl">
-        {/* ... Hero card content remains the same */}
+      <Card id="budget-summary-card" className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background shadow-lg rounded-2xl">
+        <CardContent className="p-6 space-y-4">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">الميزانية المتبقية</p>
+            <p className="text-4xl font-bold text-primary tracking-tighter">
+              {remainingBudget.toLocaleString()}&nbsp;د.ع
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 text-center text-sm pt-4 border-t">
+              <div>
+                <p className="text-muted-foreground text-xs">إجمالي الميزانية</p>
+                <p className="font-semibold">{(userBudget?.totalBudget ?? 0).toLocaleString()} د.ع</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">المصروف الشهري</p>
+                <p className="font-semibold text-destructive">{currentExpenses.toLocaleString()} د.ع</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">مصروف اليوم</p>
+                <p className="font-semibold text-amber-500">{dailySpend.toLocaleString()} د.ع</p>
+              </div>
+              <div className='col-span-2 md:col-span-1'>
+                <p className="text-muted-foreground text-xs">الهدف الأسبوعي</p>
+                <p className="font-semibold">{weeklyTarget > 0 ? weeklyTarget.toLocaleString() : '---'} د.ع</p>
+              </div>
+          </div>
+          <div className="space-y-4 pt-4 border-t">
+              <p className="text-center text-xs text-muted-foreground font-semibold">تتبع الإنفاق الأسبوعي</p>
+              <div className="grid grid-cols-4 gap-2">
+                {weeklySpending.map((spend, i) => (
+                  <div key={i} className="flex flex-col items-center text-center">
+                     <p className="text-xs text-muted-foreground mb-1">الأسبوع {i + 1}</p>
+                     <p className="text-xs font-bold">{spend.toLocaleString()} د.ع</p>
+                  </div>
+                ))}
+              </div>
+          </div>
+        </CardContent>
       </Card>
       
       {(userBudget?.totalBudget ?? 0) === 0 && (
-        // ... No budget warning remains the same
+          <Alert variant="destructive">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>لم تقم بتحديد ميزانية!</AlertTitle>
+            <AlertDescription>
+                <p>اذهب إلى <Link href="/settings" className="font-bold underline">الإعدادات</Link> لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
+            </AlertDescription>
+        </Alert>
       )}
 
       {/* Add Expense Section */}
@@ -470,12 +707,11 @@ export default function DashboardPage() {
           
           <div className={cn("relative flex flex-col items-center justify-center text-center p-4 rounded-xl transition-all h-40", (isVoiceLoading || isVoiceRecording || voiceError) && "bg-muted/30 dark:bg-muted/10", voiceError && "ring-2 ring-destructive/50")}>
               {renderVoiceButtonContent()}
-              {voiceError && ( /* ... error retry button */ )}
           </div>
           
           <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
             <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
                 <span className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/50">
                    <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
                 </span>
@@ -488,7 +724,7 @@ export default function DashboardPage() {
             </DialogContent>
           </Dialog>
 
-          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40">
+          <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
             <span className="w-16 h-16 rounded-full flex items-center justify-center bg-teal-100 dark:bg-teal-900/50">
                <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
             </span>
@@ -497,7 +733,7 @@ export default function DashboardPage() {
           
           <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
               <DialogTrigger asChild>
-                <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer">
+                <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
                   <span className="w-16 h-16 rounded-full flex items-center justify-center bg-amber-100 dark:bg-amber-900/50">
                      <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
                   </span>
@@ -512,18 +748,94 @@ export default function DashboardPage() {
 
        {/* Goal Setting CTA Card */}
       <Card className="bg-gradient-to-br from-primary/20 to-transparent">
-        {/* ... Goal CTA remains the same */}
+        <CardContent className='p-6 flex flex-col md:flex-row items-center gap-6'>
+            <div className='text-center md:text-right'>
+                <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
+                    <Target className="h-6 w-6 text-primary"/>
+                    هل لديك هدف مالي؟
+                </h3>
+                <p className="text-muted-foreground">
+                    اذهب إلى المخطط المالي الذكي لتحصل على خطة مخصصة تساعدك على تحقيقه.
+                </p>
+            </div>
+             <Button asChild className="w-full md:w-auto md:mr-auto shrink-0">
+                <Link href="/planner">اذهب إلى المخطط</Link>
+            </Button>
+        </CardContent>
       </Card>
       
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
-        {/* ... Smart insights remain the same */}
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            نصائح المدرب المالي
+          </CardTitle>
+          <CardDescription>تحليلات وتوصيات ذكية بناءً على إنفاقك الأخير.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isInsightsLoading ? (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+            </div>
+          ) : insights && insights.length > 0 ? (
+            <div className="space-y-4">
+              {insights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                  <span className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+                    insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+                    insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
+                  )}>
+                    <InsightIcon name={insight.icon} className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">{insight.title}</p>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground p-4">لا توجد نصائح حاليًا. أضف المزيد من المصاريف للحصول على تحليلات.</p>
+          )}
+        </CardContent>
       </Card>
 
       {/* All Expenses List */}
       <Card>
-        {/* ... All expenses list remains the same */}
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="h-6 w-6 text-primary" />
+            أحدث المصاريف
+          </CardTitle>
+          <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {allSortedExpenses.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => (
+                <ExpenseListItem key={expense.id} expense={expense} />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
+          )}
+        </CardContent>
+        {allSortedExpenses.length > visibleExpensesCount && (
+          <CardFooter className="p-4">
+            <Button variant="outline" className="w-full" onClick={() => setVisibleExpensesCount(prev => prev + 20)}>
+              عرض المزيد
+            </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
 }
+
+    
+
+    
