@@ -656,7 +656,7 @@ export default function DashboardPage() {
               "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
               voiceError && "ring-2 ring-destructive/50 bg-destructive/10 hover:bg-destructive/20",
               isVoiceLoading && "bg-muted/50",
-              !voiceError && !isVoiceLoading && "hover:bg-muted/50"
+              !voiceError && !isVoiceLoading && !isVoiceRecording && "hover:bg-muted/50"
           )}
           aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
