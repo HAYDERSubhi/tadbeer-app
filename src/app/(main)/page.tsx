@@ -23,7 +23,7 @@ import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { startOfMonth, endOfMonth, isWithinInterval, format, isToday } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format, startOfDay, endOfDay } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { recordExpenseWithText } from '@/ai/flows/record-expense-text';
@@ -159,10 +159,14 @@ export default function DashboardPage() {
         }
     });
     
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
+
     const dailySpend = expenses
         .filter(exp => {
             try {
-                return isToday(new Date(exp.date));
+                const expenseDate = new Date(exp.date);
+                return isWithinInterval(expenseDate, { start: startOfToday, end: endOfToday });
             } catch {
                 return false;
             }
@@ -618,7 +622,6 @@ export default function DashboardPage() {
               </div>
           </div>
           <div className="space-y-4 pt-4 border-t">
-              <p className="text-center text-xs text-muted-foreground font-semibold">تتبع الإنفاق الأسبوعي</p>
               <div className="grid grid-cols-4 gap-4">
                 {weeklySpending.map((spend, i) => {
                    const percentage = weeklyTarget > 0 ? Math.min((spend / weeklyTarget) * 100, 100) : 0;
@@ -663,7 +666,7 @@ export default function DashboardPage() {
             onClick={isVoiceRecording ? handleStopRecording : handleStartRecording}
             disabled={!recognitionRef.current || isVoiceLoading}
             className={cn(
-                "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
             )}
             aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
@@ -684,10 +687,13 @@ export default function DashboardPage() {
                  <div className="flex flex-col items-center justify-center gap-3">
                     <span className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-                         isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : ""
+                         isVoiceRecording && "bg-red-500/20 text-red-500"
                     )}>
                         {isVoiceRecording ? (
-                            <StopCircleIcon className="h-8 w-8" />
+                            <div className="relative h-8 w-8">
+                                <StopCircleIcon className="absolute inset-0 animate-pulse" />
+                                <StopCircleIcon className="" />
+                            </div>
                         ) : (
                             <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
                         )}

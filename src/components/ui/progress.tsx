@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -18,8 +19,8 @@ const Progress = React.forwardRef<
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value || 0)}%)`, backgroundColor: indicatorcolor }}
+      className="absolute h-full bg-primary transition-all ltr:left-0 rtl:right-0"
+      style={{ width: `${value || 0}%`, backgroundColor: indicatorcolor }}
     />
   </ProgressPrimitive.Root>
 ))
