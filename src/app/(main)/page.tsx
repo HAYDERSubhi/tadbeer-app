@@ -596,13 +596,7 @@ export default function DashboardPage() {
       {/* Hero Balance Card */}
       <Card id="budget-summary-card" className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background shadow-lg rounded-2xl">
         <CardContent className="p-6 space-y-4">
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">الميزانية المتبقية</p>
-            <p className="text-4xl font-bold text-primary tracking-tighter">
-              {remainingBudget.toLocaleString()}&nbsp;د.ع
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 text-center text-sm pt-4 border-t">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 text-center text-sm">
               <div>
                 <p className="text-muted-foreground text-xs">إجمالي الميزانية</p>
                 <p className="font-semibold">{(userBudget?.totalBudget ?? 0).toLocaleString()} د.ع</p>
@@ -616,8 +610,8 @@ export default function DashboardPage() {
                 <p className="font-semibold text-amber-500">{dailySpend.toLocaleString()} د.ع</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">الهدف الأسبوعي</p>
-                <p className="font-semibold">{weeklyTarget > 0 ? weeklyTarget.toLocaleString() : '---'} د.ع</p>
+                <p className="text-muted-foreground text-xs">الميزانية المتبقية</p>
+                <p className="font-semibold text-primary">{remainingBudget.toLocaleString()} د.ع</p>
               </div>
           </div>
           <div className="space-y-4 pt-4 border-t">
@@ -629,6 +623,9 @@ export default function DashboardPage() {
                      <p className="text-xs font-bold">{spend.toLocaleString()} د.ع</p>
                   </div>
                 ))}
+              </div>
+              <div className="text-center pt-2">
+                <p className="text-xs text-muted-foreground">الهدف الأسبوعي: <span className="font-semibold text-foreground">{weeklyTarget > 0 ? weeklyTarget.toLocaleString() : '---'} د.ع</span></p>
               </div>
           </div>
         </CardContent>
@@ -653,8 +650,6 @@ export default function DashboardPage() {
           disabled={!recognitionRef.current || isVoiceLoading}
           className={cn(
             "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-            voiceError && "ring-2 ring-destructive/50 bg-destructive/10",
-            isVoiceLoading && "bg-muted/50",
             !isVoiceRecording && "hover:bg-muted/50"
           )}
           aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
@@ -676,7 +671,7 @@ export default function DashboardPage() {
                 <>
                     <span className={cn(
                         "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-                        isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : ""
+                         isVoiceRecording ? "bg-red-500 text-primary-foreground animate-pulse" : ""
                     )}>
                         {isVoiceRecording ? (
                             <StopCircleIcon className="h-8 w-8" />
@@ -817,5 +812,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
