@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2Icon, Sparkles, Target, History, Terminal, PencilIcon } from "lucide-react";
@@ -110,7 +110,7 @@ export default function DashboardPage() {
   }, [expenses, userSettings]);
 
   // Effect to fetch insights when input data changes
-  useState(() => {
+  useEffect(() => {
     if (!user || !financialCoachInput) {
       setInsights([]);
       return;
@@ -130,7 +130,7 @@ export default function DashboardPage() {
     };
 
     getInsights();
-  });
+  }, [user, financialCoachInput]);
   
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
