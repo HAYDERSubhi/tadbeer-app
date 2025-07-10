@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, WalletIcon, AlertTriangle } from 'lucide-react';
+import { Loader2Icon, WalletIcon, AlertTriangle, User } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
@@ -32,11 +32,12 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function LoginPage() {
-  const { signInWithEmailPassword, signInWithGoogle } = useAuth();
+  const { signInWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const form = useForm<LoginFormData>({
@@ -95,6 +96,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    setIsGuestLoading(true);
+    setUnauthorizedDomain(null);
+    try {
+      await signInAsGuest();
+      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك ستكون مؤقتة على هذا الجهاز فقط.' });
+      router.push('/');
+    } catch (error: any) {
+       toast({
+          title: 'خطأ في الدخول كزائر',
+          description: error.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+          variant: 'destructive',
+        });
+    } finally {
+        setIsGuestLoading(false);
+    }
+  };
+
+  const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
+
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-display">
@@ -118,7 +139,7 @@ export default function LoginPage() {
                     <Input id="password" type="password" {...form.register('password')} />
                     {form.formState.errors.password && <p className="text-sm text-destructive mt-1">{form.formState.errors.password.message}</p>}
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+                <Button type="submit" className="w-full" disabled={anyLoading}>
                     {isLoading ? <><Loader2Icon className="animate-spin ml-2" /> جاري الدخول...</> : 'تسجيل الدخول'}
                 </Button>
                 </form>
@@ -131,11 +152,18 @@ export default function LoginPage() {
                     <span className="bg-background px-2 text-muted-foreground">أو استمر باستخدام</span>
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={handleGoogleSignIn} disabled={anyLoading}>
+                      {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
+                      Google
+                    </Button>
+                     <Button variant="secondary" onClick={handleGuestSignIn} disabled={anyLoading}>
+                      {isGuestLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <User className="h-5 w-5 mr-2" />}
+                      الدخول كزائر
+                    </Button>
+                </div>
 
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-                  {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
-                  تسجيل الدخول باستخدام Google
-                </Button>
 
                 {unauthorizedDomain && (
                   <Alert variant="destructive" className="mt-4">

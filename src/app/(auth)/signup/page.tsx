@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, WalletIcon, AlertTriangle } from 'lucide-react';
+import { Loader2Icon, WalletIcon, AlertTriangle, User } from 'lucide-react';
 import { addExpense } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -38,11 +38,12 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function SignupPage() {
-  const { signUpWithEmailPassword, signInWithGoogle } = useAuth();
+  const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
 
   const form = useForm<SignupFormData>({
@@ -130,6 +131,26 @@ export default function SignupPage() {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    setIsGuestLoading(true);
+    setUnauthorizedDomain(null);
+    try {
+      await signInAsGuest();
+      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك ستكون مؤقتة على هذا الجهاز فقط.' });
+      router.push('/');
+    } catch (error: any) {
+       toast({
+          title: 'خطأ في الدخول كزائر',
+          description: error.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+          variant: 'destructive',
+        });
+    } finally {
+        setIsGuestLoading(false);
+    }
+  };
+
+  const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
+
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-display">
@@ -158,7 +179,7 @@ export default function SignupPage() {
                 <Input id="confirmPassword" type="password" {...form.register('confirmPassword')} />
                 {form.formState.errors.confirmPassword && <p className="text-sm text-destructive mt-1">{form.formState.errors.confirmPassword.message}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+            <Button type="submit" className="w-full" disabled={anyLoading}>
                 {isLoading ? <><Loader2Icon className="animate-spin ml-2" /> جاري الإنشاء...</> : 'إنشاء الحساب'}
             </Button>
             </form>
@@ -172,10 +193,16 @@ export default function SignupPage() {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={isLoading || isGoogleLoading}>
-              {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
-              إنشاء حساب باستخدام Google
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={handleGoogleSignUp} disabled={anyLoading}>
+                  {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
+                  Google
+                </Button>
+                <Button variant="secondary" onClick={handleGuestSignIn} disabled={anyLoading}>
+                  {isGuestLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <User className="h-5 w-5 mr-2" />}
+                  الدخول كزائر
+                </Button>
+            </div>
             
             {unauthorizedDomain && (
               <Alert variant="destructive" className="mt-4">
