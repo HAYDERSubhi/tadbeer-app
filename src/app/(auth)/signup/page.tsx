@@ -74,7 +74,7 @@ export default function SignupPage() {
       let description = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       if (error.code === 'auth/email-already-in-use') {
         description = 'هذا البريد الإلكتروني مسجل بالفعل.';
-      } else if (error.code === 'auth/api-key-not-valid') {
+      } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
         description = 'مفتاح API لـ Firebase غير صالح. يرجى التأكد من صحة الإعدادات في ملف .env';
       }
       toast({
@@ -115,7 +115,7 @@ export default function SignupPage() {
         let description = 'فشل إنشاء الحساب باستخدام Google. يرجى المحاولة مرة أخرى.';
         if (error.code === 'auth/popup-closed-by-user') {
           description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
-        } else if (error.code === 'auth/api-key-not-valid') {
+        } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
             description = 'مفتاح API لـ Firebase غير صالح. يرجى التأكد من صحة الإعدادات في ملف .env';
         } else if (error.code) {
           description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;

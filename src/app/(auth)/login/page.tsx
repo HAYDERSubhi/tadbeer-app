@@ -53,8 +53,10 @@ export default function LoginPage() {
       router.push('/');
     } catch (error: any) {
         let description = 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.';
-        if (error.code === 'auth/api-key-not-valid') {
+        if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
             description = 'مفتاح API لـ Firebase غير صالح. يرجى التأكد من صحة الإعدادات في ملف .env';
+        } else if (error.code === 'auth/invalid-credential') {
+            description = 'البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى المحاولة مرة أخرى.';
         }
         toast({
             title: 'خطأ في تسجيل الدخول',
@@ -80,7 +82,7 @@ export default function LoginPage() {
         let description = 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
         if (error.code === 'auth/popup-closed-by-user') {
           description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
-        } else if (error.code === 'auth/api-key-not-valid') {
+        } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
             description = 'مفتاح API لـ Firebase غير صالح. يرجى التأكد من صحة الإعدادات في ملف .env';
         } else if (error.code) {
           description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
