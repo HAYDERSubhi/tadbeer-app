@@ -11,9 +11,12 @@ import {
   FirebaseError,
   Auth,
   signInWithPopup,
-  UserCredential
+  UserCredential,
+  signInAnonymously
 } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '@/lib/firebase';
+import { addExpense } from '@/services/firestore';
+import { getAdditionalUserInfo } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +25,7 @@ interface AuthContextType {
   signInWithEmailPassword: (email: string, password: string) => Promise<any>;
   signUpWithEmailPassword: (email: string, password: string) => Promise<any>;
   signInWithGoogle: () => Promise<UserCredential>;
+  signInAsGuest: () => Promise<UserCredential>;
   signOutUser: () => Promise<void>;
 }
 
@@ -32,13 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<FirebaseError | null>(null);
 
-  const auth = firebaseAuth as Auth; // Cast to ensure auth is not null
+  const auth = firebaseAuth;
 
   useEffect(() => {
+    // This effect now specifically checks for the `auth/configuration-missing` scenario
+    // which happens when firebase.ts fails to initialize due to missing .env variables.
     if (!auth) {
       setAuthError({
         code: 'auth/configuration-missing',
-        message: 'Firebase configuration is incomplete. Please check your .env file.',
+        message: 'Firebase configuration is incomplete. Please check that all required environment variables (NEXT_PUBLIC_FIREBASE_*) are set in your .env file.',
         name: 'FirebaseError'
       } as FirebaseError);
       setLoading(false);
@@ -54,10 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth]);
 
   const signInWithEmailPassword = (email: string, password: string) => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signInWithEmailAndPassword(auth, email, password);
   }
 
   const signUpWithEmailPassword = (email: string, password: string) => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
@@ -68,7 +76,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signInWithPopup(auth, googleProvider);
   }
   
+  const signInAsGuest = async (): Promise<UserCredential> => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
+    
+    const userCredential = await signInAnonymously(auth);
+    const additionalInfo = getAdditionalUserInfo(userCredential);
+
+    if (additionalInfo?.isNewUser && userCredential.user) {
+      const sampleExpenses = [
+        { title: 'قهوة الصباح', amount: 3000, category: 'food', date: new Date().toISOString() },
+        { title: 'تعبئة وقود السيارة', amount: 45000, category: 'private_car', date: new Date(Date.now() - 86400000 * 2).toISOString() },
+        { title: 'فاتورة انترنت', amount: 30000, category: 'subscriptions', date: new Date(Date.now() - 86400000 * 5).toISOString() },
+      ];
+      await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
+    }
+    return userCredential;
+  }
+  
   const signOutUser = () => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signOut(auth);
   }
 
@@ -79,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithEmailPassword,
     signUpWithEmailPassword,
     signInWithGoogle,
+    signInAsGuest,
     signOutUser,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, loading, authError]);
