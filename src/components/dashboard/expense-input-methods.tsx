@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, LinkedCard } from '@/types';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
-import { recordExpenseWithText } from '@/ai/flows/record-expense-text';
+import { recordExpenseWithText, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
 import { simulateCardTransactions } from '@/ai/flows/simulate-card-transactions';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -49,6 +49,9 @@ export default function ExpenseInputMethods() {
   const linkedCard = useMemo(() => userSettings?.linkedCard || DEFAULT_LINKED_CARD, [userSettings]);
 
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [isVoiceEntryOpen, setIsVoiceEntryOpen] = useState(false);
+  const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
+
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   const [isSyncingCard, setIsSyncingCard] = useState(false);
 
@@ -56,7 +59,6 @@ export default function ExpenseInputMethods() {
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [liveTranscript, setLiveTranscript] = useState('');
   
   const recognitionRef = useRef<any | null>(null);
   const finalTranscriptRef = useRef('');
@@ -64,26 +66,6 @@ export default function ExpenseInputMethods() {
   const cardForm = useForm<LinkCardFormData>({
     resolver: zodResolver(linkCardSchema),
     defaultValues: { name: '', last4: '' }
-  });
-  
-  const addExpenseMutation = useMutation({
-      mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
-      onSuccess: (docId, variables) => {
-          queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
-          toast({
-              title: "تمت الإضافة بنجاح!",
-              description: `أضيف مصروف "${variables.title}" بمبلغ ${variables.amount.toLocaleString()} د.ع.`,
-          });
-      },
-      onError: (e: any) => {
-          console.error("Error adding expense:", e);
-          const errorMessage = e?.message || "حدث خطأ أثناء حفظ المصروف. حاول مرة أخرى.";
-          toast({
-              title: "خطأ في الحفظ",
-              description: errorMessage,
-              variant: "destructive"
-          });
-      }
   });
   
   const addMultipleExpensesMutation = useMutation({
@@ -115,7 +97,7 @@ export default function ExpenseInputMethods() {
       }, {} as Record<string, string>);
   }, []);
 
-  const processTranscriptAndSave = useCallback(async (transcript: string) => {
+  const processTranscript = useCallback(async (transcript: string) => {
     if (!transcript.trim()) {
         setIsVoiceLoading(false);
         return;
@@ -125,7 +107,7 @@ export default function ExpenseInputMethods() {
     setVoiceError(null);
 
     try {
-        const analysisResult = await recordExpenseWithText({
+        const analysisResult: RecordExpenseWithTextOutput = await recordExpenseWithText({
             expenseText: transcript,
             categories: categoryMap,
         });
@@ -134,7 +116,7 @@ export default function ExpenseInputMethods() {
             throw new Error("لم يتمكن الذكاء الاصطناعي من تحليل مبلغ صحيح من النص. يرجى المحاولة بصوت أوضح.");
         }
 
-        const newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
+        const newExpenseData: Partial<Expense> = {
             title: analysisResult.description || `مصروف صوتي`,
             amount: analysisResult.amount,
             category: analysisResult.category,
@@ -142,23 +124,24 @@ export default function ExpenseInputMethods() {
             description: analysisResult.description,
         };
 
-        await addExpenseMutation.mutateAsync(newExpense);
+        setVoiceExpenseData(newExpenseData);
+        setIsVoiceEntryOpen(true);
         
     } catch (e: any) {
-        console.error("Error processing and saving voice expense:", e);
-        const errorMessage = e?.message || "حدث خطأ أثناء تحليل وحفظ المصروف. حاول مرة أخرى.";
+        console.error("Error processing voice expense:", e);
+        const errorMessage = e?.message || "حدث خطأ أثناء تحليل المصروف. حاول مرة أخرى.";
         setVoiceError(errorMessage);
+        toast({ title: "خطأ في التحليل", description: errorMessage, variant: "destructive"});
     } finally {
         setIsVoiceLoading(false);
     }
-  }, [addExpenseMutation, categoryMap]);
+  }, [categoryMap, toast]);
   
   
   const handleStartRecording = useCallback(() => {
     if (recognitionRef.current) {
         try {
             finalTranscriptRef.current = '';
-            setLiveTranscript('');
             setVoiceError(null);
             recognitionRef.current.start();
         } catch (e) {
@@ -179,8 +162,8 @@ export default function ExpenseInputMethods() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
+        recognitionRef.current.continuous = false; // Stop after first final result
+        recognitionRef.current.interimResults = false;
         recognitionRef.current.lang = 'ar-IQ';
 
         recognitionRef.current.onstart = () => {
@@ -189,23 +172,15 @@ export default function ExpenseInputMethods() {
         };
 
         recognitionRef.current.onresult = (event: any) => {
-            let interim_transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscriptRef.current += event.results[i][0].transcript;
-                } else {
-                    interim_transcript += event.results[i][0].transcript;
-                }
-            }
-            setLiveTranscript(finalTranscriptRef.current + interim_transcript);
+            const transcript = event.results[0][0].transcript;
+            finalTranscriptRef.current = transcript;
         };
 
         recognitionRef.current.onend = () => {
             setIsVoiceRecording(false);
             if (finalTranscriptRef.current.trim()) {
-              processTranscriptAndSave(finalTranscriptRef.current);
+              processTranscript(finalTranscriptRef.current);
             }
-            setLiveTranscript('');
         };
         
         recognitionRef.current.onerror = (event: any) => {
@@ -226,11 +201,11 @@ export default function ExpenseInputMethods() {
     
     return () => {
         if (recognitionRef.current) {
-            recognitionRef.current.stop();
+            recognitionRef.current.abort();
             recognitionRef.current = null;
         }
     }
-  }, [processTranscriptAndSave]);
+  }, [processTranscript]);
   
   const updateSettingsMutation = useMutation({
       mutationFn: (newSettings: Partial<any>) => updateUserSettings(user!.uid, newSettings),
@@ -352,7 +327,7 @@ export default function ExpenseInputMethods() {
             aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
         >
             {voiceError ? (
-                <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); setLiveTranscript(''); }} className="flex flex-col items-center justify-center gap-3">
+                <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); }} className="flex flex-col items-center justify-center gap-3">
                     <AlertTriangleIcon className="h-8 w-8 text-destructive" />
                     <p className="text-sm font-semibold text-center">{voiceError}</p>
                     <p className="text-xs text-destructive/80 mt-1">اضغط للمحاولة مرة أخرى</p>
@@ -366,21 +341,17 @@ export default function ExpenseInputMethods() {
                  </div>
             ) : (
                  <div className="flex flex-col items-center justify-center gap-3">
-                    <span className={cn(
-                        "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-                         isVoiceRecording && "text-red-500"
-                    )}>
+                    <span className="w-16 h-16 rounded-full flex items-center justify-center transition-colors">
                         {isVoiceRecording ? (
-                            <div className="relative h-8 w-8">
-                                <StopCircleIcon className="absolute inset-0 animate-ping" />
-                                <StopCircleIcon className="" />
+                            <div className="relative h-8 w-8 text-red-500">
+                               <div className="h-4 w-4 bg-red-500 rounded-full animate-pulse"></div>
                             </div>
                         ) : (
                             <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
                         )}
                     </span>
                     <p className="font-semibold h-5 truncate">
-                        {liveTranscript || (isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت")}
+                        {isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت"}
                     </p>
                  </div>
             )}
@@ -398,6 +369,18 @@ export default function ExpenseInputMethods() {
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
             <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader>
+                <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
+                <DialogDescription>
+                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+                </DialogDescription>
+            </DialogHeader>
+            <ManualExpenseForm setOpen={setIsVoiceEntryOpen} initialData={voiceExpenseData} />
           </DialogContent>
         </Dialog>
 

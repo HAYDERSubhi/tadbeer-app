@@ -27,6 +27,7 @@ import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
+import { useEffect } from 'react';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -40,7 +41,12 @@ const expenseSchema = z.object({
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
-export default function ManualExpenseForm({ setOpen }: { setOpen: (open: boolean) => void }) {
+interface ManualExpenseFormProps {
+  setOpen: (open: boolean) => void;
+  initialData?: Partial<Expense> | null;
+}
+
+export default function ManualExpenseForm({ setOpen, initialData }: ManualExpenseFormProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -57,6 +63,20 @@ export default function ManualExpenseForm({ setOpen }: { setOpen: (open: boolean
       outOfBudgetDetails: '',
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        title: initialData.title || '',
+        amount: initialData.amount || 0,
+        category: initialData.category || '',
+        date: initialData.date ? new Date(initialData.date) : new Date(),
+        description: initialData.description || '',
+        isOutOfBudget: initialData.isOutOfBudget || false,
+        outOfBudgetDetails: initialData.outOfBudgetDetails || '',
+      });
+    }
+  }, [initialData, form]);
 
   const addExpenseMutation = useMutation({
     mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
@@ -109,7 +129,7 @@ export default function ManualExpenseForm({ setOpen }: { setOpen: (open: boolean
             name="category"
             control={form.control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <SelectTrigger id="category">
                   <SelectValue placeholder="اختر فئة" />
                 </SelectTrigger>
