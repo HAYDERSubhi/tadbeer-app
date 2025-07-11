@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn } from 'lucide-react';
+import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn, Receipt } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
@@ -324,6 +324,15 @@ export default function DetailedReceiptPage() {
 
     return (
         <div className="space-y-6 pb-24">
+            <div>
+                <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <Receipt className="h-8 w-8 text-primary" />
+                    فواتيري
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                    قم بمسح فواتيرك الطويلة ودع الذكاء الاصطناعي يحللها لك.
+                </p>
+            </div>
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-2xl">
