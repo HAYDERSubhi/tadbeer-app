@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, Fragment, useEffect } from 'react';
+import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon } from "lucide-react";
@@ -16,6 +16,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
+import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -248,12 +249,14 @@ export default function DashboardPage() {
         </Dialog>
         
         <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
+          <DialogTrigger asChild>
            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
               <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50">
                 <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
               </span>
               <p className="font-semibold">سجل بالصوت</p>
             </div>
+          </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
