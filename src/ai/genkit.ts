@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-config();
+// config() has been moved to dev.ts to ensure it runs first.
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
