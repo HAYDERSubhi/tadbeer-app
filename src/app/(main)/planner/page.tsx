@@ -156,9 +156,9 @@ function PlannerContent() {
   const renderInitialState = () => {
     if (goals.length === 0) {
         return (
-             <Card className="text-center py-12">
+             <Card className="text-center py-12 bg-gradient-to-br from-primary/10 to-transparent">
                 <CardContent className="flex flex-col items-center gap-4">
-                    <Target className="h-12 w-12 text-muted-foreground" />
+                    <Target className="h-12 w-12 text-primary" />
                     <h3 className="text-xl font-bold">ليس لديك أهداف بعد!</h3>
                     <p className="text-muted-foreground">اذهب إلى صفحة الأهداف وأضف هدفك الأول لتبدأ التخطيط.</p>
                     <Button asChild>

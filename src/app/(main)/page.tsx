@@ -221,24 +221,6 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <ExpenseInputMethods />
       
-       {/* Goal Setting CTA Card */}
-      <Card className="bg-gradient-to-br from-primary/20 to-transparent">
-        <CardContent className='p-6 flex flex-col md:flex-row items-center gap-6'>
-            <div className='text-center md:text-right'>
-                <h3 className="text-xl font-bold mb-1 flex items-center gap-2">
-                    <Target className="h-6 w-6 text-primary"/>
-                    هل لديك هدف مالي؟
-                </h3>
-                <p className="text-muted-foreground">
-                    اذهب إلى المخطط المالي الذكي لتحصل على خطة مخصصة تساعدك على تحقيقه.
-                </p>
-            </div>
-             <Button asChild className="w-full md:w-auto md:mr-auto shrink-0">
-                <Link href="/planner">اذهب إلى المخطط</Link>
-            </Button>
-        </CardContent>
-      </Card>
-      
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
