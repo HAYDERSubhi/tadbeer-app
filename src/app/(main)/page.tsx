@@ -4,8 +4,8 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon } from "lucide-react";
-import type { Expense, LinkedCard } from '@/types';
+import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon, Loader2, StopCircle } from "lucide-react";
+import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
+import { recordExpenseWithText, RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -66,7 +67,6 @@ const tourSteps = [
   }
 ];
 
-
 // Main Dashboard Component
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -80,7 +80,7 @@ export default function DashboardPage() {
   const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
-  const [isVoiceEntryOpen, setIsVoiceEntryOpen] = useState(false);
+  const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   
@@ -88,7 +88,101 @@ export default function DashboardPage() {
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState('');
+
+  const categoryMap = useMemo(() => {
+    return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
+      acc[id] = name;
+      return acc;
+    }, {} as Record<string, string>);
+  }, []);
+
+  // --- Voice Recording Logic ---
+  useEffect(() => {
+    // Check for SpeechRecognition API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'ar-IQ';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        handleVoiceTranscript(transcript);
+        setIsVoiceRecording(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setVoiceError(`خطأ في التعرف على الصوت: ${event.error}`);
+        setIsVoiceRecording(false);
+        setIsVoiceLoading(false);
+      };
+      
+      recognition.onend = () => {
+        if (isVoiceRecording) { // If it ends prematurely, stop it.
+            setIsVoiceRecording(false);
+            setIsVoiceLoading(false);
+        }
+      };
+
+      recognitionRef.current = recognition;
+    } else {
+      setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
+    }
+  }, [isVoiceRecording]); // Re-attach listeners if isVoiceRecording changes
+
+  const handleToggleVoiceRecording = () => {
+    if (!recognitionRef.current) {
+        toast({ title: "الميزة غير مدعومة", description: voiceError, variant: "destructive" });
+        return;
+    }
+
+    if (isVoiceRecording) {
+      recognitionRef.current.stop();
+    } else {
+      setVoiceError(null);
+      setIsVoiceRecording(true);
+      recognitionRef.current.start();
+    }
+  };
+  
+  const handleVoiceTranscript = async (transcript: string) => {
+    if (!transcript.trim()) {
+        toast({ title: "لم يتم تسجيل أي صوت", variant: "destructive" });
+        return;
+    }
+    
+    setIsVoiceLoading(true);
+    try {
+        const input: RecordExpenseWithTextInput = {
+            expenseText: transcript,
+            categories: categoryMap
+        };
+        const result: RecordExpenseWithTextOutput = await recordExpenseWithText(input);
+        
+        setVoiceExpenseData({
+            title: result.description || 'مصروف صوتي',
+            amount: result.amount,
+            category: result.category,
+            date: result.date
+        });
+        setIsVoiceReviewOpen(true);
+
+    } catch (e: any) {
+        console.error("Error processing voice transcript:", e);
+        toast({
+            title: "خطأ في تحليل الصوت",
+            description: "لم نتمكن من فهم طلبك. حاول التحدث بوضوح أكثر.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsVoiceLoading(false);
+        setIsVoiceRecording(false);
+    }
+  };
+
 
   const allSortedExpenses = useMemo(() => {
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -97,7 +191,7 @@ export default function DashboardPage() {
   // Memoized data for the financial coach
   const financialCoachInput = useMemo(() => {
     const userBudget = userSettings?.budget;
-    const monthlyExpenses = expenses; // Assuming expenses from useAppData are already filtered or represent all data needed.
+    const monthlyExpenses = expenses; 
     const categoryBudgets = userSettings?.categoryBudgets;
     const userProfile = userSettings?.profile;
     
@@ -218,7 +312,6 @@ export default function DashboardPage() {
     <div className="space-y-6 pb-24 sm:pb-8">
       <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
       
-      {/* Hero Balance Card */}
       <BudgetSummaryCard />
       
       {userBudget.totalBudget === 0 && (
@@ -248,15 +341,25 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
         
-        <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
-          <DialogTrigger asChild>
-           <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-              <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50">
-                <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
-              </span>
-              <p className="font-semibold">سجل بالصوت</p>
-            </div>
-          </DialogTrigger>
+        <div 
+          className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={handleToggleVoiceRecording}
+          aria-disabled={isVoiceLoading}
+        >
+          <span className={cn(
+            "flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50",
+            isVoiceRecording && 'animate-pulse ring-4 ring-green-400'
+            )}>
+            {isVoiceLoading ? <Loader2 className="h-8 w-8 text-green-600 dark:text-green-300 animate-spin" /> : 
+             isVoiceRecording ? <StopCircle className="h-8 w-8 text-green-600 dark:text-green-300" /> : 
+             <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />}
+          </span>
+          <p className="font-semibold">
+            {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
+          </p>
+        </div>
+        
+        <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
@@ -264,7 +367,7 @@ export default function DashboardPage() {
                 يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
               </DialogDescription>
             </DialogHeader>
-            <ManualExpenseForm setOpen={setIsVoiceEntryOpen} initialData={voiceExpenseData} />
+            <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
           </DialogContent>
         </Dialog>
 
@@ -285,7 +388,6 @@ export default function DashboardPage() {
             </div>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
-              {/* This functionality is handled in the settings page for now */}
               <DialogHeader>
                 <DialogTitle as="h2">ربط بطاقة إلكترونية</DialogTitle>
                 <DialogDescription>
@@ -371,3 +473,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

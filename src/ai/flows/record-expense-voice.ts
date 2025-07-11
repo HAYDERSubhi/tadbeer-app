@@ -4,6 +4,8 @@
 /**
  * @fileOverview This flow allows users to record expenses using their voice in Iraqi dialect.
  *
+ * THIS FLOW IS DEPRECATED. Use record-expense-text instead, as voice-to-text is now handled on the client.
+ *
  * - recordExpenseWithVoice - A function that handles the expense recording process using voice input.
  * - RecordExpenseWithVoiceInput - The input type for the recordExpenseWithVoice function.
  * - RecordExpenseWithVoiceOutput - The return type for the recordExpenseWithVoice function.
@@ -70,3 +72,5 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
     return output!;
   }
 );
+
+    
