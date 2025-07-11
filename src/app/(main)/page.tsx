@@ -4,7 +4,7 @@
 import { useState, useMemo, Fragment, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Terminal, PencilIcon } from "lucide-react";
+import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { expenses, userSettings } = useAppData();
+  const { expenses, userSettings, goals } = useAppData();
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);

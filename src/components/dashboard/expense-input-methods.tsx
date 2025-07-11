@@ -20,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import { FilePenLine, FileScan, CreditCard, Loader2Icon, Mic, AlertTriangleIcon, Link2, Bell, Receipt } from "lucide-react";
+import { FilePenLine, FileScan, CreditCard, Loader2Icon, Mic, AlertTriangleIcon, Link2, Bell } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, LinkedCard } from '@/types';
@@ -60,9 +60,9 @@ export default function ExpenseInputMethods() {
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState('');
   
   const recognitionRef = useRef<any | null>(null);
-  const finalTranscriptRef = useRef('');
   
   const cardForm = useForm<LinkCardFormData>({
     resolver: zodResolver(linkCardSchema),
@@ -122,7 +122,7 @@ export default function ExpenseInputMethods() {
             amount: analysisResult.amount,
             category: analysisResult.category,
             date: analysisResult.date ? new Date(analysisResult.date).toISOString() : new Date().toISOString(),
-            description: analysisResult.description,
+            description: `تم التسجيل صوتيًا: "${transcript}"`,
         };
 
         setVoiceExpenseData(newExpenseData);
@@ -139,61 +139,61 @@ export default function ExpenseInputMethods() {
   }, [categoryMap, toast]);
   
   
-  const handleStartRecording = useCallback(() => {
-    if (recognitionRef.current) {
-        try {
-            finalTranscriptRef.current = '';
-            setVoiceError(null);
-            recognitionRef.current.start();
-        } catch (e) {
-            console.error("Could not start recognition", e);
-            setVoiceError("فشل بدء التعرف. هل تم منح الإذن؟");
-        }
-    }
-  }, []);
+  const handleToggleRecording = useCallback(() => {
+    if (!recognitionRef.current) return;
 
-  const handleStopRecording = useCallback(() => {
-    if (recognitionRef.current) {
-        recognitionRef.current.stop();
+    if (isVoiceRecording) {
+      recognitionRef.current.stop();
+    } else {
+      setTranscript('');
+      setVoiceError(null);
+      recognitionRef.current.start();
     }
-  }, []);
-
+  }, [isVoiceRecording]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false; // Stop after first final result
-        recognitionRef.current.interimResults = false;
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
         recognitionRef.current.lang = 'ar-IQ';
 
-        recognitionRef.current.onstart = () => {
-            setIsVoiceRecording(true);
-            setVoiceError(null);
-        };
-
-        recognitionRef.current.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            finalTranscriptRef.current = transcript;
-        };
-
+        recognitionRef.current.onstart = () => setIsVoiceRecording(true);
         recognitionRef.current.onend = () => {
-            setIsVoiceRecording(false);
-            if (finalTranscriptRef.current.trim()) {
-              processTranscript(finalTranscriptRef.current);
+          setIsVoiceRecording(false);
+          // When recording stops, process the final transcript
+          setTranscript(prev => {
+            if (prev.trim()) {
+              processTranscript(prev.trim());
             }
+            return '';
+          });
         };
-        
         recognitionRef.current.onerror = (event: any) => {
           console.error('Speech recognition error', event.error);
           let errorMsg = `خطأ في التعرف على الصوت: ${event.error}`;
           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
             errorMsg = 'الرجاء السماح بالوصول للميكروفون.';
-          } else if (event.error === 'no-speech') {
-            errorMsg = 'لم يتم اكتشاف أي كلام. حاول مرة أخرى.';
           }
           setVoiceError(errorMsg);
           setIsVoiceRecording(false);
+        };
+
+        recognitionRef.current.onresult = (event: any) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+              if (event.results[i].isFinal) {
+                  finalTranscript += event.results[i][0].transcript;
+              } else {
+                  interimTranscript += event.results[i][0].transcript;
+              }
+          }
+          // Use final transcript to update the state
+          if (finalTranscript) {
+             setTranscript(prev => prev + ' ' + finalTranscript);
+          }
         };
 
     } else {
@@ -203,7 +203,6 @@ export default function ExpenseInputMethods() {
     return () => {
         if (recognitionRef.current) {
             recognitionRef.current.abort();
-            recognitionRef.current = null;
         }
     }
   }, [processTranscript]);
@@ -309,31 +308,38 @@ export default function ExpenseInputMethods() {
       );
   }
 
-  const handleToggleRecording = () => {
+  const VoiceButtonContent = () => {
+    if (voiceError) {
+      return (
+          <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); handleToggleRecording() }} className="flex flex-col items-center justify-center gap-2 text-destructive">
+              <AlertTriangleIcon className="h-6 w-6" />
+              <span className="text-xs text-center">{voiceError.length > 30 ? 'خطأ. انقر للمحاولة' : voiceError}</span>
+          </div>
+      );
+    }
+    if (isVoiceLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-2">
+                <Loader2Icon className="h-6 w-6 animate-spin" />
+                <span>جاري التحليل...</span>
+            </div>
+        )
+    }
     if (isVoiceRecording) {
-      handleStopRecording();
-    } else {
-      handleStartRecording();
+      return (
+          <div className="flex flex-col items-center justify-center gap-2 text-destructive">
+            <Mic className="h-6 w-6 animate-pulse" />
+            <span className='truncate max-w-full px-1'>{transcript || '...يتم الاستماع'}</span>
+          </div>
+      );
     }
-  };
-
-  const InputButton = ({ icon: Icon, label, color, onClick, asLink, href }: { icon: React.ElementType, label: string, color: string, onClick?: () => void, asLink?: boolean, href?: string }) => {
-    const content = (
-      <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-32 hover:scale-105 hover:shadow-lg bg-background">
-          <span className={cn("w-16 h-16 rounded-full flex items-center justify-center bg-opacity-10", color)}>
-             <Icon className="h-8 w-8" />
-          </span>
-          <p className="font-semibold">{label}</p>
-      </div>
+    return (
+        <div className="flex flex-col items-center justify-center gap-2">
+            <Mic className="h-6 w-6" />
+            <span>سجل بالصوت</span>
+        </div>
     );
-
-    if (asLink && href) {
-        return <Link href={href}>{content}</Link>
-    }
-    
-    return <button onClick={onClick}>{content}</button>
-  }
-
+  };
 
   return (
     <Card id="expense-input-methods">
@@ -342,44 +348,23 @@ export default function ExpenseInputMethods() {
       </CardHeader>
       <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button
-                  onClick={handleToggleRecording}
-                  disabled={!recognitionRef.current || isVoiceLoading}
-                  className={cn("flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-32 hover:scale-105 hover:shadow-lg bg-background disabled:opacity-50 disabled:cursor-not-allowed")}
-              >
-                  {voiceError ? (
-                      <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); }} className="flex flex-col items-center justify-center gap-3">
-                          <AlertTriangleIcon className="h-8 w-8 text-destructive" />
-                          <p className="text-xs font-semibold text-center">{voiceError}</p>
-                      </div>
-                  ) : isVoiceLoading ? (
-                      <div className="flex flex-col items-center justify-center gap-3">
-                              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-                          <p className="font-semibold">جاري التحليل...</p>
-                      </div>
-                  ) : (
-                      <div className="flex flex-col items-center justify-center gap-3">
-                          <span className={cn("w-16 h-16 rounded-full flex items-center justify-center bg-opacity-10", isVoiceRecording ? "bg-red-500" : "bg-green-500")}>
-                               <Mic className={cn("h-8 w-8", isVoiceRecording ? "text-red-500 animate-pulse" : "text-green-500")} />
-                          </span>
-                          <p className="font-semibold h-5 truncate">
-                              {isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت"}
-                          </p>
-                      </div>
-                  )}
-              </button>
-              
               <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-                <DialogTrigger asChild>
-                    <InputButton icon={FilePenLine} label="إدخال يدوي" color="text-blue-500 bg-blue-500" />
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                  <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-                  <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-                </DialogContent>
+                  <DialogTrigger asChild>
+                      <Button variant="outline" className="h-24 flex-col gap-2">
+                          <FilePenLine className="h-6 w-6" />
+                          <span>إدخال يدوي</span>
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                      <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+                      <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+                  </DialogContent>
               </Dialog>
-              
+
               <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
+                <Button variant="outline" className="h-24 flex-col gap-2 relative" onClick={handleToggleRecording} disabled={!recognitionRef.current || isVoiceLoading}>
+                    <VoiceButtonContent />
+                </Button>
                 <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
                   <DialogHeader>
                       <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
@@ -391,11 +376,19 @@ export default function ExpenseInputMethods() {
                 </DialogContent>
               </Dialog>
 
-              <InputButton asLink href="/receipts" icon={Receipt} label="تحليل فاتورة" color="text-teal-500 bg-teal-500" />
-              
+              <Button variant="outline" className="h-24 flex-col gap-2" asChild>
+                  <Link href="/receipts">
+                      <FileScan className="h-6 w-6" />
+                      <span>تحليل فاتورة</span>
+                  </Link>
+              </Button>
+
               <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
                   <DialogTrigger asChild>
-                    <InputButton icon={CreditCard} label="بطاقة إلكترونية" color="text-amber-500 bg-amber-500" />
+                      <Button variant="outline" className="h-24 flex-col gap-2">
+                          <CreditCard className="h-6 w-6" />
+                          <span>بطاقة إلكترونية</span>
+                      </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     {renderCardDialogContent()}
