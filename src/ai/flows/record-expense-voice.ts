@@ -44,9 +44,9 @@ const prompt = ai.definePrompt({
   You will receive a voice recording of the expense, and you need to extract the information.
 
   **Instructions:**
-  1.  Listen to the voice recording carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت غراض للبيت بعشرتالاف" (I bought home supplies for 10 thousand).
+  1.  Listen to the voice recording carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
   2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
-  3.  From the list of available categories below, choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category should be "private_car". For "غراض للبيت" (home supplies), it should be "home_supplies".
+  3.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "private_car". For "باذنجان" (eggplant), it should be "food". For "صابون" (soap), it should be "home_supplies".
   4.  Return the extracted information in the required JSON format. The 'category' field must be one of the provided IDs.
 
   **Available Categories (ID: Name):**
