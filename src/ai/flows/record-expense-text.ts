@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { categorizeExpenseText } from './categorize-expense-text';
 
 // This schema is duplicated from record-expense-voice.ts to avoid exporting a non-function from a 'use server' file.
 const RecordExpenseOutputSchema = z.object({
@@ -36,27 +37,25 @@ export async function recordExpenseWithText(input: RecordExpenseWithTextInput): 
   return recordExpenseWithTextFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'recordExpenseWithTextPrompt',
-  input: {schema: RecordExpenseWithTextInputSchema},
-  output: {schema: RecordExpenseOutputSchema},
-  prompt: `You are an AI assistant that helps users record their expenses from a transcribed text in Iraqi Arabic dialect.
-  You will receive a text of the expense, and you need to extract the information.
+const extractInfoPrompt = ai.definePrompt({
+    name: 'extractExpenseInfoPrompt',
+    input: { schema: z.object({ expenseText: z.string() }) },
+    output: { schema: z.object({
+        amount: z.number().describe('The amount of the expense.'),
+        date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),
+        description: z.string().optional().describe('A short description of the expense.'),
+    })},
+    prompt: `You are an AI assistant that helps users record their expenses from a transcribed text in Iraqi Arabic dialect.
+    You will receive a text of the expense, and you need to extract the information.
 
-  **Instructions:**
-  1.  Analyze the text carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
-  2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
-  3.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "private_car". For "باذنجان" (eggplant), it should be "food". For "صابون" (soap), it should be "home_supplies".
-  4.  Return the extracted information in the required JSON format. The 'category' field must be one of the provided IDs.
+    **Instructions:**
+    1.  Analyze the text carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
+    2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
+    3.  Return the extracted information in the required JSON format.
 
-  **Available Categories (ID: Name):**
-  {{#each categories}}
-  - {{ @key }}: {{ this }}
-  {{/each}}
-
-  **Expense Text:**
-  {{{expenseText}}}
-  `,
+    **Expense Text:**
+    {{{expenseText}}}
+    `,
 });
 
 const recordExpenseWithTextFlow = ai.defineFlow(
@@ -66,7 +65,27 @@ const recordExpenseWithTextFlow = ai.defineFlow(
     outputSchema: RecordExpenseOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    // Step 1: Extract basic info (amount, date, description)
+    const { output: extractedInfo } = await extractInfoPrompt({ expenseText: input.expenseText });
+    if (!extractedInfo) {
+        throw new Error("Could not extract expense information from the text.");
+    }
+    
+    // Step 2: Use the description/title to get a category suggestion from the dedicated flow
+    const { output: categorySuggestion } = await categorizeExpenseText({
+        expenseTitle: extractedInfo.description || input.expenseText,
+        categories: input.categories,
+    });
+     if (!categorySuggestion) {
+        throw new Error("Could not determine a category for the expense.");
+    }
+
+    // Step 3: Combine results and return
+    return {
+        amount: extractedInfo.amount,
+        date: extractedInfo.date,
+        description: extractedInfo.description,
+        category: categorySuggestion.suggestedCategory,
+    };
   }
 );

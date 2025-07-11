@@ -191,30 +191,24 @@ export default function StatisticsPage() {
         const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories];
         const budget = categoryBudgets[catKey];
 
-        if (categoryInfo) {
-          return {
-            id: catKey,
-            name: categoryInfo.name,
-            icon: categoryInfo.icon,
-            total,
-            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-            color: categoryInfo.color,
-            chartColor: categoryInfo.chartColor,
-            budget,
-          };
-        } else {
-          // Handle unknown categories gracefully
-          return {
-            id: catKey,
+        // If the category is not in our predefined list, create a temporary entry for it.
+        const effectiveCategoryInfo = categoryInfo || {
             name: catKey, // Use the key as the name
             icon: '❓', // Default icon for unknown
-            total,
-            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
             color: 'bg-gray-400',
             chartColor: 'hsl(var(--muted))',
-            budget,
-          };
-        }
+        };
+
+        return {
+          id: catKey,
+          name: effectiveCategoryInfo.name,
+          icon: effectiveCategoryInfo.icon,
+          total,
+          percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+          color: effectiveCategoryInfo.color,
+          chartColor: effectiveCategoryInfo.chartColor,
+          budget,
+        };
       })
       .sort((a, b) => b.total - a.total);
 
