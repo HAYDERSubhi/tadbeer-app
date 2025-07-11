@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
-  const [visibleExpensesCount, setVisibleExpensesCount] = useState(20);
+  const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
   const allSortedExpenses = useMemo(() => {
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
