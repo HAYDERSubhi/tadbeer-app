@@ -188,18 +188,33 @@ export default function StatisticsPage() {
 
     const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
       .map(([catKey, total]) => {
-        const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
+        const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories];
         const budget = categoryBudgets[catKey];
-        return {
-          id: catKey,
-          name: categoryInfo.name,
-          icon: categoryInfo.icon,
-          total,
-          percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-          color: categoryInfo.color,
-          chartColor: categoryInfo.chartColor,
-          budget,
-        };
+
+        if (categoryInfo) {
+          return {
+            id: catKey,
+            name: categoryInfo.name,
+            icon: categoryInfo.icon,
+            total,
+            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+            color: categoryInfo.color,
+            chartColor: categoryInfo.chartColor,
+            budget,
+          };
+        } else {
+          // Handle unknown categories gracefully
+          return {
+            id: catKey,
+            name: catKey, // Use the key as the name
+            icon: '❓', // Default icon for unknown
+            total,
+            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+            color: 'bg-gray-400',
+            chartColor: 'hsl(var(--muted))',
+            budget,
+          };
+        }
       })
       .sort((a, b) => b.total - a.total);
 
