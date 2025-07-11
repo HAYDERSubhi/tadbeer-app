@@ -1,5 +1,4 @@
-import { config } from 'dotenv';
-config();
+import '@/ai/genkit'; // This now handles the config() call
 
 import '@/ai/flows/analyze-detailed-receipt.ts';
 import '@/ai/flows/record-expense-voice.ts';

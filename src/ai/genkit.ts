@@ -1,5 +1,7 @@
 import { config } from 'dotenv';
-// config() has been moved to dev.ts to ensure it runs first.
+// config() must be called at the very top of the entrypoint to Genkit
+// to ensure that environment variables are loaded before any other code.
+config();
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
