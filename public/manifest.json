@@ -1,11 +1,7 @@
 {
-  "name": "Iraqi Budgeteer",
+  "name": "مصروفات",
   "short_name": "مصروفات",
-  "description": "تطبيق مالي لإدارة المصروفات الشخصية للمستخدمين الناطقين بالعربية في العراق.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#FFDA63",
+  "description": "تطبيقك المالي الذكي لإدارة مصاريفك وتحقيق أهدافك المالية.",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -17,5 +13,10 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#facc15",
+  "background_color": "#ffffff",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
 }
