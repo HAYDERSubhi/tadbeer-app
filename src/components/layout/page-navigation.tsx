@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, BrainCircuit, SettingsIcon, PieChartIcon } from 'lucide-react';
+import { HomeIcon, Goal, SettingsIcon, PieChartIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { buttonVariants } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { buttonVariants } from '@/components/ui/button';
 const navItems = [
   { href: '/', label: 'الرئيسية', icon: HomeIcon },
   { href: '/stats', label: 'الإحصائيات', icon: PieChartIcon },
-  { href: '/planner', label: 'المخطط', icon: BrainCircuit },
+  { href: '/planner', label: 'المخطط', icon: Goal },
   { href: '/settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
 

@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2Icon, BrainCircuit, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb } from 'lucide-react';
+import { Loader2Icon, Goal, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
@@ -174,7 +174,7 @@ function PlannerContent() {
     if (!userProfile || !userProfile.monthlyIncome || !userProfile.familyMembers || userProfile.familyMembers.length === 0) {
          return (
              <Alert variant="destructive">
-                <BrainCircuit className="h-4 w-4" />
+                <Goal className="h-4 w-4" />
                 <AlertTitle>معلومات غير مكتملة</AlertTitle>
                 <AlertDescription>
                     لإنشاء خطة مالية دقيقة، يرجى <Link href="/settings" className='font-bold underline'>إضافة دخلك الشهري وتفاصيل أفراد أسرتك</Link> في ملفك الشخصي بالإعدادات.
@@ -189,7 +189,7 @@ function PlannerContent() {
     <div className="space-y-6 pb-24">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BrainCircuit className="h-8 w-8 text-primary" />
+            <Goal className="h-8 w-8 text-primary" />
             المخطط المالي الذكي
         </h1>
         <p className="text-muted-foreground mt-2">
