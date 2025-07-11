@@ -23,7 +23,8 @@ import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
-import { recordExpenseWithText, RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
+import { recordExpenseAction } from '@/app/actions';
+import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -160,7 +161,7 @@ export default function DashboardPage() {
             expenseText: transcript,
             categories: categoryMap
         };
-        const result: RecordExpenseWithTextOutput = await recordExpenseWithText(input);
+        const result: RecordExpenseWithTextOutput = await recordExpenseAction(input);
         
         setVoiceExpenseData({
             title: result.description || 'مصروف صوتي',
