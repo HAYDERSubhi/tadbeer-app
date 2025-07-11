@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, eachWeekOfInterval, getDay, format } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format, getDaysInMonth, addDays } from 'date-fns';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
@@ -33,23 +33,27 @@ export default function BudgetSummaryCard() {
         const budgetTotal = budget.totalBudget;
         const remaining = budgetTotal - totalSpent;
 
+        // Consistent 4-week budget cycle
         const weeklyBudget = budgetTotal > 0 ? budgetTotal / 4 : 0;
         
-        const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 6 }); // Week starts on Saturday
+        const daysInMonth = getDaysInMonth(today);
+        // Divide the month into 4 periods. Can be fractional days.
+        const periodLength = daysInMonth / 4; 
         
-        const weeklyExpenses = weeks.map((weekStart, index) => {
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
+        const weeklyExpenses = Array.from({ length: 4 }).map((_, index) => {
+            const periodStart = addDays(start, index * periodLength);
+            const periodEnd = addDays(start, (index + 1) * periodLength - 1);
             
-            const expensesInWeek = monthlyExpenses.filter(exp => {
+            const expensesInPeriod = monthlyExpenses.filter(exp => {
                 const expDate = new Date(exp.date);
-                return isWithinInterval(expDate, { start: weekStart, end: weekEnd });
+                return isWithinInterval(expDate, { start: periodStart, end: periodEnd });
             });
-            const spentInWeek = expensesInWeek.reduce((sum, exp) => sum + exp.amount, 0);
+
+            const spentInPeriod = expensesInPeriod.reduce((sum, exp) => sum + exp.amount, 0);
             return {
                 name: `الأسبوع ${index + 1}`,
-                spent: spentInWeek,
-                progress: weeklyBudget > 0 ? (spentInWeek / weeklyBudget) * 100 : 0,
+                spent: spentInPeriod,
+                progress: weeklyBudget > 0 ? (spentInPeriod / weeklyBudget) * 100 : 0,
             };
         });
 
