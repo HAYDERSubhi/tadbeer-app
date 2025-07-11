@@ -4,17 +4,18 @@
 import { useState, useMemo, Fragment, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit } from "lucide-react";
-import type { Expense } from '@/types';
+import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon } from "lucide-react";
+import type { Expense, LinkedCard } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogDescription,
+  DialogTrigger
 } from "@/components/ui/dialog";
-import EditExpenseForm from '@/components/expenses/edit-expense-form';
+import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -28,7 +29,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
-import ExpenseInputMethods from '@/components/dashboard/expense-input-methods';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 
@@ -65,6 +65,7 @@ const tourSteps = [
   }
 ];
 
+
 // Main Dashboard Component
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -77,6 +78,17 @@ export default function DashboardPage() {
   const [isInsightsLoading, setIsInsightsLoading] = useState(false);
   const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [isVoiceEntryOpen, setIsVoiceEntryOpen] = useState(false);
+  const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
+  const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
+  
+  const recognitionRef = useRef<any | null>(null);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState('');
+
   const allSortedExpenses = useMemo(() => {
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses]);
@@ -219,7 +231,71 @@ export default function DashboardPage() {
       )}
 
       {/* Add Expense Section */}
-      <ExpenseInputMethods />
+      <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+          <DialogTrigger asChild>
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+              <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+              </span>
+              <p className="font-semibold">إدخال يدوي</p>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+          </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
+           <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+              <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50">
+                <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
+              </span>
+              <p className="font-semibold">سجل بالصوت</p>
+            </div>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
+              <DialogDescription>
+                يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+              </DialogDescription>
+            </DialogHeader>
+            <ManualExpenseForm setOpen={setIsVoiceEntryOpen} initialData={voiceExpenseData} />
+          </DialogContent>
+        </Dialog>
+
+        <Link href="/receipts" className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+           <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-teal-100 dark:bg-teal-900/50">
+            <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
+           </span>
+          <p className="font-semibold">تحليل فاتورة</p>
+        </Link>
+        
+        <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
+          <DialogTrigger asChild>
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+               <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                <CreditCard className="h-8 w-8 text-orange-600 dark:text-orange-300" />
+               </span>
+              <p className="font-semibold">بطاقة إلكترونية</p>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+              {/* This functionality is handled in the settings page for now */}
+              <DialogHeader>
+                <DialogTitle as="h2">ربط بطاقة إلكترونية</DialogTitle>
+                <DialogDescription>
+                  هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                </DialogDescription>
+              </DialogHeader>
+              <Button asChild className="w-full mt-4">
+                  <Link href="/settings">الذهاب إلى الإعدادات</Link>
+              </Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
@@ -292,5 +368,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
