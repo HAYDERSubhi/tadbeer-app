@@ -4,8 +4,8 @@
 import { useState, useMemo, Fragment, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, Target, History, Terminal, PencilIcon } from "lucide-react";
-import type { Expense, UserBudgetSettings } from '@/types';
+import { Trash2Icon, Sparkles, History, Terminal, PencilIcon } from "lucide-react";
+import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -240,7 +240,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               {insights.map((insight, index) => (
                 <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
-                  <span className={cn(
+                   <span className={cn(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                     insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
                     insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
@@ -292,3 +292,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

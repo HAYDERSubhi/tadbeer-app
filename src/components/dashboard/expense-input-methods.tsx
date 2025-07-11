@@ -10,6 +10,7 @@ import * as z from 'zod';
 import { Button } from "@/components/ui/button";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import { FilePenLine, FileScan, CreditCardIcon, Loader2Icon, Mic, StopCircleIcon, AlertTriangleIcon, Link2, Bell } from "lucide-react";
+import { FilePenLine, FileScan, CreditCard, Loader2Icon, Mic, AlertTriangleIcon, Link2, Bell, Receipt } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, LinkedCard } from '@/types';
@@ -271,7 +272,7 @@ export default function ExpenseInputMethods() {
               </DialogHeader>
               <div className='p-6 text-center space-y-6'>
                   <div className='flex flex-col items-center gap-2'>
-                      <CreditCardIcon className="h-16 w-16 text-primary" />
+                      <CreditCard className="h-16 w-16 text-primary" />
                   </div>
                   <Button onClick={handleSyncCard} disabled={isSyncingCard || addMultipleExpensesMutation.isPending} className="w-full" size="lg">
                      {isSyncingCard ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري المزامنة...</> : <><Bell className="ml-2 h-4 w-4"/> مزامنة المعاملات</>}
@@ -316,94 +317,94 @@ export default function ExpenseInputMethods() {
     }
   };
 
-  return (
-    <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button
-            onClick={handleToggleRecording}
-            disabled={!recognitionRef.current || isVoiceLoading}
-            className={cn(
-                "flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted/50"
-            )}
-            aria-label={isVoiceRecording ? "إيقاف التسجيل" : voiceError ? "محاولة مرة أخرى" : "بدء التسجيل الصوتي"}
-        >
-            {voiceError ? (
-                <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); }} className="flex flex-col items-center justify-center gap-3">
-                    <AlertTriangleIcon className="h-8 w-8 text-destructive" />
-                    <p className="text-sm font-semibold text-center">{voiceError}</p>
-                    <p className="text-xs text-destructive/80 mt-1">اضغط للمحاولة مرة أخرى</p>
-                </div>
-            ) : isVoiceLoading ? (
-                 <div className="flex flex-col items-center justify-center gap-3">
-                    <span className="w-16 h-16 rounded-full flex items-center justify-center">
-                        <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-                    </span>
-                    <p className="font-semibold">جاري التحليل...</p>
-                 </div>
-            ) : (
-                 <div className="flex flex-col items-center justify-center gap-3">
-                    <span className="w-16 h-16 rounded-full flex items-center justify-center transition-colors">
-                        {isVoiceRecording ? (
-                            <div className="relative h-8 w-8 text-red-500">
-                               <div className="h-4 w-4 bg-red-500 rounded-full animate-pulse"></div>
-                            </div>
-                        ) : (
-                            <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />
-                        )}
-                    </span>
-                    <p className="font-semibold h-5 truncate">
-                        {isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت"}
-                    </p>
-                 </div>
-            )}
-        </button>
-        
-        <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-          <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
-              <span className="w-16 h-16 rounded-full flex items-center justify-center">
-                 <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
-              </span>
-              <p className="font-semibold">إدخال يدوي</p>
-            </div>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
-          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-            <DialogHeader>
-                <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
-                <DialogDescription>
-                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
-                </DialogDescription>
-            </DialogHeader>
-            <ManualExpenseForm setOpen={setIsVoiceEntryOpen} initialData={voiceExpenseData} />
-          </DialogContent>
-        </Dialog>
-
-        <Link href="/receipts" className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 hover:bg-muted/50">
-          <span className="w-16 h-16 rounded-full flex items-center justify-center">
-             <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
+  const InputButton = ({ icon: Icon, label, color, onClick, asLink, href }: { icon: React.ElementType, label: string, color: string, onClick?: () => void, asLink?: boolean, href?: string }) => {
+    const content = (
+      <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-32 hover:scale-105 hover:shadow-lg bg-background">
+          <span className={cn("w-16 h-16 rounded-full flex items-center justify-center bg-opacity-10", color)}>
+             <Icon className="h-8 w-8" />
           </span>
-          <p className="font-semibold">تحليل فاتورة</p>
-        </Link>
-        
-        <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-            <DialogTrigger asChild>
-              <div className="flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-colors h-40 cursor-pointer hover:bg-muted/50">
-                <span className="w-16 h-16 rounded-full flex items-center justify-center">
-                   <CreditCardIcon className="h-8 w-8 text-amber-600 dark:text-amber-300" />
-                </span>
-                <p className="font-semibold">بطاقة إلكترونية</p>
-              </div>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              {renderCardDialogContent()}
-            </DialogContent>
-          </Dialog>
-    </div>
+          <p className="font-semibold">{label}</p>
+      </div>
+    );
+
+    if (asLink && href) {
+        return <Link href={href}>{content}</Link>
+    }
+    
+    return <button onClick={onClick}>{content}</button>
+  }
+
+
+  return (
+    <Card id="expense-input-methods">
+      <CardHeader>
+        <CardTitle>أضف معاملة جديدة</CardTitle>
+      </CardHeader>
+      <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                  onClick={handleToggleRecording}
+                  disabled={!recognitionRef.current || isVoiceLoading}
+                  className={cn("flex flex-col items-center justify-center text-center gap-3 p-4 rounded-xl transition-all h-32 hover:scale-105 hover:shadow-lg bg-background disabled:opacity-50 disabled:cursor-not-allowed")}
+              >
+                  {voiceError ? (
+                      <div onClick={(e) => { e.stopPropagation(); setVoiceError(null); }} className="flex flex-col items-center justify-center gap-3">
+                          <AlertTriangleIcon className="h-8 w-8 text-destructive" />
+                          <p className="text-xs font-semibold text-center">{voiceError}</p>
+                      </div>
+                  ) : isVoiceLoading ? (
+                      <div className="flex flex-col items-center justify-center gap-3">
+                              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                          <p className="font-semibold">جاري التحليل...</p>
+                      </div>
+                  ) : (
+                      <div className="flex flex-col items-center justify-center gap-3">
+                          <span className={cn("w-16 h-16 rounded-full flex items-center justify-center bg-opacity-10", isVoiceRecording ? "bg-red-500" : "bg-green-500")}>
+                               <Mic className={cn("h-8 w-8", isVoiceRecording ? "text-red-500 animate-pulse" : "text-green-500")} />
+                          </span>
+                          <p className="font-semibold h-5 truncate">
+                              {isVoiceRecording ? "...يتم التسجيل" : "سجل بالصوت"}
+                          </p>
+                      </div>
+                  )}
+              </button>
+              
+              <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+                <DialogTrigger asChild>
+                    <InputButton icon={FilePenLine} label="إدخال يدوي" color="text-blue-500 bg-blue-500" />
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                  <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+                  <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={isVoiceEntryOpen} onOpenChange={setIsVoiceEntryOpen}>
+                <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                  <DialogHeader>
+                      <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
+                      <DialogDescription>
+                          يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <ManualExpenseForm setOpen={setIsVoiceEntryOpen} initialData={voiceExpenseData} />
+                </DialogContent>
+              </Dialog>
+
+              <InputButton asLink href="/receipts" icon={Receipt} label="تحليل فاتورة" color="text-teal-500 bg-teal-500" />
+              
+              <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
+                  <DialogTrigger asChild>
+                    <InputButton icon={CreditCard} label="بطاقة إلكترونية" color="text-amber-500 bg-amber-500" />
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    {renderCardDialogContent()}
+                  </DialogContent>
+                </Dialog>
+          </div>
+      </CardContent>
+    </Card>
   );
 }
+
+    
