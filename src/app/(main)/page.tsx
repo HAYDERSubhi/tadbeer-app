@@ -519,8 +519,8 @@ export default function DashboardPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <History className="h-5 w-5 text-primary" />
             أحدث المصاريف
           </CardTitle>
           <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
