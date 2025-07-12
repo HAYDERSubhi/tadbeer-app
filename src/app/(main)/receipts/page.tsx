@@ -280,7 +280,7 @@ export default function DetailedReceiptPage() {
                     <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                     <canvas ref={photoRef} className="hidden" />
                 </div>
-                <footer className="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10 bg-gradient-to-t from-black/50 to-transparent">
+                <footer className="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10 bg-gradient-to-t from-black/50 to-transparent pb-[90px]">
                     <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 p-0 flex items-center justify-center transition-transform active:scale-95" aria-label="التقاط صورة">
                        <Camera className="h-8 w-8 text-white" />
                     </button>
@@ -308,7 +308,7 @@ export default function DetailedReceiptPage() {
                         showGrid={true}
                     />
                 </div>
-                <div className="p-4 border-t space-y-4">
+                <div className="p-4 border-t space-y-4 pb-[90px]">
                     <div className="flex items-center gap-4">
                         <Label htmlFor="zoom-slider" className="flex items-center gap-2"><ZoomIn /> تكبير</Label>
                         <Slider id="zoom-slider" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
