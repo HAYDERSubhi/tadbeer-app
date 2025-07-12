@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays, isSameDay } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays } from 'date-fns';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
@@ -16,7 +16,6 @@ function isToday(date: Date) {
            date.getMonth() === today.getMonth() &&
            date.getFullYear() === today.getFullYear();
 }
-
 
 export default function BudgetSummaryCard() {
     const { expenses, userSettings } = useAppData();
@@ -42,12 +41,11 @@ export default function BudgetSummaryCard() {
             .reduce((sum, exp) => sum + exp.amount, 0);
         
         const remaining = totalBudget - totalSpent;
-
-        const weeklyTarget = budget.weeklyBudget || (totalBudget / 4);
-
+        
         // --- 4-Week Logic ---
         const daysInMonth = getDaysInMonth(today);
         const weekLength = daysInMonth / 4; 
+        const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? totalBudget / 4 : 0);
         const weeklySummaries = [];
 
         for (let i = 0; i < 4; i++) {
@@ -87,7 +85,7 @@ export default function BudgetSummaryCard() {
                         <span className="text-red-600">{budgetData.monthlySpent.toLocaleString()}&nbsp;د.ع</span>
                         <span className="text-green-600">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع متبقي</span>
                     </div>
-                    <Progress value={(budgetData.monthlySpent / budgetData.totalBudget) * 100} className="h-4" indicatorcolor={budgetData.monthlySpent > budgetData.totalBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                    <Progress value={(budgetData.monthlySpent / (budgetData.totalBudget || 1)) * 100} className="h-4" indicatorcolor={budgetData.monthlySpent > budgetData.totalBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                     <div className="flex justify-between text-sm text-muted-foreground">
                         <span>مصروف اليوم: {budgetData.dailySpent.toLocaleString()} د.ع</span>
                         <span>من أصل {budgetData.totalBudget.toLocaleString()} د.ع</span>
