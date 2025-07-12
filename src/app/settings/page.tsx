@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -36,7 +36,7 @@ import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome } from '@/services/firestore';
+import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, updateExpense } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -47,6 +47,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
+import { reCategorizeAction } from '@/app/actions';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -568,6 +569,41 @@ export default function SettingsPage() {
   
   const isAnonymous = user?.isAnonymous ?? true;
 
+  // --- Re-categorization ---
+  const reCategorizeMutation = useMutation({
+    mutationFn: async () => {
+      if (!expenses || expenses.length === 0) {
+        toast({ title: 'لا يوجد ما يمكن تصنيفه', description: 'ليس لديك أي مصاريف مسجلة بعد.', variant: 'destructive' });
+        return { count: 0 };
+      }
+
+      const categoryMap = Object.entries(CATEGORIES).reduce((acc, [id, { name }]) => {
+          acc[id] = name;
+          return acc;
+      }, {} as Record<string, string>);
+
+      const expensesToProcess = expenses.map(e => ({ id: e.id, title: e.title }));
+      
+      return reCategorizeAction({ expenses: expensesToProcess, categories: categoryMap });
+    },
+    onSuccess: (data) => {
+      if (data.count > 0) {
+        queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+        toast({
+          title: 'اكتمل التصنيف!',
+          description: `تمت مراجعة وتحديث ${data.count} مصروف بنجاح.`,
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'فشل التصنيف',
+        description: error.message || 'حدث خطأ غير متوقع أثناء إعادة التصنيف.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   return (
     <div className="space-y-6 pb-24">
       <Card>
@@ -1042,6 +1078,27 @@ export default function SettingsPage() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <WandSparkles className="h-6 w-6 text-primary" />
+            إصلاح البيانات
+          </CardTitle>
+          <CardDescription>
+            استخدم هذه الأداة لمراجعة جميع مصاريفك القديمة وإعادة تصنيفها تلقائيًا باستخدام الذكاء الاصطناعي لضمان دقة إحصائياتك.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full" onClick={() => reCategorizeMutation.mutate()} disabled={reCategorizeMutation.isPending}>
+            {reCategorizeMutation.isPending ? (
+              <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إعادة التصنيف...</>
+            ) : (
+              'بدء إعادة التصنيف الذكي'
+            )}
+          </Button>
         </CardContent>
       </Card>
       
