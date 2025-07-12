@@ -1,4 +1,3 @@
-
 // src/app/(main)/page.tsx
 
 "use client";
@@ -113,24 +112,20 @@ export default function DashboardPage() {
         const startDate = new Date(p.startDate);
         let nextDueDate = startDate;
 
-        // If the start date is in the future but not tomorrow, it's not due yet.
         if (isFuture(nextDueDate) && !isSameDay(nextDueDate, tomorrow)) {
           return false;
         }
 
-        // Calculate next due date based on frequency
         switch (p.frequency) {
             case 'one-time':
                 nextDueDate = startDate;
                 break;
             case 'monthly':
-                 // Find the next occurrence of this day of the month
                 nextDueDate = new Date();
                 nextDueDate.setDate(startDate.getDate());
                 if (nextDueDate < new Date()) {
                     nextDueDate = addMonths(nextDueDate, 1);
                 }
-                 // Special case for end of month
                 const daysInMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
                 if(startDate.getDate() > daysInMonth) {
                   nextDueDate.setDate(daysInMonth);
@@ -159,7 +154,6 @@ export default function DashboardPage() {
 
   // --- Voice Recording Logic ---
   useEffect(() => {
-    // Check for SpeechRecognition API
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
@@ -182,7 +176,7 @@ export default function DashboardPage() {
       };
       
       recognition.onend = () => {
-        if (isVoiceRecording) { // If it ends prematurely, stop it.
+        if (isVoiceRecording) {
             setIsVoiceRecording(false);
             setIsVoiceLoading(false);
         }
@@ -192,14 +186,13 @@ export default function DashboardPage() {
     } else {
       setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
     }
-  }, [isVoiceRecording]); // Re-attach listeners if isVoiceRecording changes
+  }, [isVoiceRecording]);
 
   const handleToggleVoiceRecording = () => {
     if (!recognitionRef.current) {
         toast({ title: "الميزة غير مدعومة", description: voiceError, variant: "destructive" });
         return;
     }
-
     if (isVoiceRecording) {
       recognitionRef.current.stop();
     } else {
@@ -249,7 +242,6 @@ export default function DashboardPage() {
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses]);
   
-  // Memoized data for the financial coach
   const financialCoachInput = useMemo(() => {
     const userBudget = userSettings?.budget;
     const monthlyExpenses = expenses.filter(exp => {
@@ -285,14 +277,12 @@ export default function DashboardPage() {
     };
   }, [expenses, userSettings]);
 
-  // Effect to fetch insights when input data changes
   useEffect(() => {
     if (!user || !financialCoachInput) {
       setInsights([]);
       setIsInsightsLoading(false);
       return;
     }
-
     const getInsights = async () => {
       setIsInsightsLoading(true);
       try {
@@ -305,7 +295,6 @@ export default function DashboardPage() {
         setIsInsightsLoading(false);
       }
     };
-
     getInsights();
   }, [user, financialCoachInput]);
   
@@ -313,17 +302,10 @@ export default function DashboardPage() {
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
-      toast({
-        title: "تم الحذف",
-        description: "تم حذف المصروف بنجاح.",
-      });
+      toast({ title: "تم الحذف", description: "تم حذف المصروف بنجاح." });
     },
     onError: () => {
-      toast({
-        title: "خطأ",
-        description: "لم نتمكن من حذف المصروف.",
-        variant: "destructive",
-      });
+      toast({ title: "خطأ", description: "لم نتمكن من حذف المصروف.", variant: "destructive" });
     }
   });
 
@@ -422,39 +404,35 @@ export default function DashboardPage() {
         ) : (
           <BudgetSummaryCard />
       )}
-
-
+      
       {/* Add Expense Section */}
-      <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-          <DialogTrigger asChild>
-            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                <FilePenLine className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
-                <p className="font-semibold text-blue-800 dark:text-blue-200">إدخال يدوي</p>
-            </Card>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-          </DialogContent>
+            <DialogTrigger asChild>
+                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </span>
+                    <p className="font-semibold text-sm">إدخال يدوي</p>
+                </div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+            </DialogContent>
         </Dialog>
         
-        <div 
-          onClick={handleToggleVoiceRecording}
-          aria-disabled={isVoiceLoading}
-        >
-          <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <span className={cn(isVoiceRecording && 'animate-pulse')}>
-                {isVoiceLoading ? <Loader2 className="h-10 w-10 text-green-600 dark:text-green-400 mb-2 animate-spin" /> : 
-                isVoiceRecording ? <StopCircle className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" /> : 
-                <Mic className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />}
+        <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+             <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
+                {isVoiceLoading ? <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" /> : 
+                isVoiceRecording ? <StopCircle className="w-8 h-8 text-green-600 dark:text-green-400" /> : 
+                <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
             </span>
-             <p className="font-semibold text-green-800 dark:text-green-200">
+             <p className="font-semibold text-sm">
                 {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
              </p>
-          </Card>
         </div>
-        
+
         <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
@@ -467,19 +445,21 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="block">
-           <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800">
-                <FileScan className="h-10 w-10 text-teal-600 dark:text-teal-400 mb-2" />
-                <p className="font-semibold text-teal-800 dark:text-teal-200">تحليل فاتورة</p>
-            </Card>
+         <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
+                <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+            </span>
+            <p className="font-semibold text-sm">تحليل فاتورة</p>
         </Link>
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
           <DialogTrigger asChild>
-            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-                <CreditCard className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
-                <p className="font-semibold text-orange-800 dark:text-orange-200">بطاقة إلكترونية</p>
-            </Card>
+            <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                    <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </span>
+                <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+            </div>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -495,7 +475,7 @@ export default function DashboardPage() {
         </Dialog>
       </div>
 
-      
+
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
