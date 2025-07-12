@@ -1,11 +1,12 @@
+
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
 import { useMemo } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays, isSameDay } from 'date-fns';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
@@ -44,14 +45,13 @@ export default function BudgetSummaryCard() {
 
         const weeklyTarget = budget.weeklyBudget || (totalBudget / 4);
 
-        // --- New 4-Week Logic ---
+        // --- 4-Week Logic ---
         const daysInMonth = getDaysInMonth(today);
-        const weekLength = daysInMonth / 4; // Can be a float like 7.75
+        const weekLength = daysInMonth / 4; 
         const weeklySummaries = [];
 
         for (let i = 0; i < 4; i++) {
             const weekStart = addDays(start, i * weekLength);
-            // Ensure the end of the last week is exactly the end of the month
             const weekEnd = (i === 3) ? end : addDays(weekStart, weekLength - 1);
 
             const weekExpenses = monthlyExpenses.filter(exp => 
@@ -76,24 +76,20 @@ export default function BudgetSummaryCard() {
     }, [expenses, userSettings]);
 
     return (
-         <Card id="budget-summary-card" className="bg-yellow-50/50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/20">
-            <CardContent className="p-4 space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">إجمالي الميزانية</p>
-                        <p className="font-bold text-lg">{budgetData.totalBudget.toLocaleString()}&nbsp;د.ع</p>
+         <Card id="budget-summary-card">
+            <CardHeader>
+                <CardTitle>ملخص الميزانية الشهرية</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <div className="flex justify-between text-lg font-bold">
+                        <span className="text-green-600">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع متبقي</span>
+                        <span className="text-red-600">{budgetData.monthlySpent.toLocaleString()}&nbsp;د.ع</span>
                     </div>
-                     <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">المصروف الشهري</p>
-                        <p className="font-bold text-lg text-red-600">{budgetData.monthlySpent.toLocaleString()}&nbsp;د.ع</p>
-                    </div>
-                     <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">مصروف اليوم</p>
-                        <p className="font-bold text-lg">{budgetData.dailySpent.toLocaleString()}&nbsp;د.ع</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">الميزانية المتبقية</p>
-                        <p className="font-bold text-lg text-green-600">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع</p>
+                    <Progress value={(budgetData.monthlySpent / budgetData.totalBudget) * 100} className="h-4" indicatorcolor={budgetData.monthlySpent > budgetData.totalBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>من أصل {budgetData.totalBudget.toLocaleString()} د.ع</span>
+                        <span>مصروف اليوم: {budgetData.dailySpent.toLocaleString()} د.ع</span>
                     </div>
                 </div>
 
@@ -104,7 +100,7 @@ export default function BudgetSummaryCard() {
                     <div className="flex items-center gap-4">
                         {budgetData.weeklySummaries.map(week => (
                             <div key={week.week} className="flex-1 space-y-2">
-                                <Progress value={week.progress > 100 ? 100 : week.progress} className="h-3" indicatorcolor={week.progress > 100 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                                <Progress value={week.progress > 100 ? 100 : week.progress} className="h-2" indicatorcolor={week.progress > 100 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
                                     <span className="text-xs font-semibold">{week.spent.toLocaleString()}&nbsp;د.ع</span>
@@ -117,3 +113,4 @@ export default function BudgetSummaryCard() {
         </Card>
     );
 }
+
