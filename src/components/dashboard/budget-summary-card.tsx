@@ -40,7 +40,7 @@ export default function BudgetSummaryCard() {
     }, [expenses, userSettings]);
 
     return (
-        <Card id="budget-summary-card" className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-background shadow-lg border-primary/20">
+        <Card id="budget-summary-card">
             <CardHeader>
                 <CardTitle className="text-xl">ملخص الميزانية الشهرية</CardTitle>
             </CardHeader>
