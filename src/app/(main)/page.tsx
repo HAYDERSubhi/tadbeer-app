@@ -479,8 +479,8 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Sparkles className="h-5 w-5 text-primary" />
             نصائح المدرب المالي
           </CardTitle>
           <CardDescription>تحليلات وتوصيات ذكية بناءً على إنفاقك الأخير.</CardDescription>
@@ -488,24 +488,24 @@ export default function DashboardPage() {
         <CardContent>
           {isInsightsLoading ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
             </div>
           ) : insights && insights.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {insights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                    <span className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
                     insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
                     insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
                     insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
                   )}>
-                    <InsightIcon name={insight.icon} className="h-5 w-5" />
+                    <InsightIcon name={insight.icon} className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="font-semibold">{insight.title}</p>
-                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                    <p className="font-semibold text-sm">{insight.title}</p>
+                    <p className="text-xs text-muted-foreground">{insight.description}</p>
                   </div>
                 </div>
               ))}
