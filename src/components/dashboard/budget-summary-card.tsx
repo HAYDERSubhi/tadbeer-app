@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, startOfWeek, endOfWeek, eachWeekOfInterval, addDays } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays } from 'date-fns';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
@@ -42,20 +42,28 @@ export default function BudgetSummaryCard() {
         
         const remaining = totalBudget - totalSpent;
 
-        const weeklyTarget = budget.weeklyBudget || (totalBudget / 4.33);
+        const weeklyTarget = budget.weeklyBudget || (totalBudget / 4);
 
-        const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 6 }); // Week starts on Saturday for Iraq
+        // --- New 4-Week Logic ---
+        const daysInMonth = getDaysInMonth(today);
+        const weekLength = daysInMonth / 4; // Can be a float like 7.75
+        const weeklySummaries = [];
 
-        const weeklySummaries = weeks.map((weekStart, index) => {
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 });
-            const weekExpenses = monthlyExpenses.filter(exp => isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd }));
+        for (let i = 0; i < 4; i++) {
+            const weekStart = addDays(start, i * weekLength);
+            // Ensure the end of the last week is exactly the end of the month
+            const weekEnd = (i === 3) ? end : addDays(weekStart, weekLength - 1);
+
+            const weekExpenses = monthlyExpenses.filter(exp => 
+                isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd })
+            );
             const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-            return {
-                week: index + 1,
+            weeklySummaries.push({
+                week: i + 1,
                 spent,
                 progress: weeklyTarget > 0 ? (spent / weeklyTarget) * 100 : 0,
-            };
-        });
+            });
+        }
         
         return {
             totalBudget,
