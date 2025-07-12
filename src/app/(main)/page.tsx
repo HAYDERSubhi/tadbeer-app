@@ -1,11 +1,12 @@
+// src/app/(main)/page.tsx
 
 "use client";
 
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon, Loader2, StopCircle, CalendarClock } from "lucide-react";
-import type { Expense, RecurringPayment } from '@/types';
+import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
+import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -15,11 +16,17 @@ import {
   DialogDescription,
   DialogTrigger
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, getDate, isSameDay, addMonths, addQuarters, addYears, getYear, setYear, isFuture, startOfDay } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -74,7 +81,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { expenses, userSettings, goals } = useAppData();
+  const { expenses, userSettings } = useAppData();
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(true);
@@ -321,9 +328,9 @@ export default function DashboardPage() {
     const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
     return (
       <Fragment>
-        <li className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-          <div className="flex flex-1 items-center gap-3 overflow-hidden">
-            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md border text-xl", categoryInfo.color)}>
+        <li className="flex items-center p-3 transition-colors hover:bg-muted/50 rounded-lg">
+          <div className="flex flex-1 items-center gap-4 overflow-hidden">
+            <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border text-2xl", categoryInfo.color)}>
               {categoryInfo.icon}
             </span>
             <div className='overflow-hidden'>
@@ -333,27 +340,36 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="text-end">
-              <p className="font-semibold text-foreground">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
+              <p className="font-bold text-foreground text-base">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
               <p className="text-sm text-muted-foreground">
                 {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
               </p>
             </div>
-            <div className="flex flex-col opacity-0 transition-opacity group-hover:opacity-100">
-              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
                   <DialogTrigger asChild>
-                       <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary">
-                          <PencilIcon className="h-4 w-4" />
-                       </Button>
+                    <DropdownMenuItem>
+                      <PencilIcon className="ml-2 h-4 w-4" />
+                      تعديل
+                    </DropdownMenuItem>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                      <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
-                      <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                  </DialogContent>
-              </Dialog>
-              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteExpense(expense.id)}>
-                  <Trash2Icon className="h-4 w-4" />
-              </Button>
-            </div>
+                  <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                    <Trash2Icon className="ml-2 h-4 w-4" />
+                    حذف
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+               <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                  <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
+                  <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+              </DialogContent>
+            </Dialog>
           </div>
         </li>
       </Fragment>
@@ -380,17 +396,24 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      <BudgetSummaryCard />
-      
-      {userBudget.totalBudget === 0 && (
-          <Alert variant="destructive">
-            <Terminal className="h-4 w-4" />
-            <AlertTitle>لم تقم بتحديد ميزانية!</AlertTitle>
-            <AlertDescription>
-                <p>اذهب إلى <Link href="/settings" className="font-bold underline">الإعدادات</Link> لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
-            </AlertDescription>
-        </Alert>
+      {userBudget.totalBudget === 0 ? (
+          <Card className="text-center py-8">
+            <CardContent className="flex flex-col items-center gap-4">
+              <DollarSign className="h-12 w-12 text-muted-foreground" />
+              <h3 className="text-xl font-bold">ابدأ بتحديد ميزانيتك</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">اذهب إلى الإعدادات لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
+              <Button asChild className="mt-2">
+                <Link href="/settings">
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                  الذهاب إلى الإعدادات
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <BudgetSummaryCard />
       )}
+
 
       {/* Add Expense Section */}
       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">

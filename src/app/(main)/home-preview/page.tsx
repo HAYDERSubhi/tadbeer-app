@@ -4,7 +4,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon, Loader2, StopCircle, CalendarClock, MoreHorizontal, DollarSign } from "lucide-react";
+import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -25,7 +25,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, startOfMonth, endOfMonth, isWithinInterval, isFuture } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -38,8 +38,7 @@ import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
+import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 
 // Main Dashboard Component
 export default function HomePreviewPage() {
@@ -117,37 +116,6 @@ export default function HomePreviewPage() {
     });
   }, [userSettings]);
 
-  const budgetData = useMemo(() => {
-    const today = new Date();
-    const start = startOfDay(startOfMonth(today));
-    const end = startOfDay(endOfMonth(today));
-    const budget = userSettings?.budget || { totalBudget: 0 };
-
-    const monthlyExpenses = expenses.filter(exp => {
-        try {
-            return isWithinInterval(startOfDay(new Date(exp.date)), { start, end });
-        } catch {
-            return false;
-        }
-    });
-
-    const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const todaySpent = monthlyExpenses
-      .filter(exp => isToday(new Date(exp.date)))
-      .reduce((sum, exp) => sum + exp.amount, 0);
-
-    const budgetTotal = budget.totalBudget;
-    const remaining = budgetTotal - totalSpent;
-    const progress = budgetTotal > 0 ? (totalSpent / budgetTotal) * 100 : 0;
-
-    return {
-        totalBudget: budgetTotal,
-        monthlySpent: totalSpent,
-        todaySpent,
-        remainingBudget: remaining,
-        progress: Math.min(progress, 100) // Cap at 100% for visual
-    };
-  }, [expenses, userSettings]);
 
   // --- Voice Recording Logic ---
   useEffect(() => {
@@ -356,6 +324,8 @@ export default function HomePreviewPage() {
     );
   }
 
+  const userBudget = userSettings?.budget || { totalBudget: 0 };
+
   return (
     <div className="space-y-6 pb-24 sm:pb-8">
       {upcomingPayments.length > 0 && (
@@ -372,7 +342,7 @@ export default function HomePreviewPage() {
         </Alert>
       )}
 
-      {userSettings?.budget?.totalBudget === 0 ? (
+      {userBudget.totalBudget === 0 ? (
           <Card className="text-center py-8">
             <CardContent className="flex flex-col items-center gap-4">
               <DollarSign className="h-12 w-12 text-muted-foreground" />
@@ -380,103 +350,94 @@ export default function HomePreviewPage() {
               <p className="text-muted-foreground max-w-sm mx-auto">اذهب إلى الإعدادات لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
               <Button asChild className="mt-2">
                 <Link href="/settings">
+                  <ArrowRight className="ml-2 h-4 w-4" />
                   الذهاب إلى الإعدادات
                 </Link>
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Card id="budget-summary-card">
-            <CardHeader>
-                <CardTitle>ملخص الميزانية الشهرية</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Progress value={budgetData.progress} className="h-3" indicatorcolor={budgetData.progress > 85 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
-                <div className="flex justify-between items-baseline font-medium">
-                    <span className="text-muted-foreground">المصروف</span>
-                    <span className="text-foreground text-lg">{budgetData.monthlySpent.toLocaleString()}&nbsp;د.ع</span>
-                </div>
-                <div className="flex justify-between items-baseline text-sm">
-                    <span className="text-muted-foreground">المتبقي</span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between items-baseline text-sm">
-                    <span className="text-muted-foreground">مصروف اليوم</span>
-                    <span className="font-semibold text-foreground">{budgetData.todaySpent.toLocaleString()}&nbsp;د.ع</span>
-                </div>
-            </CardContent>
-          </Card>
-        )}
-
-      {/* Add Expense Section */}
-      <Card id="expense-input-methods">
-        <CardHeader>
-            <CardTitle>إضافة مصروف جديد</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center">
-            <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex-col h-24 gap-2">
-                    <FilePenLine className="h-8 w-8 text-blue-500" />
-                    <span className="font-semibold">إدخال يدوي</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-              </DialogContent>
-            </Dialog>
-            
-            <Button variant="outline" className="flex-col h-24 gap-2" onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading}>
-                {isVoiceLoading ? <Loader2 className="h-8 w-8 text-green-500 animate-spin" /> : 
-                isVoiceRecording ? <StopCircle className="h-8 w-8 text-green-500 animate-pulse" /> : 
-                <Mic className="h-8 w-8 text-green-500" />}
-                <span className="font-semibold">{isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}</span>
-            </Button>
-            
-            <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
-                  <DialogDescription>
-                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
-                  </DialogDescription>
-                </DialogHeader>
-                <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
-              </DialogContent>
-            </Dialog>
-
-            <Button asChild variant="outline" className="flex-col h-24 gap-2">
-               <Link href="/receipts">
-                <FileScan className="h-8 w-8 text-teal-500" />
-                <span className="font-semibold">تحليل فاتورة</span>
-               </Link>
-            </Button>
-            
-            <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex-col h-24 gap-2">
-                    <CreditCard className="h-8 w-8 text-orange-500" />
-                    <span className="font-semibold">بطاقة إلكترونية</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle as="h2">ربط بطاقة إلكترونية</DialogTitle>
-                    <DialogDescription>
-                      هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Button asChild className="w-full mt-4">
-                      <Link href="/settings">الذهاب إلى الإعدادات</Link>
-                  </Button>
-              </DialogContent>
-            </Dialog>
-        </CardContent>
-      </Card>
-
+          <BudgetSummaryCard />
+      )}
       
+      {/* Add Expense Section */}
+      <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+          <DialogTrigger asChild>
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+              <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
+              </span>
+              <p className="font-semibold">إدخال يدوي</p>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+          </DialogContent>
+        </Dialog>
+        
+        <div 
+          className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={handleToggleVoiceRecording}
+          aria-disabled={isVoiceLoading}
+        >
+          <span className={cn(
+            "flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50",
+            isVoiceRecording && 'animate-pulse ring-4 ring-green-400'
+            )}>
+            {isVoiceLoading ? <Loader2 className="h-8 w-8 text-green-600 dark:text-green-300 animate-spin" /> : 
+             isVoiceRecording ? <StopCircle className="h-8 w-8 text-green-600 dark:text-green-300" /> : 
+             <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />}
+          </span>
+          <p className="font-semibold">
+            {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
+          </p>
+        </div>
+        
+        <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
+          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
+              <DialogDescription>
+                يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+              </DialogDescription>
+            </DialogHeader>
+            <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+          </DialogContent>
+        </Dialog>
+
+        <Link href="/receipts" className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+           <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-teal-100 dark:bg-teal-900/50">
+            <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
+           </span>
+          <p className="font-semibold">تحليل فاتورة</p>
+        </Link>
+        
+        <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
+          <DialogTrigger asChild>
+            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+               <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                <CreditCard className="h-8 w-8 text-orange-600 dark:text-orange-300" />
+               </span>
+              <p className="font-semibold">بطاقة إلكترونية</p>
+            </div>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle as="h2">ربط بطاقة إلكترونية</DialogTitle>
+                <DialogDescription>
+                  هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                </DialogDescription>
+              </DialogHeader>
+              <Button asChild className="w-full mt-4">
+                  <Link href="/settings">الذهاب إلى الإعدادات</Link>
+              </Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
@@ -526,9 +487,9 @@ export default function HomePreviewPage() {
           </CardTitle>
           <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
         </CardHeader>
-        <CardContent className="p-2">
+        <CardContent className="p-0">
           {allSortedExpenses.length > 0 ? (
-            <ul className="space-y-1">
+            <ul className="divide-y divide-border">
               {allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => (
                 <ExpenseListItem key={expense.id} expense={expense} />
               ))}
