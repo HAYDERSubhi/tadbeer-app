@@ -1,31 +1,21 @@
+
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
 
 // IMPORTANT: Do NOT call config() from dotenv here.
 // Next.js handles loading .env files automatically.
 
-if (!process.env.GOOGLE_API_KEY) {
-  // This check runs at build time and on server start.
-  // It provides a clear error if the key is missing from the environment.
-  if (process.env.NODE_ENV === 'production') {
-    // In production, log an error. The app might still run but AI features will fail.
-    console.error(
-      'CRITICAL: GOOGLE_API_KEY is not defined in the environment. AI features will not work.'
-    );
-  } else {
-    // In development, it's more helpful to throw a hard error to stop the process.
-    throw new Error(
-      'GOOGLE_API_KEY is not defined. Please ensure it is set in your .env file and the development server is restarted.'
-    );
-  }
-}
+// The check for the API key was causing issues with Next.js's build process.
+// Next.js ensures that process.env variables from .env are available in the
+// server environment when the code is actually executed, but not always when
+// the module is first initialized during the build.
+// We now rely on this behavior and pass the key directly. If the key is missing
+// at runtime, the googleAI plugin itself will throw a more specific error.
 
 export const ai = genkit({
   plugins: [
-    // Pass the API key directly to the plugin.
-    // Next.js ensures process.env.GOOGLE_API_KEY is available in the server environment.
     googleAI({
-      apiKey: process.env.GOOGLE_API_KEY,
+      apiKey: process.env.GOOGLE_API_KEY, // Pass the key directly from the environment.
     }),
   ],
   // Set a default model for stability.
