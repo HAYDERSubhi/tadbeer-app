@@ -25,7 +25,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, startOfMonth, endOfMonth, isWithinInterval, isFuture } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -39,6 +39,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 
 // Main Dashboard Component
 export default function HomePreviewPage() {
