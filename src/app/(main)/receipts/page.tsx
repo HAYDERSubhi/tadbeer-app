@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn, Receipt } from 'lucide-react';
+import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn, Receipt, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
@@ -22,6 +22,11 @@ import 'react-easy-crop/react-easy-crop.css';
 import type { Point, Area } from 'react-easy-crop';
 import getCroppedImg from '@/lib/crop-image';
 import { Slider } from '@/components/ui/slider';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { arIQ } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
@@ -36,15 +41,13 @@ export default function DetailedReceiptPage() {
     // State for overall page flow
     const [viewState, setViewState] = useState<ViewState>('initial');
     
-    // State for the final cropped images
-    const [finalImages, setFinalImages] = useState<{ id: string, src: string }[]>([]);
-
-    // State for the image being processed
-    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    // State for images
+    const [images, setImages] = useState<{ id: string, src: string }[]>([]);
+    const [imageToCrop, setImageToCrop] = useState<{ id: string, src: string } | null>(null);
 
     // State for analysis results
     const [analyzedItems, setAnalyzedItems] = useState<EditableItem[]>([]);
-    const [storeInfo, setStoreInfo] = useState({ name: '', date: '' });
+    const [storeInfo, setStoreInfo] = useState<{ name: string; date: string | null }>({ name: '', date: null });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
@@ -114,8 +117,8 @@ export default function DetailedReceiptPage() {
     const confirmCrop = useCallback(async () => {
         if (!imageToCrop || !croppedAreaPixels) return;
         try {
-            const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
-            setFinalImages(prev => [...prev, { id: crypto.randomUUID(), src: croppedImage }]);
+            const croppedImage = await getCroppedImg(imageToCrop.src, croppedAreaPixels);
+            setImages(prev => prev.map(img => img.id === imageToCrop.id ? { ...img, src: croppedImage } : img));
             setImageToCrop(null);
             setZoom(1);
             setCrop({ x: 0, y: 0 });
@@ -126,6 +129,11 @@ export default function DetailedReceiptPage() {
         }
     }, [imageToCrop, croppedAreaPixels, toast]);
     
+    const startCropping = (image: { id: string, src: string }) => {
+        setImageToCrop(image);
+        setViewState('cropping');
+    }
+
     const cancelCrop = () => {
         setImageToCrop(null);
         setViewState('initial');
@@ -137,8 +145,7 @@ export default function DetailedReceiptPage() {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => {
-                setImageToCrop(reader.result as string);
-                setViewState('cropping');
+                setImages(prev => [...prev, { id: crypto.randomUUID(), src: reader.result as string }]);
             };
         }
         if (fileInputRef.current) {
@@ -159,16 +166,16 @@ export default function DetailedReceiptPage() {
         ctx?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
         
         const dataUri = photo.toDataURL('image/jpeg');
-        setImageToCrop(dataUri);
-        setViewState('cropping');
+        setImages(prev => [...prev, { id: crypto.randomUUID(), src: dataUri }]);
+        setViewState('initial');
     }
     
     const removeImage = (id: string) => {
-        setFinalImages(prev => prev.filter((img) => img.id !== id));
+        setImages(prev => prev.filter((img) => img.id !== id));
     };
 
     const handleAnalyze = async () => {
-        if (finalImages.length === 0) {
+        if (images.length === 0) {
             toast({ title: "لا توجد صور", description: "الرجاء إضافة صورة واحدة على الأقل.", variant: "destructive" });
             return;
         }
@@ -177,10 +184,11 @@ export default function DetailedReceiptPage() {
         setAnalyzedItems([]);
         try {
             const result = await analyzeDetailedReceipt({
-                receiptImages: finalImages.map(img => img.src),
+                receiptImages: images.map(img => img.src),
                 categories: categoryMap,
             });
-            setStoreInfo({ name: result.storeName || '', date: result.transactionDate || '' });
+            const transactionDate = result.transactionDate ? format(new Date(result.transactionDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+            setStoreInfo({ name: result.storeName || '', date: transactionDate });
             setAnalyzedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID() })));
         } catch (e: any) {
             console.error("Error during detailed analysis:", e);
@@ -230,9 +238,9 @@ export default function DetailedReceiptPage() {
                 description: `تم حفظ ${variables.length} مصروف جديد بنجاح.`,
             });
              // Reset state
-            setFinalImages([]);
+            setImages([]);
             setAnalyzedItems([]);
-            setStoreInfo({name: '', date: ''});
+            setStoreInfo({name: '', date: null});
         },
         onError: () => {
             toast({
@@ -280,7 +288,7 @@ export default function DetailedReceiptPage() {
                     <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                     <canvas ref={photoRef} className="hidden" />
                 </div>
-                <footer className="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10 bg-gradient-to-t from-black/50 to-transparent pb-[90px]">
+                <footer className="absolute bottom-0 left-0 right-0 p-4 flex justify-center items-center z-10 bg-gradient-to-t from-black/50 to-transparent pb-24">
                     <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 p-0 flex items-center justify-center transition-transform active:scale-95" aria-label="التقاط صورة">
                        <Camera className="h-8 w-8 text-white" />
                     </button>
@@ -298,7 +306,7 @@ export default function DetailedReceiptPage() {
                 </header>
                 <div className="flex-1 relative bg-muted/50">
                     <Cropper
-                        image={imageToCrop}
+                        image={imageToCrop.src}
                         crop={crop}
                         zoom={zoom}
                         aspect={3 / 4}
@@ -308,7 +316,7 @@ export default function DetailedReceiptPage() {
                         showGrid={true}
                     />
                 </div>
-                <div className="p-4 border-t space-y-4 pb-[90px]">
+                <div className="p-4 border-t space-y-4 pb-24">
                     <div className="flex items-center gap-4">
                         <Label htmlFor="zoom-slider" className="flex items-center gap-2"><ZoomIn /> تكبير</Label>
                         <Slider id="zoom-slider" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
@@ -340,7 +348,7 @@ export default function DetailedReceiptPage() {
                         تحليل الفواتير المفصلة
                     </CardTitle>
                     <CardDescription>
-                       التقط صورًا واضحة أو قم برفعها من جهازك. يمكنك إضافة صور متعددة، وسيقوم الذكاء الاصطناعي بتحليلها جميعًا.
+                       التقط صورًا واضحة أو قم برفعها من جهازك. يمكنك إضافة صور متعددة، وتعديلها إذا لزم الأمر.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -362,28 +370,38 @@ export default function DetailedReceiptPage() {
                         className="hidden"
                     />
                     
-                    {finalImages.length > 0 && (
+                    {images.length > 0 && (
                         <div>
-                            <h3 className="font-semibold mb-2">الصور المضافة ({finalImages.length}):</h3>
+                            <h3 className="font-semibold mb-2">الصور المضافة ({images.length}):</h3>
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-2">
-                                {finalImages.map((img) => (
+                                {images.map((img) => (
                                     <div key={img.id} className="relative group aspect-[3/4]">
                                         <Image src={img.src} alt="معاينة الفاتورة" layout="fill" objectFit="cover" className="rounded-md border" data-ai-hint="receipt paper" />
-                                        <Button
-                                            variant="destructive"
-                                            size="icon"
-                                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                            onClick={() => removeImage(img.id)}
-                                        >
-                                            <XCircle className="h-4 w-4" />
-                                        </Button>
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end items-center p-1 gap-1">
+                                             <Button
+                                                variant="secondary"
+                                                size="icon"
+                                                className="h-7 w-7 rounded-full z-10"
+                                                onClick={() => startCropping(img)}
+                                            >
+                                                <Crop className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="h-7 w-7 rounded-full z-10"
+                                                onClick={() => removeImage(img.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
                     
-                    <Button onClick={handleAnalyze} disabled={isLoading || finalImages.length === 0} className="w-full" size="lg">
+                    <Button onClick={handleAnalyze} disabled={isLoading || images.length === 0} className="w-full" size="lg">
                         {isLoading ? <Loader2 className="ml-2 h-5 w-5 animate-spin" /> : <Sparkles className="ml-2 h-5 w-5" />}
                         بدء التحليل الذكي
                     </Button>
@@ -416,38 +434,74 @@ export default function DetailedReceiptPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 border rounded-lg bg-muted/50">
+                            <div className="space-y-1">
+                                <Label htmlFor="storeName">اسم المتجر (اختياري)</Label>
+                                <Input id="storeName" value={storeInfo.name} onChange={e => setStoreInfo(prev => ({...prev, name: e.target.value}))} placeholder="اسم المحل أو السوق" />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="transactionDate">تاريخ الفاتورة</Label>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                        id="transactionDate"
+                                        variant={"outline"}
+                                        className={cn("w-full justify-start text-left font-normal bg-background", !storeInfo.date && "text-muted-foreground")}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {storeInfo.date ? format(new Date(storeInfo.date), "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                        <Calendar
+                                            mode="single"
+                                            selected={storeInfo.date ? new Date(storeInfo.date) : new Date()}
+                                            onSelect={(date) => setStoreInfo(prev => ({...prev, date: date ? format(date, 'yyyy-MM-dd') : null}))}
+                                            initialFocus
+                                            dir="rtl"
+                                            locale={arIQ}
+                                            disabled={(date) => date > new Date() || date < new Date("2000-01-01")}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                        </div>
+
                         <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-3">
                             {analyzedItems.map((item, index) => (
-                                <div key={item.id} className="p-3 border rounded-lg space-y-2 animate-in fade-in duration-300">
+                                <div key={item.id} className="p-3 border rounded-lg space-y-3 animate-in fade-in duration-300">
                                     <div className="flex justify-between items-center">
-                                       <p className='font-semibold'>العنصر #{index + 1}</p>
+                                       <p className='font-semibold flex items-center gap-2'>
+                                            <span className='flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs'>{index + 1}</span>
+                                            العنصر
+                                        </p>
                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleRemoveItem(item.id)}>
                                             <Trash2 className="h-4 w-4" />
                                        </Button>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        <div className='space-y-1'>
-                                            <Label htmlFor={`name-${item.id}`}>اسم العنصر</Label>
-                                            <Input id={`name-${item.id}`} value={item.name} onChange={e => handleItemChange(item.id, 'name', e.target.value)} />
-                                        </div>
-                                        <div className='space-y-1'>
+                                    <div className='space-y-2'>
+                                        <Label htmlFor={`name-${item.id}`}>اسم العنصر</Label>
+                                        <Input id={`name-${item.id}`} value={item.name} onChange={e => handleItemChange(item.id, 'name', e.target.value)} />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                         <div className='space-y-2'>
                                             <Label htmlFor={`price-${item.id}`}>السعر</Label>
                                             <Input id={`price-${item.id}`} type="number" value={item.price} onChange={e => handleItemChange(item.id, 'price', e.target.value)} />
                                         </div>
+                                         <div className='space-y-2'>
+                                            <Label htmlFor={`category-${item.id}`}>الفئة</Label>
+                                            <Select value={item.suggestedCategory} onValueChange={(value) => handleItemChange(item.id, 'suggestedCategory', value)}>
+                                                <SelectTrigger id={`category-${item.id}`}>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {Object.entries(defaultCategories).map(([id, cat]) => (
+                                                        <SelectItem key={id} value={id}>{cat.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                         </div>
                                     </div>
-                                     <div className='space-y-1'>
-                                        <Label htmlFor={`category-${item.id}`}>الفئة</Label>
-                                        <Select value={item.suggestedCategory} onValueChange={(value) => handleItemChange(item.id, 'suggestedCategory', value)}>
-                                            <SelectTrigger id={`category-${item.id}`}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {Object.entries(defaultCategories).map(([id, cat]) => (
-                                                    <SelectItem key={id} value={id}>{cat.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                     </div>
                                 </div>
                             ))}
                         </div>
