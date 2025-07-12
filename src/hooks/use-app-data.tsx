@@ -21,6 +21,15 @@ interface AppDataContextType {
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 
+const defaultSettings: UserSettings = {
+    budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
+    categoryBudgets: {},
+    profile: {
+        monthlyIncome: 0,
+        familyMembers: [],
+    },
+};
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
 
@@ -46,6 +55,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         queryKey: ['userSettings', user?.uid],
         queryFn: () => getUserSettings(user!.uid),
         enabled: !!user,
+        // Provide initial data to prevent crashes on first load for new users
+        placeholderData: defaultSettings,
     });
 
     const isLoading = expensesLoading || goalsLoading || incomesLoading || settingsLoading;
@@ -76,7 +87,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         expenses,
         goals,
         incomes,
-        userSettings: userSettings!, // We can assert non-null because we handle loading/error states
+        userSettings, // No longer needs `!` because of placeholderData
         isLoading,
         isError,
         error,
