@@ -428,12 +428,10 @@ export default function DashboardPage() {
       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
           <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-              <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                <FilePenLine className="h-8 w-8 text-blue-600 dark:text-blue-300" />
-              </span>
-              <p className="font-semibold">إدخال يدوي</p>
-            </div>
+            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <FilePenLine className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
+                <p className="font-semibold text-blue-800 dark:text-blue-200">إدخال يدوي</p>
+            </Card>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
@@ -442,21 +440,19 @@ export default function DashboardPage() {
         </Dialog>
         
         <div 
-          className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={handleToggleVoiceRecording}
           aria-disabled={isVoiceLoading}
         >
-          <span className={cn(
-            "flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-green-100 dark:bg-green-900/50",
-            isVoiceRecording && 'animate-pulse ring-4 ring-green-400'
-            )}>
-            {isVoiceLoading ? <Loader2 className="h-8 w-8 text-green-600 dark:text-green-300 animate-spin" /> : 
-             isVoiceRecording ? <StopCircle className="h-8 w-8 text-green-600 dark:text-green-300" /> : 
-             <Mic className="h-8 w-8 text-green-600 dark:text-green-300" />}
-          </span>
-          <p className="font-semibold">
-            {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
-          </p>
+          <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <span className={cn(isVoiceRecording && 'animate-pulse')}>
+                {isVoiceLoading ? <Loader2 className="h-10 w-10 text-green-600 dark:text-green-400 mb-2 animate-spin" /> : 
+                isVoiceRecording ? <StopCircle className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" /> : 
+                <Mic className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />}
+            </span>
+             <p className="font-semibold text-green-800 dark:text-green-200">
+                {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
+             </p>
+          </Card>
         </div>
         
         <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
@@ -471,21 +467,19 @@ export default function DashboardPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-           <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-teal-100 dark:bg-teal-900/50">
-            <FileScan className="h-8 w-8 text-teal-600 dark:text-teal-300" />
-           </span>
-          <p className="font-semibold">تحليل فاتورة</p>
+        <Link href="/receipts" className="block">
+           <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800">
+                <FileScan className="h-10 w-10 text-teal-600 dark:text-teal-400 mb-2" />
+                <p className="font-semibold text-teal-800 dark:text-teal-200">تحليل فاتورة</p>
+            </Card>
         </Link>
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
           <DialogTrigger asChild>
-            <div className="flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-               <span className="flex items-center justify-center h-16 w-16 mb-2 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                <CreditCard className="h-8 w-8 text-orange-600 dark:text-orange-300" />
-               </span>
-              <p className="font-semibold">بطاقة إلكترونية</p>
-            </div>
+            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+                <CreditCard className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
+                <p className="font-semibold text-orange-800 dark:text-orange-200">بطاقة إلكترونية</p>
+            </Card>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
