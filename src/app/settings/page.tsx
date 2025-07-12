@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -56,6 +56,7 @@ import { Alert } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
 import { reCategorizeAction } from '@/app/actions';
+import Link from 'next/link';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -735,6 +736,12 @@ export default function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
+           <Button variant="outline" className="w-full" asChild>
+                <Link href="/home-preview">
+                    <Eye className="ml-2 h-4 w-4" />
+                    معاينة التصميم الجديد للصفحة الرئيسية
+                </Link>
+            </Button>
         </CardContent>
       </Card>
       
