@@ -1,3 +1,4 @@
+
 // src/app/(main)/page.tsx
 
 "use client";
@@ -26,7 +27,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -251,7 +252,15 @@ export default function DashboardPage() {
   // Memoized data for the financial coach
   const financialCoachInput = useMemo(() => {
     const userBudget = userSettings?.budget;
-    const monthlyExpenses = expenses; 
+    const monthlyExpenses = expenses.filter(exp => {
+      try {
+        const expDate = new Date(exp.date);
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        return isWithinInterval(expDate, { start, end });
+      } catch { return false; }
+    });
+    
     const categoryBudgets = userSettings?.categoryBudgets;
     const userProfile = userSettings?.profile;
     
@@ -564,3 +573,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
