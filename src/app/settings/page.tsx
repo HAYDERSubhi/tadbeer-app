@@ -121,8 +121,9 @@ export default function SettingsPage() {
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   
-  // State for Income Dialog
+  // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
+  const [isRecurringPaymentDialogOpen, setIsRecurringPaymentDialogOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
 
   const [deleteOptions, setDeleteOptions] = useState({
@@ -358,17 +359,33 @@ export default function SettingsPage() {
       category: "subscriptions"
     },
   });
+  
+  const recurringPaymentMutation = useMutation({
+    mutationFn: (newPaymentsList: RecurringPayment[]) => {
+      return updateUserSettings(user!.uid, { recurringPayments: newPaymentsList });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
+    },
+    onError: () => {
+      toast({ title: "خطأ", description: "فشل تحديث الدفعات الشهرية.", variant: "destructive" });
+    }
+  });
+
 
   const handleSaveRecurringPayment = (data: RecurringPaymentFormData) => {
     const newPayment: RecurringPayment = { ...data, id: crypto.randomUUID() };
     const currentPayments = userSettings?.recurringPayments || [];
-    updateSettingsMutation.mutate({ recurringPayments: [...currentPayments, newPayment] });
+    recurringPaymentMutation.mutate([...currentPayments, newPayment]);
     recurringPaymentForm.reset();
+    toast({ title: "تمت الإضافة", description: "تمت إضافة الدفعة الشهرية بنجاح." });
+    setIsRecurringPaymentDialogOpen(false);
   };
   
   const handleDeleteRecurringPayment = (id: string) => {
     const currentPayments = userSettings?.recurringPayments || [];
-    updateSettingsMutation.mutate({ recurringPayments: currentPayments.filter(p => p.id !== id) });
+    recurringPaymentMutation.mutate(currentPayments.filter(p => p.id !== id));
+    toast({ title: "تم الحذف", description: "تم حذف الدفعة الشهرية بنجاح." });
   };
 
   const handleLogout = async () => {
@@ -795,12 +812,13 @@ export default function SettingsPage() {
           <CardDescription>أضف مصادر دخلك، سواء كانت شهرية متكررة أو لمرة واحدة.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button className="w-full" onClick={handleAddNewClick}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            إضافة مصدر دخل جديد
-          </Button>
-
           <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
+            <DialogTrigger asChild>
+               <Button className="w-full" onClick={handleAddNewClick}>
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة مصدر دخل جديد
+              </Button>
+            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</DialogTitle>
@@ -986,77 +1004,89 @@ export default function SettingsPage() {
           <CardDescription>أضف دفعاتك الشهرية الثابتة (مثل الإيجار، الأقساط) لتصلك تذكيرات.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="p-4 border rounded-lg space-y-4">
-              <h3 className="font-semibold">إضافة دفعة شهرية جديدة</h3>
-              <div className="space-y-2">
-                  <Label htmlFor="rp-title">اسم الدفعة</Label>
-                  <Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />
-                  {recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="rp-amount">المبلغ (د.ع)</Label>
-                     <Controller
-                      name="amount"
-                      control={recurringPaymentForm.control}
-                      render={({ field: { onChange, value, ...restField } }) => (
-                        <Input
-                          {...restField}
-                          id="rp-amount" type="text" inputMode="decimal"
-                          value={value === 0 ? '' : formatNumberWithCommas(value)}
-                          onChange={(e) => {
-                              const parsed = parseFormattedNumber(e.target.value);
-                              if (parsed === '' || !isNaN(Number(parsed))) {
-                                  onChange(parsed === '' ? 0 : Number(parsed));
-                              }
-                          }}
+            <Dialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                    <PlusCircle className="ml-2 h-4 w-4" />
+                    إضافة دفعة شهرية جديدة
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>إضافة دفعة شهرية جديدة</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="rp-title">اسم الدفعة</Label>
+                      <Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />
+                      {recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="rp-amount">المبلغ (د.ع)</Label>
+                        <Controller
+                          name="amount"
+                          control={recurringPaymentForm.control}
+                          render={({ field: { onChange, value, ...restField } }) => (
+                            <Input
+                              {...restField}
+                              id="rp-amount" type="text" inputMode="decimal"
+                              value={value === 0 ? '' : formatNumberWithCommas(value)}
+                              onChange={(e) => {
+                                  const parsed = parseFormattedNumber(e.target.value);
+                                  if (parsed === '' || !isNaN(Number(parsed))) {
+                                      onChange(parsed === '' ? 0 : Number(parsed));
+                                  }
+                              }}
+                            />
+                          )}
                         />
-                      )}
-                    />
-                    {recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}
-                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="rp-day">يوم الاستحقاق</Label>
+                        {recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="rp-day">يوم الاستحقاق</Label>
+                        <Controller
+                          name="dayOfMonth"
+                          control={recurringPaymentForm.control}
+                          render={({ field }) => (
+                            <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
+                                <SelectTrigger id="rp-day"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                        <SelectItem key={day} value={String(day)}>{day}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        {recurringPaymentForm.formState.errors.dayOfMonth && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.dayOfMonth.message}</p>}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="rp-category">تصنيف المصروف</Label>
                     <Controller
-                      name="dayOfMonth"
+                      name="category"
                       control={recurringPaymentForm.control}
                       render={({ field }) => (
-                        <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
-                            <SelectTrigger id="rp-day"><SelectValue /></SelectTrigger>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger>
                             <SelectContent>
-                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                    <SelectItem key={day} value={String(day)}>{day}</SelectItem>
+                                {Object.values(CATEGORIES).map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                       )}
                     />
-                    {recurringPaymentForm.formState.errors.dayOfMonth && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.dayOfMonth.message}</p>}
-                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rp-category">تصنيف المصروف</Label>
-                <Controller
-                  name="category"
-                  control={recurringPaymentForm.control}
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger>
-                        <SelectContent>
-                            {Object.values(CATEGORIES).map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                  )}
-                />
-                {recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}
-              </div>
-              <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
-                  {updateSettingsMutation.isPending ? <Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> : <PlusCircle className="ml-2 h-4 w-4" />}
-                  إضافة دفعة
-              </Button>
-           </form>
+                    {recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>
+                      {recurringPaymentMutation.isPending ? <Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> : <PlusCircle className="ml-2 h-4 w-4" />}
+                      إضافة دفعة
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             <Separator />
 
@@ -1077,7 +1107,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className='flex items-center'>
                                     <p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={updateSettingsMutation.isPending}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={recurringPaymentMutation.isPending}>
                                         <Trash2Icon className="h-4 w-4" />
                                     </Button>
                                 </div>
