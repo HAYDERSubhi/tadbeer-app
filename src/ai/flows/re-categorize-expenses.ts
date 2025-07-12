@@ -17,7 +17,7 @@ const ExpenseToReCategorizeSchema = z.object({
   title: z.string().describe('The title/description of the expense.'),
 });
 
-export const ReCategorizeExpensesInputSchema = z.object({
+const ReCategorizeExpensesInputSchema = z.object({
   expenses: z
     .array(ExpenseToReCategorizeSchema)
     .describe('An array of expense objects to be re-categorized.'),
@@ -38,7 +38,7 @@ const ReCategorizedExpenseSchema = z.object({
     .describe('The newly suggested category ID for the expense.'),
 });
 
-export const ReCategorizeExpensesOutputSchema = z.object({
+const ReCategorizeExpensesOutputSchema = z.object({
   reCategorizedExpenses: z
     .array(ReCategorizedExpenseSchema)
     .describe('An array of expenses with their new suggested categories.'),

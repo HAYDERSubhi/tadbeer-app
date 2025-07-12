@@ -3,13 +3,12 @@
 
 import {
   reCategorizeExpenses,
-  ReCategorizeExpensesInput,
-  ReCategorizeExpensesOutput,
+  type ReCategorizeExpensesInput,
 } from '@/ai/flows/re-categorize-expenses';
 import {
   recordExpenseWithText,
-  RecordExpenseWithTextInput,
-  RecordExpenseWithTextOutput,
+  type RecordExpenseWithTextInput,
+  type RecordExpenseWithTextOutput,
 } from '@/ai/flows/record-expense-text';
 import {updateExpense} from '@/services/firestore';
 import {auth} from '@/lib/firebase';
