@@ -19,7 +19,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, getDate } from 'date-fns';
+import { format, isToday, addDays, getDate, isSameDay, addMonths, addQuarters, addYears, getYear, setYear, isFuture, startOfDay } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -77,7 +77,7 @@ export default function DashboardPage() {
   const { expenses, userSettings, goals } = useAppData();
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
-  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(true);
   const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
@@ -98,12 +98,56 @@ export default function DashboardPage() {
   }, []);
 
   const upcomingPayments = useMemo(() => {
-    const today = new Date();
-    const tomorrow = addDays(today, 1);
-    const dayOfTomorrow = getDate(tomorrow);
+    const tomorrow = startOfDay(addDays(new Date(), 1));
+    const allPayments = userSettings?.recurringPayments || [];
     
-    return userSettings?.recurringPayments?.filter(p => p.dayOfMonth === dayOfTomorrow) || [];
+    return allPayments.filter(p => {
+        const startDate = new Date(p.startDate);
+        let nextDueDate = startDate;
+
+        // If the start date is in the future but not tomorrow, it's not due yet.
+        if (isFuture(nextDueDate) && !isSameDay(nextDueDate, tomorrow)) {
+          return false;
+        }
+
+        // Calculate next due date based on frequency
+        switch (p.frequency) {
+            case 'one-time':
+                nextDueDate = startDate;
+                break;
+            case 'monthly':
+                 // Find the next occurrence of this day of the month
+                nextDueDate = new Date();
+                nextDueDate.setDate(startDate.getDate());
+                if (nextDueDate < new Date()) {
+                    nextDueDate = addMonths(nextDueDate, 1);
+                }
+                 // Special case for end of month
+                const daysInMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
+                if(startDate.getDate() > daysInMonth) {
+                  nextDueDate.setDate(daysInMonth);
+                }
+                break;
+            case 'quarterly':
+                nextDueDate = startDate;
+                while (nextDueDate < new Date()) {
+                    nextDueDate = addQuarters(nextDueDate, 1);
+                }
+                break;
+            case 'annually':
+                nextDueDate = startDate;
+                while (nextDueDate < new Date()) {
+                    nextDueDate = addYears(nextDueDate, 1);
+                }
+                break;
+            default:
+                return false;
+        }
+
+        return isSameDay(startOfDay(nextDueDate), tomorrow);
+    });
   }, [userSettings]);
+
 
   // --- Voice Recording Logic ---
   useEffect(() => {
@@ -229,6 +273,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user || !financialCoachInput) {
       setInsights([]);
+      setIsInsightsLoading(false);
       return;
     }
 

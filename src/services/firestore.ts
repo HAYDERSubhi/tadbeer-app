@@ -1,3 +1,4 @@
+
 // src/services/firestore.ts
 import { db } from '@/lib/firebase';
 import { 
@@ -22,6 +23,7 @@ import type { Expense, Goal, UserSettings, Income, RecurringPayment } from '@/ty
 // =================================
 
 export const getExpenses = async (uid: string): Promise<Expense[]> => {
+    if (!db) return [];
     const expensesCol = collection(db, `users/${uid}/expenses`);
     const expenseSnapshot = await getDocs(expensesCol);
     const expenses: Expense[] = [];
@@ -41,6 +43,7 @@ export const getExpenses = async (uid: string): Promise<Expense[]> => {
 };
 
 export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const expensesCol = collection(db, `users/${uid}/expenses`);
     const docRef = await addDoc(expensesCol, {
         ...expenseData,
@@ -52,6 +55,7 @@ export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 
 };
 
 export const updateExpense = async (uid: string, expenseId: string, expenseData: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
     const dataToUpdate: { [key: string]: any } = { 
         ...expenseData,
@@ -64,6 +68,7 @@ export const updateExpense = async (uid: string, expenseId: string, expenseData:
 };
 
 export const deleteExpense = async (uid: string, expenseId: string) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
     await deleteDoc(expenseDoc);
 };
@@ -73,6 +78,7 @@ export const deleteExpense = async (uid: string, expenseId: string) => {
 // =================================
 
 export const getGoals = async (uid: string): Promise<Goal[]> => {
+    if (!db) return [];
     const goalsCol = collection(db, `users/${uid}/goals`);
     const goalSnapshot = await getDocs(goalsCol);
     const goals: Goal[] = [];
@@ -90,6 +96,7 @@ export const getGoals = async (uid: string): Promise<Goal[]> => {
 };
 
 export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const goalsCol = collection(db, `users/${uid}/goals`);
     const docRef = await addDoc(goalsCol, {
         ...goalData,
@@ -100,6 +107,7 @@ export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdA
 };
 
 export const deleteGoal = async (uid: string, goalId: string) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const goalDoc = doc(db, `users/${uid}/goals`, goalId);
     await deleteDoc(goalDoc);
 };
@@ -109,6 +117,7 @@ export const deleteGoal = async (uid: string, goalId: string) => {
 // =================================
 
 export const getIncomes = async (uid: string): Promise<Income[]> => {
+    if (!db) return [];
     const incomesCol = collection(db, `users/${uid}/incomes`);
     const incomeSnapshot = await getDocs(incomesCol);
     const incomes: Income[] = [];
@@ -126,6 +135,7 @@ export const getIncomes = async (uid: string): Promise<Income[]> => {
 };
 
 export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'createdAt' | 'uid'>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const incomesCol = collection(db, `users/${uid}/incomes`);
     const docRef = await addDoc(incomesCol, {
         ...incomeData,
@@ -136,6 +146,7 @@ export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'cr
 };
 
 export const updateIncome = async (uid: string, incomeId: string, incomeData: Partial<Omit<Income, 'id' | 'createdAt' | 'uid'>>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
     const dataToUpdate: { [key: string]: any } = { ...incomeData };
     if (incomeData.date) {
@@ -145,6 +156,7 @@ export const updateIncome = async (uid: string, incomeId: string, incomeData: Pa
 };
 
 export const deleteIncome = async (uid: string, incomeId: string) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
     await deleteDoc(incomeDoc);
 };
@@ -164,12 +176,19 @@ const defaultSettings: UserSettings = {
 };
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
+    if (!db) return defaultSettings;
     const settingsDocRef = doc(db, `users/${uid}/settings`, 'main');
     const docSnap = await getDoc(settingsDocRef);
 
     if (docSnap.exists()) {
         const data = docSnap.data() as Partial<UserSettings>;
-        // Deep merge with defaults to prevent crashes if parts of the settings are missing
+        
+        // Convert recurring payments' startDates from Timestamps to ISO strings
+        const recurringPayments = (data.recurringPayments || []).map(p => ({
+            ...p,
+            startDate: (p.startDate as unknown as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+        }));
+        
         const mergedSettings: UserSettings = {
             budget: { ...defaultSettings.budget, ...data.budget },
             categoryBudgets: { ...defaultSettings.categoryBudgets, ...data.categoryBudgets },
@@ -177,20 +196,32 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
                 ...defaultSettings.profile,
                 ...data.profile
             },
-            recurringPayments: data.recurringPayments || [],
+            recurringPayments,
         };
         return mergedSettings;
     } else {
         // Document doesn't exist, just return the default object.
-        // The first save from the settings page will create the document.
         return defaultSettings;
     }
 };
 
 export const updateUserSettings = async (uid: string, settingsData: Partial<UserSettings>) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const settingsDocRef = doc(db, `users/${uid}/settings`, 'main');
+    
+    // Create a deep copy to avoid modifying the original object
+    const dataToSave = JSON.parse(JSON.stringify(settingsData));
+
+    // Convert recurring payments' ISO date strings back to Firestore Timestamps
+    if (dataToSave.recurringPayments) {
+        dataToSave.recurringPayments = dataToSave.recurringPayments.map((p: RecurringPayment) => ({
+            ...p,
+            startDate: new Date(p.startDate),
+        }));
+    }
+
     // Use set with merge: true to update or create if it doesn't exist
-    await setDoc(settingsDocRef, settingsData, { merge: true });
+    await setDoc(settingsDocRef, dataToSave, { merge: true });
 };
 
 // =================================
@@ -199,6 +230,7 @@ export const updateUserSettings = async (uid: string, settingsData: Partial<User
 
 // Generic function to delete all documents in a collection
 export const deleteCollection = async (uid: string, collectionName: string) => {
+    if (!db) throw new Error("Firestore is not initialized");
     const collectionRef = collection(db, `users/${uid}/${collectionName}`);
     const q = query(collectionRef);
     const snapshot = await getDocs(q);

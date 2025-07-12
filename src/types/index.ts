@@ -41,8 +41,9 @@ export type RecurringPayment = {
   id: string;
   title: string;
   amount: number;
-  dayOfMonth: number; // 1-31
   category: string;
+  frequency: 'monthly' | 'quarterly' | 'annually' | 'one-time';
+  startDate: string; // ISO string format for the first payment
 };
 
 export type UserProfile = {
