@@ -1,4 +1,3 @@
-
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
@@ -10,13 +9,14 @@ import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, addDays, is
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
-// Helper to check if a date is today
+// Helper to check if a date is today, defined at the top to avoid initialization errors.
 function isToday(date: Date) {
     const today = new Date();
     return date.getDate() === today.getDate() &&
            date.getMonth() === today.getMonth() &&
            date.getFullYear() === today.getFullYear();
 }
+
 
 export default function BudgetSummaryCard() {
     const { expenses, userSettings } = useAppData();
@@ -52,6 +52,7 @@ export default function BudgetSummaryCard() {
 
         for (let i = 0; i < 4; i++) {
             const weekStart = addDays(start, i * weekLength);
+            // Ensure the last week goes to the end of the month exactly
             const weekEnd = (i === 3) ? end : addDays(weekStart, weekLength - 1);
 
             const weekExpenses = monthlyExpenses.filter(exp => 
@@ -83,13 +84,13 @@ export default function BudgetSummaryCard() {
             <CardContent className="space-y-4">
                  <div className="space-y-2">
                     <div className="flex justify-between text-lg font-bold">
-                        <span className="text-green-600">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع متبقي</span>
                         <span className="text-red-600">{budgetData.monthlySpent.toLocaleString()}&nbsp;د.ع</span>
+                        <span className="text-green-600">{budgetData.remainingBudget.toLocaleString()}&nbsp;د.ع متبقي</span>
                     </div>
                     <Progress value={(budgetData.monthlySpent / budgetData.totalBudget) * 100} className="h-4" indicatorcolor={budgetData.monthlySpent > budgetData.totalBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                     <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>من أصل {budgetData.totalBudget.toLocaleString()} د.ع</span>
                         <span>مصروف اليوم: {budgetData.dailySpent.toLocaleString()} د.ع</span>
+                        <span>من أصل {budgetData.totalBudget.toLocaleString()} د.ع</span>
                     </div>
                 </div>
 
@@ -97,9 +98,9 @@ export default function BudgetSummaryCard() {
                     <p className="text-center text-sm font-medium text-muted-foreground">
                         الهدف الأسبوعي: {budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
                     </p>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col-reverse sm:flex-row items-center gap-4">
                         {budgetData.weeklySummaries.map(week => (
-                            <div key={week.week} className="flex-1 space-y-2">
+                            <div key={week.week} className="flex-1 w-full space-y-2">
                                 <Progress value={week.progress > 100 ? 100 : week.progress} className="h-2" indicatorcolor={week.progress > 100 ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
@@ -113,4 +114,3 @@ export default function BudgetSummaryCard() {
         </Card>
     );
 }
-
