@@ -32,13 +32,47 @@ import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-
 import { recordExpenseAction } from '@/app/actions';
 import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
 import { Skeleton } from '@/components/ui/skeleton';
+import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
+import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
-import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
+
+const tourSteps = [
+  {
+    selector: '',
+    title: 'أهلاً بك في تطبيق مصروفات!',
+    content: 'هذه جولة سريعة لمساعدتك على استكشاف الميزات الرئيسية. يمكنك تخطيها في أي وقت.',
+    placement: 'center',
+  },
+  {
+    selector: '#budget-summary-card',
+    title: 'لوحة التحكم الرئيسية',
+    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك، مصروفاتك، والمبلغ المتبقي لك هذا الشهر.',
+    placement: 'bottom',
+  },
+  {
+    selector: '#expense-input-methods',
+    title: 'طرق إضافة المصروفات',
+    content: 'يمكنك إضافة مصروفاتك يدويًا، عبر الصوت، من خلال تحليل فاتورة، أو بمزامنة بطاقتك الإلكترونية.',
+    placement: 'bottom',
+  },
+   {
+    selector: '#smart-insights-card',
+    title: 'النصائح الذكية',
+    content: 'يقوم مدربك المالي بتحليل إنفاقك وتقديم نصائح مخصصة لك هنا.',
+    placement: 'top',
+  },
+  {
+    selector: '#main-navigation',
+    title: 'التنقل في التطبيق',
+    content: 'استخدم هذا الشريط للتنقل بين الصفحات الرئيسية: الإحصائيات، المخطط المالي، والإعدادات.',
+    placement: 'top',
+  }
+];
 
 // Main Dashboard Component
 export default function HomePreviewPage() {
@@ -209,7 +243,15 @@ export default function HomePreviewPage() {
   
   const financialCoachInput = useMemo(() => {
     const userBudget = userSettings?.budget;
-    const monthlyExpenses = expenses; 
+    const monthlyExpenses = expenses.filter(exp => {
+      try {
+        const expDate = new Date(exp.date);
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        return isWithinInterval(expDate, { start, end });
+      } catch { return false; }
+    });
+    
     const categoryBudgets = userSettings?.categoryBudgets;
     const userProfile = userSettings?.profile;
     
@@ -328,6 +370,8 @@ export default function HomePreviewPage() {
 
   return (
     <div className="space-y-6 pb-24 sm:pb-8">
+      <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
+      
       {upcomingPayments.length > 0 && (
         <Alert variant="destructive" className="animate-in fade-in">
           <CalendarClock className="h-4 w-4" />
@@ -361,36 +405,33 @@ export default function HomePreviewPage() {
       )}
       
       {/* Add Expense Section */}
-      <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-          <DialogTrigger asChild>
-            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                <FilePenLine className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
-                <p className="font-semibold text-blue-800 dark:text-blue-200">إدخال يدوي</p>
-            </Card>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
-            <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
-            <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-          </DialogContent>
+            <DialogTrigger asChild>
+                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </span>
+                    <p className="font-semibold text-sm">إدخال يدوي</p>
+                </div>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+                <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
+                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+            </DialogContent>
         </Dialog>
         
-        <div 
-          onClick={handleToggleVoiceRecording}
-          aria-disabled={isVoiceLoading}
-        >
-          <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <span className={cn(isVoiceRecording && 'animate-pulse')}>
-                {isVoiceLoading ? <Loader2 className="h-10 w-10 text-green-600 dark:text-green-400 mb-2 animate-spin" /> : 
-                isVoiceRecording ? <StopCircle className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" /> : 
-                <Mic className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />}
+        <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+             <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
+                {isVoiceLoading ? <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" /> : 
+                isVoiceRecording ? <StopCircle className="w-8 h-8 text-green-600 dark:text-green-400" /> : 
+                <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
             </span>
-             <p className="font-semibold text-green-800 dark:text-green-200">
+             <p className="font-semibold text-sm">
                 {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
              </p>
-          </Card>
         </div>
-        
+
         <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
           <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
@@ -403,19 +444,21 @@ export default function HomePreviewPage() {
           </DialogContent>
         </Dialog>
 
-        <Link href="/receipts" className="block">
-           <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800">
-                <FileScan className="h-10 w-10 text-teal-600 dark:text-teal-400 mb-2" />
-                <p className="font-semibold text-teal-800 dark:text-teal-200">تحليل فاتورة</p>
-            </Card>
+         <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
+                <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+            </span>
+            <p className="font-semibold text-sm">تحليل فاتورة</p>
         </Link>
         
         <Dialog open={isCardDialogOpen} onOpenChange={setIsCardDialogOpen}>
           <DialogTrigger asChild>
-            <Card className="flex flex-col items-center justify-center p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-300 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
-                <CreditCard className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
-                <p className="font-semibold text-orange-800 dark:text-orange-200">بطاقة إلكترونية</p>
-            </Card>
+            <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                    <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </span>
+                <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+            </div>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -435,8 +478,8 @@ export default function HomePreviewPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Sparkles className="h-5 w-5 text-primary" />
             نصائح المدرب المالي
           </CardTitle>
           <CardDescription>تحليلات وتوصيات ذكية بناءً على إنفاقك الأخير.</CardDescription>
@@ -444,24 +487,24 @@ export default function HomePreviewPage() {
         <CardContent>
           {isInsightsLoading ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-12 w-12 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
             </div>
           ) : insights && insights.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {insights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-muted/50">
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
                    <span className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
                     insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
                     insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
                     insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
                   )}>
-                    <InsightIcon name={insight.icon} className="h-5 w-5" />
+                    <InsightIcon name={insight.icon} className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="font-semibold">{insight.title}</p>
-                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                    <p className="font-semibold text-sm">{insight.title}</p>
+                    <p className="text-xs text-muted-foreground">{insight.description}</p>
                   </div>
                 </div>
               ))}
@@ -475,8 +518,8 @@ export default function HomePreviewPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <History className="h-5 w-5 text-primary" />
             أحدث المصاريف
           </CardTitle>
           <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>

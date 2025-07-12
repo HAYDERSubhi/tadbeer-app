@@ -5,18 +5,11 @@ import { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, eachWeekOfInterval, getDaysInMonth, addDays } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, eachWeekOfInterval, getDaysInMonth, addDays, isToday, getDay, isSameDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
-
-function isToday(date: Date) {
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-           date.getMonth() === today.getMonth() &&
-           date.getFullYear() === today.getFullYear();
-}
 
 export default function BudgetSummaryCard() {
     const { expenses, userSettings } = useAppData();
@@ -38,10 +31,11 @@ export default function BudgetSummaryCard() {
         const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         const totalBudget = budget.totalBudget || 0;
         const dailySpent = monthlyExpenses
-            .filter(exp => isToday(new Date(exp.date)))
+            .filter(exp => isSameDay(new Date(exp.date), today))
             .reduce((sum, exp) => sum + exp.amount, 0);
         
         const remaining = totalBudget - totalSpent;
+        const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
         
         const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? totalBudget / 4 : 0);
         
@@ -67,14 +61,20 @@ export default function BudgetSummaryCard() {
                 progressColor
             };
         });
+        
+        const dayOfMonth = getDay(today);
+        const daysInMonth = getDaysInMonth(today);
+        const expectedSpend = totalBudget > 0 ? (dayOfMonth / daysInMonth) * totalBudget : 0;
 
         return {
             totalBudget,
             monthlySpent: totalSpent,
             dailySpent,
-            remainingBudget: remaining,
+            remainingBudget: remaining < 0 ? 0 : remaining,
+            spentPercentage,
             weeklyTarget,
             weeklySummaries,
+            expectedSpend,
         };
     }, [expenses, userSettings]);
 
@@ -88,7 +88,7 @@ export default function BudgetSummaryCard() {
     );
 
     return (
-         <Card id="budget-summary-card" className="bg-gradient-to-br from-yellow-50/50 via-orange-50/50 to-transparent dark:from-yellow-900/10 dark:via-orange-900/10">
+        <Card id="budget-summary-card" className="bg-gradient-to-br from-yellow-50/50 via-orange-50/50 to-transparent dark:from-yellow-900/10 dark:via-orange-900/10">
             <CardContent className="space-y-4 p-4">
                 <div className="flex justify-around items-center">
                     <StatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" />
@@ -96,12 +96,20 @@ export default function BudgetSummaryCard() {
                     <StatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500" />
                     <Separator orientation="vertical" className="h-10" />
                     <StatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500" />
-                     <Separator orientation="vertical" className="h-10" />
-                    <StatItem label="الميزانية المتبقية" value={budgetData.remainingBudget < 0 ? 0 : budgetData.remainingBudget} color="text-green-600" />
+                    <Separator orientation="vertical" className="h-10" />
+                    <StatItem label="الميزانية المتبقية" value={budgetData.remainingBudget} color="text-green-600" />
                 </div>
-
+                
+                <div className="pt-2 space-y-2">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>المنصرف: {budgetData.monthlySpent.toLocaleString()} د.ع</span>
+                        <span>المتبقي: {budgetData.remainingBudget.toLocaleString()} د.ع</span>
+                    </div>
+                    <Progress value={budgetData.spentPercentage} className="h-2" />
+                </div>
+                
                 <Separator />
-
+                
                 <div className="space-y-4">
                     <p className="text-center text-sm font-medium text-muted-foreground">
                         الهدف الأسبوعي: {budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
