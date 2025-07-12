@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const CategorizeExpenseTextInputSchema = z.object({
+const CategorizeExpenseTextInputSchema = z.object({
   expenseTitle: z.string().describe("The title or description of the expense."),
   categories: z
     .record(z.string(), z.string())
@@ -19,7 +19,7 @@ export const CategorizeExpenseTextInputSchema = z.object({
 });
 export type CategorizeExpenseTextInput = z.infer<typeof CategorizeExpenseTextInputSchema>;
 
-export const CategorizeExpenseTextOutputSchema = z.object({
+const CategorizeExpenseTextOutputSchema = z.object({
   suggestedCategory: z.string().describe('The most appropriate category ID for this item from the provided categories list.'),
 });
 export type CategorizeExpenseTextOutput = z.infer<typeof CategorizeExpenseTextOutputSchema>;

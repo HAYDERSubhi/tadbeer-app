@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { categorizeExpenseText } from './categorize-expense-text';
+import { categorizeExpenseText, type CategorizeExpenseTextInput } from './categorize-expense-text';
 
 // This schema is duplicated from record-expense-voice.ts to avoid exporting a non-function from a 'use server' file.
 const RecordExpenseOutputSchema = z.object({
@@ -72,10 +72,12 @@ const recordExpenseWithTextFlow = ai.defineFlow(
     }
     
     // Step 2: Use the description/title to get a category suggestion from the dedicated flow
-    const { output: categorySuggestion } = await categorizeExpenseText({
+    const categorizeInput: CategorizeExpenseTextInput = {
         expenseTitle: extractedInfo.description || input.expenseText,
         categories: input.categories,
-    });
+    };
+    const categorySuggestion = await categorizeExpenseText(categorizeInput);
+
      if (!categorySuggestion) {
         throw new Error("Could not determine a category for the expense.");
     }
