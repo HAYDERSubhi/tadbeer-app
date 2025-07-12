@@ -37,6 +37,14 @@ export type FamilyMember = {
   age: number;
 }
 
+export type RecurringPayment = {
+  id: string;
+  title: string;
+  amount: number;
+  dayOfMonth: number; // 1-31
+  category: string;
+};
+
 export type UserProfile = {
   monthlyIncome: number;
   familyMembers?: FamilyMember[];
@@ -58,4 +66,5 @@ export type UserSettings = {
   categoryBudgets: Record<string, number>;
   profile: UserProfile;
   linkedCard?: LinkedCard | null;
+  recurringPayments?: RecurringPayment[];
 };

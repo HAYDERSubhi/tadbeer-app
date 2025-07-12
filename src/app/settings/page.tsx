@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -30,7 +30,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Expense, UserProfile, FamilyMember, UserSettings, Income } from '@/types';
+import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment } from '@/types';
 import * as XLSX from 'xlsx';
 import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,15 @@ const incomeSchema = z.object({
 });
 
 type IncomeFormData = z.infer<typeof incomeSchema>;
+
+const recurringPaymentSchema = z.object({
+  title: z.string().min(2, { message: "اسم الدفعة مطلوب" }),
+  amount: z.coerce.number().min(1, { message: "المبلغ يجب أن يكون أكبر من صفر" }),
+  dayOfMonth: z.coerce.number().min(1).max(31, { message: "اليوم يجب أن يكون بين 1 و 31"}),
+  category: z.string().min(1, { message: "الفئة مطلوبة" }),
+});
+
+type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
 
 export default function SettingsPage() {
@@ -327,6 +336,29 @@ export default function SettingsPage() {
     incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
   };
   
+  // --- Recurring Payments Management ---
+  const recurringPaymentForm = useForm<RecurringPaymentFormData>({
+    resolver: zodResolver(recurringPaymentSchema),
+    defaultValues: {
+      title: "",
+      amount: 0,
+      dayOfMonth: 1,
+      category: "subscriptions"
+    },
+  });
+
+  const handleSaveRecurringPayment = (data: RecurringPaymentFormData) => {
+    const newPayment: RecurringPayment = { ...data, id: crypto.randomUUID() };
+    const currentPayments = userSettings?.recurringPayments || [];
+    updateSettingsMutation.mutate({ recurringPayments: [...currentPayments, newPayment] });
+    recurringPaymentForm.reset();
+  };
+  
+  const handleDeleteRecurringPayment = (id: string) => {
+    const currentPayments = userSettings?.recurringPayments || [];
+    updateSettingsMutation.mutate({ recurringPayments: currentPayments.filter(p => p.id !== id) });
+  };
+
   const handleLogout = async () => {
     try {
         await signOutUser();
@@ -508,6 +540,7 @@ export default function SettingsPage() {
           monthlyIncome: 0,
           familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]
       },
+      recurringPayments: [],
   };
   
   const resetDataMutation = useMutation({
@@ -524,6 +557,7 @@ export default function SettingsPage() {
         if (options.budgetSettings) {
             settingsToReset.budget = defaultSettings.budget;
             settingsToReset.categoryBudgets = defaultSettings.categoryBudgets;
+            settingsToReset.recurringPayments = []; // Reset recurring payments as well
         }
         if (options.profileSettings) {
             settingsToReset.profile = defaultSettings.profile;
@@ -927,6 +961,119 @@ export default function SettingsPage() {
         </CardFooter>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CalendarClock className="h-6 w-6 text-primary" />
+            إدارة الدفعات الشهرية
+          </CardTitle>
+          <CardDescription>أضف دفعاتك الشهرية الثابتة (مثل الإيجار، الأقساط) لتصلك تذكيرات.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+           <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="p-4 border rounded-lg space-y-4">
+              <h3 className="font-semibold">إضافة دفعة شهرية جديدة</h3>
+              <div className="space-y-2">
+                  <Label htmlFor="rp-title">اسم الدفعة</Label>
+                  <Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />
+                  {recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="rp-amount">المبلغ (د.ع)</Label>
+                     <Controller
+                      name="amount"
+                      control={recurringPaymentForm.control}
+                      render={({ field: { onChange, value, ...restField } }) => (
+                        <Input
+                          {...restField}
+                          id="rp-amount" type="text" inputMode="decimal"
+                          value={value === 0 ? '' : formatNumberWithCommas(value)}
+                          onChange={(e) => {
+                              const parsed = parseFormattedNumber(e.target.value);
+                              if (parsed === '' || !isNaN(Number(parsed))) {
+                                  onChange(parsed === '' ? 0 : Number(parsed));
+                              }
+                          }}
+                        />
+                      )}
+                    />
+                    {recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}
+                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="rp-day">يوم الاستحقاق</Label>
+                    <Controller
+                      name="dayOfMonth"
+                      control={recurringPaymentForm.control}
+                      render={({ field }) => (
+                        <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
+                            <SelectTrigger id="rp-day"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                    <SelectItem key={day} value={String(day)}>{day}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    {recurringPaymentForm.formState.errors.dayOfMonth && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.dayOfMonth.message}</p>}
+                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rp-category">تصنيف المصروف</Label>
+                <Controller
+                  name="category"
+                  control={recurringPaymentForm.control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger>
+                        <SelectContent>
+                            {Object.values(CATEGORIES).map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  )}
+                />
+                {recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}
+              </div>
+              <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>
+                  {updateSettingsMutation.isPending ? <Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> : <PlusCircle className="ml-2 h-4 w-4" />}
+                  إضافة دفعة
+              </Button>
+           </form>
+
+            <Separator />
+
+           <div>
+             <h3 className="text-lg font-medium mb-2">الدفعات الحالية</h3>
+             <div className="space-y-2">
+                {(userSettings?.recurringPayments || []).length === 0 ? (
+                    <p className="text-muted-foreground text-center p-4">لا توجد دفعات متكررة مسجلة.</p>
+                ) : (
+                    <ul className="border rounded-lg max-h-60 overflow-y-auto">
+                        {userSettings.recurringPayments?.map(p => (
+                            <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                <div className="flex-1">
+                                    <p className="font-semibold">{p.title}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        كل يوم {p.dayOfMonth} من الشهر
+                                    </p>
+                                </div>
+                                <div className='flex items-center'>
+                                    <p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={updateSettingsMutation.isPending}>
+                                        <Trash2Icon className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+             </div>
+          </div>
+        </CardContent>
+      </Card>
+
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1061,7 +1208,7 @@ export default function SettingsPage() {
                         <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
                         <div className="flex items-center space-x-2 space-x-reverse pl-4">
                             <Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} />
-                            <Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والفئات</Label>
+                            <Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والدفعات المتكررة</Label>
                         </div>
                         <div className="flex items-center space-x-2 space-x-reverse pl-4">
                             <Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} />

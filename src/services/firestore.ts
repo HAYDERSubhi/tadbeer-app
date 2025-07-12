@@ -15,7 +15,7 @@ import {
     writeBatch,
     updateDoc
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment } from '@/types';
 
 // =================================
 // Expenses Service
@@ -160,6 +160,7 @@ const defaultSettings: UserSettings = {
         monthlyIncome: 0,
         familyMembers: [],
     },
+    recurringPayments: [],
 };
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
@@ -167,7 +168,7 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
     const docSnap = await getDoc(settingsDocRef);
 
     if (docSnap.exists()) {
-        const data = docSnap.data();
+        const data = docSnap.data() as Partial<UserSettings>;
         // Deep merge with defaults to prevent crashes if parts of the settings are missing
         const mergedSettings: UserSettings = {
             budget: { ...defaultSettings.budget, ...data.budget },
@@ -175,7 +176,8 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
             profile: {
                 ...defaultSettings.profile,
                 ...data.profile
-            }
+            },
+            recurringPayments: data.recurringPayments || [],
         };
         return mergedSettings;
     } else {

@@ -4,8 +4,8 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon, Loader2, StopCircle } from "lucide-react";
-import type { Expense } from '@/types';
+import { Trash2Icon, Sparkles, History, Terminal, PencilIcon, BrainCircuit, FilePenLine, FileScan, CreditCard, Mic, Link2, Bell, AlertTriangleIcon, Loader2, StopCircle, CalendarClock } from "lucide-react";
+import type { Expense, RecurringPayment } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, isToday, addDays, getDate } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
@@ -96,6 +96,14 @@ export default function DashboardPage() {
       return acc;
     }, {} as Record<string, string>);
   }, []);
+
+  const upcomingPayments = useMemo(() => {
+    const today = new Date();
+    const tomorrow = addDays(today, 1);
+    const dayOfTomorrow = getDate(tomorrow);
+    
+    return userSettings?.recurringPayments?.filter(p => p.dayOfMonth === dayOfTomorrow) || [];
+  }, [userSettings]);
 
   // --- Voice Recording Logic ---
   useEffect(() => {
@@ -313,6 +321,20 @@ export default function DashboardPage() {
     <div className="space-y-6 pb-24 sm:pb-8">
       <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
       
+      {upcomingPayments.length > 0 && (
+        <Alert variant="destructive" className="animate-in fade-in">
+          <CalendarClock className="h-4 w-4" />
+          <AlertTitle>تذكير بدفعة مستحقة غداً!</AlertTitle>
+          <AlertDescription>
+            <ul>
+              {upcomingPayments.map(p => (
+                <li key={p.id}>- {p.title} بمبلغ {p.amount.toLocaleString()} د.ع</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <BudgetSummaryCard />
       
       {userBudget.totalBudget === 0 && (
