@@ -36,6 +36,8 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
   const [isOpen, setIsOpen] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [currentPlacement, setCurrentPlacement] = useState<TourStep['placement']>('bottom');
 
   useEffect(() => {
     setIsClient(true);
@@ -45,45 +47,96 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
     if (isClient) {
         const hasCompletedTour = localStorage.getItem(tourKey);
         if (!hasCompletedTour) {
-            // Start the tour after a short delay to ensure the page is fully rendered
             setTimeout(() => setIsOpen(true), 500);
         }
     }
   }, [isClient, tourKey]);
 
-  const updateTargetRect = useCallback(() => {
-    if (!steps[currentStep]?.selector) {
+  const updatePosition = useCallback(() => {
+    const step = steps[currentStep];
+    if (!step?.selector) {
       setTargetRect(null);
+      setCurrentPlacement('center');
+      setPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
       return;
     }
-    const targetElement = document.querySelector(steps[currentStep].selector) as HTMLElement;
+
+    const targetElement = document.querySelector(step.selector) as HTMLElement;
     if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Give time for scroll to finish
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        
         setTimeout(() => {
-            if (document.body.contains(targetElement)) {
-              setTargetRect(targetElement.getBoundingClientRect());
+            if (!document.body.contains(targetElement)) return;
+            
+            const rect = targetElement.getBoundingClientRect();
+            setTargetRect(rect);
+
+            const PADDING = 16;
+            const TOOLTIP_WIDTH = 320;
+            const TOOLTIP_HEIGHT = 180; // Approximate height
+
+            let placement = step.placement || 'bottom';
+            
+            // Auto-placement logic
+            if (!step.placement) {
+                const spaceBottom = window.innerHeight - rect.bottom - TOOLTIP_HEIGHT;
+                const spaceTop = rect.top - TOOLTIP_HEIGHT;
+
+                if (spaceBottom > PADDING) {
+                    placement = 'bottom';
+                } else if (spaceTop > PADDING) {
+                    placement = 'top';
+                } else {
+                    // Fallback if neither top nor bottom has enough space
+                    placement = 'bottom';
+                }
             }
-        }, 300);
+            setCurrentPlacement(placement);
+
+            let newPos = { top: 0, left: rect.left + rect.width / 2 };
+
+            switch (placement) {
+                case 'top':
+                    newPos.top = rect.top - PADDING;
+                    break;
+                case 'bottom':
+                    newPos.top = rect.bottom + PADDING;
+                    break;
+                case 'left':
+                    newPos.top = rect.top + rect.height / 2;
+                    newPos.left = rect.left - PADDING;
+                    break;
+                case 'right':
+                    newPos.top = rect.top + rect.height / 2;
+                    newPos.left = rect.right + PADDING;
+                    break;
+            }
+
+            // Adjust for viewport edges
+            if (newPos.left - TOOLTIP_WIDTH / 2 < PADDING) {
+                newPos.left = TOOLTIP_WIDTH / 2 + PADDING;
+            }
+            if (newPos.left + TOOLTIP_WIDTH / 2 > window.innerWidth - PADDING) {
+                newPos.left = window.innerWidth - TOOLTIP_WIDTH / 2 - PADDING;
+            }
+
+            setPosition(newPos);
+
+        }, 300); // Wait for scroll to finish
     } else {
-      console.warn(`Tour step ${currentStep}: Element with selector "${steps[currentStep].selector}" not found.`);
-      setTargetRect(null); // Fallback to centered if element not found
+      console.warn(`Tour step ${currentStep}: Element with selector "${step.selector}" not found.`);
+      setTargetRect(null);
+      setCurrentPlacement('center');
     }
   }, [currentStep, steps]);
 
   useEffect(() => {
     if (isOpen) {
-      updateTargetRect();
-      window.addEventListener('resize', updateTargetRect);
-      return () => window.removeEventListener('resize', updateTargetRect);
+      updatePosition();
+      window.addEventListener('resize', updatePosition);
+      return () => window.removeEventListener('resize', updatePosition);
     }
-  }, [isOpen, updateTargetRect]);
-  
-  useEffect(() => {
-    if (isOpen) {
-      updateTargetRect();
-    }
-  }, [currentStep, isOpen, updateTargetRect]);
+  }, [isOpen, updatePosition]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -111,62 +164,52 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
   const currentStepData = steps[currentStep];
   const isCentered = !currentStepData.selector || !targetRect;
 
-  const tooltipPosition: React.CSSProperties = {};
-  if (targetRect && currentStepData.selector) {
-    const { top, left, width, height } = targetRect;
-    const offset = 16; // Increased offset for arrow
-
-    switch (currentStepData.placement) {
-        case 'top':
-            tooltipPosition.top = top - offset;
-            tooltipPosition.left = left + width / 2;
-            tooltipPosition.transform = 'translate(-50%, -100%)';
-            break;
-        case 'right':
-            tooltipPosition.top = top + height / 2;
-            tooltipPosition.left = left + width + offset;
-            tooltipPosition.transform = 'translateY(-50%)';
-            break;
-        case 'left':
-            tooltipPosition.top = top + height / 2;
-            tooltipPosition.left = left - offset;
-            tooltipPosition.transform = 'translate(-100%, -50%)';
-            break;
-        case 'bottom':
-        default:
-            tooltipPosition.top = top + height + offset;
-            tooltipPosition.left = left + width / 2;
-            tooltipPosition.transform = 'translateX(-50%)';
-            break;
+  const getTransformOrigin = () => {
+    switch (currentPlacement) {
+        case 'top': return 'bottom center';
+        case 'bottom': return 'top center';
+        case 'left': return 'right center';
+        case 'right': return 'left center';
+        default: return 'center center';
     }
-  } else {
-    tooltipPosition.top = '50%';
-    tooltipPosition.left = '50%';
-    tooltipPosition.transform = 'translate(-50%, -50%)';
-  }
+  };
+
+  const getTransform = () => {
+    if (isCentered) return 'translate(-50%, -50%)';
+    switch (currentPlacement) {
+        case 'top': return 'translate(-50%, -100%)';
+        case 'bottom': return 'translateX(-50%)';
+        case 'left': return 'translate(-100%, -50%)';
+        case 'right': return 'translateY(-50%)';
+        default: return 'translateX(-50%)';
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[200]">
-        {/* Overlay with hole */}
         <div 
             className="absolute inset-0 transition-all duration-300"
             style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.6)',
                 clipPath: targetRect 
                     ? `path(evenodd, 'M -1,-1 H 10000 V 10000 H -1 Z M ${targetRect.left - 8},${targetRect.top - 8} h ${targetRect.width + 16} a 8,8 0 0 1 8,8 v ${targetRect.height} a 8,8 0 0 1 -8,8 h -${targetRect.width + 16} a 8,8 0 0 1 -8,-8 v -${targetRect.height} a 8,8 0 0 1 8,-8 z')`
-                    : 'none',
+                    : isCentered ? 'none' : 'path(evenodd, "M -1,-1 H 10000 V 10000 H -1 Z")',
             }}
         />
 
-      {/* Tooltip Card */}
       <div
         className={cn(
             "fixed z-[201] w-[min(90vw,320px)] transition-all duration-300",
             "animate-in fade-in zoom-in-95"
         )}
-        style={tooltipPosition}
+        style={{
+            top: position.top,
+            left: position.left,
+            transform: getTransform(),
+            transformOrigin: getTransformOrigin()
+        }}
       >
-        {!isCentered && <TooltipArrow placement={currentStepData.placement} />}
+        {!isCentered && <TooltipArrow placement={currentPlacement} />}
         <div className="relative bg-popover text-popover-foreground p-4 space-y-3 rounded-lg border shadow-lg">
             <div className='flex justify-between items-start'>
                 <h3 className="font-semibold text-lg leading-tight pr-8">{currentStepData.title}</h3>
