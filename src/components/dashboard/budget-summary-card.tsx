@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
-import { startOfMonth, endOfMonth, isWithinInterval, eachWeekOfInterval, getDaysInMonth, addDays, isToday, getDay, isSameDay } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, addDays, getDaysInMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -31,7 +31,7 @@ export default function BudgetSummaryCard() {
         const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         const totalBudget = budget.totalBudget || 0;
         const dailySpent = monthlyExpenses
-            .filter(exp => isSameDay(new Date(exp.date), today))
+            .filter(exp => new Date(exp.date).toDateString() === today.toDateString())
             .reduce((sum, exp) => sum + exp.amount, 0);
         
         const remaining = totalBudget - totalSpent;
@@ -39,9 +39,12 @@ export default function BudgetSummaryCard() {
         
         const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? totalBudget / 4 : 0);
         
-        const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
-        const weeklySummaries = weeks.slice(0, 4).map((weekStart, index) => { // Take first 4 weeks
-            const weekEnd = addDays(weekStart, 6);
+        // Simplified and stable 4-week calculation
+        const daysInMonth = getDaysInMonth(start);
+        const weekLength = Math.ceil(daysInMonth / 4);
+        const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
+            const weekStart = addDays(start, index * weekLength);
+            const weekEnd = addDays(weekStart, weekLength - 1);
             const weekExpenses = monthlyExpenses.filter(exp => 
                 isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd })
             );
@@ -62,10 +65,6 @@ export default function BudgetSummaryCard() {
             };
         });
         
-        const dayOfMonth = getDay(today);
-        const daysInMonth = getDaysInMonth(today);
-        const expectedSpend = totalBudget > 0 ? (dayOfMonth / daysInMonth) * totalBudget : 0;
-
         return {
             totalBudget,
             monthlySpent: totalSpent,
@@ -74,7 +73,6 @@ export default function BudgetSummaryCard() {
             spentPercentage,
             weeklyTarget,
             weeklySummaries,
-            expectedSpend,
         };
     }, [expenses, userSettings]);
 
@@ -114,7 +112,7 @@ export default function BudgetSummaryCard() {
                     <p className="text-center text-sm font-medium text-muted-foreground">
                         الهدف الأسبوعي: {budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
                     </p>
-                    <div className="flex flex-col-reverse sm:flex-row items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
                         {budgetData.weeklySummaries.map(week => (
                             <div key={week.week} className="flex-1 w-full space-y-2">
                                 <Progress value={week.progress > 100 ? 100 : week.progress} className="h-2" indicatorcolor={cn(week.progressColor)} />
