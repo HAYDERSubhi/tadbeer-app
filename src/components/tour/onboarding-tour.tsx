@@ -151,11 +151,10 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
         <div 
             className="absolute inset-0 transition-all duration-300"
             style={{
-                background: isCentered ? 'rgba(0, 0, 0, 0.6)' : 'transparent',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
                 clipPath: targetRect 
                     ? `path(evenodd, 'M -1,-1 H 10000 V 10000 H -1 Z M ${targetRect.left - 8},${targetRect.top - 8} h ${targetRect.width + 16} a 8,8 0 0 1 8,8 v ${targetRect.height} a 8,8 0 0 1 -8,8 h -${targetRect.width + 16} a 8,8 0 0 1 -8,-8 v -${targetRect.height} a 8,8 0 0 1 8,-8 z')`
                     : 'none',
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
             }}
         />
 
