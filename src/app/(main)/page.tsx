@@ -217,7 +217,7 @@ export default function DashboardPage() {
         const result: RecordExpenseWithTextOutput = await recordExpenseAction(input);
         
         setVoiceExpenseData({
-            title: result.description || 'مصروف صوتي',
+            title: result.description, // Pass the description as title
             amount: result.amount,
             category: result.category,
             date: result.date
@@ -320,19 +320,19 @@ export default function DashboardPage() {
     return (
       <Fragment>
         <li className="flex items-center p-3 transition-colors hover:bg-muted/50 rounded-lg">
-          <div className="flex flex-1 items-center gap-4 overflow-hidden">
-            <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border text-2xl", categoryInfo.color)}>
+          <div className="flex flex-1 items-center gap-3 overflow-hidden">
+            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl", categoryInfo.color)}>
               {categoryInfo.icon}
             </span>
             <div className='overflow-hidden'>
-              <p className="font-semibold truncate">{expense.title}</p>
-              <p className="text-sm text-muted-foreground">{categoryInfo.name}</p>
+              <p className="font-semibold truncate text-sm">{expense.title}</p>
+              <p className="text-xs text-muted-foreground">{categoryInfo.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-end">
-              <p className="font-bold text-foreground text-base">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-bold text-foreground text-sm">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
+              <p className="text-xs text-muted-foreground">
                 {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
               </p>
             </div>
@@ -479,7 +479,7 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
             نصائح المدرب المالي
           </CardTitle>
@@ -488,8 +488,8 @@ export default function DashboardPage() {
         <CardContent>
           {isInsightsLoading ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-10 w-10 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
             </div>
           ) : insights && insights.length > 0 ? (
             <div className="space-y-3">
@@ -519,7 +519,7 @@ export default function DashboardPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <History className="h-5 w-5 text-primary" />
             أحدث المصاريف
           </CardTitle>

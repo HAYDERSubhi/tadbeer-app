@@ -12,6 +12,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { categorizeExpenseText, type CategorizeExpenseTextInput } from './categorize-expense-text';
+import { format } from 'date-fns';
 
 // This schema is duplicated from record-expense-voice.ts to avoid exporting a non-function from a 'use server' file.
 const RecordExpenseOutputSchema = z.object({
@@ -39,7 +40,7 @@ export async function recordExpenseWithText(input: RecordExpenseWithTextInput): 
 
 const extractInfoPrompt = ai.definePrompt({
     name: 'extractExpenseInfoPrompt',
-    input: { schema: z.object({ expenseText: z.string() }) },
+    input: { schema: z.object({ expenseText: z.string(), currentDate: z.string() }) },
     output: { schema: z.object({
         amount: z.number().describe('The amount of the expense.'),
         date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),
@@ -50,8 +51,9 @@ const extractInfoPrompt = ai.definePrompt({
 
     **Instructions:**
     1.  Analyze the text carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
-    2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
-    3.  Return the extracted information in the required JSON format.
+    2.  Extract the amount, description, and date.
+    3.  If no date is mentioned, use today's date, which is {{currentDate}}.
+    4.  Return the extracted information in the required JSON format.
 
     **Expense Text:**
     {{{expenseText}}}
@@ -65,8 +67,9 @@ const recordExpenseWithTextFlow = ai.defineFlow(
     outputSchema: RecordExpenseOutputSchema,
   },
   async input => {
+    const today = format(new Date(), 'yyyy-MM-dd');
     // Step 1: Extract basic info (amount, date, description)
-    const { output: extractedInfo } = await extractInfoPrompt({ expenseText: input.expenseText });
+    const { output: extractedInfo } = await extractInfoPrompt({ expenseText: input.expenseText, currentDate: today });
     if (!extractedInfo) {
         throw new Error("Could not extract expense information from the text.");
     }
