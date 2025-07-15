@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2Icon, AlertTriangle, User } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import MalwiyaIcon from '@/components/icons/malwiya-icon';
+import Image from 'next/image';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -122,7 +122,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
-            <MalwiyaIcon className="h-8 w-8 text-primary" />
+            <Image src="/logo.png" alt="Tadbeer Logo" width={32} height={32} className="h-8 w-8 text-primary" data-ai-hint="logo" />
             <span>تدبير</span>
         </Link>
         <Card className="w-full max-w-md">

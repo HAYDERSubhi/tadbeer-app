@@ -6,7 +6,7 @@ import { MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
-import MalwiyaIcon from '@/components/icons/malwiya-icon';
+import Image from 'next/image';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -27,7 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <MalwiyaIcon className="h-7 w-7 text-primary" />
+            <Image src="/logo.png" alt="Tadbeer Logo" width={28} height={28} className="h-7 w-7" data-ai-hint="logo" />
             <span>تدبير</span>
           </Link>
         </div>
