@@ -27,7 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <Image src="/logo.png" alt="Tadbeer Logo" width={28} height={28} className="h-7 w-7" data-ai-hint="logo" />
+            <Image src="/logo.png?v=2" alt="Tadbeer Logo" width={28} height={28} className="h-7 w-7" />
             <span>تدبير</span>
           </Link>
         </div>

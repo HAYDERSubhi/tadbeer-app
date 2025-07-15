@@ -122,7 +122,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
-            <Image src="/logo.png" alt="Tadbeer Logo" width={32} height={32} className="h-8 w-8 text-primary" data-ai-hint="logo" />
+            <Image src="/logo.png?v=2" alt="Tadbeer Logo" width={32} height={32} className="h-8 w-8 text-primary" />
             <span>تدبير</span>
         </Link>
         <Card className="w-full max-w-md">
