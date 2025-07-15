@@ -15,6 +15,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-xl font-bold">
+            <Image src="/logo.png?v=2" alt="Tadbeer Logo" width={32} height={32} className="h-8 w-8" />
+            <span>تدبير</span>
+          </Link>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -26,10 +30,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <MoonIcon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
           </div>
-          <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <Image src="/logo.png?v=2" alt="Tadbeer Logo" width={28} height={28} className="h-7 w-7" />
-            <span>تدبير</span>
-          </Link>
         </div>
       </header>
       
