@@ -86,7 +86,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
   };
   
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 overflow-y-auto max-h-full">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Label htmlFor="title">العنوان</Label>
         <Input id="title" {...form.register('title')} placeholder="مثال: غداء عمل" />

@@ -49,6 +49,7 @@ import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
+import Image from 'next/image';
 
 
 const tourSteps = [
@@ -329,7 +330,6 @@ export default function DashboardPage() {
     const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
     
     const EditComponent = isMobile ? Sheet : Dialog;
-    const EditTrigger = isMobile ? SheetTrigger : DialogTrigger;
     const EditContent = isMobile ? SheetContent : DialogContent;
     
     return (
@@ -359,23 +359,29 @@ export default function DashboardPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <EditTrigger asChild>
-                    <DropdownMenuItem>
-                      <PencilIcon className="ml-2 h-4 w-4" />
-                      تعديل
-                    </DropdownMenuItem>
-                  </EditTrigger>
+                  <EditComponent open={isEditOpen} onOpenChange={setIsEditOpen}>
+                     <SheetTrigger asChild>
+                         <DropdownMenuItem>
+                          <PencilIcon className="ml-2 h-4 w-4" />
+                          تعديل
+                        </DropdownMenuItem>
+                     </SheetTrigger>
+                  </EditComponent>
                   <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2Icon className="ml-2 h-4 w-4" />
                     حذف
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-               <EditContent side="bottom" className={isMobile ? "max-h-[85dvh]": ""}>
-                  <SheetHeader>
-                    <SheetTitle>تعديل المصروف</SheetTitle>
-                  </SheetHeader>
-                  <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+               <EditContent side="bottom" className="max-h-[90dvh]">
+                 <div className="overflow-y-auto h-full">
+                    <SheetHeader className="p-6 pb-0">
+                      <SheetTitle>تعديل المصروف</SheetTitle>
+                    </SheetHeader>
+                    <div className="p-6">
+                      <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                    </div>
+                  </div>
               </EditContent>
             </EditComponent>
           </div>
@@ -434,7 +440,7 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
        <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-            {isMobile ? 
+            <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
               <SheetTrigger asChild>
                 <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                     <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
@@ -442,21 +448,17 @@ export default function DashboardPage() {
                     </span>
                     <p className="font-semibold text-sm">إدخال يدوي</p>
                 </div>
-              </SheetTrigger> :
-              <DialogTrigger asChild>
-                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </span>
-                    <p className="font-semibold text-sm">إدخال يدوي</p>
-                </div>
-              </DialogTrigger>
-            }
-            <ManualEntryContent side="bottom" className={cn(isMobile ? "h-[90dvh]" : "sm:max-w-[425px]")}>
-                <SheetHeader>
+              </SheetTrigger>
+            </ManualEntryComponent>
+            <ManualEntryContent side="bottom" className="max-h-[90dvh]">
+              <div className="overflow-y-auto h-full">
+                <SheetHeader className="p-6 pb-0">
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
-                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+                <div className="p-6">
+                  <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+                </div>
+              </div>
             </ManualEntryContent>
         </ManualEntryComponent>
         
@@ -472,14 +474,18 @@ export default function DashboardPage() {
         </div>
 
         <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-          <VoiceReviewContent side="bottom" className={cn(isMobile ? "h-[90dvh]" : "sm:max-w-[425px]")}>
-            <SheetHeader>
-              <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
-              <DialogDescription>
-                يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
-              </DialogDescription>
-            </SheetHeader>
-            <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+          <VoiceReviewContent side="bottom" className="max-h-[90dvh]">
+             <div className="overflow-y-auto h-full">
+                <SheetHeader className="p-6 pb-0">
+                  <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
+                  <DialogDescription>
+                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+                  </DialogDescription>
+                </SheetHeader>
+                <div className="p-6">
+                  <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+                </div>
+              </div>
           </VoiceReviewContent>
         </VoiceReviewComponent>
 
@@ -491,7 +497,6 @@ export default function DashboardPage() {
         </Link>
         
         <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-          {isMobile ?
             <SheetTrigger asChild>
                 <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                     <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
@@ -499,16 +504,7 @@ export default function DashboardPage() {
                     </span>
                     <p className="font-semibold text-sm">بطاقة إلكترونية</p>
                 </div>
-            </SheetTrigger> :
-            <DialogTrigger asChild>
-                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                        <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                    </span>
-                    <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-                </div>
-            </DialogTrigger>
-          }
+            </SheetTrigger>
           <CardContentComponent side="bottom" className={cn(isMobile ? "h-auto" : "sm:max-w-[425px]")}>
               <SheetHeader>
                 <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
