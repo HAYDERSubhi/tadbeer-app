@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye } from "lucide-react";
+import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -52,12 +52,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
 import { reCategorizeAction } from '@/app/actions';
-import Link from 'next/link';
-
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const COLUMN_MAP_CONFIG = {
   title: { label: 'اسم السلعة / الوصف' },
@@ -563,7 +567,6 @@ export default function SettingsPage() {
             date = new Date(rawDate).toISOString();
         }
         
-        // Construct the expense payload, only including optional fields if they have a value.
         const expensePayload: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'> = {
             title,
             amount,
@@ -621,7 +624,7 @@ export default function SettingsPage() {
         if (options.budgetSettings) {
             settingsToReset.budget = defaultSettings.budget;
             settingsToReset.categoryBudgets = defaultSettings.categoryBudgets;
-            settingsToReset.recurringPayments = []; // Reset recurring payments as well
+            settingsToReset.recurringPayments = [];
         }
         if (options.profileSettings) {
             settingsToReset.profile = defaultSettings.profile;
@@ -667,7 +670,6 @@ export default function SettingsPage() {
   
   const isAnonymous = user?.isAnonymous ?? true;
 
-  // --- Re-categorization ---
   const reCategorizeMutation = useMutation({
     mutationFn: async () => {
       if (!expenses || expenses.length === 0) {
@@ -709,556 +711,334 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
+  const AccordionItemWrapper = ({ icon, title, description, children, value }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode, value: string }) => (
+    <AccordionItem value={value}>
+        <AccordionTrigger className="text-base hover:no-underline">
+            <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                    {React.createElement(icon, { className: "h-6 w-6" })}
+                </div>
+                <div>
+                    <h3 className="font-semibold text-right">{title}</h3>
+                    <p className="text-sm text-muted-foreground text-right">{description}</p>
+                </div>
+            </div>
+        </AccordionTrigger>
+        <AccordionContent className="pt-0">
+            <div className="border-t">
+                <div className="p-4 space-y-6 bg-muted/30">
+                    {children}
+                </div>
+            </div>
+        </AccordionContent>
+    </AccordionItem>
+  );
+
   return (
     <div className="space-y-6 pb-24">
+      
+      {/* Account and Theme Section */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PaletteIcon className="h-6 w-6 text-primary" />
-            تخصيص المظهر
-          </CardTitle>
-          <CardDescription>قم بتخصيص مظهر التطبيق ليناسب تفضيلاتك.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 border rounded-lg">
-            <Label htmlFor="theme-mode" className="flex items-center gap-2">
-              {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-              الوضع
-            </Label>
-            <Select value={theme} onValueChange={(value) => setTheme(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="اختر الوضع" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">فاتح</SelectItem>
-                <SelectItem value="dark">داكن</SelectItem>
-                <SelectItem value="system">النظام</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <UserCircle className="h-10 w-10 text-muted-foreground" />
+                <div>
+                    <p className="font-semibold">{isAnonymous ? "حساب زائر" : user?.email}</p>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto text-sm text-destructive hover:no-underline">تسجيل الخروج</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>هل أنت متأكد من رغبتك في تسجيل الخروج؟</AlertDialogTitle></AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleLogout}>تسجيل الخروج</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </div>
+
+             <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setTheme('light')} className={cn(theme === 'light' && 'bg-muted')}>
+                    <Sun className="h-5 w-5"/>
+                </Button>
+                 <Button variant="ghost" size="icon" onClick={() => setTheme('dark')} className={cn(theme === 'dark' && 'bg-muted')}>
+                    <Moon className="h-5 w-5"/>
+                </Button>
+            </div>
         </CardContent>
+        {isAnonymous && (
+             <CardFooter className="p-0">
+                 <Alert variant="destructive" className="border-0 border-t rounded-t-none">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>بياناتك غير محفوظة!</AlertTitle>
+                    <CardDescription>للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</CardDescription>
+                </Alert>
+             </CardFooter>
+        )}
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCircle className="h-6 w-6 text-primary" />
-            إدارة الحساب
-          </CardTitle>
-          <CardDescription>عرض معلومات حسابك وتسجيل الخروج.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            {isAnonymous ? (
-                <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <CardTitle>أنت تستخدم حساب زائر</CardTitle>
-                    <CardDescription>
-                       بياناتك محفوظة على هذا الجهاز فقط. للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب جديد دائم.
-                    </CardDescription>
-                </Alert>
-            ) : (
-                <div className='p-3 border rounded-lg'>
-                    <Label>البريد الإلكتروني المسجل</Label>
-                    <p className="text-muted-foreground font-semibold">{user?.email}</p>
-                </div>
-            )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                    <LogOut className="ml-2 h-4 w-4" />
-                    تسجيل الخروج
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>هل أنت متأكد من رغبتك في تسجيل الخروج؟</AlertDialogTitle>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout}>تسجيل الخروج</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCircle className="h-6 w-6 text-primary" />
-            الملف الشخصي
-          </CardTitle>
-          <CardDescription>هذه المعلومات تساعد في تخصيص النصائح والخطط المالية لك.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="monthlyIncome">الدخل الشهري التقريبي (د.ع)</Label>
-            <Input
-              id="monthlyIncome"
-              type="text"
-              readOnly
-              value={formatNumberWithCommas(totalRecurringIncome)}
-              className="bg-muted/50 font-bold text-lg cursor-not-allowed focus-visible:ring-0"
-            />
-            <p className="text-xs text-muted-foreground mt-1">يتم احتساب الدخل الشهري تلقائياً من مجموع مصادر الدخل الشهرية المتكررة أدناه.</p>
-          </div>
-          <div className="space-y-3">
-             <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
-             <div className="space-y-3 rounded-lg border p-4">
-                {familyMembers.map((member, index) => (
-                  <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
-                    <span className='text-muted-foreground'>{index + 1}.</span>
-                    <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
-                        <SelectTrigger className="w-[100px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="adult">بالغ</SelectItem>
-                            <SelectItem value="child">طفل</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      placeholder="العمر"
-                      value={member.age}
-                      onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)}
-                      className="w-[100px]"
-                      min="0"
-                    />
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
-                        <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-                 <Button variant="outline" onClick={handleAddMember} className="w-full">
-                    <PlusCircle className="ml-2 h-4 w-4" />
-                    إضافة فرد
-                </Button>
-             </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
-            {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
-            حفظ الملف الشخصي
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="h-6 w-6 text-primary" />
-            إدارة الدخل
-          </CardTitle>
-          <CardDescription>أضف مصادر دخلك، سواء كانت شهرية متكررة أو لمرة واحدة.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
-            <DialogTrigger asChild>
-               <Button className="w-full" onClick={handleAddNewIncomeClick}>
-                <PlusCircle className="ml-2 h-4 w-4" />
-                إضافة مصدر دخل جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4 pt-4">
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+        <AccordionItemWrapper 
+          value="item-1"
+          icon={UserCircle}
+          title="الملف الشخصي والدخل"
+          description="إدارة معلوماتك الشخصية ومصادر دخلك."
+        >
+            {/* Profile Section */}
+            <div className="space-y-4">
+                <h3 className='text-lg font-semibold'>الملف الشخصي</h3>
                 <div className="space-y-2">
-                    <Label htmlFor="income-title">اسم المصدر</Label>
-                    <Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />
-                    {incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="income-amount">المبلغ (د.ع)</Label>
-                    <Controller
-                      name="amount"
-                      control={incomeForm.control}
-                      render={({ field: { onChange, value, ...restField } }) => (
-                        <Input
-                          {...restField}
-                          id="income-amount"
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="مثال: 1,500,000"
-                          value={value === 0 ? '' : formatNumberWithCommas(value)}
-                          onChange={(e) => {
-                              const parsed = parseFormattedNumber(e.target.value);
-                              if (parsed === '' || !isNaN(Number(parsed))) {
-                                  onChange(parsed === '' ? 0 : Number(parsed));
-                              }
-                          }}
-                        />
-                      )}
+                    <Label htmlFor="monthlyIncome">الدخل الشهري التقريبي (د.ع)</Label>
+                    <Input
+                    id="monthlyIncome"
+                    type="text"
+                    readOnly
+                    value={formatNumberWithCommas(totalRecurringIncome)}
+                    className="bg-muted font-bold text-lg cursor-not-allowed focus-visible:ring-0"
                     />
-                    {incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">يتم احتساب الدخل الشهري تلقائياً من مجموع مصادر الدخل الشهرية المتكررة أدناه.</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="income-type">النوع</Label>
-                        <Controller
-                          name="type"
-                          control={incomeForm.control}
-                          render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger id="income-type">
-                                    <SelectValue placeholder="اختر النوع" />
-                                </SelectTrigger>
+                <div className="space-y-3">
+                    <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
+                    <div className="space-y-3 rounded-lg border bg-background p-4">
+                        {familyMembers.map((member, index) => (
+                        <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
+                            <span className='text-muted-foreground'>{index + 1}.</span>
+                            <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
+                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="recurring">شهري متكرر</SelectItem>
-                                    <SelectItem value="one-time">لمرة واحدة</SelectItem>
+                                    <SelectItem value="adult">بالغ</SelectItem>
+                                    <SelectItem value="child">طفل</SelectItem>
                                 </SelectContent>
                             </Select>
-                          )}
-                        />
-                        {incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label>تاريخ الاستلام</Label>
-                        <Controller
-                          name="date"
-                          control={incomeForm.control}
-                          render={({ field }) => (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant={"outline"}
-                                  className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                  mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ}
-                                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        />
-                        {incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}
-                    </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>
-                  {(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-                  {editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          <Separator />
-
-          <div>
-             <h3 className="text-lg font-medium mb-2">مصادر الدخل الحالية</h3>
-             <div className="space-y-2">
-                {incomes.length === 0 ? (
-                    <p className="text-muted-foreground text-center p-4">لا توجد مصادر دخل مسجلة.</p>
-                ) : (
-                    <ul className="border rounded-lg max-h-60 overflow-y-auto">
-                        {incomes.map(income => (
-                            <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                                <div className="flex items-center gap-3">
-                                    <span className={cn("p-2 rounded-full bg-muted", income.type === 'recurring' ? 'text-blue-500' : 'text-green-500')}>
-                                        {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
-                                    </span>
-                                    <div>
-                                        <p className="font-semibold">{income.title}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {income.type === 'recurring' ? 'شهري' : `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}`}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className='flex items-center'>
-                                    <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
-                                    <div className="flex items-center gap-0">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>
-                                            <PencilIcon className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}>
-                                            <Trash2Icon className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </li>
+                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px]" min="0" />
+                            <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
+                                <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                            </Button>
+                        </div>
                         ))}
-                    </ul>
-                )}
-             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarClock className="h-6 w-6 text-primary" />
-            إدارة الدفعات الدورية
-          </CardTitle>
-          <CardDescription>أضف دفعاتك الثابتة (مثل الإيجار، الأقساط) لتصلك تذكيرات.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <Dialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full" onClick={handleAddNewPaymentClick}>
-                    <PlusCircle className="ml-2 h-4 w-4" />
-                    إضافة دفعة دورية جديدة
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="pt-4 space-y-4">
-                  <div className="space-y-2">
-                      <Label htmlFor="rp-title">اسم الدفعة</Label>
-                      <Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />
-                      {recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                        <Label htmlFor="rp-amount">المبلغ (د.ع)</Label>
-                        <Controller
-                          name="amount"
-                          control={recurringPaymentForm.control}
-                          render={({ field: { onChange, value, ...restField } }) => (
-                            <Input
-                              {...restField}
-                              id="rp-amount" type="text" inputMode="decimal"
-                              value={value === 0 ? '' : formatNumberWithCommas(value)}
-                              onChange={(e) => {
-                                  const parsed = parseFormattedNumber(e.target.value);
-                                  if (parsed === '' || !isNaN(Number(parsed))) {
-                                      onChange(parsed === '' ? 0 : Number(parsed));
-                                  }
-                              }}
-                            />
-                          )}
-                        />
-                        {recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
-                        <Label htmlFor="rp-frequency">تكرار الدفعة</Label>
-                        <Controller
-                          name="frequency"
-                          control={recurringPaymentForm.control}
-                          render={({ field }) => (
-                             <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="monthly">شهرياً</SelectItem>
-                                    <SelectItem value="quarterly">ربع سنوياً</SelectItem>
-                                    <SelectItem value="annually">سنوياً</SelectItem>
-                                    <SelectItem value="one-time">مرة واحدة</SelectItem>
-                                </SelectContent>
-                            </Select>
-                          )}
-                        />
-                         {recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}
-                     </div>
-                     <div className="space-y-2">
-                        <Label>تاريخ أول دفعة</Label>
-                        <Controller
-                            name="startDate"
-                            control={recurringPaymentForm.control}
-                            render={({ field }) => (
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent>
-                                </Popover>
-                            )}
-                        />
-                        {recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}
+                        <Button variant="outline" onClick={handleAddMember} className="w-full"><PlusCircle className="ml-2 h-4 w-4" />إضافة فرد</Button>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rp-category">تصنيف المصروف</Label>
-                    <Controller
-                      name="category"
-                      control={recurringPaymentForm.control}
-                      render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger>
-                            <SelectContent>
-                                {Object.values(CATEGORIES).map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                </div>
+                <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
+                    {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+                    حفظ الملف الشخصي
+                </Button>
+            </div>
+
+            <Separator />
+            
+            {/* Income Section */}
+             <div className="space-y-4">
+                <h3 className='text-lg font-semibold'>إدارة الدخل</h3>
+                <div>
+                    <h4 className="font-medium mb-2">مصادر الدخل الحالية</h4>
+                    <div className="space-y-2">
+                        {incomes.length === 0 ? (
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background">لا توجد مصادر دخل مسجلة.</p>
+                        ) : (
+                            <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
+                                {incomes.map(income => (
+                                    <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                        <div className="flex items-center gap-3">
+                                            <span className={cn("p-2 rounded-full", income.type === 'recurring' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}>
+                                                {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
+                                            </span>
+                                            <div>
+                                                <p className="font-semibold">{income.title}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {income.type === 'recurring' ? 'شهري' : `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className='flex items-center'>
+                                            <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
+                                            <div className="flex items-center gap-0">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><PencilIcon className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2Icon className="h-4 w-4" /></Button>
+                                            </div>
+                                        </div>
+                                    </li>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    {recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>
-                      {recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-                      {editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+                            </ul>
+                        )}
+                    </div>
+                </div>
+                 <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
+                    <DialogTrigger asChild>
+                    <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</DialogTitle></DialogHeader>
+                        <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4 pt-4">
+                            <div className="space-y-2"><Label htmlFor="income-title">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />{incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
+                            <div className="space-y-2"><Label htmlFor="income-amount">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><Label htmlFor="income-type">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
+                                <div className="space-y-2"><Label>تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
+                            </div>
+                            <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}</Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+        </AccordionItemWrapper>
+
+        <AccordionItemWrapper
+            value="item-2"
+            icon={SlidersHorizontalIcon}
+            title="إدارة الميزانية"
+            description="حدد ميزانيتك الإجمالية، ميزانيات الفئات، والدفعات الدورية."
+        >
+            {/* Budget & Goals */}
+            <div className="space-y-4">
+                <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
+                <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
+                <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
+                <Button onClick={handleSaveBudget} className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}حفظ إعدادات الميزانية</Button>
+            </div>
+            
+            <Separator />
+            
+            {/* Category Budgets */}
+            <div className="space-y-4">
+                 <h3 className='text-lg font-semibold'>ميزانيات الفئات</h3>
+                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-4">
+                    {Object.entries(CATEGORIES).map(([id, category]) => (
+                        <div key={id} className="flex items-center gap-4">
+                            <span className="flex items-center gap-2 w-1/3"><span className="text-xl">{category.icon}</span><Label htmlFor={`category-${id}`}>{category.name}</Label></span>
+                            <Input id={`category-${id}`} type="text" inputMode="decimal" value={categoryBudgets[id] || ''} onChange={(e) => handleCategoryBudgetChange(id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(id, '0'); }} placeholder="0" className="flex-1" />
+                        </div>
+                    ))}
+                </div>
+                <Button onClick={handleSaveCategoryBudgets} className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}حفظ ميزانيات الفئات</Button>
+            </div>
 
             <Separator />
 
-           <div>
-             <h3 className="text-lg font-medium mb-2">الدفعات الحالية</h3>
-             <div className="space-y-2">
-                {(userSettings?.recurringPayments || []).length === 0 ? (
-                    <p className="text-muted-foreground text-center p-4">لا توجد دفعات متكررة مسجلة.</p>
-                ) : (
-                    <ul className="border rounded-lg max-h-60 overflow-y-auto">
-                        {userSettings.recurringPayments?.map(p => (
-                            <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                                <div className="flex-1">
-                                    <p className="font-semibold">{p.title}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}
-                                    </p>
-                                </div>
-                                <div className='flex items-center'>
-                                    <p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p>
-                                    <div className="flex items-center gap-0">
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)} disabled={recurringPaymentMutation.isPending}>
-                                          <PencilIcon className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={recurringPaymentMutation.isPending}>
-                                          <Trash2Icon className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <SlidersHorizontalIcon className="h-6 w-6 text-primary" />
-            إعدادات الميزانية والأهداف
-          </CardTitle>
-          <CardDescription>قم بتعيين ميزانيتك الشهرية الإجمالية والأهداف التحفيزية.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label>
-            <Input
-              id="totalBudget"
-              type="text"
-              inputMode="decimal"
-              value={totalBudgetInput}
-              onChange={handleNumericInputChange(setTotalBudgetInput)}
-              onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }}
-              onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }}
-              placeholder="مثال: 5,000,000"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
-            <Input
-              id="zeroSpendDaysTarget"
-              type="number"
-              value={zeroSpendDaysTargetInput}
-              onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)}
-              onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }}
-              onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }}
-              placeholder="مثال: 4"
-              min="0"
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSaveBudget} className="w-full" disabled={updateSettingsMutation.isPending}>
-            {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
-            حفظ إعدادات الميزانية
-          </Button>
-        </CardFooter>
-      </Card>
-
-
-       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderKanban className="h-6 w-6 text-primary" />
-            ميزانيات الفئات
-          </CardTitle>
-          <CardDescription>حدد ميزانية شهرية مخصصة لكل فئة لتتبع أدق.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 max-h-[40vh] overflow-y-auto pr-3">
-          {Object.entries(CATEGORIES).map(([id, category]) => (
-            <div key={id} className="flex items-center gap-4">
-                <span className="flex items-center gap-2 w-1/3">
-                    <span className="text-xl">{category.icon}</span>
-                    <Label htmlFor={`category-${id}`}>{category.name}</Label>
-                </span>
-              <Input
-                id={`category-${id}`}
-                type="text"
-                inputMode="decimal"
-                value={categoryBudgets[id] || ''}
-                onChange={(e) => handleCategoryBudgetChange(id, e.target.value)}
-                onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(id, ''); }}
-                onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(id, '0'); }}
-                placeholder="0"
-                className="flex-1"
-              />
+            {/* Recurring Payments */}
+            <div className="space-y-4">
+                <h3 className='text-lg font-semibold'>الدفعات الدورية</h3>
+                <div>
+                     <h4 className="font-medium mb-2">الدفعات الحالية</h4>
+                    <div className="space-y-2">
+                        {(userSettings?.recurringPayments || []).length === 0 ? (
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background">لا توجد دفعات متكررة مسجلة.</p>
+                        ) : (
+                            <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
+                                {userSettings.recurringPayments?.map(p => (
+                                    <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                        <div className="flex-1"><p className="font-semibold">{p.title}</p><p className="text-sm text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
+                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)} disabled={recurringPaymentMutation.isPending}><PencilIcon className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={recurringPaymentMutation.isPending}><Trash2Icon className="h-4 w-4" /></Button></div></div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+                <Dialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</DialogTitle></DialogHeader>
+                        <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="pt-4 space-y-4">
+                            <div className="space-y-2"><Label htmlFor="rp-title">اسم الدفعة</Label><Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
+                            <div className="space-y-2"><Label htmlFor="rp-amount">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
+                                <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
+                            </div>
+                            <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                            <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>{recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
-          ))}
-        </CardContent>
-        <CardFooter>
-            <Button onClick={handleSaveCategoryBudgets} className="w-full" disabled={updateSettingsMutation.isPending}>
-                {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
-                حفظ ميزانيات الفئات
-            </Button>
-        </CardFooter>
-      </Card>
-      
+        </AccordionItemWrapper>
+
+         <AccordionItemWrapper
+            value="item-3"
+            icon={DatabaseZapIcon}
+            title="إدارة البيانات"
+            description="تصدير، استيراد، تصليح، وحذف بياناتك."
+        >
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
+                <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
+                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
+            </div>
+
+            <Separator />
+             
+            <div>
+                 <h4 className='font-semibold'>إصلاح البيانات</h4>
+                 <p className="text-xs text-muted-foreground mb-2">استخدم الذكاء الاصطناعي لمراجعة مصاريفك القديمة وتصنيفها بشكل دقيق.</p>
+                 <Button className="w-full" onClick={() => reCategorizeMutation.mutate()} disabled={reCategorizeMutation.isPending}>
+                    {reCategorizeMutation.isPending ? (
+                    <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إعادة التصنيف...</>
+                    ) : (<> <WandSparkles className="ml-2 h-4 w-4" /> بدء إعادة التصنيف الذكي</>)}
+                </Button>
+            </div>
+
+             <Separator />
+
+             <div>
+                 <h4 className='font-semibold'>حذف وتصفير البيانات</h4>
+                 <p className="text-xs text-muted-foreground mb-2">حذف البيانات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</p>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button className="w-full" variant="destructive"><Trash2Icon className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>حذف وتصفير البيانات</AlertDialogTitle><AlertDialogDescription>اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription></AlertDialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="font-semibold text-foreground">بيانات المعاملات:</div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal">حذف جميع المصاريف</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal">حذف جميع الأهداف المالية</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal">حذف جميع مصادر الدخل</Label></div>
+                            <Separator />
+                            <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal">تصفير الملف الشخصي</Label></div>
+                        </div>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false })}>إلغاء</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+             </div>
+        </AccordionItemWrapper>
+         
+        <AccordionItemWrapper
+            value="item-4"
+            icon={InfoIcon}
+            title="حول التطبيق"
+            description={`إصدار ${version}`}
+        >
+            <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
+        </AccordionItemWrapper>
+
+      </Accordion>
+
       {isMappingColumns && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <LinkIcon className="h-6 w-6 text-primary" />
-                ربط أعمدة الملف
-            </CardTitle>
-            <CardDescription>
-                الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</CardTitle>
+            <CardDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
                  <div key={field} className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor={`map-${field}`} className="text-right">
-                        {config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}
-                    </Label>
-                    <Select
-                        value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'}
-                        onValueChange={(value) => {
-                          const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10);
-                          setColumnMap(prev => ({ ...prev, [field]: newIndex }));
-                        }}
-                    >
-                        <SelectTrigger id={`map-${field}`} className="col-span-2">
-                            <SelectValue placeholder="اختر عمودًا..." />
-                        </SelectTrigger>
+                    <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
+                    <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
+                        <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
-                            {fileHeaders.map((header, index) => (
-                                <SelectItem key={index} value={String(index)}>
-                                  {`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}
-                                </SelectItem>
-                            ))}
+                            {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
                         </SelectContent>
                     </Select>
                  </div>
@@ -1266,116 +1046,13 @@ export default function SettingsPage() {
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-              <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>
-                  {addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-                  تأكيد واستيراد البيانات
-              </Button>
+              <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
           </CardFooter>
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DatabaseZapIcon className="h-6 w-6 text-primary" />
-            إدارة البيانات
-          </CardTitle>
-           <CardDescription>تصدير بيانات المصاريف إلى ملف Excel أو استيرادها منه.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
-                <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
-                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
-            </div>
-
-            <div className="pt-4 border-t">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button className="w-full" variant="destructive">
-                        <Trash2Icon className="ml-2 h-4 w-4" />
-                        حذف وتصفير البيانات
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>حذف وتصفير البيانات</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="font-semibold text-foreground">بيانات المعاملات:</div>
-                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
-                            <Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} />
-                            <Label htmlFor="delete-expenses" className="font-normal">حذف جميع المصاريف</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
-                            <Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} />
-                            <Label htmlFor="delete-goals" className="font-normal">حذف جميع الأهداف المالية</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
-                            <Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} />
-                            <Label htmlFor="delete-incomes" className="font-normal">حذف جميع مصادر الدخل</Label>
-                        </div>
-                        <Separator />
-                        <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
-                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
-                            <Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} />
-                            <Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والدفعات المتكررة</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 space-x-reverse pl-4">
-                            <Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} />
-                            <Label htmlFor="delete-profile-settings" className="font-normal">تصفير الملف الشخصي</Label>
-                        </div>
-                    </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false })}>إلغاء</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>
-                            {resetDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-                            نعم، قم بالحذف
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <WandSparkles className="h-6 w-6 text-primary" />
-            إصلاح البيانات
-          </CardTitle>
-          <CardDescription>
-            استخدم هذه الأداة لمراجعة جميع مصاريفك القديمة وإعادة تصنيفها تلقائيًا باستخدام الذكاء الاصطناعي لضمان دقة إحصائياتك.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button className="w-full" onClick={() => reCategorizeMutation.mutate()} disabled={reCategorizeMutation.isPending}>
-            {reCategorizeMutation.isPending ? (
-              <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إعادة التصنيف...</>
-            ) : (
-              'بدء إعادة التصنيف الذكي'
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <InfoIcon className="h-6 w-6 text-primary" />
-            معلومات التطبيق
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>إصدار التطبيق: {version}</p>
-          <p>جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
-        </CardContent>
-      </Card>
-
     </div>
   );
 }
+
+    
