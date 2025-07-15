@@ -1026,30 +1026,32 @@ export default function SettingsPage() {
       </Accordion>
 
       {isMappingColumns && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</CardTitle>
-            <CardDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
-                 <div key={field} className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
-                    <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
-                        <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
-                            {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
-                        </SelectContent>
-                    </Select>
-                 </div>
-            ))}
-          </CardContent>
-          <CardFooter className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-              <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
-          </CardFooter>
-        </Card>
+        <Dialog open={isMappingColumns} onOpenChange={setIsMappingColumns}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</DialogTitle>
+              <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
+                   <div key={field} className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
+                      <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
+                          <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
+                              {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
+                          </SelectContent>
+                      </Select>
+                   </div>
+              ))}
+            </div>
+            <DialogFooter className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
+                <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
     </div>

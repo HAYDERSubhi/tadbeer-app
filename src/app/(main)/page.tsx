@@ -356,7 +356,7 @@ export default function DashboardPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-               <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+               <DialogContent>
                   <DialogHeader><DialogTitle as="h2">تعديل المصروف</DialogTitle></DialogHeader>
                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
               </DialogContent>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                     <p className="font-semibold text-sm">إدخال يدوي</p>
                 </div>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+            <DialogContent>
                 <DialogHeader><DialogTitle as="h2">إدخال يدوي</DialogTitle></DialogHeader>
                 <ManualExpenseForm setOpen={setIsManualEntryOpen} />
             </DialogContent>
@@ -434,7 +434,7 @@ export default function DashboardPage() {
         </div>
 
         <Dialog open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-          <DialogContent className="sm:max-w-[425px] max-h-[90dvh] overflow-y-auto">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle as="h2">مراجعة المصروف الصوتي</DialogTitle>
               <DialogDescription>
