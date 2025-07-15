@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -375,7 +376,7 @@ export default function DashboardPage() {
                 <SheetHeader>
                   <SheetTitle>تعديل المصروف</SheetTitle>
                 </SheetHeader>
-                <div className="overflow-y-auto flex-1 p-6">
+                <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
                 </div>
               </SheetContent>
@@ -455,7 +456,7 @@ export default function DashboardPage() {
               <SheetHeader>
                 <SheetTitle>إدخال يدوي</SheetTitle>
               </SheetHeader>
-              <div className="overflow-y-auto flex-1 p-6">
+              <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
                 <ManualExpenseForm setOpen={setIsManualEntryOpen} />
               </div>
             </SheetContent>
@@ -480,7 +481,7 @@ export default function DashboardPage() {
                 يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
               </SheetDescription>
             </SheetHeader>
-            <div className="overflow-y-auto flex-1 p-6">
+            <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
               <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
             </div>
           </SheetContent>
@@ -516,9 +517,9 @@ export default function DashboardPage() {
           <SheetContent side="bottom">
               <SheetHeader>
                 <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                <DialogDescription>
+                <SheetDescription>
                   هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
-                </DialogDescription>
+                </SheetDescription>
               </SheetHeader>
               <div className="p-6">
                 <Button asChild className="w-full mt-4">
