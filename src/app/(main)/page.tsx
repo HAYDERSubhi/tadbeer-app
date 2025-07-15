@@ -44,7 +44,7 @@ import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/query-core';
 import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
@@ -360,25 +360,23 @@ export default function DashboardPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <EditComponent open={isEditOpen} onOpenChange={setIsEditOpen}>
-                     <SheetTrigger asChild>
-                         <DropdownMenuItem>
-                          <PencilIcon className="ml-2 h-4 w-4" />
-                          تعديل
-                        </DropdownMenuItem>
-                     </SheetTrigger>
-                  </EditComponent>
+                  <SheetTrigger asChild>
+                     <DropdownMenuItem>
+                      <PencilIcon className="ml-2 h-4 w-4" />
+                      تعديل
+                    </DropdownMenuItem>
+                  </SheetTrigger>
                   <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2Icon className="ml-2 h-4 w-4" />
                     حذف
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SheetContent side="bottom">
+              <SheetContent side="bottom" className="flex flex-col">
                 <SheetHeader>
                   <SheetTitle>تعديل المصروف</SheetTitle>
                 </SheetHeader>
-                <div className="overflow-y-auto flex-1 p-6">
+                <div className="overflow-y-auto flex-1">
                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
                 </div>
               </SheetContent>
@@ -454,11 +452,11 @@ export default function DashboardPage() {
               </DialogTrigger>
             )}
 
-            <SheetContent side="bottom">
+            <SheetContent side="bottom" className="flex flex-col">
               <SheetHeader>
                 <SheetTitle>إدخال يدوي</SheetTitle>
               </SheetHeader>
-              <div className="overflow-y-auto flex-1 p-6">
+              <div className="overflow-y-auto flex-1">
                 <ManualExpenseForm setOpen={setIsManualEntryOpen} />
               </div>
             </SheetContent>
@@ -476,14 +474,14 @@ export default function DashboardPage() {
         </div>
 
         <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-          <SheetContent side="bottom">
+          <SheetContent side="bottom" className="flex flex-col">
             <SheetHeader>
               <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
               <SheetDescription>
                 يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
               </SheetDescription>
             </SheetHeader>
-            <div className="overflow-y-auto flex-1 p-6">
+            <div className="overflow-y-auto flex-1">
               <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
             </div>
           </SheetContent>
@@ -516,7 +514,7 @@ export default function DashboardPage() {
                     </div>
                 </DialogTrigger>
              )}
-          <SheetContent side="bottom" className={cn(isMobile ? "h-auto" : "sm:max-w-[425px]")}>
+          <SheetContent side="bottom" className="flex flex-col">
               <SheetHeader>
                 <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                 <DialogDescription>
