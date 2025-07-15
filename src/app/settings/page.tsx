@@ -38,6 +38,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetDescription,
+} from '@/components/ui/sheet';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment } from '@/types';
 import * as XLSX from 'xlsx';
@@ -63,6 +71,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 const COLUMN_MAP_CONFIG = {
   title: { label: 'اسم السلعة / الوصف' },
@@ -114,6 +124,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const { userSettings, expenses, incomes } = useAppData();
 
@@ -735,6 +746,9 @@ export default function SettingsPage() {
     </AccordionItem>
   );
 
+  const FormDialog = isMobile ? Sheet : Dialog;
+  const FormDialogContent = isMobile ? SheetContent : DialogContent;
+
   return (
     <div className="space-y-6 pb-24">
       
@@ -867,23 +881,27 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </div>
-                 <Dialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
+                 <FormDialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
                     <DialogTrigger asChild>
                     <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
                     </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader><DialogTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</DialogTitle></DialogHeader>
-                        <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4 pt-4">
-                            <div className="space-y-2"><Label htmlFor="income-title">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />{incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
-                            <div className="space-y-2"><Label htmlFor="income-amount">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label htmlFor="income-type">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
-                                <div className="space-y-2"><Label>تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
-                            </div>
-                            <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                    <FormDialogContent side="bottom">
+                        <SheetHeader>
+                            <SheetTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</SheetTitle>
+                        </SheetHeader>
+                        <div className="overflow-y-auto flex-1 p-6">
+                            <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4">
+                                <div className="space-y-2"><Label htmlFor="income-title">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />{incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="income-amount">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2"><Label htmlFor="income-type">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
+                                    <div className="space-y-2"><Label>تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
+                                </div>
+                                <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}</Button>
+                            </form>
+                        </div>
+                    </FormDialogContent>
+                </FormDialog>
             </div>
         </AccordionItemWrapper>
 
@@ -939,24 +957,28 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </div>
-                <Dialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
+                <FormDialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
                     <DialogTrigger asChild>
                         <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
                     </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader><DialogTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</DialogTitle></DialogHeader>
-                        <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="pt-4 space-y-4">
-                            <div className="space-y-2"><Label htmlFor="rp-title">اسم الدفعة</Label><Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
-                            <div className="space-y-2"><Label htmlFor="rp-amount">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
-                                <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
-                            </div>
-                            <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
-                            <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>{recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                    <FormDialogContent side="bottom">
+                        <SheetHeader>
+                            <SheetTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
+                        </SheetHeader>
+                        <div className="overflow-y-auto flex-1 p-6">
+                            <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="space-y-4">
+                                <div className="space-y-2"><Label htmlFor="rp-title">اسم الدفعة</Label><Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-amount">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
+                                    <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
+                                </div>
+                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                                <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>{recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                            </form>
+                        </div>
+                    </FormDialogContent>
+                </FormDialog>
             </div>
         </AccordionItemWrapper>
 
