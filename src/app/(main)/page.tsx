@@ -45,7 +45,7 @@ import { InsightIcon } from '@/components/dashboard/insight-icon';
 const tourSteps = [
   {
     selector: '',
-    title: 'أهلاً بك في تطبيق مصروفات!',
+    title: 'أهلاً بك في تطبيق تدبير!',
     content: 'هذه جولة سريعة لمساعدتك على استكشاف الميزات الرئيسية. يمكنك تخطيها في أي وقت.',
     placement: 'center',
   },
@@ -371,7 +371,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-24 sm:pb-8">
-      <OnboardingTour steps={tourSteps} tourKey="masroofat-onboarding-tour-v1" />
+      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v1" />
       
       {upcomingPayments.length > 0 && (
         <Alert variant="destructive" className="animate-in fade-in">

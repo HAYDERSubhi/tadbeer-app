@@ -120,7 +120,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="amount">المبلغ (د.ع)</Label>
-          <Input id="amount" type="number" {...form.register('amount')} placeholder="25000" />
+          <Input id="amount" type="number" inputMode="decimal" {...form.register('amount')} placeholder="25000" />
           {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
         </div>
 
