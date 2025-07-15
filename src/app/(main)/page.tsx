@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -328,7 +329,7 @@ export default function DashboardPage() {
     const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
     
     const EditComponent = isMobile ? Sheet : Dialog;
-    const EditTrigger = isMobile ? SheetTrigger : Dialog.Trigger;
+    const EditTrigger = isMobile ? SheetTrigger : DialogTrigger;
     const EditContent = isMobile ? SheetContent : DialogContent;
     
     return (
@@ -386,14 +387,12 @@ export default function DashboardPage() {
   const userBudget = userSettings?.budget || { totalBudget: 0 };
   
   const ManualEntryComponent = isMobile ? Sheet : Dialog;
-  const ManualEntryTrigger = isMobile ? SheetTrigger : Dialog.Trigger;
   const ManualEntryContent = isMobile ? SheetContent : DialogContent;
 
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
   const VoiceReviewContent = isMobile ? SheetContent : DialogContent;
 
   const CardComponent = isMobile ? Sheet : Dialog;
-  const CardTrigger = isMobile ? SheetTrigger : Dialog.Trigger;
   const CardContentComponent = isMobile ? SheetContent : DialogContent;
 
   return (
@@ -435,14 +434,24 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
        <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-            <ManualEntryTrigger asChild>
+            {isMobile ? 
+              <SheetTrigger asChild>
                 <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                     <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
                         <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                     </span>
                     <p className="font-semibold text-sm">إدخال يدوي</p>
                 </div>
-            </ManualEntryTrigger>
+              </SheetTrigger> :
+              <DialogTrigger asChild>
+                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </span>
+                    <p className="font-semibold text-sm">إدخال يدوي</p>
+                </div>
+              </DialogTrigger>
+            }
             <ManualEntryContent side="bottom" className={isMobile ? "max-h-[85dvh]" : ""}>
                 <SheetHeader>
                   <SheetTitle>إدخال يدوي</SheetTitle>
@@ -482,14 +491,24 @@ export default function DashboardPage() {
         </Link>
         
         <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-          <CardTrigger asChild>
-            <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                    <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                </span>
-                <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-            </div>
-          </CardTrigger>
+          {isMobile ?
+            <SheetTrigger asChild>
+                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                        <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                    </span>
+                    <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+                </div>
+            </SheetTrigger> :
+            <DialogTrigger asChild>
+                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                        <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                    </span>
+                    <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+                </div>
+            </DialogTrigger>
+          }
           <CardContentComponent side="bottom" className={isMobile ? "max-h-[85dvh]" : "sm:max-w-[425px]"}>
               <SheetHeader>
                 <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
