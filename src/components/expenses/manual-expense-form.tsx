@@ -110,7 +110,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   };
   
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 overflow-y-auto">
       <div>
         <Label htmlFor="title">العنوان</Label>
         <Input id="title" {...form.register('title')} placeholder="مثال: غداء عمل" />
