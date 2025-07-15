@@ -736,12 +736,6 @@ export default function SettingsPage() {
               </SelectContent>
             </Select>
           </div>
-           <Button variant="outline" className="w-full" asChild>
-                <Link href="/home-preview">
-                    <Eye className="ml-2 h-4 w-4" />
-                    معاينة التصميم الجديد للصفحة الرئيسية
-                </Link>
-            </Button>
         </CardContent>
       </Card>
       
