@@ -452,7 +452,7 @@ export default function DashboardPage() {
                 </div>
               </DialogTrigger>
             }
-            <ManualEntryContent side="bottom" className={isMobile ? "max-h-[85dvh]" : ""}>
+            <ManualEntryContent side="bottom" className={cn(isMobile ? "h-[90dvh]" : "sm:max-w-[425px]")}>
                 <SheetHeader>
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
@@ -472,7 +472,7 @@ export default function DashboardPage() {
         </div>
 
         <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-          <VoiceReviewContent side="bottom" className={isMobile ? "max-h-[85dvh]" : ""}>
+          <VoiceReviewContent side="bottom" className={cn(isMobile ? "h-[90dvh]" : "sm:max-w-[425px]")}>
             <SheetHeader>
               <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
               <DialogDescription>
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                 </div>
             </DialogTrigger>
           }
-          <CardContentComponent side="bottom" className={isMobile ? "max-h-[85dvh]" : "sm:max-w-[425px]"}>
+          <CardContentComponent side="bottom" className={cn(isMobile ? "h-auto" : "sm:max-w-[425px]")}>
               <SheetHeader>
                 <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                 <DialogDescription>
