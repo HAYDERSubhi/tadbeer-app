@@ -2,10 +2,11 @@
 "use client";
 
 import Link from 'next/link';
-import { FlameKindling, MoonIcon, SunIcon } from 'lucide-react';
+import { MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
+import MalwiyaIcon from '@/components/icons/malwiya-icon';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -25,8 +26,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <MoonIcon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             </Button>
           </div>
-          <Link href="/" className="flex items-center gap-2 text-xl font-display">
-            <FlameKindling className="h-7 w-7 text-primary" />
+          <Link href="/" className="flex items-center gap-2 text-xl font-bold">
+            <MalwiyaIcon className="h-7 w-7 text-primary" />
             <span>تدبير</span>
           </Link>
         </div>

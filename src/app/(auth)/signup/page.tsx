@@ -12,10 +12,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, AlertTriangle, User, FlameKindling } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User } from 'lucide-react';
 import { addExpense } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import MalwiyaIcon from '@/components/icons/malwiya-icon';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -153,8 +154,8 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col items-center gap-6">
-        <Link href="/" className="flex items-center gap-2 text-2xl font-display">
-            <FlameKindling className="h-8 w-8 text-primary" />
+        <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
+            <MalwiyaIcon className="h-8 w-8 text-primary" />
             <span>تدبير</span>
         </Link>
         <Card className="w-full max-w-md">
