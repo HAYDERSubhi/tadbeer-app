@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import {
@@ -162,7 +161,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
 
       <div>
         <Label htmlFor="description">الوصف (اختياري)</Label>
-        <Textarea id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
+        <Input id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
       </div>
 
       <div className="flex items-center space-x-2 space-x-reverse">
