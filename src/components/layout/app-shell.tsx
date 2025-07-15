@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { WalletIcon, MoonIcon, SunIcon } from 'lucide-react';
+import { FlameKindling, MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
@@ -26,8 +26,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
           <Link href="/" className="flex items-center gap-2 text-xl font-display">
-            <WalletIcon className="h-7 w-7 text-primary" />
-            <span>مصروفات</span>
+            <FlameKindling className="h-7 w-7 text-primary" />
+            <span>تدبير</span>
           </Link>
         </div>
       </header>

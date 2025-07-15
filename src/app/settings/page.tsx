@@ -474,9 +474,9 @@ export default function SettingsPage() {
     }));
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "مصروفات");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "تدبير");
     worksheet['!cols'] = [ { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 40 } ];
-    XLSX.writeFile(workbook, "masroofat-expenses.xlsx");
+    XLSX.writeFile(workbook, "tadbeer-expenses.xlsx");
     toast({ title: "تم التصدير بنجاح", description: "تم تصدير بيانات مصاريفك إلى ملف Excel." });
   };
 
@@ -1020,7 +1020,7 @@ export default function SettingsPage() {
             title="حول التطبيق"
             description={`إصدار ${version}`}
         >
-            <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة مصروفات © {new Date().getFullYear()}</p>
+            <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
         </AccordionItemWrapper>
 
       </Accordion>

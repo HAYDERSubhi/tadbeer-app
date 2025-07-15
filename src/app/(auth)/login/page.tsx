@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2Icon, WalletIcon, AlertTriangle, User } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User, FlameKindling } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
@@ -121,8 +121,8 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-display">
-            <WalletIcon className="h-8 w-8 text-primary" />
-            <span>مصروفات</span>
+            <FlameKindling className="h-8 w-8 text-primary" />
+            <span>تدبير</span>
         </Link>
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
