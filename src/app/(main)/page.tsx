@@ -376,7 +376,7 @@ export default function DashboardPage() {
   const CardComponent = isMobile ? Sheet : Dialog;
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v1" />
       
       {upcomingPayments.length > 0 && (

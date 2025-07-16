@@ -161,118 +161,120 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   };
   
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-      <div>
-        <Label htmlFor="title">العنوان</Label>
-        <Input 
-            id="title" 
-            {...form.register('title')} 
-            placeholder="مثال: غداء عمل"
-            autoFocus={false}
-            key={initialData?.title || 'new'}
-        />
-        {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+    <div className="flex-1 overflow-y-auto p-6 pt-0">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <Label htmlFor="amount">المبلغ (د.ع)</Label>
-          <Input id="amount" type="number" inputMode="decimal" {...form.register('amount')} placeholder="25000" />
-          {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
+            <Label htmlFor="title">العنوان</Label>
+            <Input 
+                id="title" 
+                {...form.register('title')} 
+                placeholder="مثال: غداء عمل"
+                autoFocus={false}
+                key={initialData?.title || 'new'}
+            />
+            {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+            <Label htmlFor="amount">المبلغ (د.ع)</Label>
+            <Input id="amount" type="number" inputMode="decimal" {...form.register('amount')} placeholder="25000" />
+            {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
+            </div>
+
+            <div>
+            <Label htmlFor="category">الفئة</Label>
+            <Controller
+                name="category"
+                control={form.control}
+                render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger id="category" className={cn(isCategorizing && 'animate-pulse')}>
+                    <SelectValue placeholder={isCategorizing ? 'جاري التصنيف...' : 'اختر فئة'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {Object.values(CATEGORIES).map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                )}
+            />
+            {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+            </div>
+        </div>
+        
         <div>
-          <Label htmlFor="category">الفئة</Label>
-          <Controller
-            name="category"
+            <Label htmlFor="date">التاريخ</Label>
+            <Controller
+            name="date"
             control={form.control}
             render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger id="category" className={cn(isCategorizing && 'animate-pulse')}>
-                  <SelectValue placeholder={isCategorizing ? 'جاري التصنيف...' : 'اختر فئة'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(CATEGORIES).map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                    )}
+                    >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                    <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    initialFocus
+                    dir="rtl"
+                    locale={arIQ}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    />
+                </PopoverContent>
+                </Popover>
             )}
-          />
-          {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
+            />
+            {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
         </div>
-      </div>
-      
-      <div>
-        <Label htmlFor="date">التاريخ</Label>
-        <Controller
-          name="date"
-          control={form.control}
-          render={({ field }) => (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  id="date"
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !field.value && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  initialFocus
-                  dir="rtl"
-                  locale={arIQ}
-                  disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-        />
-        {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
-      </div>
 
-      <div>
-        <Label htmlFor="description">الوصف (اختياري)</Label>
-        <Input id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
-      </div>
-
-      <div className="flex items-center space-x-2 space-x-reverse">
-        <Controller
-            name="isOutOfBudget"
-            control={form.control}
-            render={({ field }) => (
-                <Checkbox
-                    id="isOutOfBudget"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                />
-            )}
-        />
-        <Label htmlFor="isOutOfBudget">مصروف خارج الميزانية</Label>
-      </div>
-
-      {form.watch('isOutOfBudget') && (
         <div>
-          <Label htmlFor="outOfBudgetDetails">تفاصيل المصروف خارج الميزانية</Label>
-          <Input id="outOfBudgetDetails" {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" />
+            <Label htmlFor="description">الوصف (اختياري)</Label>
+            <Input id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
         </div>
-      )}
-      
-      <Button type="submit" className="w-full" disabled={addExpenseMutation.isPending}>
-        {addExpenseMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري الحفظ...</> : 'حفظ المصروف'}
-      </Button>
-      
-    </form>
+
+        <div className="flex items-center space-x-2 space-x-reverse">
+            <Controller
+                name="isOutOfBudget"
+                control={form.control}
+                render={({ field }) => (
+                    <Checkbox
+                        id="isOutOfBudget"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                    />
+                )}
+            />
+            <Label htmlFor="isOutOfBudget">مصروف خارج الميزانية</Label>
+        </div>
+
+        {form.watch('isOutOfBudget') && (
+            <div>
+            <Label htmlFor="outOfBudgetDetails">تفاصيل المصروف خارج الميزانية</Label>
+            <Input id="outOfBudgetDetails" {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" />
+            </div>
+        )}
+        
+        <Button type="submit" className="w-full" disabled={addExpenseMutation.isPending}>
+            {addExpenseMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري الحفظ...</> : 'حفظ المصروف'}
+        </Button>
+        
+        </form>
+    </div>
   );
 }
