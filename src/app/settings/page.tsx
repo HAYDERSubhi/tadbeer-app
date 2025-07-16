@@ -747,7 +747,6 @@ export default function SettingsPage() {
   );
 
   const FormDialog = isMobile ? Sheet : Dialog;
-  const FormDialogContent = isMobile ? SheetContent : DialogContent;
 
   return (
     <div className="space-y-6 pb-24">
@@ -885,11 +884,11 @@ export default function SettingsPage() {
                     <DialogTrigger asChild>
                     <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
                     </DialogTrigger>
-                    <FormDialogContent side="bottom">
+                    <SheetContent side="bottom" className="flex flex-col">
                         <SheetHeader>
                             <SheetTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</SheetTitle>
                         </SheetHeader>
-                        <div className="overflow-y-auto flex-1 p-6">
+                        <div className="overflow-y-auto flex-1 p-6 pt-2">
                             <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4">
                                 <div className="space-y-2"><Label htmlFor="income-title">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />{incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
                                 <div className="space-y-2"><Label htmlFor="income-amount">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
@@ -900,7 +899,7 @@ export default function SettingsPage() {
                                 <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}</Button>
                             </form>
                         </div>
-                    </FormDialogContent>
+                    </SheetContent>
                 </FormDialog>
             </div>
         </AccordionItemWrapper>
@@ -961,11 +960,11 @@ export default function SettingsPage() {
                     <DialogTrigger asChild>
                         <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
                     </DialogTrigger>
-                    <FormDialogContent side="bottom">
+                    <SheetContent side="bottom" className="flex flex-col">
                         <SheetHeader>
                             <SheetTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
                         </SheetHeader>
-                        <div className="overflow-y-auto flex-1 p-6">
+                        <div className="overflow-y-auto flex-1 p-6 pt-2">
                             <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="space-y-4">
                                 <div className="space-y-2"><Label htmlFor="rp-title">اسم الدفعة</Label><Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
                                 <div className="space-y-2"><Label htmlFor="rp-amount">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
@@ -977,7 +976,7 @@ export default function SettingsPage() {
                                 <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>{recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
-                    </FormDialogContent>
+                    </SheetContent>
                 </FormDialog>
             </div>
         </AccordionItemWrapper>
