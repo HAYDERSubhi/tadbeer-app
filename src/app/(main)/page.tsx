@@ -9,28 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetDescription,
-} from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
@@ -380,7 +361,7 @@ export default function DashboardPage() {
                     <SheetTitle>تعديل المصروف</SheetTitle>
                   </SheetHeader>
                   <div className="flex-1 overflow-y-auto">
-                    <div className="p-6">
+                    <div className="p-4 pt-0 sm:p-6">
                       <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
                     </div>
                   </div>
@@ -419,7 +400,7 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardHeader>
-          <CardTitle className='text-lg'>إضافة مصروف جديد</CardTitle>
+          <CardTitle>إضافة مصروف جديد</CardTitle>
           <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -448,7 +429,7 @@ export default function DashboardPage() {
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto">
-                  <div className="p-6">
+                  <div className="p-4 pt-0 sm:p-6">
                     <ManualExpenseForm setOpen={setIsManualEntryOpen} />
                   </div>
                 </div>
@@ -475,7 +456,7 @@ export default function DashboardPage() {
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto">
-                    <div className="p-6">
+                    <div className="p-4 pt-0 sm:p-6">
                         <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
                     </div>
                 </div>
@@ -516,7 +497,7 @@ export default function DashboardPage() {
                       هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
                     </SheetDescription>
                   </SheetHeader>
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <Button asChild className="w-full mt-4">
                         <Link href="/settings">الذهاب إلى الإعدادات</Link>
                     </Button>
@@ -548,7 +529,7 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             نصائح المدرب المالي
           </CardTitle>
@@ -588,7 +569,7 @@ export default function DashboardPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
             أحدث المصاريف
           </CardTitle>
@@ -606,7 +587,7 @@ export default function DashboardPage() {
           )}
         </CardContent>
         {allSortedExpenses.length > visibleExpensesCount && (
-          <CardFooter className="p-4">
+          <CardFooter>
             <Button variant="outline" className="w-full" onClick={() => setVisibleExpensesCount(prev => prev + 20)}>
               عرض المزيد
             </Button>

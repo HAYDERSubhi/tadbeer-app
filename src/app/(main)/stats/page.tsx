@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -476,7 +477,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <PieChartIcon className="h-5 w-5 text-primary" />
             توزيع المصاريف
           </CardTitle>
@@ -565,7 +566,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <TrendingUpIcon className="h-5 w-5 text-primary" />
             اتجاه المصاريف
           </CardTitle>
@@ -596,7 +597,7 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <ListOrderedIcon className="h-5 w-5 text-primary" />
             ملخص الفئات
           </CardTitle>
@@ -669,7 +670,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <ActivityIcon className="h-5 w-5 text-primary" />
             تحليل اتجاهات الفئات
           </CardTitle>
@@ -728,7 +729,7 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-primary" />
             تنبؤات المصاريف
           </CardTitle>

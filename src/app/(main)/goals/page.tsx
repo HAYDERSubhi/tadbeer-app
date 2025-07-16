@@ -1,3 +1,4 @@
+
 // src/app/(main)/goals/page.tsx
 "use client";
 
@@ -122,7 +123,7 @@ export default function GoalsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2">
             <PlusCircle className="h-5 w-5" />
             إضافة هدف جديد
           </CardTitle>
@@ -199,7 +200,7 @@ export default function GoalsPage() {
                return (
                   <Card key={goal.id} className="flex flex-col">
                     <CardHeader className='pb-4'>
-                      <CardTitle className='flex justify-between items-start text-lg'>
+                      <CardTitle className='flex justify-between items-start'>
                         <span className="truncate pr-4">{goal.name}</span>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

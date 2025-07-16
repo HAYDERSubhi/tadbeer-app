@@ -1,3 +1,4 @@
+
 // src/app/(main)/receipts/page.tsx
 "use client";
 
@@ -343,7 +344,7 @@ export default function DetailedReceiptPage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
+                    <CardTitle className="flex items-center gap-2">
                         <FileScan className="h-6 w-6 text-primary" />
                         تحليل الفواتير المفصلة
                     </CardTitle>
@@ -428,7 +429,7 @@ export default function DetailedReceiptPage() {
             {analyzedItems.length > 0 && !isLoading && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-lg">مراجعة وحفظ المصاريف</CardTitle>
+                        <CardTitle>مراجعة وحفظ المصاريف</CardTitle>
                         <CardDescription>
                             تم استخراج {analyzedItems.length} عنصر. راجع البيانات وقم بتصحيحها إذا لزم الأمر، ثم احفظها.
                         </CardDescription>

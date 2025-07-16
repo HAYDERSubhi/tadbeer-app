@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2Icon, AlertTriangle, User } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import Image from 'next/image';
 
 const loginSchema = z.object({
@@ -127,7 +127,7 @@ export default function LoginPage() {
         </Link>
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-                <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
+                <CardTitle as="h1" className="text-xl">تسجيل الدخول</CardTitle>
                 <CardDescription>أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك</CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,7 +171,7 @@ export default function LoginPage() {
                 {unauthorizedDomain && (
                   <Alert variant="destructive" className="mt-4">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>خطأ في الإعدادات</AlertTitle>
+                    <AlertTitleComponent>خطأ في الإعدادات</AlertTitleComponent>
                     <AlertDescription>
                       <p className="mb-2">هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى <a href={`https://console.firebase.google.com/project/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/authentication/settings`} target="_blank" rel="noopener noreferrer" className="font-bold underline">صفحة إعدادات المصادقة في Firebase</a> وأضف النطاق التالي إلى قائمة 'Authorized domains':</p>
                       <code className="block bg-muted text-foreground p-2 rounded-md my-2 text-center font-mono select-all">{unauthorizedDomain}</code>
