@@ -11,7 +11,7 @@ import { buttonVariants } from '@/components/ui/button';
 const navItems = [
   { href: '/', label: 'الرئيسية', icon: HomeIcon },
   { href: '/stats', label: 'الإحصائيات', icon: PieChartIcon },
-  { href: '/planner', label: 'المخطط', icon: Goal },
+  { href: '/planner', label: 'الأهداف', icon: Goal },
   { href: '/settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
 
