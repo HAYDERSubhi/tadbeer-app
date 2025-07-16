@@ -63,7 +63,7 @@ const tourSteps = [
   {
     selector: '#main-navigation',
     title: 'التنقل في التطبيق',
-    content: 'استخدم هذا الشريط للتنقل بين الصفحات الرئيسية: الإحصائيات، المخطط المالي، والإعدادات.',
+    content: 'استخدم هذا الشريط للتنقل بين الصفحات الرئيسية: الإحصائيات، الأهداف، والإعدادات.',
     placement: 'top',
   }
 ];
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SheetContent side="bottom" className="flex flex-col">
+              <SheetContent side="bottom">
                   <SheetHeader>
                     <SheetTitle>تعديل المصروف</SheetTitle>
                   </SheetHeader>
@@ -426,7 +426,6 @@ export default function DashboardPage() {
               )}
               <SheetContent 
                 side="bottom" 
-                className="flex flex-col"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <SheetHeader>
@@ -454,7 +453,6 @@ export default function DashboardPage() {
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
               <SheetContent 
                 side="bottom" 
-                className="flex flex-col"
                 onOpenAutoFocus={(e) => e.preventDefault()}
               >
                 <SheetHeader>
