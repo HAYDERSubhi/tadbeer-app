@@ -106,7 +106,7 @@ export default function BudgetSummaryCard() {
                         <span>المصروف: {budgetData.monthlySpent.toLocaleString()} د.ع</span>
                         <span>المتبقي: {Math.max(0, budgetData.remainingBudget).toLocaleString()} د.ع</span>
                     </div>
-                    <Progress value={budgetData.spentPercentage} className="h-2" />
+                    <Progress value={budgetData.spentPercentage} className="h-3" />
                 </div>
                 
                 <Separator />
@@ -123,7 +123,7 @@ export default function BudgetSummaryCard() {
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
                                     <span className="text-xs font-semibold">{week.spent.toLocaleString()}&nbsp;د.ع</span>
                                 </div>
-                                <Progress value={week.progress > 100 ? 100 : week.progress} className="h-2" indicatorcolor={cn(week.progressColor)} />
+                                <Progress value={week.progress > 100 ? 100 : week.progress} className="h-3" indicatorcolor={cn(week.progressColor)} />
                             </div>
                         ))}
                     </div>
