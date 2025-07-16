@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
@@ -421,9 +421,6 @@ export default function DashboardPage() {
                 </DialogTrigger>
               )}
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <SheetHeader>
-                  <SheetTitle>إدخال يدوي</SheetTitle>
-                </SheetHeader>
                 <ManualExpenseForm setOpen={setIsManualEntryOpen} />
               </SheetContent>
             </ManualEntryComponent>
@@ -441,12 +438,6 @@ export default function DashboardPage() {
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <SheetHeader>
-                  <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
-                  <SheetDescription>
-                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
-                  </SheetDescription>
-                </SheetHeader>
                 <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
               </SheetContent>
             </VoiceReviewComponent>
