@@ -97,10 +97,10 @@ function PlannerContent() {
     return (
         <Card className='mt-6 animate-in fade-in duration-500'>
             <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+                <CardTitle className='flex items-center gap-2 text-lg'>
                     {plan.isAchievable ? 
-                        <CheckCircle2 className='h-7 w-7 text-green-500' /> : 
-                        <XCircle className='h-7 w-7 text-orange-500' />}
+                        <CheckCircle2 className='h-6 w-6 text-green-500' /> : 
+                        <XCircle className='h-6 w-6 text-orange-500' />}
                     خطة تحقيق هدف: {selectedGoal?.name}
                 </CardTitle>
                 <CardDescription>{plan.initialAssessment}</CardDescription>
@@ -188,8 +188,8 @@ function PlannerContent() {
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Goal className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Goal className="h-7 w-7 text-primary" />
             المخطط المالي الذكي
         </h1>
         <p className="text-muted-foreground mt-2">

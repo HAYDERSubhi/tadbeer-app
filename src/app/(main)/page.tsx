@@ -375,15 +375,15 @@ export default function DashboardPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SheetContent side="bottom">
-                <SheetHeader>
-                  <SheetTitle>تعديل المصروف</SheetTitle>
-                </SheetHeader>
-                <div className="flex-1 overflow-y-auto">
-                   <div className="p-6">
-                     <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                   </div>
-                </div>
+              <SheetContent side="bottom" className="flex flex-col">
+                  <SheetHeader>
+                    <SheetTitle>تعديل المصروف</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-6">
+                      <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                    </div>
+                  </div>
               </SheetContent>
             </EditComponent>
           </div>
@@ -419,7 +419,7 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardHeader>
-          <CardTitle>إضافة مصروف جديد</CardTitle>
+          <CardTitle className='text-lg'>إضافة مصروف جديد</CardTitle>
           <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -443,7 +443,7 @@ export default function DashboardPage() {
                   </div>
                 </DialogTrigger>
               )}
-              <SheetContent side="bottom">
+              <SheetContent side="bottom" className="flex flex-col">
                 <SheetHeader>
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
@@ -467,7 +467,7 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom">
+              <SheetContent side="bottom" className="flex flex-col">
                 <SheetHeader>
                   <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                   <SheetDescription>

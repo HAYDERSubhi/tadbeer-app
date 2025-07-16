@@ -111,8 +111,8 @@ export default function GoalsPage() {
   return (
     <div className="space-y-8 pb-24">
       <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Target className="h-8 w-8 text-primary" />
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Target className="h-7 w-7 text-primary" />
             أهدافي المالية
         </h1>
         <p className="text-muted-foreground mt-2">
@@ -122,8 +122,8 @@ export default function GoalsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PlusCircle className="h-6 w-6" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <PlusCircle className="h-5 w-5" />
             إضافة هدف جديد
           </CardTitle>
         </CardHeader>
@@ -183,7 +183,7 @@ export default function GoalsPage() {
       </Card>
       
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold">قائمة الأهداف</h2>
+        <h2 className="text-xl font-bold">قائمة الأهداف</h2>
         {goals.length === 0 ? (
           <Card className='text-center py-12'>
             <CardContent className="flex flex-col items-center gap-4">
@@ -199,7 +199,7 @@ export default function GoalsPage() {
                return (
                   <Card key={goal.id} className="flex flex-col">
                     <CardHeader className='pb-4'>
-                      <CardTitle className='flex justify-between items-start'>
+                      <CardTitle className='flex justify-between items-start text-lg'>
                         <span className="truncate pr-4">{goal.name}</span>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -226,7 +226,7 @@ export default function GoalsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-2">
-                        <p className="text-3xl font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>
+                        <p className="text-2xl font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>
                         <p className="text-sm text-muted-foreground">
                             تحتاج لتوفير ما يقارب <span className="font-bold text-foreground">{monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})} د.ع</span> شهريًا.
                         </p>

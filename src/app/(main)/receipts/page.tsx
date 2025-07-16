@@ -333,8 +333,8 @@ export default function DetailedReceiptPage() {
     return (
         <div className="space-y-6 pb-24">
             <div>
-                <h1 className="text-3xl font-bold flex items-center gap-2">
-                    <Receipt className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <Receipt className="h-7 w-7 text-primary" />
                     فواتيري
                 </h1>
                 <p className="text-muted-foreground mt-2">
@@ -343,8 +343,8 @@ export default function DetailedReceiptPage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <FileScan className="h-7 w-7 text-primary" />
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <FileScan className="h-6 w-6 text-primary" />
                         تحليل الفواتير المفصلة
                     </CardTitle>
                     <CardDescription>
@@ -428,7 +428,7 @@ export default function DetailedReceiptPage() {
             {analyzedItems.length > 0 && !isLoading && (
                 <Card>
                     <CardHeader>
-                        <CardTitle>مراجعة وحفظ المصاريف</CardTitle>
+                        <CardTitle className="text-lg">مراجعة وحفظ المصاريف</CardTitle>
                         <CardDescription>
                             تم استخراج {analyzedItems.length} عنصر. راجع البيانات وقم بتصحيحها إذا لزم الأمر، ثم احفظها.
                         </CardDescription>

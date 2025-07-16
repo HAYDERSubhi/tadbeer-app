@@ -476,8 +476,8 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PieChartIcon className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <PieChartIcon className="h-5 w-5 text-primary" />
             توزيع المصاريف
           </CardTitle>
            {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
@@ -565,8 +565,8 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUpIcon className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUpIcon className="h-5 w-5 text-primary" />
             اتجاه المصاريف
           </CardTitle>
           <CardDescription>
@@ -596,8 +596,8 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListOrderedIcon className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ListOrderedIcon className="h-5 w-5 text-primary" />
             ملخص الفئات
           </CardTitle>
           <CardDescription>
@@ -669,8 +669,8 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ActivityIcon className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ActivityIcon className="h-5 w-5 text-primary" />
             تحليل اتجاهات الفئات
           </CardTitle>
           <CardDescription>
@@ -728,8 +728,8 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-6 w-6 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Wand2 className="h-5 w-5 text-primary" />
             تنبؤات المصاريف
           </CardTitle>
           <CardDescription>توقعات الإنفاق للشهر القادم بناءً على بياناتك التاريخية.</CardDescription>

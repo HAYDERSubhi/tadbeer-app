@@ -160,7 +160,7 @@ export default function SignupPage() {
         </Link>
         <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-            <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
+            <CardTitle className="text-xl">إنشاء حساب جديد</CardTitle>
             <CardDescription>أدخل بياناتك لإنشاء حساب ومزامنة بياناتك</CardDescription>
         </CardHeader>
         <CardContent>
