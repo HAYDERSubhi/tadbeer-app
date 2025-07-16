@@ -116,6 +116,16 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         isOutOfBudget: initialData.isOutOfBudget || false,
         outOfBudgetDetails: initialData.outOfBudgetDetails || '',
       });
+    } else {
+      form.reset({
+        title: '',
+        amount: 0,
+        category: '',
+        date: new Date(),
+        description: '',
+        isOutOfBudget: false,
+        outOfBudgetDetails: '',
+      });
     }
   }, [initialData, form]);
 
@@ -153,7 +163,13 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <Label htmlFor="title">العنوان</Label>
-        <Input id="title" {...form.register('title')} placeholder="مثال: غداء عمل" />
+        <Input 
+            id="title" 
+            {...form.register('title')} 
+            placeholder="مثال: غداء عمل"
+            autoFocus={false}
+            key={initialData?.title || 'new'}
+        />
         {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
       </div>
 
