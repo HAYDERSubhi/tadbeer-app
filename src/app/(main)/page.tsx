@@ -373,13 +373,13 @@ export default function DashboardPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <SheetContent side="bottom">
-                <SheetHeader>
-                  <SheetTitle>تعديل المصروف</SheetTitle>
-                </SheetHeader>
-                <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
-                  <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                </div>
-              </SheetContent>
+                 <SheetHeader>
+                   <SheetTitle>تعديل المصروف</SheetTitle>
+                 </SheetHeader>
+                 <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
+                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                 </div>
+               </SheetContent>
             </EditComponent>
           </div>
         </li>
@@ -411,24 +411,6 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {userBudget.totalBudget === 0 ? (
-          <Card className="text-center py-8">
-            <CardContent className="flex flex-col items-center gap-4">
-              <DollarSign className="h-12 w-12 text-muted-foreground" />
-              <h3 className="text-xl font-bold">ابدأ بتحديد ميزانيتك</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto">اذهب إلى الإعدادات لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
-              <Button asChild className="mt-2">
-                <Link href="/settings">
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                  الذهاب إلى الإعدادات
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <BudgetSummaryCard />
-      )}
-      
       {/* Add Expense Section */}
        <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
@@ -530,6 +512,24 @@ export default function DashboardPage() {
         </CardComponent>
       </div>
 
+      {userBudget.totalBudget === 0 ? (
+          <Card className="text-center py-8">
+            <CardContent className="flex flex-col items-center gap-4">
+              <DollarSign className="h-12 w-12 text-muted-foreground" />
+              <h3 className="text-xl font-bold">ابدأ بتحديد ميزانيتك</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">اذهب إلى الإعدادات لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
+              <Button asChild className="mt-2">
+                <Link href="/settings">
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                  الذهاب إلى الإعدادات
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <BudgetSummaryCard />
+      )}
+
 
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
@@ -602,5 +602,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
