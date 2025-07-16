@@ -400,7 +400,7 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardHeader>
-          <CardTitle>إضافة مصروف جديد</CardTitle>
+          <CardTitle className="text-sm font-semibold">إضافة مصروف جديد</CardTitle>
           <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -424,7 +424,11 @@ export default function DashboardPage() {
                   </div>
                 </DialogTrigger>
               )}
-              <SheetContent side="bottom" className="flex flex-col">
+              <SheetContent 
+                side="bottom" 
+                className="flex flex-col"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <SheetHeader>
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
@@ -448,7 +452,11 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom" className="flex flex-col">
+              <SheetContent 
+                side="bottom" 
+                className="flex flex-col"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <SheetHeader>
                   <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                   <SheetDescription>
