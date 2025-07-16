@@ -138,6 +138,7 @@ export default function SettingsPage() {
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   
   // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
@@ -202,6 +203,7 @@ export default function SettingsPage() {
         // If no members exist, initialize with one default member
         setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       }
+      setRecurringPayments(userSettings.recurringPayments || []);
     }
   }, [userSettings]);
   
@@ -271,26 +273,28 @@ export default function SettingsPage() {
     const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };
     updateSettingsMutation.mutate({ profile: profileToSave });
   };
-
-  const handleSaveBudget = () => {
+  
+  const handleSaveBudgetSettings = () => {
     const total = parseFloat(parseFormattedNumber(totalBudgetInput) || "0");
     const zeroSpendDays = parseInt(zeroSpendDaysTargetInput || "0", 10);
-
     if (isNaN(total) || total < 0 || isNaN(zeroSpendDays) || zeroSpendDays < 0) {
       toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أرقام موجبة وصحيحة للميزانية والأهداف.", variant: "destructive" });
       return;
     }
-    updateSettingsMutation.mutate({ budget: { totalBudget: total, zeroSpendDaysTarget: zeroSpendDays, weeklyBudget: 0 } });
-  };
-
-  const handleSaveCategoryBudgets = () => {
-    const numericBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
+    
+    const numericCategoryBudgets = Object.entries(categoryBudgets).reduce((acc, [key, value]) => {
         const amount = parseFloat(parseFormattedNumber(value));
         if (!isNaN(amount) && amount >= 0) acc[key] = amount;
         return acc;
     }, {} as Record<string, number>);
-    updateSettingsMutation.mutate({ categoryBudgets: numericBudgets });
-  };
+
+    updateSettingsMutation.mutate({
+        budget: { totalBudget: total, zeroSpendDaysTarget: zeroSpendDays, weeklyBudget: 0 },
+        categoryBudgets: numericCategoryBudgets,
+        recurringPayments: recurringPayments,
+    });
+  }
+
 
   // --- Income Management ---
   const incomeForm = useForm<IncomeFormData>({
@@ -380,41 +384,28 @@ export default function SettingsPage() {
     },
   });
   
-  const recurringPaymentMutation = useMutation({
-    mutationFn: (newPaymentsList: RecurringPayment[]) => {
-      return updateUserSettings(user!.uid, { recurringPayments: newPaymentsList });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
-    },
-    onError: () => {
-      toast({ title: "خطأ", description: "فشل تحديث الدفعات الدورية.", variant: "destructive" });
-    }
-  });
-
   const handleSaveRecurringPayment = (data: RecurringPaymentFormData) => {
-    const currentPayments = userSettings?.recurringPayments || [];
     let updatedPayments;
 
     if (editingPaymentId) {
-        updatedPayments = currentPayments.map(p => 
+        updatedPayments = recurringPayments.map(p => 
             p.id === editingPaymentId ? { ...p, ...data, startDate: data.startDate.toISOString() } : p
         );
         toast({ title: "تم التحديث", description: "تم تحديث الدفعة الدورية بنجاح." });
     } else {
         const newPayment: RecurringPayment = { ...data, id: crypto.randomUUID(), startDate: data.startDate.toISOString() };
-        updatedPayments = [...currentPayments, newPayment];
+        updatedPayments = [...recurringPayments, newPayment];
         toast({ title: "تمت الإضافة", description: "تمت إضافة الدفعة الدورية بنجاح." });
     }
 
-    recurringPaymentMutation.mutate(updatedPayments);
+    setRecurringPayments(updatedPayments);
     recurringPaymentForm.reset({ title: "", amount: 0, category: "subscriptions", frequency: "monthly", startDate: new Date() });
     setIsRecurringPaymentDialogOpen(false);
+    setEditingPaymentId(null);
   };
   
   const handleDeleteRecurringPayment = (id: string) => {
-    const currentPayments = userSettings?.recurringPayments || [];
-    recurringPaymentMutation.mutate(currentPayments.filter(p => p.id !== id));
+    setRecurringPayments(prev => prev.filter(p => p.id !== id));
     toast({ title: "تم الحذف", description: "تم حذف الدفعة الدورية بنجاح." });
   };
 
@@ -753,7 +744,7 @@ export default function SettingsPage() {
   const FormDialog = isMobile ? Sheet : Dialog;
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="p-4 sm:p-6 space-y-6 pb-24">
       
       {/* Account and Theme Section */}
       <Card>
@@ -916,7 +907,6 @@ export default function SettingsPage() {
                 <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
-                <Button onClick={handleSaveBudget} className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}حفظ إعدادات الميزانية</Button>
             </div>
             
             <Separator />
@@ -932,7 +922,6 @@ export default function SettingsPage() {
                         </div>
                     ))}
                 </div>
-                <Button onClick={handleSaveCategoryBudgets} className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}حفظ ميزانيات الفئات</Button>
             </div>
 
             <Separator />
@@ -943,14 +932,14 @@ export default function SettingsPage() {
                 <div>
                      <h4 className="font-medium mb-2">الدفعات الحالية</h4>
                     <div className="space-y-2">
-                        {(userSettings?.recurringPayments || []).length === 0 ? (
+                        {recurringPayments.length === 0 ? (
                             <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background">لا توجد دفعات متكررة مسجلة.</p>
                         ) : (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
-                                {userSettings.recurringPayments?.map(p => (
+                                {recurringPayments.map(p => (
                                     <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                         <div className="flex-1"><p className="font-semibold">{p.title}</p><p className="text-sm text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
-                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)} disabled={recurringPaymentMutation.isPending}><PencilIcon className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)} disabled={recurringPaymentMutation.isPending}><Trash2Icon className="h-4 w-4" /></Button></div></div>
+                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><PencilIcon className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2Icon className="h-4 w-4" /></Button></div></div>
                                     </li>
                                 ))}
                             </ul>
@@ -974,12 +963,17 @@ export default function SettingsPage() {
                                     <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
                                 <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
-                                <Button type="submit" className="w-full" disabled={recurringPaymentMutation.isPending}>{recurringPaymentMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
                     </SheetContent>
                 </FormDialog>
             </div>
+             <Separator />
+            <Button onClick={handleSaveBudgetSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
+                {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+                حفظ تغييرات الميزانية
+            </Button>
         </AccordionItemWrapper>
 
          <AccordionItemWrapper
