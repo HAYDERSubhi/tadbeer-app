@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { MoonIcon, SunIcon } from 'lucide-react';
+import { MoonIcon, SunIcon, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
@@ -20,6 +20,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span>تدبير</span>
           </Link>
           <div className="flex items-center gap-2">
+             <Button asChild variant="ghost" size="icon">
+              <Link href="/settings">
+                <Settings className="h-5 w-5" />
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
@@ -81,7 +81,6 @@ export default function DashboardPage() {
   const [isInsightsLoading, setIsInsightsLoading] = useState(true);
   const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
-  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
@@ -344,24 +343,26 @@ export default function DashboardPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <SheetTrigger asChild>
-                     <DropdownMenuItem>
+                   <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
                       <PencilIcon className="ml-2 h-4 w-4" />
                       تعديل
                     </DropdownMenuItem>
-                  </SheetTrigger>
                   <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2Icon className="ml-2 h-4 w-4" />
                     حذف
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>تعديل المصروف</SheetTitle>
-                  </SheetHeader>
-                  <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-              </SheetContent>
+              {isMobile ? (
+                 <SheetContent side="bottom">
+                    <SheetHeader className="sr-only"><SheetTitle>تعديل المصروف</SheetTitle></SheetHeader>
+                    <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                </SheetContent>
+              ) : (
+                <DialogContent>
+                    <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                </DialogContent>
+              )}
             </EditComponent>
           </div>
         </li>
@@ -371,7 +372,6 @@ export default function DashboardPage() {
 
   const userBudget = userSettings?.budget || { totalBudget: 0 };
   
-  const ManualEntryComponent = isMobile ? Sheet : Dialog;
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
   const CardComponent = isMobile ? Sheet : Dialog;
   
@@ -400,34 +400,12 @@ export default function DashboardPage() {
           <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-              {isMobile ? (
-                <SheetTrigger asChild>
-                  <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                      <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                          <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                      </span>
-                      <p className="font-semibold text-sm">إدخال يدوي</p>
-                  </div>
-                </SheetTrigger>
-              ) : (
-                <DialogTrigger asChild>
-                  <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                      <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                          <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                      </span>
-                      <p className="font-semibold text-sm">إدخال يدوي</p>
-                  </div>
-                </DialogTrigger>
-              )}
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <SheetHeader className="sr-only">
-                    <SheetTitle>إضافة مصروف يدويًا</SheetTitle>
-                    <SheetDescription>املأ النموذج لإضافة مصروف جديد.</SheetDescription>
-                </SheetHeader>
-                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-              </SheetContent>
-            </ManualEntryComponent>
+            <Link href="/add-expense" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                    <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </span>
+                <p className="font-semibold text-sm">إدخال يدوي</p>
+            </Link>
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                 <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
@@ -441,7 +419,7 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <SheetContent side="bottom">
                 <SheetHeader className="sr-only">
                     <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                     <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
@@ -458,26 +436,13 @@ export default function DashboardPage() {
             </Link>
             
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-                {isMobile ? (
-                    <SheetTrigger asChild>
-                        <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                                <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                            </span>
-                            <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-                        </div>
-                    </SheetTrigger>
-                ) : (
-                    <DialogTrigger asChild>
-                        <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                                <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                            </span>
-                            <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-                        </div>
-                    </DialogTrigger>
-                )}
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                      <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                  </span>
+                  <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+              </div>
+              <SheetContent side="bottom">
                   <SheetHeader>
                     <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                     <SheetDescription>
