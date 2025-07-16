@@ -357,7 +357,7 @@ export default function DashboardPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                  <SheetHeader>
+                  <SheetHeader className="sr-only">
                     <SheetTitle>تعديل المصروف</SheetTitle>
                   </SheetHeader>
                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
