@@ -724,25 +724,29 @@ export default function SettingsPage() {
   };
 
   const AccordionItemWrapper = ({ icon, title, description, children, value }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode, value: string }) => (
-    <AccordionItem value={value}>
-        <AccordionTrigger className="text-base hover:no-underline">
-            <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                    {React.createElement(icon, { className: "h-6 w-6" })}
-                </div>
-                <div>
-                    <h3 className="font-semibold text-right">{title}</h3>
-                    <p className="text-sm text-muted-foreground text-right">{description}</p>
-                </div>
-            </div>
-        </AccordionTrigger>
-        <AccordionContent className="pt-0">
+    <AccordionItem value={value} className="border-b-0">
+      <Card>
+        <CardHeader className="p-0">
+          <AccordionTrigger className="text-base hover:no-underline p-4">
+              <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                      {React.createElement(icon, { className: "h-6 w-6" })}
+                  </div>
+                  <div>
+                      <h3 className="font-semibold text-right">{title}</h3>
+                      <p className="text-sm text-muted-foreground text-right">{description}</p>
+                  </div>
+              </div>
+          </AccordionTrigger>
+        </CardHeader>
+        <AccordionContent>
             <div className="border-t">
-                <div className="p-4 space-y-6 bg-muted/30">
+                <div className="p-4 space-y-6">
                     {children}
                 </div>
             </div>
         </AccordionContent>
+      </Card>
     </AccordionItem>
   );
 
@@ -793,7 +797,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4">
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
         <AccordionItemWrapper 
           value="item-1"
           icon={UserCircle}

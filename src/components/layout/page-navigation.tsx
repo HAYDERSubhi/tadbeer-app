@@ -45,7 +45,7 @@ export default function PageNavigation() {
     );
   }
 
-  // Desktop navigation: Horizontal list of buttons below the header
+  // Desktop navigation: This is now less likely to be seen but kept for completeness
   return (
     <nav id="main-navigation" className="container mx-auto flex flex-row justify-center items-center gap-2 py-4">
       {navItems.map((item) => {

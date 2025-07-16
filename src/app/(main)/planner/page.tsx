@@ -97,10 +97,10 @@ function PlannerContent() {
     return (
         <Card className='mt-6 animate-in fade-in duration-500'>
             <CardHeader>
-                <CardTitle className='flex items-center gap-2 text-lg'>
+                <CardTitle className='flex items-center gap-2'>
                     {plan.isAchievable ? 
-                        <CheckCircle2 className='h-6 w-6 text-green-500' /> : 
-                        <XCircle className='h-6 w-6 text-orange-500' />}
+                        <CheckCircle2 className='h-5 w-5 text-green-500' /> : 
+                        <XCircle className='h-5 w-5 text-orange-500' />}
                     خطة تحقيق هدف: {selectedGoal?.name}
                 </CardTitle>
                 <CardDescription>{plan.initialAssessment}</CardDescription>
@@ -118,7 +118,7 @@ function PlannerContent() {
                 </Alert>
 
                 <div>
-                    <h3 className='text-lg font-semibold mb-2'>خطواتك المقترحة:</h3>
+                    <h3 className='font-semibold mb-2'>خطواتك المقترحة:</h3>
                     <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
                         {plan.suggestedPlan.map((step, index) => (
                            <AccordionItem value={`item-${index}`} key={index}>
@@ -188,11 +188,11 @@ function PlannerContent() {
   return (
     <div className="space-y-6 pb-24">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Goal className="h-7 w-7 text-primary" />
+        <h1 className="text-xl font-bold flex items-center gap-2">
+            <Goal className="h-6 w-6 text-primary" />
             المخطط المالي الذكي
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-muted-foreground mt-1">
             اختر هدفًا، ودع الذكاء الاصطناعي يرسم لك خريطة الطريق لتحقيقه.
         </p>
       </div>

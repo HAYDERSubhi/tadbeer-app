@@ -14,7 +14,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
             <Image src="/logo.png?v=2" alt="Tadbeer Logo" width={32} height={32} className="h-8 w-8" />
             <span>تدبير</span>

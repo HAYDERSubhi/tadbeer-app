@@ -112,11 +112,11 @@ export default function GoalsPage() {
   return (
     <div className="space-y-8 pb-24">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Target className="h-7 w-7 text-primary" />
+        <h1 className="text-xl font-bold flex items-center gap-2">
+            <Target className="h-6 w-6 text-primary" />
             أهدافي المالية
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-muted-foreground mt-1">
             أضف أهدافك الكبيرة هنا، ودع المخطط الذكي يساعدك على تحقيقها.
         </p>
       </div>
@@ -184,7 +184,7 @@ export default function GoalsPage() {
       </Card>
       
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">قائمة الأهداف</h2>
+        <h2 className="text-lg font-bold">قائمة الأهداف</h2>
         {goals.length === 0 ? (
           <Card className='text-center py-12'>
             <CardContent className="flex flex-col items-center gap-4">
