@@ -10,7 +10,7 @@ import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, Credi
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
@@ -529,9 +529,11 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            نصائح المدرب المالي
+          <CardTitle>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span>نصائح المدرب المالي</span>
+            </div>
           </CardTitle>
           <CardDescription>تحليلات وتوصيات ذكية بناءً على إنفاقك الأخير.</CardDescription>
         </CardHeader>
@@ -569,9 +571,11 @@ export default function DashboardPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            أحدث المصاريف
+          <CardTitle>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              <span>أحدث المصاريف</span>
+            </div>
           </CardTitle>
           <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
         </CardHeader>
@@ -597,3 +601,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
