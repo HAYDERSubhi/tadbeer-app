@@ -797,60 +797,24 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+      <Accordion type="single" collapsible className="w-full space-y-4">
         <AccordionItemWrapper 
           value="item-1"
           icon={UserCircle}
           title="الملف الشخصي والدخل"
           description="إدارة معلوماتك الشخصية ومصادر دخلك."
         >
-            {/* Profile Section */}
-            <div className="space-y-4">
-                <h3 className='text-lg font-semibold'>الملف الشخصي</h3>
-                <div className="space-y-2">
-                    <Label htmlFor="monthlyIncome">الدخل الشهري التقريبي (د.ع)</Label>
-                    <Input
-                    id="monthlyIncome"
-                    type="text"
-                    readOnly
-                    value={formatNumberWithCommas(totalRecurringIncome)}
-                    className="bg-muted font-bold text-lg cursor-not-allowed focus-visible:ring-0"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">يتم احتساب الدخل الشهري تلقائياً من مجموع مصادر الدخل الشهرية المتكررة أدناه.</p>
-                </div>
-                <div className="space-y-3">
-                    <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
-                    <div className="space-y-3 rounded-lg border bg-background p-4">
-                        {familyMembers.map((member, index) => (
-                        <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
-                            <span className='text-muted-foreground'>{index + 1}.</span>
-                            <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
-                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="adult">بالغ</SelectItem>
-                                    <SelectItem value="child">طفل</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px]" min="0" />
-                            <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
-                                <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                            </Button>
-                        </div>
-                        ))}
-                        <Button variant="outline" onClick={handleAddMember} className="w-full"><PlusCircle className="ml-2 h-4 w-4" />إضافة فرد</Button>
-                    </div>
-                </div>
-                <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
-                    {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
-                    حفظ الملف الشخصي
-                </Button>
-            </div>
-
-            <Separator />
-            
             {/* Income Section */}
-             <div className="space-y-4">
+            <div className="space-y-4">
                 <h3 className='text-lg font-semibold'>إدارة الدخل</h3>
+                
+                <Card className="text-center bg-muted/50">
+                    <CardContent className="p-4">
+                        <Label>إجمالي الدخل الشهري المتكرر</Label>
+                        <p className="text-2xl font-bold text-primary">{formatNumberWithCommas(totalRecurringIncome)} د.ع</p>
+                    </CardContent>
+                </Card>
+
                 <div>
                     <h4 className="font-medium mb-2">مصادر الدخل الحالية</h4>
                     <div className="space-y-2">
@@ -905,6 +869,39 @@ export default function SettingsPage() {
                         </div>
                     </SheetContent>
                 </FormDialog>
+            </div>
+
+            <Separator />
+            
+            {/* Profile Section */}
+            <div className="space-y-4">
+                <h3 className='text-lg font-semibold'>الملف الشخصي</h3>
+                <div className="space-y-3">
+                    <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
+                    <div className="space-y-3 rounded-lg border bg-background p-4">
+                        {familyMembers.map((member, index) => (
+                        <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
+                            <span className='text-muted-foreground'>{index + 1}.</span>
+                            <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
+                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="adult">بالغ</SelectItem>
+                                    <SelectItem value="child">طفل</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px]" min="0" />
+                            <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
+                                <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                            </Button>
+                        </div>
+                        ))}
+                        <Button variant="outline" onClick={handleAddMember} className="w-full"><PlusCircle className="ml-2 h-4 w-4" />إضافة فرد</Button>
+                    </div>
+                </div>
+                <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
+                    {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+                    حفظ الملف الشخصي
+                </Button>
             </div>
         </AccordionItemWrapper>
 
