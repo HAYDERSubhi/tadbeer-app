@@ -354,9 +354,11 @@ export default function DashboardPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               {isMobile ? (
-                 <SheetContent side="bottom">
-                    <SheetHeader className="sr-only"><SheetTitle>تعديل المصروف</SheetTitle></SheetHeader>
-                    <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                 <SheetContent side="bottom" className="flex flex-col">
+                    <div className="flex-1 overflow-y-auto px-6 pb-6">
+                       <SheetHeader className="sr-only"><SheetTitle>تعديل المصروف</SheetTitle></SheetHeader>
+                       <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                    </div>
                 </SheetContent>
               ) : (
                 <DialogContent>
@@ -395,16 +397,12 @@ export default function DashboardPage() {
 
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold">إضافة مصروف جديد</CardTitle>
-          <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
                     <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </span>
-                <p className="font-semibold text-sm">إدخال يدوي</p>
+                <p className="font-semibold text-sm">يدوي</p>
             </Link>
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
@@ -414,17 +412,22 @@ export default function DashboardPage() {
                     <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
                 </span>
                 <p className="font-semibold text-sm">
-                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
+                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'صوت'}
                 </p>
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom">
-                <SheetHeader className="sr-only">
-                    <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
-                    <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
-                </SheetHeader>
-                <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="h-[90dvh] flex flex-col rounded-t-lg">
+                 <div className="p-4 pt-2 shrink-0">
+                    <div className="mx-auto mt-2 h-2 w-[100px] rounded-full bg-muted" />
+                 </div>
+                 <div className="flex-1 overflow-y-auto px-6 pb-6">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
+                        <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
+                    </SheetHeader>
+                    <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+                 </div>
               </SheetContent>
             </VoiceReviewComponent>
 
@@ -432,7 +435,7 @@ export default function DashboardPage() {
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
                     <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
                 </span>
-                <p className="font-semibold text-sm">تحليل فاتورة</p>
+                <p className="font-semibold text-sm">فاتورة</p>
             </Link>
             
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
@@ -440,20 +443,25 @@ export default function DashboardPage() {
                   <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
                       <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
                   </span>
-                  <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+                  <p className="font-semibold text-sm">بطاقة</p>
               </div>
-              <SheetContent side="bottom">
-                  <SheetHeader>
-                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                    <SheetDescription>
-                      هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="p-4 sm:p-6">
-                    <Button asChild className="w-full mt-4">
-                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
-                    </Button>
-                  </div>
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="h-[90dvh] flex flex-col rounded-t-lg">
+                   <div className="p-4 pt-2 shrink-0">
+                      <div className="mx-auto mt-2 h-2 w-[100px] rounded-full bg-muted" />
+                   </div>
+                   <div className="flex-1 overflow-y-auto px-6 pb-6">
+                      <SheetHeader>
+                        <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
+                        <SheetDescription>
+                          هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                        </SheetDescription>
+                      </SheetHeader>
+                      <div className="p-4 sm:p-6">
+                        <Button asChild className="w-full mt-4">
+                            <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                        </Button>
+                      </div>
+                   </div>
               </SheetContent>
             </CardComponent>
         </CardContent>
