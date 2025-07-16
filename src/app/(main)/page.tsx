@@ -421,6 +421,10 @@ export default function DashboardPage() {
                 </DialogTrigger>
               )}
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <SheetHeader className="sr-only">
+                    <SheetTitle>إضافة مصروف يدويًا</SheetTitle>
+                    <SheetDescription>املأ النموذج لإضافة مصروف جديد.</SheetDescription>
+                </SheetHeader>
                 <ManualExpenseForm setOpen={setIsManualEntryOpen} />
               </SheetContent>
             </ManualEntryComponent>
@@ -438,6 +442,10 @@ export default function DashboardPage() {
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <SheetHeader className="sr-only">
+                    <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
+                    <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
+                </SheetHeader>
                 <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
               </SheetContent>
             </VoiceReviewComponent>
