@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     // Recommended size is 1200x630 pixels.
     images: [
       {
-        url: 'https://placehold.co/1200x630/fec604/202638.png?text=تطبيق+تدبير',
+        url: 'https://placehold.co/1200x630/fec604/202638.png',
         width: 1200,
         height: 630,
         alt: 'بانر تطبيق تدبير',
