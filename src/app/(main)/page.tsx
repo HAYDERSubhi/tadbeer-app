@@ -6,7 +6,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, PencilIcon, FilePenLine, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight } from "lucide-react";
+import { Trash2Icon, Sparkles, History, Pencil, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -344,7 +344,7 @@ export default function DashboardPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                    <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
-                      <PencilIcon className="ml-2 h-4 w-4" />
+                      <Pencil className="ml-2 h-4 w-4" />
                       تعديل
                     </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
@@ -400,7 +400,7 @@ export default function DashboardPage() {
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                    <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    <Pencil className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
 
             <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
-                    <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+                    <Receipt className="w-8 h-8 text-teal-600 dark:text-teal-400" />
                 </span>
                 <p className="font-semibold text-sm">فاتورة</p>
             </Link>
