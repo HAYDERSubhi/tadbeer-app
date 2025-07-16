@@ -103,7 +103,7 @@ export default function BudgetSummaryCard() {
                 {/* Main Progress Bar */}
                 <div className="pt-2 space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>المنصرف: {budgetData.monthlySpent.toLocaleString()} د.ع</span>
+                        <span>المصروف: {budgetData.monthlySpent.toLocaleString()} د.ع</span>
                         <span>المتبقي: {Math.max(0, budgetData.remainingBudget).toLocaleString()} د.ع</span>
                     </div>
                     <Progress value={budgetData.spentPercentage} className="h-2" />
