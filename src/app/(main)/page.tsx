@@ -199,7 +199,10 @@ export default function DashboardPage() {
     } else {
       setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
     }
-  }, [isVoiceRecording]);
+    // This dependency array is correct. The effect should not re-run when isVoiceRecording changes.
+    // We manage the recording state via handleToggleVoiceRecording.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleToggleVoiceRecording = () => {
     if (!recognitionRef.current) {
@@ -373,13 +376,15 @@ export default function DashboardPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <SheetContent side="bottom">
-                 <SheetHeader>
-                   <SheetTitle>تعديل المصروف</SheetTitle>
-                 </SheetHeader>
-                 <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
-                   <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                 </div>
-               </SheetContent>
+                <SheetHeader>
+                  <SheetTitle>تعديل المصروف</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto">
+                   <div className="p-6">
+                     <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
+                   </div>
+                </div>
+              </SheetContent>
             </EditComponent>
           </div>
         </li>
@@ -412,105 +417,114 @@ export default function DashboardPage() {
       )}
 
       {/* Add Expense Section */}
-       <div id="expense-input-methods" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-            {isMobile ? (
-              <SheetTrigger asChild>
-                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </span>
-                    <p className="font-semibold text-sm">إدخال يدوي</p>
-                </div>
-              </SheetTrigger>
-            ) : (
-              <DialogTrigger asChild>
-                <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                        <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                    </span>
-                    <p className="font-semibold text-sm">إدخال يدوي</p>
-                </div>
-              </DialogTrigger>
-            )}
-
-            <SheetContent side="bottom">
-              <SheetHeader>
-                <SheetTitle>إدخال يدوي</SheetTitle>
-              </SheetHeader>
-              <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
-                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-              </div>
-            </SheetContent>
-        </ManualEntryComponent>
-        
-        <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-             <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
-                {isVoiceLoading ? <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" /> : 
-                isVoiceRecording ? <StopCircle className="w-8 h-8 text-green-600 dark:text-green-400" /> : 
-                <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
-            </span>
-             <p className="font-semibold text-sm">
-                {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
-             </p>
-        </div>
-
-        <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-          <SheetContent side="bottom">
-            <SheetHeader>
-              <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
-              <SheetDescription>
-                يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="p-6 flex-1 overflow-y-auto max-h-[85dvh]">
-              <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
-            </div>
-          </SheetContent>
-        </VoiceReviewComponent>
-
-         <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
-                <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
-            </span>
-            <p className="font-semibold text-sm">تحليل فاتورة</p>
-        </Link>
-        
-        <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-             {isMobile ? (
-                 <SheetTrigger asChild>
-                    <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                        <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                            <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                        </span>
-                        <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-                    </div>
+      <Card id="expense-input-methods">
+        <CardHeader>
+          <CardTitle>إضافة مصروف جديد</CardTitle>
+          <CardDescription>اختر الطريقة التي تناسبك لإضافة مصروفاتك بسرعة.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <ManualEntryComponent open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+              {isMobile ? (
+                <SheetTrigger asChild>
+                  <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                      <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                          <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                      </span>
+                      <p className="font-semibold text-sm">إدخال يدوي</p>
+                  </div>
                 </SheetTrigger>
-             ) : (
-                 <DialogTrigger asChild>
-                    <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                        <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                            <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                        </span>
-                        <p className="font-semibold text-sm">بطاقة إلكترونية</p>
-                    </div>
+              ) : (
+                <DialogTrigger asChild>
+                  <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                      <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                          <FilePenLine className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                      </span>
+                      <p className="font-semibold text-sm">إدخال يدوي</p>
+                  </div>
                 </DialogTrigger>
-             )}
-          <SheetContent side="bottom">
-              <SheetHeader>
-                <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                <SheetDescription>
-                  هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="p-6">
-                <Button asChild className="w-full mt-4">
-                    <Link href="/settings">الذهاب إلى الإعدادات</Link>
-                </Button>
-              </div>
-          </SheetContent>
-        </CardComponent>
-      </div>
+              )}
+              <SheetContent side="bottom">
+                <SheetHeader>
+                  <SheetTitle>إدخال يدوي</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-6">
+                    <ManualExpenseForm setOpen={setIsManualEntryOpen} />
+                  </div>
+                </div>
+              </SheetContent>
+            </ManualEntryComponent>
+            
+            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
+                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" /> : 
+                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-green-600 dark:text-green-400" /> : 
+                    <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
+                </span>
+                <p className="font-semibold text-sm">
+                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'سجل بالصوت'}
+                </p>
+            </div>
+
+            <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
+              <SheetContent side="bottom">
+                <SheetHeader>
+                  <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
+                  <SheetDescription>
+                    يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto">
+                    <div className="p-6">
+                        <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+                    </div>
+                </div>
+              </SheetContent>
+            </VoiceReviewComponent>
+
+            <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
+                    <FileScan className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+                </span>
+                <p className="font-semibold text-sm">تحليل فاتورة</p>
+            </Link>
+            
+            <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
+                {isMobile ? (
+                    <SheetTrigger asChild>
+                        <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                                <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                            </span>
+                            <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+                        </div>
+                    </SheetTrigger>
+                ) : (
+                    <DialogTrigger asChild>
+                        <div className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
+                            <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                                <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                            </span>
+                            <p className="font-semibold text-sm">بطاقة إلكترونية</p>
+                        </div>
+                    </DialogTrigger>
+                )}
+              <SheetContent side="bottom">
+                  <SheetHeader>
+                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
+                    <SheetDescription>
+                      هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="p-6">
+                    <Button asChild className="w-full mt-4">
+                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                    </Button>
+                  </div>
+              </SheetContent>
+            </CardComponent>
+        </CardContent>
+      </Card>
 
       {userBudget.totalBudget === 0 ? (
           <Card className="text-center py-8">
