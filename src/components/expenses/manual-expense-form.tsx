@@ -1,3 +1,4 @@
+
 // src/components/expenses/manual-expense-form.tsx
 "use client";
 
@@ -160,7 +161,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   };
   
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
       <div>
         <Label htmlFor="title">العنوان</Label>
         <Input 

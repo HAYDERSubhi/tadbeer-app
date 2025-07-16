@@ -1,2 +1,7 @@
+
 // Re-export the main layout to apply it to this route
-export { default } from '../(main)/layout';
+import MainLayout from '../(main)/layout';
+
+export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+  return <MainLayout>{children}</MainLayout>;
+}

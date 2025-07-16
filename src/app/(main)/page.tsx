@@ -356,15 +356,11 @@ export default function DashboardPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SheetContent side="bottom">
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <SheetHeader>
                     <SheetTitle>تعديل المصروف</SheetTitle>
                   </SheetHeader>
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="p-4 pt-0 sm:p-6">
-                      <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
-                    </div>
-                  </div>
+                  <EditExpenseForm expense={expense} setOpen={setIsEditOpen} />
               </SheetContent>
             </EditComponent>
           </div>
@@ -380,7 +376,7 @@ export default function DashboardPage() {
   const CardComponent = isMobile ? Sheet : Dialog;
   
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6">
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v1" />
       
       {upcomingPayments.length > 0 && (
@@ -424,18 +420,11 @@ export default function DashboardPage() {
                   </div>
                 </DialogTrigger>
               )}
-              <SheetContent 
-                side="bottom" 
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader>
                   <SheetTitle>إدخال يدوي</SheetTitle>
                 </SheetHeader>
-                <div className="flex-1 overflow-y-auto">
-                  <div className="p-4 pt-0 sm:p-6">
-                    <ManualExpenseForm setOpen={setIsManualEntryOpen} />
-                  </div>
-                </div>
+                <ManualExpenseForm setOpen={setIsManualEntryOpen} />
               </SheetContent>
             </ManualEntryComponent>
             
@@ -451,21 +440,14 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent 
-                side="bottom" 
-                onOpenAutoFocus={(e) => e.preventDefault()}
-              >
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader>
                   <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                   <SheetDescription>
                     يرجى مراجعة البيانات التي تم تحليلها من تسجيلك الصوتي قبل حفظها.
                   </SheetDescription>
                 </SheetHeader>
-                <div className="flex-1 overflow-y-auto">
-                    <div className="p-4 pt-0 sm:p-6">
-                        <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
-                    </div>
-                </div>
+                <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
               </SheetContent>
             </VoiceReviewComponent>
 
@@ -496,7 +478,7 @@ export default function DashboardPage() {
                         </div>
                     </DialogTrigger>
                 )}
-              <SheetContent side="bottom">
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <SheetHeader>
                     <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                     <SheetDescription>
@@ -607,5 +589,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

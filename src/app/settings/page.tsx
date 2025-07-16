@@ -444,7 +444,7 @@ export default function SettingsPage() {
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error("User not authenticated");
-      const promises = newExpenses.map(exp => addExpense(user.uid, exp));
+      const promises = newExpenses.map(exp => addExpense(user!.uid, exp));
       return Promise.all(promises);
     },
     onSuccess: (results) => {
@@ -744,7 +744,7 @@ export default function SettingsPage() {
   const FormDialog = isMobile ? Sheet : Dialog;
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 pb-24">
+    <div className="space-y-6">
       
       {/* Account and Theme Section */}
       <Card>
@@ -843,7 +843,7 @@ export default function SettingsPage() {
                     <DialogTrigger asChild>
                     <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
                     </DialogTrigger>
-                    <SheetContent side="bottom" className="flex flex-col">
+                    <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
                             <SheetTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</SheetTitle>
                         </SheetHeader>
@@ -950,7 +950,7 @@ export default function SettingsPage() {
                     <DialogTrigger asChild>
                         <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
                     </DialogTrigger>
-                    <SheetContent side="bottom" className="flex flex-col">
+                    <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
                             <SheetTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
                         </SheetHeader>
