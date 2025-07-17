@@ -398,18 +398,18 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
-            <Link href="/add-expense" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                    <Pencil className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                    <Pencil className="w-8 h-8 text-primary" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>
             
-            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50", isVoiceRecording && "animate-pulse")}>
-                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-green-600 dark:text-green-400 animate-spin" /> : 
-                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-green-600 dark:text-green-400" /> : 
-                    <Mic className="w-8 h-8 text-green-600 dark:text-green-400" />}
+            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", isVoiceRecording && "animate-pulse")}>
+                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : 
+                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-primary" /> : 
+                    <Mic className="w-8 h-8 text-primary" />}
                 </span>
                 <p className="font-semibold text-sm">
                     {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'صوت'}
@@ -417,51 +417,41 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="h-[90dvh] flex flex-col rounded-t-lg">
-                 <div className="p-4 pt-2 shrink-0">
-                    <div className="mx-auto mt-2 h-2 w-[100px] rounded-full bg-muted" />
-                 </div>
-                 <div className="flex-1 overflow-y-auto px-6 pb-6">
-                    <SheetHeader className="sr-only">
-                        <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
-                        <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
-                    </SheetHeader>
-                    <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
-                 </div>
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+                 <SheetHeader className="sr-only">
+                    <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
+                    <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
+                 </SheetHeader>
+                 <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
               </SheetContent>
             </VoiceReviewComponent>
 
-            <Link href="/receipts" className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-teal-100 dark:bg-teal-900/50">
-                    <Receipt className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+            <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                    <Receipt className="w-8 h-8 text-primary" />
                 </span>
                 <p className="font-semibold text-sm">فاتورة</p>
             </Link>
             
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                      <CreditCard className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                      <CreditCard className="w-8 h-8 text-primary" />
                   </span>
                   <p className="font-semibold text-sm">بطاقة</p>
               </div>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="h-[90dvh] flex flex-col rounded-t-lg">
-                   <div className="p-4 pt-2 shrink-0">
-                      <div className="mx-auto mt-2 h-2 w-[100px] rounded-full bg-muted" />
-                   </div>
-                   <div className="flex-1 overflow-y-auto px-6 pb-6">
-                      <SheetHeader>
-                        <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                        <SheetDescription>
-                          هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
-                        </SheetDescription>
-                      </SheetHeader>
-                      <div className="p-4 sm:p-6">
-                        <Button asChild className="w-full mt-4">
-                            <Link href="/settings">الذهاب إلى الإعدادات</Link>
-                        </Button>
-                      </div>
-                   </div>
+              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+                  <SheetHeader>
+                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
+                    <SheetDescription>
+                      هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="p-4 sm:p-6">
+                    <Button asChild className="w-full mt-4">
+                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                    </Button>
+                  </div>
               </SheetContent>
             </CardComponent>
         </CardContent>
