@@ -95,9 +95,9 @@ export default function BudgetSummaryCard() {
                 {/* Main Stats Grid */}
                 <div className="grid grid-cols-2 gap-2 text-center">
                     <StatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" isLarge />
-                    <StatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600" isLarge />
-                    <StatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500" />
-                    <StatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500" />
+                    <StatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600 dark:text-green-400" isLarge />
+                    <StatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500 dark:text-red-400" />
+                    <StatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500 dark:text-red-400" />
                 </div>
                 
                 {/* Main Progress Bar */}
