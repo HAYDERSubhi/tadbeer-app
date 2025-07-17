@@ -11,6 +11,25 @@ import { Separator } from '@/components/ui/separator';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
+// Reusable component for displaying a statistic
+const StatItem = ({ label, value, color, size = 'md' }: { label: string, value: number, color?: string, size?: 'md' | 'lg' }) => (
+    <div className="flex flex-col items-center gap-1">
+        <span className={cn(
+            "text-muted-foreground",
+            size === 'md' ? 'text-xs' : 'text-sm'
+        )}>
+            {label}
+        </span>
+        <span className={cn(
+            "font-bold",
+            size === 'md' ? 'text-base' : 'text-xl',
+            color
+        )}>
+            {value.toLocaleString()}&nbsp;د.ع
+        </span>
+    </div>
+);
+
 export default function BudgetSummaryCard() {
     const { expenses, userSettings } = useAppData();
 
@@ -77,24 +96,6 @@ export default function BudgetSummaryCard() {
             weeklySummaries,
         };
     }, [expenses, userSettings]);
-
-    const StatItem = ({ label, value, color, size = 'md' }: { label: string, value: number, color?: string, size?: 'md' | 'lg' }) => (
-        <div className="flex flex-col items-center gap-1">
-            <span className={cn(
-                "text-muted-foreground",
-                size === 'md' ? 'text-xs' : 'text-sm'
-            )}>
-                {label}
-            </span>
-            <span className={cn(
-                "font-bold",
-                size === 'md' ? 'text-base' : 'text-xl',
-                color
-            )}>
-                {value.toLocaleString()}&nbsp;د.ع
-            </span>
-        </div>
-    );
 
     return (
         <Card id="budget-summary-card" className="bg-card">
