@@ -38,10 +38,9 @@ export default function BudgetSummaryCard() {
         const remaining = totalBudget - totalSpent;
         const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
         
-        const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? totalBudget / 4 : 0);
-        
         const daysInMonth = getDaysInMonth(start);
         const weekLength = Math.ceil(daysInMonth / 4);
+        const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? Math.round(totalBudget / (daysInMonth / 7)) : 0);
 
         const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
             const weekStart = addDays(start, index * weekLength);
@@ -53,18 +52,17 @@ export default function BudgetSummaryCard() {
                 isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd })
             );
             const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            
+            const progress = weeklyTarget > 0 ? (spent / weeklyTarget) * 100 : 0;
 
             let progressColor = "bg-primary";
-            if(weeklyTarget > 0) {
-                 const percentage = (spent / weeklyTarget) * 100;
-                 if (percentage > 90) progressColor = "bg-red-500";
-                 else if (percentage > 60) progressColor = "bg-yellow-400";
-            }
+            if (progress > 90) progressColor = "bg-destructive";
+            else if (progress > 60) progressColor = "bg-amber-500";
 
             return {
                 week: index + 1,
                 spent,
-                progress: weeklyTarget > 0 ? (spent / weeklyTarget) * 100 : 0,
+                progress: progress > 100 ? 100 : progress,
                 progressColor
             };
         });
@@ -80,10 +78,19 @@ export default function BudgetSummaryCard() {
         };
     }, [expenses, userSettings]);
 
-    const StatItem = ({ label, value, color, isLarge = false }: { label: string, value: number, color?: string, isLarge?: boolean }) => (
-        <div className="flex flex-col items-center gap-1 p-2 rounded-lg">
-            <span className={cn("text-xs text-muted-foreground", isLarge && "sm:text-sm")}>{label}</span>
-            <span className={cn("text-lg font-bold", isLarge && "sm:text-xl", color)}>
+    const StatItem = ({ label, value, color, size = 'md' }: { label: string, value: number, color?: string, size?: 'md' | 'lg' }) => (
+        <div className="flex flex-col items-center gap-1">
+            <span className={cn(
+                "text-muted-foreground",
+                size === 'md' ? 'text-xs' : 'text-sm'
+            )}>
+                {label}
+            </span>
+            <span className={cn(
+                "font-bold",
+                size === 'md' ? 'text-base' : 'text-xl',
+                color
+            )}>
                 {value.toLocaleString()}&nbsp;د.ع
             </span>
         </div>
@@ -92,10 +99,11 @@ export default function BudgetSummaryCard() {
     return (
         <Card id="budget-summary-card" className="bg-card">
             <CardContent className="space-y-4 p-4">
+                
                 {/* Main Stats Grid */}
                 <div className="grid grid-cols-2 gap-2 text-center">
-                    <StatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" isLarge />
-                    <StatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600 dark:text-green-400" isLarge />
+                    <StatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" size="lg" />
+                    <StatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600 dark:text-green-400" size="lg" />
                     <StatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500 dark:text-red-400" />
                     <StatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500 dark:text-red-400" />
                 </div>
@@ -112,7 +120,7 @@ export default function BudgetSummaryCard() {
                 <Separator />
                 
                 {/* Weekly Summary */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                     <p className="text-center text-sm font-medium text-muted-foreground">
                         الهدف الأسبوعي: {budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
                     </p>
@@ -123,7 +131,7 @@ export default function BudgetSummaryCard() {
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
                                     <span className="text-xs font-semibold">{week.spent.toLocaleString()}&nbsp;د.ع</span>
                                 </div>
-                                <Progress value={week.progress > 100 ? 100 : week.progress} className="h-2" indicatorcolor={cn(week.progressColor)} />
+                                <Progress value={week.progress} className="h-2" indicatorcolor={cn(week.progressColor)} />
                             </div>
                         ))}
                     </div>
