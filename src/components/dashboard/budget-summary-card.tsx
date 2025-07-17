@@ -11,20 +11,21 @@ import { Separator } from '@/components/ui/separator';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
-// Reusable component for displaying a statistic
-const StatItem = ({ label, value, color, size = 'md' }: { label: string, value: number, color?: string, size?: 'md' | 'lg' }) => (
+// Reusable component for displaying a main statistic
+const MainStatItem = ({ label, value, color }: { label: string, value: number, color?: string }) => (
     <div className="flex flex-col items-center gap-1">
-        <span className={cn(
-            "text-muted-foreground",
-            size === 'md' ? 'text-xs' : 'text-sm'
-        )}>
-            {label}
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className={cn("text-2xl font-bold", color)}>
+            {value.toLocaleString()}&nbsp;د.ع
         </span>
-        <span className={cn(
-            "font-bold",
-            size === 'md' ? 'text-base' : 'text-xl',
-            color
-        )}>
+    </div>
+);
+
+// Reusable component for displaying a secondary statistic
+const SecondaryStatItem = ({ label, value, color }: { label: string, value: number, color?: string }) => (
+    <div className="flex flex-col items-center gap-0">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className={cn("text-base font-semibold", color)}>
             {value.toLocaleString()}&nbsp;د.ع
         </span>
     </div>
@@ -58,17 +59,14 @@ export default function BudgetSummaryCard() {
         const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
         
         const daysInMonth = getDaysInMonth(start);
-        const weekLength = Math.ceil(daysInMonth / 4);
         const weeklyTarget = budget.weeklyBudget || (totalBudget > 0 ? Math.round(totalBudget / (daysInMonth / 7)) : 0);
 
         const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-            const weekStart = addDays(start, index * weekLength);
-            // Ensure the week end doesn't go past the end of the month
-            const weekEndUncapped = addDays(weekStart, weekLength - 1);
-            const weekEnd = weekEndUncapped > end ? end : weekEndUncapped;
+            const weekStart = addDays(start, index * 7);
+            const weekEnd = addDays(weekStart, 6);
             
             const weekExpenses = monthlyExpenses.filter(exp => 
-                isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd })
+                isWithinInterval(new Date(exp.date), { start: weekStart, end: weekEnd > end ? end : weekEnd })
             );
             const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
             
@@ -76,7 +74,7 @@ export default function BudgetSummaryCard() {
 
             let progressColor = "bg-primary";
             if (progress > 90) progressColor = "bg-destructive";
-            else if (progress > 60) progressColor = "bg-amber-500";
+            else if (progress > 70) progressColor = "bg-amber-500";
 
             return {
                 week: index + 1,
@@ -102,11 +100,13 @@ export default function BudgetSummaryCard() {
             <CardContent className="space-y-4 p-4">
                 
                 {/* Main Stats Grid */}
-                <div className="grid grid-cols-2 gap-2 text-center">
-                    <StatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" size="lg" />
-                    <StatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600 dark:text-green-400" size="lg" />
-                    <StatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500 dark:text-red-400" />
-                    <StatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500 dark:text-red-400" />
+                <div className="grid grid-cols-2 gap-4 text-center">
+                    <MainStatItem label="إجمالي الميزانية" value={budgetData.totalBudget} color="text-foreground" />
+                    <MainStatItem label="الميزانية المتبقية" value={Math.max(0, budgetData.remainingBudget)} color="text-green-600 dark:text-green-400" />
+                </div>
+                 <div className="grid grid-cols-2 gap-4 text-center">
+                    <SecondaryStatItem label="المصروف الشهري" value={budgetData.monthlySpent} color="text-red-500 dark:text-red-400" />
+                    <SecondaryStatItem label="مصروف اليوم" value={budgetData.dailySpent} color="text-red-500 dark:text-red-400" />
                 </div>
                 
                 {/* Main Progress Bar */}
@@ -123,9 +123,9 @@ export default function BudgetSummaryCard() {
                 {/* Weekly Summary */}
                 <div className="space-y-3">
                     <p className="text-center text-sm font-medium text-muted-foreground">
-                        الهدف الأسبوعي: {budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
+                        الهدف الأسبوعي: ~{budgetData.weeklyTarget.toLocaleString(undefined, { maximumFractionDigits: 0 })} د.ع
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {budgetData.weeklySummaries.map(week => (
                             <div key={week.week} className="w-full space-y-2">
                                 <div className="flex justify-between items-center">
