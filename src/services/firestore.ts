@@ -16,7 +16,7 @@ import {
     writeBatch,
     updateDoc
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone } from '@/types';
 
 // =================================
 // Expenses Service
@@ -173,6 +173,7 @@ const defaultSettings: UserSettings = {
         familyMembers: [],
     },
     recurringPayments: [],
+    appTone: 'formal',
 };
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
@@ -197,6 +198,7 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
                 ...data.profile
             },
             recurringPayments,
+            appTone: data.appTone || 'formal',
         };
         return mergedSettings;
     } else {

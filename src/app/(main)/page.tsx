@@ -270,6 +270,7 @@ export default function DashboardPage() {
         monthlyIncome: userProfile.monthlyIncome,
         familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
       } : undefined,
+      appTone: userSettings?.appTone || 'formal',
     };
   }, [expenses, userSettings]);
 

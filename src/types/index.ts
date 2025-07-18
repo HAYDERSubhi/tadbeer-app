@@ -1,3 +1,4 @@
+
 export type Expense = {
   id: string;
   uid: string;
@@ -62,10 +63,13 @@ export type LinkedCard = {
   last4: string;
 }
 
+export type AppTone = 'formal' | 'colloquial';
+
 export type UserSettings = {
   budget: UserBudgetSettings;
   categoryBudgets: Record<string, number>;
   profile: UserProfile;
   linkedCard?: LinkedCard | null;
   recurringPayments?: RecurringPayment[];
+  appTone?: AppTone;
 };
