@@ -1,3 +1,4 @@
+
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
@@ -93,7 +94,16 @@ export default function BudgetSummaryCard() {
         <Card id="budget-summary-card" className="bg-card">
             <CardContent className="space-y-4 p-4 sm:p-6">
                 
-                {/* Section 1: Main Stats */}
+                {/* Section 1: Main Progress Bar */}
+                <div className="pt-2 space-y-2">
+                    <div className="flex justify-between text-xs sm:text-sm text-muted-foreground px-1">
+                        <span>المصروف: {formatCurrency(budgetData.monthlySpent)}</span>
+                        <span>المتبقي: {formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
+                    </div>
+                    <Progress value={budgetData.spentPercentage} className="h-2.5" />
+                </div>
+
+                {/* Section 2: Main Stats */}
                 <div className="grid grid-cols-2 gap-4 text-center py-4">
                      <MainStatItem 
                         title="إجمالي الميزانية" 
@@ -114,17 +124,6 @@ export default function BudgetSummaryCard() {
                 </div>
                 
                 <Separator />
-
-                {/* Section 2: Main Progress Bar */}
-                <div className="pt-2 space-y-2">
-                    <div className="flex justify-between text-xs sm:text-sm text-muted-foreground px-1">
-                        <span>المصروف: {formatCurrency(budgetData.monthlySpent)}</span>
-                        <span>المتبقي: {formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
-                    </div>
-                    <Progress value={budgetData.spentPercentage} className="h-2.5" />
-                </div>
-                
-                <Separator className="my-4" />
                 
                 {/* Section 3: Weekly Summary */}
                 <div className="space-y-4">
