@@ -34,6 +34,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter as DialogFooterComponent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -749,6 +750,7 @@ export default function SettingsPage() {
   );
 
   const FormDialog = isMobile ? Sheet : Dialog;
+  const MappingDialog = isMobile ? Sheet : Dialog;
 
   return (
     <div className="space-y-6">
@@ -832,7 +834,7 @@ export default function SettingsPage() {
                         <path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/>
                         <path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/>
                         <path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/>
-                        <path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9-2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/>
+                        <path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/>
                         <path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/>
                         <path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/>
                     </svg>
@@ -1048,7 +1050,7 @@ export default function SettingsPage() {
                 <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
                 <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
-            </div>
+             </div>
 
             <Separator />
              
@@ -1103,35 +1105,37 @@ export default function SettingsPage() {
 
       </Accordion>
 
-      {isMappingColumns && (
-        <Dialog open={isMappingColumns} onOpenChange={setIsMappingColumns}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</DialogTitle>
-              <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
-                   <div key={field} className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
-                      <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
-                          <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
-                              {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
-                          </SelectContent>
-                      </Select>
-                   </div>
-              ))}
+      <MappingDialog open={isMappingColumns} onOpenChange={setIsMappingColumns}>
+        <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</SheetTitle>
+              <SheetDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto p-6 pt-2">
+                <div className="space-y-4 py-4">
+                  {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
+                       <div key={field} className="grid grid-cols-3 items-center gap-4">
+                          <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
+                          <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
+                              <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
+                              <SelectContent>
+                                  <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
+                                  {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
+                              </SelectContent>
+                          </Select>
+                       </div>
+                  ))}
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
+                    <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
+                </div>
             </div>
-            <DialogFooter className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-                <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+          </SheetContent>
+      </MappingDialog>
 
     </div>
   );
 }
+
+    
