@@ -591,17 +591,17 @@ export default function StatisticsPage() {
                     }}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-4 flex-1 min-w-0">
-                         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl">
                             {item.icon}
                          </span>
                          <div className="flex-1 min-w-0 text-right">
-                              <p className="font-semibold truncate">{item.name}</p>
-                              <p className="text-sm text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
+                              <p className="font-semibold text-sm truncate">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                          </div>
                       </div>
                       <div className='text-left ml-4'>
-                        <p className="text-lg font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                        <p className="text-base font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
                             <div className='w-24 mt-1'>
                                 <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
@@ -682,7 +682,7 @@ export default function StatisticsPage() {
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
               <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
-                <div className="mb-2">
+                <div className="mb-4">
                     <div className="flex items-center gap-3">
                         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
                             {catTrend.categoryIcon}
@@ -697,7 +697,7 @@ export default function StatisticsPage() {
                        <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} domain={['auto', 'auto']} allowDataOverflow={true} />
+                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} allowDataOverflow={true} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
