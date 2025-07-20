@@ -158,7 +158,6 @@ export default function DashboardPage() {
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         handleVoiceTranscript(transcript);
-        setIsVoiceRecording(false);
       };
 
       recognition.onerror = (event) => {
@@ -181,9 +180,6 @@ export default function DashboardPage() {
     } else {
       setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
     }
-    // This dependency array is correct. The effect should not re-run when isVoiceRecording changes.
-    // We manage the recording state via handleToggleVoiceRecording.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleToggleVoiceRecording = () => {
@@ -192,9 +188,9 @@ export default function DashboardPage() {
         return;
     }
     if (isVoiceRecording) {
-      recognitionRef.current.abort(); // Use abort() to immediately stop and discard results
+      recognitionRef.current.stop(); // Use stop() to finalize and get result
       setIsVoiceRecording(false);
-      setIsVoiceLoading(false);
+      // We don't set loading to false here, because onresult will fire and handle it.
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
@@ -205,6 +201,7 @@ export default function DashboardPage() {
   const handleVoiceTranscript = async (transcript: string) => {
     if (!transcript.trim()) {
         toast({ title: "لم يتم تسجيل أي صوت", variant: "destructive" });
+        setIsVoiceLoading(false);
         return;
     }
     
@@ -420,7 +417,7 @@ export default function DashboardPage() {
                     <Mic className="w-8 h-8 text-primary" />}
                 </span>
                 <p className="font-semibold text-sm">
-                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'جاري الاستماع...' : 'صوت'}
+                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'استماع' : 'صوت'}
                 </p>
             </div>
 
