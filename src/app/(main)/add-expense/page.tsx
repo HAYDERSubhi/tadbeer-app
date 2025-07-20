@@ -71,9 +71,7 @@ export default function AddExpensePage() {
     }, []);
 
     useEffect(() => {
-        // Don't categorize if the user has already manually selected a category,
-        // or if the title is empty.
-        if (!debouncedTitle || form.getValues('category')) {
+        if (!debouncedTitle) {
           return;
         }
 
@@ -81,7 +79,7 @@ export default function AddExpensePage() {
           setIsCategorizing(true);
           try {
             const result = await recordExpenseAction({
-              expenseText: debouncedTitle, // Pass only the title for categorization
+              expenseText: debouncedTitle,
               categories: categoryMap,
             });
             if (result.category) {
