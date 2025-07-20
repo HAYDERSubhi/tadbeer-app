@@ -30,7 +30,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
-import { categorizeExpenseAction } from '@/app/actions';
+import { recordExpenseAction } from '@/app/actions';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -79,21 +79,21 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    // Don't categorize if the user has already manually selected a category
-    // or if the title is empty.
-    if (!debouncedTitle || form.getValues('category')) {
+    // Don't categorize if the user has already manually selected a category,
+    // or if the title is empty, or if an amount is already set (likely from voice input).
+    if (!debouncedTitle || form.getValues('category') || form.getValues('amount')) {
       return;
     }
 
     const getCategorySuggestion = async () => {
       setIsCategorizing(true);
       try {
-        const result = await categorizeExpenseAction({
-          expenseTitle: debouncedTitle,
+        const result = await recordExpenseAction({
+          expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
           categories: categoryMap,
         });
-        if (result.suggestedCategory) {
-          form.setValue('category', result.suggestedCategory, { shouldValidate: true });
+        if (result.category) {
+          form.setValue('category', result.category, { shouldValidate: true });
         }
       } catch (error) {
         console.error("Failed to get category suggestion:", error);

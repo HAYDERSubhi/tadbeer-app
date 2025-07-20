@@ -23,7 +23,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import { useDebounce } from '@/hooks/use-debounce';
-import { categorizeExpenseAction } from '@/app/actions';
+import { recordExpenseAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -72,19 +72,21 @@ export default function AddExpensePage() {
     }, []);
 
     useEffect(() => {
-        if (!debouncedTitle || form.getValues('category')) {
+        if (!debouncedTitle || form.getValues('category') || form.getValues('amount')) {
           return;
         }
 
         const getCategorySuggestion = async () => {
           setIsCategorizing(true);
           try {
-            const result = await categorizeExpenseAction({
-              expenseTitle: debouncedTitle,
+            // We use recordExpenseAction and provide a dummy amount because it now expects a full expense text.
+            // We only care about the category it returns.
+            const result = await recordExpenseAction({
+              expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
               categories: categoryMap,
             });
-            if (result.suggestedCategory) {
-              form.setValue('category', result.suggestedCategory, { shouldValidate: true });
+            if (result.category) {
+              form.setValue('category', result.category, { shouldValidate: true });
             }
           } catch (error) {
             console.error("Failed to get category suggestion:", error);
@@ -236,4 +238,3 @@ export default function AddExpensePage() {
         </div>
     );
 }
-
