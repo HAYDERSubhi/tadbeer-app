@@ -62,7 +62,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
 import {
@@ -743,7 +743,7 @@ export default function SettingsPage() {
                       ))}
                     </div>
                 </div>
-                <DialogFooterComponent className="pt-4">
+                <DialogFooterComponent className="pt-4 border-t">
                     <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
                     <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
                 </DialogFooterComponent>
@@ -791,7 +791,7 @@ export default function SettingsPage() {
              <CardFooter className="p-0">
                  <Alert variant="destructive" className="border-0 border-t rounded-t-none">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>بياناتك غير محفوظة!</AlertTitle>
+                    <AlertTitleComponent>بياناتك غير محفوظة!</AlertTitleComponent>
                     <CardDescription>للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</CardDescription>
                 </Alert>
              </CardFooter>
@@ -1053,8 +1053,6 @@ export default function SettingsPage() {
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
              
-             <MappingDialog />
-
              <Separator />
 
              <div>
@@ -1095,6 +1093,8 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
       </Accordion>
+
+      <MappingDialog />
 
     </div>
   );
