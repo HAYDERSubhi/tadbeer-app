@@ -682,22 +682,22 @@ export default function StatisticsPage() {
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
               <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-3">
+                <div>
+                    <div className="flex items-center gap-3 mb-1">
                         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
                             {catTrend.categoryIcon}
                         </span>
-                        <span>{catTrend.categoryName}</span>
-                    </h3>
-                    <span className="text-lg font-bold text-muted-foreground whitespace-nowrap">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</span>
+                        <h3 className="text-lg font-semibold">{catTrend.categoryName}</h3>
+                    </div>
+                    <p className="text-lg font-bold text-muted-foreground mb-4">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
                 </div>
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 10, left: 20, bottom: 5 }}>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 10, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} />
+                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={60} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
