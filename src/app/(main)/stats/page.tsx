@@ -694,7 +694,7 @@ export default function StatisticsPage() {
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                           <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} domain={['auto', 'auto']} />
@@ -802,3 +802,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
