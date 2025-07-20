@@ -170,9 +170,9 @@ export default function DashboardPage() {
       };
       
       recognition.onend = () => {
-        if (isVoiceRecording) { // If it ends while we still think it's recording
+        if (isVoiceRecording) { 
             setIsVoiceRecording(false);
-            setIsVoiceLoading(true); // Assume it's processing
+            setIsVoiceLoading(false); 
         }
       };
 
@@ -190,17 +190,17 @@ export default function DashboardPage() {
     if (isVoiceRecording) {
       recognitionRef.current.stop(); 
       setIsVoiceRecording(false);
-      // Let onend/onresult handle loading state
+      setIsVoiceLoading(true);
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
-      setIsVoiceLoading(false); // Ensure loading is false when starting
+      setIsVoiceLoading(false); 
       recognitionRef.current.start();
     }
   };
   
   const handleVoiceTranscript = async (transcript: string) => {
-    setIsVoiceLoading(true); // Start loading as soon as we have a transcript
+    setIsVoiceLoading(true);
     if (!transcript.trim()) {
         toast({ title: "لم يتم تسجيل أي صوت", variant: "destructive" });
         setIsVoiceLoading(false);
@@ -215,7 +215,7 @@ export default function DashboardPage() {
         const result: RecordExpenseWithTextOutput = await recordExpenseAction(input);
         
         setVoiceExpenseData({
-            title: result.description, // Pass the description as title
+            title: result.description, 
             amount: result.amount,
             category: result.category,
             date: result.date
@@ -401,11 +401,13 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
-            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                    <Pencil className="w-8 h-8 text-primary" />
-                </span>
-                <p className="font-semibold text-sm">يدوي</p>
+            <Link href="/add-expense" passHref legacyBehavior>
+                <a className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                        <Pencil className="w-8 h-8 text-primary" />
+                    </span>
+                    <p className="font-semibold text-sm">يدوي</p>
+                </a>
             </Link>
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
