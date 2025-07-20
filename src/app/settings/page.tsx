@@ -715,7 +715,6 @@ export default function SettingsPage() {
   );
 
   const FormDialog = isMobile ? Sheet : Dialog;
-  const MappingDialog = isMobile ? Sheet : Dialog;
 
   return (
     <div className="space-y-6">
@@ -762,7 +761,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+      <Accordion type="single" collapsible className="w-full space-y-4">
         <AccordionItemWrapper
           value="item-1"
           icon={PaletteIcon}
@@ -1045,7 +1044,7 @@ export default function SettingsPage() {
                     </AlertDialogContent>
                 </AlertDialog>
              </div>
-              <MappingDialog open={isMappingColumns} onOpenChange={setIsMappingColumns}>
+             <FormDialog open={isMappingColumns} onOpenChange={setIsMappingColumns}>
                 <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                     <SheetHeader>
                       <SheetTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</SheetTitle>
@@ -1072,7 +1071,7 @@ export default function SettingsPage() {
                         </div>
                     </div>
                   </SheetContent>
-              </MappingDialog>
+              </FormDialog>
         </AccordionItemWrapper>
          
         <AccordionItemWrapper
