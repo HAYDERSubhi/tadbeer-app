@@ -14,4 +14,3 @@ import '@/ai/flows/financial-planner.ts';
 import '@/ai/flows/record-expense-text.ts';
 import '@/ai/flows/simulate-card-transactions.ts';
 import '@/ai/flows/categorize-expense-text.ts';
-import '@/ai/flows/re-categorize-expenses.ts'; // Add new flow

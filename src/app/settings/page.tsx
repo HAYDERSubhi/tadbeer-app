@@ -65,7 +65,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertTitle } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
-import { reCategorizeAction } from '@/app/actions';
 import {
   Accordion,
   AccordionContent,
@@ -681,40 +680,6 @@ export default function SettingsPage() {
   
   const isAnonymous = user?.isAnonymous ?? true;
 
-  const reCategorizeMutation = useMutation({
-    mutationFn: async () => {
-      if (!expenses || expenses.length === 0) {
-        toast({ title: 'لا يوجد ما يمكن تصنيفه', description: 'ليس لديك أي مصاريف مسجلة بعد.', variant: 'destructive' });
-        return { count: 0 };
-      }
-
-      const categoryMap = Object.entries(CATEGORIES).reduce((acc, [id, { name }]) => {
-          acc[id] = name;
-          return acc;
-      }, {} as Record<string, string>);
-
-      const expensesToProcess = expenses.map(e => ({ id: e.id, title: e.title }));
-      
-      return reCategorizeAction({ expenses: expensesToProcess, categories: categoryMap });
-    },
-    onSuccess: (data) => {
-      if (data.count > 0) {
-        queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
-        toast({
-          title: 'اكتمل التصنيف!',
-          description: `تمت مراجعة وتحديث ${data.count} مصروف بنجاح.`,
-        });
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: 'فشل التصنيف',
-        description: error.message || 'حدث خطأ غير متوقع أثناء إعادة التصنيف.',
-        variant: 'destructive',
-      });
-    },
-  });
-
   const frequencyMap = {
     'monthly': 'شهري',
     'quarterly': 'ربع سنوي',
@@ -1044,25 +1009,13 @@ export default function SettingsPage() {
             value="item-4"
             icon={DatabaseZapIcon}
             title="إدارة البيانات"
-            description="تصدير، استيراد، تصليح، وحذف بياناتك."
+            description="تصدير، استيراد، وحذف بياناتك."
         >
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
                 <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
-
-            <Separator />
-             
-            <div>
-                 <h4 className='font-semibold'>إصلاح البيانات</h4>
-                 <p className="text-xs text-muted-foreground mb-2">استخدم الذكاء الاصطناعي لمراجعة مصاريفك القديمة وتصنيفها بشكل دقيق.</p>
-                 <Button className="w-full" onClick={() => reCategorizeMutation.mutate()} disabled={reCategorizeMutation.isPending}>
-                    {reCategorizeMutation.isPending ? (
-                    <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إعادة التصنيف...</>
-                    ) : (<> <WandSparkles className="ml-2 h-4 w-4" /> بدء إعادة التصنيف الذكي</>)}
-                </Button>
-            </div>
 
              <Separator />
 

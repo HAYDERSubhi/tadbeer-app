@@ -2,10 +2,6 @@
 'use server';
 
 import {
-  reCategorizeExpenses,
-  type ReCategorizeExpensesInput,
-} from '@/ai/flows/re-categorize-expenses';
-import {
   recordExpenseWithText,
   type RecordExpenseWithTextInput,
   type RecordExpenseWithTextOutput,
@@ -15,8 +11,6 @@ import {
   type CategorizeExpenseTextInput,
   type CategorizeExpenseTextOutput,
 } from '@/ai/flows/categorize-expense-text';
-import {updateExpense} from '@/services/firestore';
-import {auth} from '@/lib/firebase';
 
 /**
  * A Server Action to securely call the recordExpenseWithText AI flow from the client.
@@ -54,38 +48,6 @@ export async function categorizeExpenseAction(
     }
     throw new Error(
       'An unknown error occurred while categorizing the expense.'
-    );
-  }
-}
-
-/**
- * A Server Action to re-categorize all expenses for the current user.
- */
-export async function reCategorizeAction(
-  input: ReCategorizeExpensesInput
-): Promise<{count: number}> {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User is not authenticated.');
-  }
-
-  try {
-    const result = await reCategorizeExpenses(input);
-
-    const updatePromises = result.reCategorizedExpenses.map(item => {
-      return updateExpense(user.uid, item.id, {category: item.newCategory});
-    });
-
-    await Promise.all(updatePromises);
-
-    return {count: result.reCategorizedExpenses.length};
-  } catch (error) {
-    console.error('Error in reCategorizeAction:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to re-categorize expenses: ${error.message}`);
-    }
-    throw new Error(
-      'An unknown error occurred while re-categorizing expenses.'
     );
   }
 }
