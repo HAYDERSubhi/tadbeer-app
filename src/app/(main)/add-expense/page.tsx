@@ -1,4 +1,3 @@
-
 // src/app/(main)/add-expense/page.tsx
 "use client";
 
@@ -72,17 +71,17 @@ export default function AddExpensePage() {
     }, []);
 
     useEffect(() => {
-        if (!debouncedTitle || form.getValues('category') || form.getValues('amount')) {
+        // Don't categorize if the user has already manually selected a category,
+        // or if the title is empty.
+        if (!debouncedTitle || form.getValues('category')) {
           return;
         }
 
         const getCategorySuggestion = async () => {
           setIsCategorizing(true);
           try {
-            // We use recordExpenseAction and provide a dummy amount because it now expects a full expense text.
-            // We only care about the category it returns.
             const result = await recordExpenseAction({
-              expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
+              expenseText: debouncedTitle, // Pass only the title for categorization
               categories: categoryMap,
             });
             if (result.category) {

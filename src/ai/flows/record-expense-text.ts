@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 const RecordExpenseWithTextInputSchema = z.object({
   expenseText: z
     .string()
-    .describe("The user's transcribed expense in Iraqi dialect."),
+    .describe("The user's transcribed expense in Iraqi dialect. This could be a full sentence like 'دفعت 50 ألف على البانزين' or just an item name like 'قهوة'."),
   categories: z
     .record(z.string(), z.string())
     .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),
@@ -26,10 +26,10 @@ export type RecordExpenseWithTextInput = z.infer<typeof RecordExpenseWithTextInp
 
 
 const RecordExpenseWithTextOutputSchema = z.object({
-  amount: z.number().describe('The amount of the expense.'),
+  amount: z.number().describe('The amount of the expense. If not mentioned, default to 0.'),
   category: z.string().describe('The ID of the most appropriate category for the expense from the provided list.'),
   date: z.string().describe("The date of the expense in YYYY-MM-DD format. Default to today if not mentioned."),
-  description: z.string().optional().describe('A short description of the expense.'),
+  description: z.string().optional().describe('A short description of the expense. This should be the item name itself if no other description is provided.'),
 });
 export type RecordExpenseWithTextOutput = z.infer<typeof RecordExpenseWithTextOutputSchema>;
 
@@ -42,15 +42,16 @@ const extractAndCategorizePrompt = ai.definePrompt({
     name: 'extractAndCategorizePrompt',
     input: { schema: RecordExpenseWithTextInputSchema.extend({ currentDate: z.string() }) },
     output: { schema: RecordExpenseWithTextOutputSchema },
-    prompt: `You are an AI assistant that helps users in Iraq record their expenses from a transcribed text in Iraqi Arabic dialect.
+    prompt: `You are an AI assistant that helps users in Iraq record their expenses from a text input in Iraqi Arabic dialect.
     You will receive a text of the expense, and you need to extract all information and categorize it in one step.
 
     **Instructions:**
-    1.  Analyze the text carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
+    1.  Analyze the text carefully. The text can be a full sentence like "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or just the item's name, like "قهوة" (coffee).
     2.  Extract the amount, description, and date.
-    3.  If no date is mentioned, use today's date, which is {{currentDate}}.
-    4.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "private_car". For "باذنجان" (eggplant), it should be "food".
-    5.  Return all the extracted information in the required JSON format.
+    3.  If the text is just an item name (e.g., "قهوة"), you should set the 'description' to that name, and the 'amount' to 0. The primary goal in this case is to get the category.
+    4.  If no date is mentioned, use today's date, which is {{currentDate}}.
+    5.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "transport". For "قهوة" (coffee), it should be "food".
+    6.  Return all the extracted information in the required JSON format.
 
     **Available Categories (ID: Name):**
     {{#each categories}}
