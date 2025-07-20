@@ -158,7 +158,7 @@ export default function AddExpensePage() {
                                 <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === id ? 'bg-primary/20' : 'bg-background')}>
                                     {cat.icon}
                                 </span>
-                                <p className="text-xs font-medium truncate">{cat.name}</p>
+                                <p className="text-xs font-medium break-words">{cat.name}</p>
                             </div>
                         ))}
                     </div>
