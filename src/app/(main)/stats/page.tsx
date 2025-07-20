@@ -563,37 +563,6 @@ export default function StatisticsPage() {
           ) : (<p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUpIcon className="h-5 w-5 text-primary" />
-            اتجاه المصاريف
-          </CardTitle>
-          <CardDescription>
-            {view === 'year' ? `شهريًا لعام ${selectedYear}` : trendChartData.length > 0 ? `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}` : ''}
-          </CardDescription>
-          {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
-        </CardHeader>
-        <CardContent className="h-[300px]">
-          {trendChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={trendChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={60} />
-                 <RechartsTooltip
-                    contentStyle={{ direction: 'rtl' }}
-                    formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
-                    labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
-                  />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
-              </LineChart>
-            </ChartContainer>
-          ) : (<p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
-        </CardContent>
-      </Card>
       
       <Card>
         <CardHeader>
@@ -665,6 +634,37 @@ export default function StatisticsPage() {
                     <p>لا توجد مصاريف لعرضها.</p>
                 </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUpIcon className="h-5 w-5 text-primary" />
+            اتجاه المصاريف
+          </CardTitle>
+          <CardDescription>
+            {view === 'year' ? `شهريًا لعام ${selectedYear}` : trendChartData.length > 0 ? `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}` : ''}
+          </CardDescription>
+          {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
+        </CardHeader>
+        <CardContent className="h-[300px]">
+          {trendChartData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="w-full h-full">
+              <LineChart data={trendChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={60} />
+                 <RechartsTooltip
+                    contentStyle={{ direction: 'rtl' }}
+                    formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
+                    labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
+                  />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
+              </LineChart>
+            </ChartContainer>
+          ) : (<p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 
@@ -802,5 +802,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
