@@ -192,7 +192,7 @@ export default function DashboardPage() {
         return;
     }
     if (isVoiceRecording) {
-      recognitionRef.current.stop();
+      recognitionRef.current.abort(); // Use abort() to immediately stop and discard results
       setIsVoiceRecording(false);
       setIsVoiceLoading(false);
     } else {
@@ -413,10 +413,10 @@ export default function DashboardPage() {
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className={cn(
                     "flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", 
-                    isVoiceRecording && "bg-primary/20 animate-pulse"
+                    isVoiceRecording && "bg-red-500/20 animate-pulse"
                 )}>
                     {isVoiceLoading ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : 
-                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-primary" /> : 
+                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-red-500" /> : 
                     <Mic className="w-8 h-8 text-primary" />}
                 </span>
                 <p className="font-semibold text-sm">
