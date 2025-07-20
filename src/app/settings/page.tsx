@@ -37,6 +37,7 @@ import {
   DialogFooter as DialogFooterComponent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Sheet,
@@ -1134,5 +1135,6 @@ export default function SettingsPage() {
     </div>
   );
 }
+
 
 
