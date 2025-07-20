@@ -163,7 +163,9 @@ export default function DashboardPage() {
 
       recognition.onerror = (event) => {
         console.error('Speech recognition error', event.error);
-        setVoiceError(`خطأ في التعرف على الصوت: ${event.error}`);
+        if (event.error !== 'aborted') {
+          setVoiceError(`خطأ في التعرف على الصوت: ${event.error}`);
+        }
         setIsVoiceRecording(false);
         setIsVoiceLoading(false);
       };
@@ -191,6 +193,8 @@ export default function DashboardPage() {
     }
     if (isVoiceRecording) {
       recognitionRef.current.stop();
+      setIsVoiceRecording(false);
+      setIsVoiceLoading(false);
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
@@ -407,7 +411,10 @@ export default function DashboardPage() {
             </Link>
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className={cn("flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", isVoiceRecording && "animate-pulse")}>
+                <span className={cn(
+                    "flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", 
+                    isVoiceRecording && "bg-primary/20 animate-pulse"
+                )}>
                     {isVoiceLoading ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : 
                     isVoiceRecording ? <StopCircle className="w-8 h-8 text-primary" /> : 
                     <Mic className="w-8 h-8 text-primary" />}
