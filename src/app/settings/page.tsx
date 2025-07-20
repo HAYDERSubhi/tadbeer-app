@@ -37,7 +37,6 @@ import {
   DialogFooter as DialogFooterComponent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Sheet,
@@ -62,7 +61,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
+import { Alert, AlertTitle as AlertTitleComponent, AlertDescription as AlertDescriptionComponent } from '@/components/ui/alert';
 import { version } from '../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
 import {
@@ -126,8 +125,6 @@ const MappingDialog = ({
   setIsOpen,
   isMobile,
   fileHeaders,
-  columnMap,
-  setColumnMap,
   processAndSave,
   isProcessing,
 }: {
@@ -135,13 +132,34 @@ const MappingDialog = ({
   setIsOpen: (open: boolean) => void;
   isMobile: boolean;
   fileHeaders: string[];
-  columnMap: Record<string, number | null>;
-  setColumnMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>;
-  processAndSave: () => void;
+  processAndSave: (map: Record<string, number | null>) => void;
   isProcessing: boolean;
 }) => {
+  const [columnMap, setColumnMap] = useState<Record<string, number | null>>({});
+
+  useEffect(() => {
+    if (isOpen) {
+      const savedMap: Record<string, number | null> = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
+      const autoMap: Record<string, number | null> = {};
+      for (const [field] of Object.entries(COLUMN_MAP_CONFIG)) {
+        const savedIndex = savedMap[field];
+        if (savedIndex !== null && savedIndex !== undefined && savedIndex < fileHeaders.length) {
+            autoMap[field] = savedIndex;
+        } else {
+            autoMap[field] = null;
+        }
+      }
+      setColumnMap(autoMap);
+    }
+  }, [isOpen, fileHeaders]);
+
+
   const DialogComponent = isMobile ? Sheet : Dialog;
   const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+  const handleProcess = () => {
+    processAndSave(columnMap);
+  }
 
   return (
     <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
@@ -168,7 +186,7 @@ const MappingDialog = ({
         </div>
         <DialogFooterComponent className="pt-4 border-t">
           <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
-          <Button onClick={processAndSave} disabled={isProcessing}>
+          <Button onClick={handleProcess} disabled={isProcessing}>
             {isProcessing && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
             تأكيد واستيراد البيانات
           </Button>
@@ -194,7 +212,6 @@ export default function SettingsPage() {
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
-  const [columnMap, setColumnMap] = useState<Record<string, number | null>>({});
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, string>>({});
@@ -550,8 +567,6 @@ export default function SettingsPage() {
   };
 
   const handleImportClick = () => {
-    setIsMappingColumns(false);
-    setColumnMap({});
     fileInputRef.current?.click();
   };
 
@@ -572,16 +587,6 @@ export default function SettingsPage() {
         const dataRows = rows.slice(1);
         setFileHeaders(headers);
         setParsedDataCache(dataRows);
-
-        const savedMap: Record<string, number | null> = JSON.parse(localStorage.getItem(LOCAL_STORAGE_MAP_KEY) || '{}');
-        const autoMap: Record<string, number | null> = {};
-        for (const [field] of Object.entries(COLUMN_MAP_CONFIG)) {
-          const savedIndex = savedMap[field];
-          if (savedIndex !== null && savedIndex !== undefined && savedIndex < headers.length) {
-             autoMap[field] = savedIndex;
-          }
-        }
-        setColumnMap(autoMap);
         setIsMappingColumns(true);
       } catch (error: any) {
         toast({ title: "فشل الاستيراد", description: error.message || "حدث خطأ أثناء قراءة الملف.", variant: "destructive" });
@@ -592,7 +597,7 @@ export default function SettingsPage() {
     reader.readAsArrayBuffer(file);
   };
   
-  const processAndSaveExpenses = () => {
+  const processAndSaveExpenses = (columnMap: Record<string, number | null>) => {
       if (!user) return;
       const missingRequired = REQUIRED_FIELDS.filter(field => columnMap[field] === null || columnMap[field] === undefined);
       if (missingRequired.length > 0) {
@@ -816,7 +821,7 @@ export default function SettingsPage() {
                  <Alert variant="destructive" className="border-0 border-t rounded-t-none">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitleComponent>بياناتك غير محفوظة!</AlertTitleComponent>
-                    <CardDescription>للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</CardDescription>
+                    <AlertDescriptionComponent>للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</AlertDescriptionComponent>
                 </Alert>
              </CardFooter>
         )}
@@ -1123,8 +1128,6 @@ export default function SettingsPage() {
         setIsOpen={setIsMappingColumns}
         isMobile={isMobile}
         fileHeaders={fileHeaders}
-        columnMap={columnMap}
-        setColumnMap={setColumnMap}
         processAndSave={processAndSaveExpenses}
         isProcessing={addMultipleExpensesMutation.isPending}
       />
@@ -1132,4 +1135,4 @@ export default function SettingsPage() {
   );
 }
 
-    
+
