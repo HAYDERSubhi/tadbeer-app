@@ -189,7 +189,7 @@ const MappingDialog = ({
           <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
           <Button onClick={handleProcess} disabled={isProcessing}>
             {isProcessing && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
-            تأكيد واستيراد البيانات
+            {isProcessing ? 'جاري المعالجة...' : 'تأكيد واستيراد البيانات'}
           </Button>
         </DialogFooterComponent>
       </DialogContentComponent>
@@ -1123,7 +1123,7 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
       </Accordion>
-
+      
       <MappingDialog
         isOpen={isMappingColumns}
         setIsOpen={setIsMappingColumns}
@@ -1132,9 +1132,11 @@ export default function SettingsPage() {
         processAndSave={processAndSaveExpenses}
         isProcessing={addMultipleExpensesMutation.isPending}
       />
+
     </div>
   );
 }
+
 
 
 
