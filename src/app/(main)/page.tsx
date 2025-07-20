@@ -170,9 +170,9 @@ export default function DashboardPage() {
       };
       
       recognition.onend = () => {
-        if (isVoiceRecording) {
+        if (isVoiceRecording) { // If it ends while we still think it's recording
             setIsVoiceRecording(false);
-            setIsVoiceLoading(false);
+            setIsVoiceLoading(true); // Assume it's processing
         }
       };
 
@@ -188,24 +188,25 @@ export default function DashboardPage() {
         return;
     }
     if (isVoiceRecording) {
-      recognitionRef.current.stop(); // Use stop() to finalize and get result
+      recognitionRef.current.stop(); 
       setIsVoiceRecording(false);
-      // We don't set loading to false here, because onresult will fire and handle it.
+      // Let onend/onresult handle loading state
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
+      setIsVoiceLoading(false); // Ensure loading is false when starting
       recognitionRef.current.start();
     }
   };
   
   const handleVoiceTranscript = async (transcript: string) => {
+    setIsVoiceLoading(true); // Start loading as soon as we have a transcript
     if (!transcript.trim()) {
         toast({ title: "لم يتم تسجيل أي صوت", variant: "destructive" });
         setIsVoiceLoading(false);
         return;
     }
     
-    setIsVoiceLoading(true);
     try {
         const input: RecordExpenseWithTextInput = {
             expenseText: transcript,
@@ -407,7 +408,7 @@ export default function DashboardPage() {
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>
             
-            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading || isVoiceRecording} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className={cn(
                     "flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", 
                     isVoiceRecording && "bg-red-500/20 animate-pulse"
@@ -417,7 +418,7 @@ export default function DashboardPage() {
                     <Mic className="w-8 h-8 text-primary" />}
                 </span>
                 <p className="font-semibold text-sm">
-                    {isVoiceLoading ? 'جاري التحليل...' : isVoiceRecording ? 'استماع' : 'صوت'}
+                    {isVoiceLoading ? 'تحليل' : isVoiceRecording ? 'استماع' : 'صوت'}
                 </p>
             </div>
 
