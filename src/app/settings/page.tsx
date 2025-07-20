@@ -118,6 +118,67 @@ const recurringPaymentSchema = z.object({
 type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
 
+// --- Mapping Dialog Component ---
+// This component is now defined outside the main SettingsPage component
+// to prevent re-rendering issues and ensure stability.
+const MappingDialog = ({
+  isOpen,
+  setIsOpen,
+  isMobile,
+  fileHeaders,
+  columnMap,
+  setColumnMap,
+  processAndSave,
+  isProcessing,
+}: {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  isMobile: boolean;
+  fileHeaders: string[];
+  columnMap: Record<string, number | null>;
+  setColumnMap: React.Dispatch<React.SetStateAction<Record<string, number | null>>>;
+  processAndSave: () => void;
+  isProcessing: boolean;
+}) => {
+  const DialogComponent = isMobile ? Sheet : Dialog;
+  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+  return (
+    <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</DialogTitle>
+          <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-1">
+          <div className="space-y-4 py-4">
+            {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
+              <div key={field} className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
+                <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
+                  <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
+                    {fileHeaders.map((header, index) => (<SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+          </div>
+        </div>
+        <DialogFooterComponent className="pt-4 border-t">
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
+          <Button onClick={processAndSave} disabled={isProcessing}>
+            {isProcessing && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+            تأكيد واستيراد البيانات
+          </Button>
+        </DialogFooterComponent>
+      </DialogContentComponent>
+    </DialogComponent>
+  );
+};
+
+
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { user, signOutUser } = useAuth();
@@ -716,43 +777,6 @@ export default function SettingsPage() {
 
   const FormDialog = isMobile ? Sheet : Dialog;
 
-  const MappingDialog = () => {
-    const DialogComponent = isMobile ? Sheet : Dialog;
-    const DialogContentComponent = isMobile ? SheetContent : DialogContent;
-    
-    return (
-        <DialogComponent open={isMappingColumns} onOpenChange={setIsMappingColumns}>
-            <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</DialogTitle>
-                  <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
-                </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-1">
-                    <div className="space-y-4 py-4">
-                      {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
-                           <div key={field} className="grid grid-cols-3 items-center gap-4">
-                              <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
-                              <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
-                                  <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
-                                  <SelectContent>
-                                      <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
-                                      {fileHeaders.map((header, index) => ( <SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem> ))}
-                                  </SelectContent>
-                              </Select>
-                           </div>
-                      ))}
-                    </div>
-                </div>
-                <DialogFooterComponent className="pt-4 border-t">
-                    <Button variant="ghost" onClick={() => setIsMappingColumns(false)}>إلغاء</Button>
-                    <Button onClick={processAndSaveExpenses} disabled={addMultipleExpensesMutation.isPending}>{addMultipleExpensesMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}تأكيد واستيراد البيانات</Button>
-                </DialogFooterComponent>
-            </DialogContentComponent>
-        </DialogComponent>
-    );
-  };
-
-
   return (
     <div className="space-y-6">
       
@@ -1094,8 +1118,18 @@ export default function SettingsPage() {
 
       </Accordion>
 
-      <MappingDialog />
-
+      <MappingDialog
+        isOpen={isMappingColumns}
+        setIsOpen={setIsMappingColumns}
+        isMobile={isMobile}
+        fileHeaders={fileHeaders}
+        columnMap={columnMap}
+        setColumnMap={setColumnMap}
+        processAndSave={processAndSaveExpenses}
+        isProcessing={addMultipleExpensesMutation.isPending}
+      />
     </div>
   );
 }
+
+    
