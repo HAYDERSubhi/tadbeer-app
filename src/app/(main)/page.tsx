@@ -172,7 +172,11 @@ export default function DashboardPage() {
       recognition.onend = () => {
         if (isVoiceRecording) { 
             setIsVoiceRecording(false);
-            setIsVoiceLoading(false); 
+            if(isVoiceLoading) {
+                 // Already processing, do nothing
+            } else {
+                 setIsVoiceLoading(false); 
+            }
         }
       };
 
@@ -180,7 +184,7 @@ export default function DashboardPage() {
     } else {
       setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
     }
-  }, []);
+  }, [isVoiceLoading, isVoiceRecording]);
 
   const handleToggleVoiceRecording = () => {
     if (!recognitionRef.current) {
@@ -188,9 +192,8 @@ export default function DashboardPage() {
         return;
     }
     if (isVoiceRecording) {
-      recognitionRef.current.stop(); 
-      setIsVoiceRecording(false);
       setIsVoiceLoading(true);
+      recognitionRef.current.stop(); 
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
@@ -401,13 +404,11 @@ export default function DashboardPage() {
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
-            <Link href="/add-expense" passHref legacyBehavior>
-                <a className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                    <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                        <Pencil className="w-8 h-8 text-primary" />
-                    </span>
-                    <p className="font-semibold text-sm">يدوي</p>
-                </a>
+            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                    <Pencil className="w-8 h-8 text-primary" />
+                </span>
+                <p className="font-semibold text-sm">يدوي</p>
             </Link>
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
