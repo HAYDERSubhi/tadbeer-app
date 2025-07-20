@@ -682,7 +682,7 @@ export default function StatisticsPage() {
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
               <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
-                <div className="mb-4">
+                <div className="mb-2">
                     <div className="flex items-center gap-3">
                         <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
                             {catTrend.categoryIcon}
@@ -694,10 +694,10 @@ export default function StatisticsPage() {
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} domain={['auto', 'auto']} />
+                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} domain={['auto', 'auto']} allowDataOverflow={true} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
@@ -803,3 +803,6 @@ export default function StatisticsPage() {
   );
 }
 
+
+
+    
