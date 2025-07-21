@@ -155,7 +155,7 @@ export default function AddExpensePage() {
                                         : 'border-transparent bg-muted/60 hover:border-primary/50'
                                 )}
                             >
-                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === id ? 'bg-primary/20' : 'bg-background')}>
+                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === id ? 'bg-primary/20 text-primary' : 'bg-background')}>
                                     {cat.icon}
                                 </span>
                                 <p className="text-xs font-medium break-words">{cat.name}</p>

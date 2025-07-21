@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrderedIcon, DollarSign, Wand2, ActivityIcon } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, BarChart3, DollarSign, Wand2, ActivityIcon, ListOrdered } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
@@ -425,7 +425,7 @@ export default function StatisticsPage() {
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <DollarSign className="h-16 w-16 text-muted-foreground mb-4" />
+        <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
         <h2 className="text-2xl font-display mb-2">لا توجد بيانات مصاريف لعرضها</h2>
         <p className="text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
@@ -567,7 +567,7 @@ export default function StatisticsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ListOrderedIcon className="h-5 w-5 text-primary" />
+            <ListOrdered className="h-5 w-5 text-primary" />
             ملخص الفئات
           </CardTitle>
           <CardDescription>

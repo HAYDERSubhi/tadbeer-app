@@ -335,7 +335,7 @@ export default function DetailedReceiptPage() {
         <div className="space-y-6 pb-24">
             <div>
                 <h1 className="text-xl font-bold flex items-center gap-2">
-                    <Receipt className="h-6 w-6 text-primary" />
+                    <FileScan className="h-6 w-6 text-primary" />
                     فواتيري
                 </h1>
                 <p className="text-muted-foreground mt-1">
@@ -345,7 +345,7 @@ export default function DetailedReceiptPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <FileScan className="h-5 w-5 text-primary" />
+                        <Upload className="h-5 w-5 text-primary" />
                         تحليل الفواتير المفصلة
                     </CardTitle>
                     <CardDescription>

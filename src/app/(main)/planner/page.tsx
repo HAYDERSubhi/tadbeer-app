@@ -1,3 +1,4 @@
+
 // src/app/(main)/planner/page.tsx
 "use client";
 
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide } from 'lucide-react';
+import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot } from 'lucide-react';
 import { format, differenceInMonths, isFuture } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -284,7 +285,7 @@ function PlannerContent() {
             <CardContent className="p-6 space-y-4 text-center">
                  <Label>الهدف المختار: <span className="font-bold text-primary">{selectedGoal?.name || "لم يتم اختيار هدف"}</span></Label>
                 <Button onClick={handleGeneratePlan} disabled={isGenerating || !selectedGoalId || !userProfile?.monthlyIncome} className="w-full">
-                    {isGenerating && activePlanId === selectedGoalId ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إنشاء الخطة...</> : "أنشئ الخطة الذكية لي"}
+                    {isGenerating && activePlanId === selectedGoalId ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إنشاء الخطة...</> : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية لي</>}
                 </Button>
             </CardContent>
         </Card>

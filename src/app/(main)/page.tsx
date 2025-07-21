@@ -6,7 +6,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Pencil, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt } from "lucide-react";
+import { Trash2Icon, Sparkles, History, Pencil, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -192,8 +192,9 @@ export default function DashboardPage() {
         return;
     }
     if (isVoiceRecording) {
-      setIsVoiceLoading(true);
       recognitionRef.current.stop(); 
+      setIsVoiceRecording(false);
+      setIsVoiceLoading(true); // Expect a result
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
@@ -406,7 +407,7 @@ export default function DashboardPage() {
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                    <Pencil className="w-8 h-8 text-primary" />
+                    <Plus className="w-8 h-8 text-primary" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>

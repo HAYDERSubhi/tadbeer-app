@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { PaletteIcon, SlidersHorizontalIcon, DatabaseZapIcon, InfoIcon, Moon, Sun, SaveIcon, LinkIcon, Trash2Icon, FolderKanban, UserCircle, PlusCircle, Loader2Icon, Banknote, Repeat, PencilIcon, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -188,7 +188,7 @@ const MappingDialog = ({
         <DialogFooterComponent className="pt-4 border-t">
           <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
           <Button onClick={handleProcess} disabled={isProcessing}>
-            {isProcessing && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}
+            {isProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {isProcessing ? 'جاري المعالجة...' : 'تأكيد واستيراد البيانات'}
           </Button>
         </DialogFooterComponent>
@@ -790,7 +790,7 @@ export default function SettingsPage() {
       <Card>
         <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <UserCircle className="h-10 w-10 text-muted-foreground" />
+                <Users className="h-10 w-10 text-muted-foreground" />
                 <div>
                     <p className="font-semibold">{isAnonymous ? "حساب زائر" : user?.email}</p>
                      <AlertDialog>
@@ -831,7 +831,7 @@ export default function SettingsPage() {
       <Accordion type="single" collapsible className="w-full space-y-4">
         <AccordionItemWrapper
           value="item-1"
-          icon={PaletteIcon}
+          icon={Palette}
           title="المظهر والشخصية"
           description="تخصيص شكل التطبيق ونبرة المدرب المالي."
         >
@@ -878,7 +878,7 @@ export default function SettingsPage() {
 
             </div>
             <Button onClick={handleSaveAppearanceSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
-              {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+              {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
               حفظ تغييرات المظهر
             </Button>
           </div>
@@ -886,7 +886,7 @@ export default function SettingsPage() {
 
         <AccordionItemWrapper 
           value="item-2"
-          icon={UserCircle}
+          icon={Users}
           title="الملف الشخصي والدخل"
           description="إدارة معلوماتك الشخصية ومصادر دخلك."
         >
@@ -912,7 +912,7 @@ export default function SettingsPage() {
                                     <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                         <div className="flex items-center gap-3">
                                             <span className={cn("p-2 rounded-full", income.type === 'recurring' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}>
-                                                {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Banknote className="h-5 w-5" />}
+                                                {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                                             </span>
                                             <div>
                                                 <p className="font-semibold">{income.title}</p>
@@ -924,8 +924,8 @@ export default function SettingsPage() {
                                         <div className='flex items-center'>
                                             <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
                                             <div className="flex items-center gap-0">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><PencilIcon className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2Icon className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     </li>
@@ -936,7 +936,7 @@ export default function SettingsPage() {
                 </div>
                  <FormDialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
                     <DialogTrigger asChild>
-                    <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
+                    <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><UserPlus className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
                     </DialogTrigger>
                     <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
@@ -950,7 +950,7 @@ export default function SettingsPage() {
                                     <div className="space-y-2"><Label htmlFor="income-type">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
                                     <div className="space-y-2"><Label>تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
                                 </div>
-                                <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة</>}</Button>
+                                <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><Save className="ml-2 h-4 w-4" /> تحديث</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة</>}</Button>
                             </form>
                         </div>
                     </SheetContent>
@@ -977,15 +977,15 @@ export default function SettingsPage() {
                             </Select>
                             <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px]" min="0" />
                             <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
-                                <Trash2Icon className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </Button>
                         </div>
                         ))}
-                        <Button variant="outline" onClick={handleAddMember} className="w-full"><PlusCircle className="ml-2 h-4 w-4" />إضافة فرد</Button>
+                        <Button variant="outline" onClick={handleAddMember} className="w-full"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
                     </div>
                 </div>
                 <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
-                    {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+                    {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                     حفظ الملف الشخصي
                 </Button>
             </div>
@@ -993,7 +993,7 @@ export default function SettingsPage() {
 
         <AccordionItemWrapper
             value="item-3"
-            icon={SlidersHorizontalIcon}
+            icon={SlidersHorizontal}
             title="إدارة الميزانية"
             description="حدد ميزانيتك الإجمالية، ميزانيات الفئات، والدفعات الدورية."
         >
@@ -1034,7 +1034,7 @@ export default function SettingsPage() {
                                 {recurringPayments.map(p => (
                                     <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                         <div className="flex-1"><p className="font-semibold">{p.title}</p><p className="text-sm text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
-                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><PencilIcon className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2Icon className="h-4 w-4" /></Button></div></div>
+                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
                                     </li>
                                 ))}
                             </ul>
@@ -1043,7 +1043,7 @@ export default function SettingsPage() {
                 </div>
                 <FormDialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><PlusCircle className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
+                        <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><UserPlus className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
                     </DialogTrigger>
                     <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
@@ -1058,7 +1058,7 @@ export default function SettingsPage() {
                                     <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
                                 <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
-                                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><SaveIcon className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><PlusCircle className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
                     </SheetContent>
@@ -1066,14 +1066,14 @@ export default function SettingsPage() {
             </div>
              <Separator />
             <Button onClick={handleSaveBudgetSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
-                {updateSettingsMutation.isPending && <Loader2Icon className='ml-2 h-4 w-4 animate-spin' />}
+                {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                 حفظ تغييرات الميزانية
             </Button>
         </AccordionItemWrapper>
 
          <AccordionItemWrapper
             value="item-4"
-            icon={DatabaseZapIcon}
+            icon={DatabaseZap}
             title="إدارة البيانات"
             description="تصدير، استيراد، وحذف بياناتك."
         >
@@ -1090,7 +1090,7 @@ export default function SettingsPage() {
                  <p className="text-xs text-muted-foreground mb-2">حذف البيانات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</p>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button className="w-full" variant="destructive"><Trash2Icon className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
+                        <Button className="w-full" variant="destructive"><Trash2 className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>حذف وتصفير البيانات</AlertDialogTitle><AlertDialogDescription>اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription></AlertDialogHeader>
@@ -1106,7 +1106,7 @@ export default function SettingsPage() {
                         </div>
                         <AlertDialogFooter>
                             <AlertDialogCancel onClick={() => setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false })}>إلغاء</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2Icon className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</AlertDialogAction>
+                            <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -1115,7 +1115,7 @@ export default function SettingsPage() {
          
         <AccordionItemWrapper
             value="item-5"
-            icon={InfoIcon}
+            icon={Info}
             title="حول التطبيق"
             description={`إصدار ${version}`}
         >
@@ -1136,6 +1136,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
 
 
 

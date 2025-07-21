@@ -3,16 +3,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, Goal, SettingsIcon, PieChartIcon } from 'lucide-react';
+import { Home, Target, Settings, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { buttonVariants } from '@/components/ui/button';
 
 const navItems = [
-  { href: '/', label: 'الرئيسية', icon: HomeIcon },
-  { href: '/stats', label: 'الإحصائيات', icon: PieChartIcon },
-  { href: '/planner', label: 'الأهداف', icon: Goal },
-  { href: '/settings', label: 'الإعدادات', icon: SettingsIcon },
+  { href: '/', label: 'الرئيسية', icon: Home },
+  { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },
+  { href: '/planner', label: 'الأهداف', icon: Target },
+  { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
 export default function PageNavigation() {
