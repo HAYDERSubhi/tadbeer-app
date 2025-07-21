@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -759,11 +759,11 @@ export default function SettingsPage() {
       <Card>
         <CardHeader className="p-0">
           <AccordionTrigger className="text-base hover:no-underline p-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 w-full">
                   <div className="p-3 bg-primary/10 rounded-lg text-primary">
                       {React.createElement(icon, { className: "h-6 w-6" })}
                   </div>
-                  <div>
+                  <div className="text-right flex-1">
                       <h3 className="font-semibold text-right">{title}</h3>
                       <p className="text-sm text-muted-foreground text-right">{description}</p>
                   </div>
@@ -790,12 +790,17 @@ export default function SettingsPage() {
       <Card>
         <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <Users className="h-10 w-10 text-muted-foreground" />
+                 <div className="p-3 bg-primary/10 rounded-lg text-primary">
+                    <Users className="h-6 w-6" />
+                </div>
                 <div>
-                    <p className="font-semibold">{isAnonymous ? "حساب زائر" : user?.email}</p>
+                    <p className="font-semibold truncate max-w-[150px] sm:max-w-xs">{isAnonymous ? "حساب زائر" : user?.email}</p>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="link" className="p-0 h-auto text-sm text-destructive hover:no-underline">تسجيل الخروج</Button>
+                            <Button variant="link" className="p-0 h-auto text-sm text-destructive hover:no-underline flex items-center gap-1">
+                                <LogOut className="h-4 w-4" />
+                                تسجيل الخروج
+                            </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader><AlertDialogTitle>هل أنت متأكد من رغبتك في تسجيل الخروج؟</AlertDialogTitle></AlertDialogHeader>
@@ -886,7 +891,7 @@ export default function SettingsPage() {
 
         <AccordionItemWrapper 
           value="item-2"
-          icon={Users}
+          icon={UserCog}
           title="الملف الشخصي والدخل"
           description="إدارة معلوماتك الشخصية ومصادر دخلك."
         >
@@ -1136,8 +1141,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-
-
-
