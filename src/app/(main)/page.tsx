@@ -6,11 +6,11 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon, Sparkles, History, Pencil, FileScan, CreditCard, Mic, StopCircle, CalendarClock, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, StopCircle, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
@@ -194,7 +194,8 @@ export default function DashboardPage() {
     if (isVoiceRecording) {
       recognitionRef.current.stop(); 
       setIsVoiceRecording(false);
-      setIsVoiceLoading(true); // Expect a result
+      // No need to setIsVoiceLoading(true) here, onresult will handle it.
+      // Or if it was just a stop, onend will reset state.
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
@@ -355,7 +356,7 @@ export default function DashboardPage() {
                       تعديل
                     </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                    <Trash2Icon className="ml-2 h-4 w-4" />
+                    <Trash2 className="ml-2 h-4 w-4" />
                     حذف
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -390,8 +391,7 @@ export default function DashboardPage() {
       
       {upcomingPayments.length > 0 && (
         <Alert variant="destructive" className="animate-in fade-in">
-          <CalendarClock className="h-4 w-4" />
-          <AlertTitle>تذكير بدفعة مستحقة غداً!</AlertTitle>
+          <AlertTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" />تذكير بدفعة مستحقة غداً!</AlertTitle>
           <AlertDescription>
             <ul>
               {upcomingPayments.map(p => (

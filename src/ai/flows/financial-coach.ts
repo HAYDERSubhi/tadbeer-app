@@ -100,7 +100,7 @@ The user has also set specific budgets for some categories, which are provided i
     
 5.  **Consider Family Context**: If the user profile is provided, use the family members' ages to give more specific advice. For example, if there are children, you could suggest saving on school-related expenses or planning for family-friendly, low-cost activities. Use icons like "Baby" or "School".
 
-6.  **Format:** The output must be in JSON. The language for title and description must match the requested 'appTone'.
+6.  **Format:** The output must be in JSON. The language for title and description must match the requested 'appTone'. **The description for each insight must be a single, concise sentence.**
 `,
 });
 
