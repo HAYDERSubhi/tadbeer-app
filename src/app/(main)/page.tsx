@@ -10,7 +10,7 @@ import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, StopCircle, MoreHor
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
@@ -170,13 +170,9 @@ export default function DashboardPage() {
       };
       
       recognition.onend = () => {
-        if (isVoiceRecording) { 
-            setIsVoiceRecording(false);
-            if(isVoiceLoading) {
-                 // Already processing, do nothing
-            } else {
-                 setIsVoiceLoading(false); 
-            }
+        setIsVoiceRecording(false);
+        if(!isVoiceLoading) {
+            setIsVoiceLoading(false); 
         }
       };
 
@@ -184,7 +180,7 @@ export default function DashboardPage() {
     } else {
       setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
     }
-  }, [isVoiceLoading, isVoiceRecording]);
+  }, [isVoiceLoading]);
 
   const handleToggleVoiceRecording = () => {
     if (!recognitionRef.current) {
@@ -193,9 +189,6 @@ export default function DashboardPage() {
     }
     if (isVoiceRecording) {
       recognitionRef.current.stop(); 
-      setIsVoiceRecording(false);
-      // No need to setIsVoiceLoading(true) here, onresult will handle it.
-      // Or if it was just a stop, onend will reset state.
     } else {
       setVoiceError(null);
       setIsVoiceRecording(true);
