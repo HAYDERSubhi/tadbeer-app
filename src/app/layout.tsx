@@ -1,4 +1,3 @@
-
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
@@ -47,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={'antialiased'}>
+      <body>
         <AppProviders>
           {children}
         </AppProviders>
