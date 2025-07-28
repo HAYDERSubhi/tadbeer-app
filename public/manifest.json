@@ -1,5 +1,5 @@
 {
-  "name": "تدبير",
+  "name": "تدبير | تطبيقك المالي الذكي",
   "short_name": "تدبير",
   "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير. ابدأ الآن!",
   "start_url": "/",
@@ -8,12 +8,12 @@
   "theme_color": "#fec604",
   "icons": [
     {
-      "src": "/icon-192x192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icon-512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
