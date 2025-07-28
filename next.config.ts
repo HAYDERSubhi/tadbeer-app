@@ -1,15 +1,11 @@
 
 import type {NextConfig} from 'next';
 
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-});
-
 const nextConfig: NextConfig = {
-  /* config options here */
+  pwa: {
+    dest: 'public',
+    disable: process.env.NODE_ENV === 'development',
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -32,6 +28,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // This is a workaround for a build issue with the handlebars dependency in genkit.
+  // It ensures that the package is treated as an external dependency by the server components.
+  serverComponentsExternalPackages: ['handlebars'],
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;
