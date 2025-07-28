@@ -33,6 +33,11 @@ export const metadata: Metadata = {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'تدبير',
+  },
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
