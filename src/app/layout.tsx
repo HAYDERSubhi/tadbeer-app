@@ -1,3 +1,4 @@
+
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';
@@ -14,11 +15,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-    // To change the preview image, replace the URL below with a direct link to your desired image.
-    // Recommended size is 1200x630 pixels.
+    // Using a static, locally-hosted image for reliability.
     images: [
       {
-        url: 'https://placehold.co/1200x630/fec604/202638.png',
+        url: '/og-image.png', // Relative path to the image in the public folder
         width: 1200,
         height: 630,
         alt: 'بانر تطبيق تدبير',
@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
+     images: ['/og-image.png'],
   },
   appleWebApp: {
     capable: true,
