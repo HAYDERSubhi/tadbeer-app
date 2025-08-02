@@ -1,10 +1,9 @@
 
 // src/app/layout.tsx
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProviders } from '@/components/providers';
 
-// This metadata object controls what users see when the app link is shared.
 export const metadata: Metadata = {
   title: {
     default: 'تدبير | تطبيقك المالي الذكي',
@@ -15,10 +14,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-    // Using a static, locally-hosted image for reliability.
     images: [
       {
-        url: '/logo.png?v=2', // Relative path to the image in the public folder
+        url: '/logo.png?v=2', 
         width: 512,
         height: 512,
         alt: 'شعار تطبيق تدبير',
@@ -29,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'تدبير',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
      images: ['/logo.png?v=2'],
@@ -44,6 +42,14 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
 };
+
+export const viewport: Viewport = {
+  themeColor: '#FFDA63',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export default function RootLayout({
   children,
