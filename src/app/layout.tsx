@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     // Using a static, locally-hosted image for reliability.
     images: [
       {
-        url: '/og-image.png', // Relative path to the image in the public folder
-        width: 1200,
-        height: 630,
-        alt: 'بانر تطبيق تدبير',
+        url: '/logo.png?v=2', // Relative path to the image in the public folder
+        width: 512,
+        height: 512,
+        alt: 'شعار تطبيق تدبير',
       },
     ],
     locale: 'ar_IQ',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-     images: ['/og-image.png'],
+     images: ['/logo.png?v=2'],
   },
   appleWebApp: {
     capable: true,
