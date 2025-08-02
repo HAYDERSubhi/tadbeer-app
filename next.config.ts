@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import withPWA from 'next-pwa';
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -30,21 +29,4 @@ const nextConfig: NextConfig = {
   serverComponentsExternalPackages: ['handlebars'],
 };
 
-export default withPWA({
-    dest: 'public',
-    disable: process.env.NODE_ENV === 'development',
-    register: true,
-    skipWaiting: true,
-    // Adding PWA configuration for the custom domain
-    pwa: {
-        dest: 'public',
-        runtimeCaching: [],
-        buildExcludes: [/middleware-manifest\.json$/],
-        scope: '/',
-        start_url: '/',
-        display: 'standalone',
-        theme_color: '#FBBF24', // Keycard Yellow from your theme
-        background_color: '#FFFFFF',
-        // Add other manifest properties here as needed
-    },
-})(nextConfig);
+export default nextConfig;
