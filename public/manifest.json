@@ -1,22 +1,21 @@
-
 {
-    "name": "تدبير | تطبيقك المالي الذكي",
-    "short_name": "تدبير",
-    "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير. ابدأ الآن!",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#FEC604",
-    "icons": [
-        {
-            "src": "logo.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "logo.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ]
+  "name": "تدبير",
+  "short_name": "تدبير",
+  "description": "تطبيقك المالي الذكي لإدارة الميزانية وتحقيق الأهداف المالية.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFBFC",
+  "theme_color": "#FFDA63",
+  "icons": [
+    {
+      "src": "/logo.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
