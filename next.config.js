@@ -32,7 +32,7 @@ const nextConfig = {
   },
   // This is a workaround for a build issue with the handlebars dependency in genkit.
   // It ensures that the package is treated as an external dependency by the server components.
-  serverComponentsExternalPackages: ['handlebars'],
+  serverExternalPackages: ['handlebars'],
 };
 
 module.exports = withPWA(nextConfig);
