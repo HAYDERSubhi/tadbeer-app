@@ -400,7 +400,7 @@ export default function DashboardPage() {
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                    <Plus className="w-8 h-8 text-primary" />
+                    <Plus className="w-8 h-8 text-foreground" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>
@@ -410,9 +410,9 @@ export default function DashboardPage() {
                     "flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors", 
                     isVoiceRecording && "bg-red-500/20 animate-pulse"
                 )}>
-                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-primary animate-spin" /> : 
+                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-foreground animate-spin" /> : 
                     isVoiceRecording ? <StopCircle className="w-8 h-8 text-red-500" /> : 
-                    <Mic className="w-8 h-8 text-primary" />}
+                    <Mic className="w-8 h-8 text-foreground" />}
                 </span>
                 <p className="font-semibold text-sm">
                     {isVoiceLoading ? 'تحليل' : isVoiceRecording ? 'استماع' : 'صوت'}
@@ -431,7 +431,7 @@ export default function DashboardPage() {
 
             <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                    <Receipt className="w-8 h-8 text-primary" />
+                    <Receipt className="w-8 h-8 text-foreground" />
                 </span>
                 <p className="font-semibold text-sm">فاتورة</p>
             </Link>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
               <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                   <span className="flex items-center justify-center w-16 h-16 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                      <CreditCard className="w-8 h-8 text-primary" />
+                      <CreditCard className="w-8 h-8 text-foreground" />
                   </span>
                   <p className="font-semibold text-sm">بطاقة</p>
               </div>
