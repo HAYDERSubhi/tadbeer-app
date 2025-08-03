@@ -130,8 +130,7 @@ export default function AddExpensePage() {
 
     return (
         <div className="flex flex-col h-full">
-            <header className="flex items-center justify-between p-4 border-b">
-                <h1 className="text-lg font-bold">إضافة مصروف جديد</h1>
+            <header className="flex items-center justify-end p-2 border-b">
                  <Button asChild variant="ghost" size="icon">
                     <Link href="/">
                         <ChevronsRight className="h-5 w-5" />
@@ -142,7 +141,6 @@ export default function AddExpensePage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
                 {/* Category Grid */}
                 <div className="space-y-3">
-                    <Label className="text-base font-semibold">اختر الفئة</Label>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
                         {Object.entries(CATEGORIES).map(([id, cat]) => (
                             <div 
