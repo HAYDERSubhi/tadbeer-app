@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
     images: [
       {
-        url: '/tadbeer-logo.png', 
+        url: '/logo-main.png', 
         width: 512,
         height: 512,
         alt: 'شعار تطبيق تدبير',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-     images: ['/tadbeer-logo.png'],
+     images: ['/logo-main.png'],
   },
   appleWebApp: {
     capable: true,
@@ -66,4 +66,6 @@ export default function RootLayout({
     </html>
   );
 }
+    
+
     
