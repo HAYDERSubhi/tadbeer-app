@@ -5,24 +5,21 @@ import { useMemo } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { CATEGORIES as defaultCategories } from '@/lib/constants';
-import { Trash2Icon, DollarSign, Loader2Icon } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from '@/hooks/use-auth';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getExpenses, deleteExpense } from '@/services/firestore';
+import { useMutation } from '@tanstack/react-query';
+import { deleteExpense } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import { useAppData } from '@/hooks/use-app-data';
+import { format } from 'date-fns';
+import { arIQ } from 'date-fns/locale';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const { data: expenses = [], isLoading, isError, error } = useQuery<Expense[], Error>({
-    queryKey: ['expenses', user?.uid],
-    queryFn: () => getExpenses(user!.uid),
-    enabled: !!user,
-  });
+  const { expenses, isLoading, isError, error, queryClient } = useAppData();
 
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
@@ -48,6 +45,7 @@ export default function AllExpensesPage() {
   };
   
   const allSortedExpenses = useMemo(() => {
+     if (!expenses) return [];
      return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses]);
 
@@ -63,6 +61,15 @@ export default function AllExpensesPage() {
   return (
     <div className="space-y-6 pb-20">
       <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <WalletCards className="h-6 w-6 text-primary" />
+                جميع المصاريف
+            </CardTitle>
+            <CardDescription>
+                هنا تجد قائمة كاملة بجميع مصاريفك المسجلة.
+            </CardDescription>
+          </CardHeader>
           <CardContent className="p-0">
               {allSortedExpenses.length === 0 ? (
                   <div className="px-6 py-20 text-center text-muted-foreground">
@@ -76,24 +83,24 @@ export default function AllExpensesPage() {
                       const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
                       return (
                       <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
-                          <div className="flex flex-1 items-center gap-3">
+                          <div className="flex flex-1 items-center gap-3 min-w-0">
                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
                               {categoryInfo.icon}
                           </span>
-                          <div>
-                              <p className="font-semibold">{expense.title}</p>
+                          <div className="min-w-0">
+                              <p className="font-semibold truncate">{expense.title}</p>
                               <p className="text-sm text-muted-foreground">
                                   {categoryInfo.name}
                               </p>
                           </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                              <div className="text-end">
-                              <p className="font-semibold text-foreground">
+                          <div className="flex items-center gap-2 sm:gap-4">
+                              <div className="text-end shrink-0">
+                              <p className="font-semibold text-foreground text-sm sm:text-base">
                                   {expense.amount.toLocaleString()}&nbsp;د.ع
                               </p>
-                              <p className="text-sm text-muted-foreground">
-                                  {new Date(expense.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              <p className="text-xs text-muted-foreground">
+                                  {format(new Date(expense.date), "d MMM yyyy", { locale: arIQ })}
                               </p>
                               </div>
                               <Button
