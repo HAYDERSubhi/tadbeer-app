@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import {
   Accordion,
@@ -171,7 +172,7 @@ function PlannerContent() {
     return (
         <Card className='mt-6 animate-in fade-in duration-500'>
             <CardHeader>
-                <CardTitle className='flex items-center gap-2 text-sm font-semibold'>
+                <CardTitle className='flex items-center gap-2 text-base font-semibold'>
                     {plan.isAchievable ? <CheckCircle2 className='h-5 w-5 text-green-500' /> : <XCircle className='h-5 w-5 text-orange-500' />}
                     خطة تحقيق هدف: {selectedGoal?.name}
                 </CardTitle>
@@ -227,18 +228,30 @@ function PlannerContent() {
             أضف أهدافك الكبيرة، ثم اختر هدفًا ودع الذكاء الاصطناعي يرسم لك خريطة الطريق.
         </p>
       </div>
-
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-sm font-semibold"><PlusCircle className="h-5 w-5" /> إضافة هدف جديد</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(handleAddGoal)} className="space-y-4">
-            <div className="space-y-2"><Label htmlFor="name">ما هو هدفك؟</Label><Input id="name" {...form.register('name')} placeholder="مثال: شراء سيارة جديدة، السفر" />{form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}</div>
-            <div className="space-y-2"><Label htmlFor="targetAmount">كم المبلغ المطلوب؟ (د.ع)</Label><Input id="targetAmount" type="number" {...form.register('targetAmount')} placeholder="مثال: 15,000,000" />{form.formState.errors.targetAmount && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}</div>
-            <div className="space-y-2"><Label>متى تريد تحقيق الهدف؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخ الهدف</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
-            <Button type="submit" className="w-full" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
-          </form>
-        </CardContent>
-      </Card>
+      
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="add-goal" className="border-b-0">
+          <Card>
+            <AccordionTrigger className="hover:no-underline w-full p-0">
+              <CardHeader className="w-full">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <PlusCircle className="h-5 w-5" /> إضافة هدف جديد
+                </CardTitle>
+              </CardHeader>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent>
+                <form onSubmit={form.handleSubmit(handleAddGoal)} className="space-y-4">
+                  <div className="space-y-2"><Label htmlFor="name">ما هو هدفك؟</Label><Input id="name" {...form.register('name')} placeholder="مثال: شراء سيارة جديدة، السفر" />{form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}</div>
+                  <div className="space-y-2"><Label htmlFor="targetAmount">كم المبلغ المطلوب؟ (د.ع)</Label><Input id="targetAmount" type="number" {...form.register('targetAmount')} placeholder="مثال: 15,000,000" />{form.formState.errors.targetAmount && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}</div>
+                  <div className="space-y-2"><Label>متى تريد تحقيق الهدف؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخ الهدف</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
+                  <Button type="submit" className="w-full" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
+                </form>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+      </Accordion>
       
       <div className="space-y-4">
         <h2 className="text-lg font-bold">قائمة الأهداف والمخطط</h2>
@@ -255,7 +268,7 @@ function PlannerContent() {
                return (
                   <Card key={goal.id} className={cn("flex flex-col", isSelected && "border-primary ring-2 ring-primary")}>
                     <CardHeader className='pb-4'>
-                      <CardTitle className='flex justify-between items-start text-sm font-semibold'>
+                      <CardTitle className='flex justify-between items-start text-base font-semibold'>
                         <span className="truncate pr-4">{goal.name}</span>
                         <AlertDialog>
                           <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"><Trash2Icon className="h-4 w-4" /></Button></AlertDialogTrigger>
@@ -314,3 +327,5 @@ export default function PlannerPage() {
         </Suspense>
     )
 }
+
+    
