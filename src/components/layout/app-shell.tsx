@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import Image from 'next/image';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
+  usePWAInstall(); // Initialize the PWA install prompt logic
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">

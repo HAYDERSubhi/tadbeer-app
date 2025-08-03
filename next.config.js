@@ -3,7 +3,8 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development'
+  disable: process.env.NODE_ENV === 'development',
+  promptOnVisit: false, // Disable the default prompt
 });
 
 /** @type {import('next').NextConfig} */
