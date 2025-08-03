@@ -460,21 +460,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {userBudget.totalBudget === 0 ? (
-          <Card className="text-center py-8">
-            <CardContent className="flex flex-col items-center gap-4">
-              <DollarSign className="h-12 w-12 text-muted-foreground" />
-              <h3 className="text-xl font-bold">ابدأ بتحديد ميزانيتك</h3>
-              <p className="text-muted-foreground max-w-sm mx-auto">اذهب إلى الإعدادات لتحديد ميزانيتك الشهرية والبدء في تتبع مصاريفك بفعالية.</p>
-              <Button asChild className="mt-2">
-                <Link href="/settings">
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                  الذهاب إلى الإعدادات
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
+      {userBudget.totalBudget > 0 && (
           <BudgetSummaryCard />
       )}
 
