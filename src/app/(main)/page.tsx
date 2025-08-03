@@ -252,13 +252,13 @@ export default function DashboardPage() {
     const categoryBudgets = userSettings?.categoryBudgets;
     const userProfile = userSettings?.profile;
     
-    if (monthlyExpenses.length === 0 || !userBudget || userBudget.totalBudget === 0) {
+    if (monthlyExpenses.length === 0) {
       return null;
     }
     
     return {
-      totalBudget: userBudget.totalBudget,
-      zeroSpendDaysTarget: userBudget.zeroSpendDaysTarget,
+      totalBudget: userBudget?.totalBudget || 0, // Pass 0 if not set
+      zeroSpendDaysTarget: userBudget?.zeroSpendDaysTarget || 4,
       expenses: monthlyExpenses.map(e => ({
         title: e.title,
         amount: e.amount,
@@ -374,6 +374,7 @@ export default function DashboardPage() {
   }
 
   const userBudget = userSettings?.budget || { totalBudget: 0 };
+  const hasExpenses = expenses.length > 0;
   
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
   const CardComponent = isMobile ? Sheet : Dialog;
@@ -502,7 +503,12 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground p-4">لا توجد نصائح حاليًا. أضف المزيد من المصاريف للحصول على تحليلات.</p>
+            <p className="text-center text-muted-foreground p-4">
+              {hasExpenses 
+                ? "حدد ميزانية شهرية في الإعدادات لتفعيل نصائح المدرب المالي."
+                : "لا توجد نصائح حاليًا. أضف بعض المصاريف للحصول على تحليلات."
+              }
+            </p>
           )}
         </CardContent>
       </Card>
