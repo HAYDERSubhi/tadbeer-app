@@ -171,34 +171,34 @@ function PlannerContent() {
     if (!plan || activePlanId !== selectedGoalId) return null;
     return (
         <Card className='mt-6 animate-in fade-in duration-500'>
-            <CardHeader>
-                <CardTitle className='flex items-center gap-2 text-base font-semibold'>
-                    {plan.isAchievable ? <CheckCircle2 className='h-5 w-5 text-green-500' /> : <XCircle className='h-5 w-5 text-orange-500' />}
-                    خطة تحقيق هدف: {selectedGoal?.name}
+            <CardHeader className="py-4">
+                <CardTitle className='flex items-center gap-2 text-sm font-semibold'>
+                    {plan.isAchievable ? <CheckCircle2 className='h-4 w-4 text-green-500' /> : <XCircle className='h-4 w-4 text-orange-500' />}
+                    خطة هدف: {selectedGoal?.name}
                 </CardTitle>
-                <CardDescription>{plan.initialAssessment}</CardDescription>
+                <CardDescription className="text-xs">{plan.initialAssessment}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                <Alert variant={plan.isAchievable ? "default" : "destructive"}>
+            <CardContent className="space-y-4">
+                <Alert variant={plan.isAchievable ? "default" : "destructive"} className="p-3">
                     <Lightbulb className="h-4 w-4" />
-                    <AlertTitle>{plan.isAchievable ? "الهدف قابل للتحقيق!" : "الهدف قد يكون صعب التحقيق"}</AlertTitle>
-                    <AlertDescription>
-                        تحتاج لتوفير مبلغ <span className='font-bold'>{plan.savingsRequiredPerMonth.toLocaleString()} د.ع</span> شهريًا.
-                        {!plan.isAchievable && " بناءً على دخلك ومصاريفك الحالية، قد يكون هذا المبلغ مرتفعاً. الخطة أدناه ستساعدك على محاولة الوصول إليه."}
+                    <AlertTitle className="text-xs font-semibold">{plan.isAchievable ? "الهدف قابل للتحقيق" : "الهدف صعب التحقيق"}</AlertTitle>
+                    <AlertDescription className="text-xs">
+                        تحتاج لتوفير <span className='font-bold'>{plan.savingsRequiredPerMonth.toLocaleString()} د.ع</span> شهريًا.
+                        {!plan.isAchievable && " هذا قد يكون صعبًا. الخطة أدناه ستساعدك."}
                     </AlertDescription>
                 </Alert>
                 <div>
-                    <h3 className='font-semibold mb-2'>خطواتك المقترحة:</h3>
+                    <h3 className='font-semibold mb-2 text-sm'>الخطوات المقترحة:</h3>
                     <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
                         {plan.suggestedPlan.map((step, index) => (
                            <AccordionItem value={`item-${index}`} key={index}>
-                                <AccordionTrigger className='text-base'><div className='flex items-center gap-3 text-right'><div className='bg-primary/10 text-primary p-2 rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg'>{index + 1}</div><span>{step.title}</span></div></AccordionTrigger>
-                                <AccordionContent className="p-4 space-y-2 text-base"><p>{step.description}</p><p className='text-sm text-muted-foreground'><span className='font-semibold text-primary'>التوفير الشهري المقترح:</span> {step.suggestedMonthlySaving.toLocaleString()} د.ع</p>{step.categoryToImpact && (<p className='text-sm text-muted-foreground'><span className='font-semibold'>الفئة المتأثرة:</span> {step.categoryToImpact}</p>)}</AccordionContent>
+                                <AccordionTrigger className='text-sm py-3'><div className='flex items-center gap-2 text-right'><div className='bg-primary/10 text-primary p-1 rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm'>{index + 1}</div><span>{step.title}</span></div></AccordionTrigger>
+                                <AccordionContent className="p-3 space-y-2 text-xs"><p>{step.description}</p><p className='text-muted-foreground'><span className='font-semibold text-primary'>التوفير الشهري:</span> {step.suggestedMonthlySaving.toLocaleString()} د.ع</p>{step.categoryToImpact && (<p className='text-muted-foreground'><span className='font-semibold'>الفئة المتأثرة:</span> {step.categoryToImpact}</p>)}</AccordionContent>
                            </AccordionItem>
                         ))}
                     </Accordion>
                 </div>
-                 <div className="p-4 bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-200 rounded-lg border border-teal-200 dark:border-teal-700"><p className="font-bold">رسالة من مدربك المالي:</p><p>{plan.motivationalMessage}</p></div>
+                 <div className="p-3 bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-200 rounded-lg border border-teal-200 dark:border-teal-700 text-xs"><p className="font-bold">رسالة المدرب:</p><p>{plan.motivationalMessage}</p></div>
             </CardContent>
         </Card>
     )
@@ -207,10 +207,10 @@ function PlannerContent() {
   const renderInitialState = () => {
     if (!userProfile || !userProfile.monthlyIncome || !userProfile.familyMembers || userProfile.familyMembers.length === 0) {
          return (
-             <Alert variant="destructive">
+             <Alert variant="destructive" className="p-3">
                 <GoalIcon className="h-4 w-4" />
-                <AlertTitle>معلومات غير مكتملة</AlertTitle>
-                <AlertDescription>لإنشاء خطة مالية دقيقة، يرجى إكمال ملفك الشخصي (الدخل الشهري وأفراد الأسرة) في صفحة الإعدادات.</AlertDescription>
+                <AlertTitle className="text-xs font-bold">معلومات غير مكتملة</AlertTitle>
+                <AlertDescription className="text-xs">لإنشاء خطة، أكمل ملفك الشخصي (الدخل والأسرة) في الإعدادات.</AlertDescription>
             </Alert>
         )
     }
@@ -218,14 +218,14 @@ function PlannerContent() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-4 pb-24">
       <div>
-        <h1 className="text-xl font-bold flex items-center gap-2">
-            <Target className="h-6 w-6 text-primary" />
-            أهدافي والمخطط الذكي
+        <h1 className="text-lg font-bold flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            الأهداف والمخطط الذكي
         </h1>
-        <p className="text-muted-foreground mt-1">
-            أضف أهدافك الكبيرة، ثم اختر هدفًا ودع الذكاء الاصطناعي يرسم لك خريطة الطريق.
+        <p className="text-xs text-muted-foreground mt-1">
+            أضف أهدافك، ثم دع الذكاء الاصطناعي يرسم لك خريطة الطريق.
         </p>
       </div>
       
@@ -233,19 +233,19 @@ function PlannerContent() {
         <AccordionItem value="add-goal" className="border-b-0">
           <Card>
             <AccordionTrigger className="hover:no-underline w-full p-0">
-              <CardHeader className="w-full">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <PlusCircle className="h-5 w-5" /> إضافة هدف جديد
+              <CardHeader className="w-full py-3">
+                <CardTitle className="flex items-center gap-2 text-xs font-semibold">
+                  <PlusCircle className="h-4 w-4" /> إضافة هدف جديد
                 </CardTitle>
               </CardHeader>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent>
-                <form onSubmit={form.handleSubmit(handleAddGoal)} className="space-y-4">
-                  <div className="space-y-2"><Label htmlFor="name">ما هو هدفك؟</Label><Input id="name" {...form.register('name')} placeholder="مثال: شراء سيارة جديدة، السفر" />{form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}</div>
-                  <div className="space-y-2"><Label htmlFor="targetAmount">كم المبلغ المطلوب؟ (د.ع)</Label><Input id="targetAmount" type="number" {...form.register('targetAmount')} placeholder="مثال: 15,000,000" />{form.formState.errors.targetAmount && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}</div>
-                  <div className="space-y-2"><Label>متى تريد تحقيق الهدف؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخ الهدف</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-sm text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
-                  <Button type="submit" className="w-full" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
+              <CardContent className="pt-0">
+                <form onSubmit={form.handleSubmit(handleAddGoal)} className="space-y-3">
+                  <div className="space-y-1"><Label htmlFor="name" className="text-xs">ما هو هدفك؟</Label><Input id="name" {...form.register('name')} placeholder="مثال: شراء سيارة" className="h-9 text-xs" />{form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}</div>
+                  <div className="space-y-1"><Label htmlFor="targetAmount" className="text-xs">المبلغ المطلوب (د.ع)</Label><Input id="targetAmount" type="number" {...form.register('targetAmount')} placeholder="15,000,000" className="h-9 text-xs" />{form.formState.errors.targetAmount && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}</div>
+                  <div className="space-y-1"><Label className="text-xs">متى تريد تحقيقه؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 text-xs", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-3 w-3" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
+                  <Button type="submit" className="w-full h-9 text-xs" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
                 </form>
               </CardContent>
             </AccordionContent>
@@ -253,37 +253,37 @@ function PlannerContent() {
         </AccordionItem>
       </Accordion>
       
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold">قائمة الأهداف والمخطط</h2>
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold">قائمة الأهداف والمخطط</h2>
         {goals.length === 0 ? (
-          <Card className='text-center py-12'>
-            <CardContent className="flex flex-col items-center gap-4"><Flag className="h-12 w-12 text-muted-foreground" /><p className="text-muted-foreground">لا توجد أهداف محددة بعد. ابدأ بإضافة هدفك الأول!</p></CardContent>
+          <Card className='text-center py-10'>
+            <CardContent className="flex flex-col items-center gap-3"><Flag className="h-10 w-10 text-muted-foreground" /><p className="text-xs text-muted-foreground">لا توجد أهداف. ابدأ بإضافة هدفك الأول!</p></CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {goals.map(goal => {
                const monthsLeft = calculateMonthsLeft(goal.targetDate);
                const monthlySavings = goal.targetAmount / monthsLeft;
                const isSelected = selectedGoalId === goal.id;
                return (
                   <Card key={goal.id} className={cn("flex flex-col", isSelected && "border-primary ring-2 ring-primary")}>
-                    <CardHeader className='pb-4'>
-                      <CardTitle className='flex justify-between items-start text-base font-semibold'>
+                    <CardHeader className='pb-3 pt-4'>
+                      <CardTitle className='flex justify-between items-start text-sm font-semibold'>
                         <span className="truncate pr-4">{goal.name}</span>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"><Trash2Icon className="h-4 w-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"><Trash2Icon className="h-4 w-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle><AlertDialogDescription>سيتم حذف هذا الهدف بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteGoal(goal.id)}>نعم، قم بالحذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                       </CardTitle>
-                      <CardDescription>تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: arIQ })}</CardDescription>
+                      <CardDescription className="text-xs">تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: arIQ })}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-2">
-                        <p className="text-2xl font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>
-                        <p className="text-sm text-muted-foreground">تحتاج لتوفير ما يقارب <span className="font-bold text-foreground">{monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})} د.ع</span> شهريًا.</p>
+                    <CardContent className="flex-grow space-y-1">
+                        <p className="text-lg font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>
+                        <p className="text-xs text-muted-foreground">تحتاج لتوفير ~<span className="font-bold text-foreground">{monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})} د.ع</span> شهريًا.</p>
                     </CardContent>
                     <CardFooter>
-                      <Button onClick={() => setSelectedGoalId(goal.id)} className="w-full" variant={isSelected ? "default" : "outline"}>
-                        {isSelected ? 'الهدف محدد' : 'حدد هذا الهدف'}
+                      <Button onClick={() => setSelectedGoalId(goal.id)} className="w-full h-9 text-xs" variant={isSelected ? "default" : "outline"}>
+                        {isSelected ? 'محدد' : 'حدد الهدف'}
                       </Button>
                     </CardFooter>
                   </Card>
@@ -295,10 +295,10 @@ function PlannerContent() {
       
       {goals.length > 0 && (
          <Card>
-            <CardContent className="p-6 space-y-4 text-center">
-                 <Label>الهدف المختار: <span className="font-bold text-primary">{selectedGoal?.name || "لم يتم اختيار هدف"}</span></Label>
-                <Button onClick={handleGeneratePlan} disabled={isGenerating || !selectedGoalId || !userProfile?.monthlyIncome} className="w-full">
-                    {isGenerating && activePlanId === selectedGoalId ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري إنشاء الخطة...</> : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية لي</>}
+            <CardContent className="p-4 space-y-2 text-center">
+                 <Label className="text-xs">الهدف المختار: <span className="font-bold text-primary">{selectedGoal?.name || "اختر هدفًا"}</span></Label>
+                <Button onClick={handleGeneratePlan} disabled={isGenerating || !selectedGoalId || !userProfile?.monthlyIncome} className="w-full h-10 text-sm">
+                    {isGenerating && activePlanId === selectedGoalId ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإنشاء...</> : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية</>}
                 </Button>
             </CardContent>
         </Card>
@@ -306,11 +306,11 @@ function PlannerContent() {
 
       {!userProfile?.monthlyIncome && goals.length > 0 && renderInitialState()}
 
-      {error && <Alert variant="destructive"><XCircle className="h-4 w-4" /><AlertTitle>خطأ</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+      {error && <Alert variant="destructive" className="p-3 text-xs"><XCircle className="h-4 w-4" /><AlertTitle className="font-semibold">خطأ</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       
       {(isGenerating && activePlanId === selectedGoalId) && 
-        <div className='space-y-4 mt-6'>
-            <Skeleton className='h-12 w-full' /><Skeleton className='h-24 w-full' /><Skeleton className='h-48 w-full' />
+        <div className='space-y-3 mt-4'>
+            <Skeleton className='h-10 w-full' /><Skeleton className='h-20 w-full' /><Skeleton className='h-40 w-full' />
         </div>
       }
       
@@ -327,5 +327,3 @@ export default function PlannerPage() {
         </Suspense>
     )
 }
-
-    
