@@ -137,7 +137,7 @@ export default function LoginPage() {
         </Link>
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
-                <CardTitle as="h1" className="text-xl">تسجيل الدخول</CardTitle>
+                <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
                 <CardDescription>أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك</CardDescription>
             </CardHeader>
             <CardContent>
