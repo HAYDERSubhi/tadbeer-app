@@ -220,12 +220,12 @@ function PlannerContent() {
   return (
     <div className="space-y-4 pb-24">
       <div>
-        <h1 className="text-lg font-bold flex items-center gap-2">
+        <h1 className="text-base font-bold flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
             الأهداف والمخطط الذكي
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-            أضف أهدافك، ثم دع الذكاء الاصطناعي يرسم لك خريطة الطريق.
+            أضف أهدافك، ودع الذكاء الاصطناعي يرسم لك الطريق.
         </p>
       </div>
       
@@ -254,7 +254,7 @@ function PlannerContent() {
       </Accordion>
       
       <div className="space-y-3">
-        <h2 className="text-base font-semibold">قائمة الأهداف والمخطط</h2>
+        <h2 className="text-sm font-semibold">قائمة الأهداف والمخطط</h2>
         {goals.length === 0 ? (
           <Card className='text-center py-10'>
             <CardContent className="flex flex-col items-center gap-3"><Flag className="h-10 w-10 text-muted-foreground" /><p className="text-xs text-muted-foreground">لا توجد أهداف. ابدأ بإضافة هدفك الأول!</p></CardContent>
