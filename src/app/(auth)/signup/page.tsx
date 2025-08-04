@@ -16,7 +16,7 @@ import { Loader2Icon, AlertTriangle, User } from 'lucide-react';
 import { addExpense } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
-import { AppLogo } from '@/components/layout/app-shell';
+import { AppLogo } from '@/components/layout/app-logo';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
