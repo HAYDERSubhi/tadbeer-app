@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
     images: [
       {
-        url: '/logo-main.png', 
+        url: '/logo.png', // Using the original, stable logo name
         width: 512,
         height: 512,
         alt: 'شعار تطبيق تدبير',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-     images: ['/logo-main.png'],
+     images: ['/logo.png'], // Using the original, stable logo name
   },
   appleWebApp: {
     capable: true,
