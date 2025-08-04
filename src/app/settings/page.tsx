@@ -369,7 +369,7 @@ export default function SettingsPage() {
     }, {} as Record<string, number>);
 
     updateSettingsMutation.mutate({
-        budget: { totalBudget: total, zeroSpendDaysTarget: zeroSpendDays, weeklyBudget: 0 },
+        budget: { totalBudget: total, weeklyBudget: 0, zeroSpendDaysTarget: zeroSpendDays },
         categoryBudgets: numericCategoryBudgets,
         recurringPayments: recurringPayments,
     });
@@ -829,11 +829,11 @@ export default function SettingsPage() {
           title="المظهر والشخصية"
         >
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">شخصية المدرب المالي</h3>
+            <h3 className="text-base font-semibold">شخصية المدرب المالي</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
-              <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-4 flex items-center gap-4 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center overflow-hidden border">
+              <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border">
                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover">
                         <circle cx="32" cy="32" r="32" fill="#FFE0B2"/>
                         <path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/>
@@ -846,13 +846,13 @@ export default function SettingsPage() {
                     </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold">كرومي</h4>
-                  <p className="text-sm text-muted-foreground">صديقك الصدوق، نصائحه ودية ومباشرة، وأحيانًا ساخرة!</p>
+                  <h4 className="font-bold text-sm">كرومي</h4>
+                  <p className="text-xs text-muted-foreground">صديقك الصدوق، نصائحه ودية ومباشرة، وأحيانًا ساخرة!</p>
                 </div>
               </div>
 
-              <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-4 flex items-center gap-4 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center overflow-hidden border">
+              <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border">
                      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover">
                         <circle cx="32" cy="32" r="32" fill="#C5CAE9"/>
                         <path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/>
@@ -864,8 +864,8 @@ export default function SettingsPage() {
                     </svg>
                 </div>
                 <div>
-                  <h4 className="font-bold">أستاذ حريص</h4>
-                  <p className="text-sm text-muted-foreground">مدربك المالي المحترف، يقدم نصائح دقيقة ومبنية على البيانات بالفصحى.</p>
+                  <h4 className="font-bold text-sm">أستاذ حريص</h4>
+                  <p className="text-xs text-muted-foreground">مدربك المالي المحترف، يقدم نصائح دقيقة ومبنية على البيانات بالفصحى.</p>
                 </div>
               </div>
 
