@@ -754,17 +754,17 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, children: React.ReactNode, value: string }) => (
+  const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode }) => (
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
-          <AccordionTrigger className="text-sm hover:no-underline p-3">
-              <div className="flex items-center gap-3 w-full">
-                  <div className="p-2 bg-primary/10 rounded-lg text-primary">
+          <AccordionTrigger className="p-3 hover:no-underline">
+              <div className="flex items-center gap-2 w-full">
+                  <div className="p-1.5 bg-primary/10 rounded-md text-primary">
                       {React.createElement(icon, { className: "h-4 w-4" })}
                   </div>
                   <div className="text-right flex-1">
-                      <h3 className="font-semibold text-right text-sm">{title}</h3>
+                      <h3 className="font-semibold text-right text-xs">{title}</h3>
                   </div>
               </div>
           </AccordionTrigger>
@@ -783,7 +783,7 @@ export default function SettingsPage() {
   const FormDialog = isMobile ? Sheet : Dialog;
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-28">
       
       {/* Account and Theme Section */}
       <Card>
@@ -1118,7 +1118,9 @@ export default function SettingsPage() {
             icon={Info}
             title={`حول التطبيق - إصدار ${version}`}
         >
-            <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
+          <div className="p-4 text-center">
+            <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
+          </div>
         </AccordionItemWrapper>
 
       </Accordion>
