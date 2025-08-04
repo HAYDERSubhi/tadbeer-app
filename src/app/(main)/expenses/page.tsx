@@ -62,8 +62,8 @@ export default function AllExpensesPage() {
     <div className="space-y-6 pb-20">
       <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base font-bold">
-                <WalletCards className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-sm font-bold">
+                <WalletCards className="h-4 w-4 text-primary" />
                 جميع المصاريف
             </CardTitle>
             <CardDescription className="text-xs">
@@ -88,7 +88,7 @@ export default function AllExpensesPage() {
                               {categoryInfo.icon}
                           </span>
                           <div className="min-w-0">
-                              <p className="font-semibold truncate text-sm">{expense.title}</p>
+                              <p className="font-semibold truncate text-xs">{expense.title}</p>
                               <p className="text-xs text-muted-foreground">
                                   {categoryInfo.name}
                               </p>
@@ -96,7 +96,7 @@ export default function AllExpensesPage() {
                           </div>
                           <div className="flex items-center gap-2 sm:gap-4">
                               <div className="text-end shrink-0">
-                              <p className="font-semibold text-foreground text-sm sm:text-base">
+                              <p className="font-semibold text-foreground text-xs sm:text-sm">
                                   {expense.amount.toLocaleString()}&nbsp;د.ع
                               </p>
                               <p className="text-xs text-muted-foreground">
