@@ -199,7 +199,6 @@ const MappingDialog = ({
 
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const { user, signOutUser } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -810,15 +809,6 @@ export default function SettingsPage() {
                         </AlertDialogContent>
                     </AlertDialog>
                 </div>
-            </div>
-
-             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setTheme('light')} className={cn(theme === 'light' && 'bg-muted')}>
-                    <Sun className="h-5 w-5"/>
-                </Button>
-                 <Button variant="ghost" size="icon" onClick={() => setTheme('dark')} className={cn(theme === 'dark' && 'bg-muted')}>
-                    <Moon className="h-5 w-5"/>
-                </Button>
             </div>
         </CardContent>
         {isAnonymous && (
