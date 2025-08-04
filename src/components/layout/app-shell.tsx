@@ -8,7 +8,7 @@ import { useTheme } from 'next-themes';
 import React from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 
-const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
+export const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <path d="M12 2L12 22" />
         <path d="M12 2C8.68629 2 6 4.68629 6 8C6 11.3137 8.68629 14 12 14" />
