@@ -754,14 +754,14 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, description, children, value }: { icon: React.ElementType, title: string, description: string, children: React.ReactNode, value: string }) => (
+  const AccordionItemWrapper = ({ icon, title, value }: { icon: React.ElementType, title: string, children: React.ReactNode, value: string }) => (
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
-          <AccordionTrigger className="text-base hover:no-underline p-4">
-              <div className="flex items-center gap-4 w-full">
-                  <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                      {React.createElement(icon, { className: "h-6 w-6" })}
+          <AccordionTrigger className="text-sm hover:no-underline p-3">
+              <div className="flex items-center gap-3 w-full">
+                  <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                      {React.createElement(icon, { className: "h-5 w-5" })}
                   </div>
                   <div className="text-right flex-1">
                       <h3 className="font-semibold text-right">{title}</h3>
@@ -783,7 +783,7 @@ export default function SettingsPage() {
   const FormDialog = isMobile ? Sheet : Dialog;
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-4 pb-24">
       
       {/* Account and Theme Section */}
       <Card>
@@ -837,7 +837,6 @@ export default function SettingsPage() {
           value="item-1"
           icon={Palette}
           title="المظهر والشخصية"
-          description="تخصيص شكل التطبيق ونبرة المدرب المالي."
         >
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">شخصية المدرب المالي</h3>
@@ -892,7 +891,6 @@ export default function SettingsPage() {
           value="item-2"
           icon={UserCog}
           title="الملف الشخصي والدخل"
-          description="إدارة معلوماتك الشخصية ومصادر دخلك."
         >
             {/* Income Section */}
             <div className="space-y-4">
@@ -999,7 +997,6 @@ export default function SettingsPage() {
             value="item-3"
             icon={SlidersHorizontal}
             title="إدارة الميزانية"
-            description="حدد ميزانيتك الإجمالية، ميزانيات الفئات، والدفعات الدورية."
         >
             {/* Budget & Goals */}
             <div className="space-y-4">
@@ -1079,7 +1076,6 @@ export default function SettingsPage() {
             value="item-4"
             icon={DatabaseZap}
             title="إدارة البيانات"
-            description="تصدير، استيراد، وحذف بياناتك."
         >
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
@@ -1121,7 +1117,6 @@ export default function SettingsPage() {
             value="item-5"
             icon={Info}
             title={`حول التطبيق - إصدار ${version}`}
-            description={`إصدار ${version}`}
         >
             <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
         </AccordionItemWrapper>
