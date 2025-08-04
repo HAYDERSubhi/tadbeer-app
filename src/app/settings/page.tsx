@@ -754,17 +754,17 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, value }: { icon: React.ElementType, title: string, children: React.ReactNode, value: string }) => (
+  const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, children: React.ReactNode, value: string }) => (
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
           <AccordionTrigger className="text-sm hover:no-underline p-3">
               <div className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                      {React.createElement(icon, { className: "h-5 w-5" })}
+                      {React.createElement(icon, { className: "h-4 w-4" })}
                   </div>
                   <div className="text-right flex-1">
-                      <h3 className="font-semibold text-right">{title}</h3>
+                      <h3 className="font-semibold text-right text-sm">{title}</h3>
                   </div>
               </div>
           </AccordionTrigger>
