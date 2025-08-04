@@ -765,7 +765,6 @@ export default function SettingsPage() {
                   </div>
                   <div className="text-right flex-1">
                       <h3 className="font-semibold text-right">{title}</h3>
-                      <p className="text-sm text-muted-foreground text-right">{description}</p>
                   </div>
               </div>
           </AccordionTrigger>
@@ -1121,7 +1120,7 @@ export default function SettingsPage() {
         <AccordionItemWrapper
             value="item-5"
             icon={Info}
-            title="حول التطبيق"
+            title={`حول التطبيق - إصدار ${version}`}
             description={`إصدار ${version}`}
         >
             <p className="text-sm text-center text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
