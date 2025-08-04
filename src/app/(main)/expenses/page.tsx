@@ -62,11 +62,11 @@ export default function AllExpensesPage() {
     <div className="space-y-6 pb-20">
       <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <WalletCards className="h-6 w-6 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base font-bold">
+                <WalletCards className="h-5 w-5 text-primary" />
                 جميع المصاريف
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs">
                 هنا تجد قائمة كاملة بجميع مصاريفك المسجلة.
             </CardDescription>
           </CardHeader>
@@ -88,8 +88,8 @@ export default function AllExpensesPage() {
                               {categoryInfo.icon}
                           </span>
                           <div className="min-w-0">
-                              <p className="font-semibold truncate">{expense.title}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="font-semibold truncate text-sm">{expense.title}</p>
+                              <p className="text-xs text-muted-foreground">
                                   {categoryInfo.name}
                               </p>
                           </div>
