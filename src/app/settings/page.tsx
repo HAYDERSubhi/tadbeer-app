@@ -784,7 +784,7 @@ export default function SettingsPage() {
   const FormDialog = isMobile ? Sheet : Dialog;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       
       {/* Account and Theme Section */}
       <Card>
