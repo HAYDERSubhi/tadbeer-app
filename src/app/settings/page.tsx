@@ -757,7 +757,7 @@ export default function SettingsPage() {
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
-          <AccordionTrigger className="p-3 hover:no-underline">
+          <AccordionTrigger className="py-2 px-3 hover:no-underline">
               <div className="flex items-center gap-2 w-full">
                   <div className="p-1.5 bg-primary/10 rounded-md text-primary">
                       {React.createElement(icon, { className: "h-4 w-4" })}
@@ -786,7 +786,7 @@ export default function SettingsPage() {
       
       {/* Account and Theme Section */}
       <Card>
-        <CardContent className="p-4 flex items-center justify-between">
+        <CardContent className="p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
                  <div className="p-3 bg-primary/10 rounded-lg text-primary">
                     <Users className="h-6 w-6" />
@@ -990,7 +990,7 @@ export default function SettingsPage() {
         >
             {/* Budget & Goals */}
             <div className="space-y-4">
-                <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
+                 <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
             </div>
