@@ -79,17 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInAsGuest = async (): Promise<UserCredential> => {
     if (!auth) return Promise.reject(new Error("Firebase not configured."));
     
+    // For guest users, we just sign them in without adding any sample data
+    // to give them a clean slate.
     const userCredential = await signInAnonymously(auth);
-    const additionalInfo = getAdditionalUserInfo(userCredential);
-
-    if (additionalInfo?.isNewUser && userCredential.user) {
-      const sampleExpenses = [
-        { title: 'قهوة الصباح', amount: 3000, category: 'food', date: new Date().toISOString() },
-        { title: 'تعبئة وقود السيارة', amount: 45000, category: 'private_car', date: new Date(Date.now() - 86400000 * 2).toISOString() },
-        { title: 'فاتورة انترنت', amount: 30000, category: 'subscriptions', date: new Date(Date.now() - 86400000 * 5).toISOString() },
-      ];
-      await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
-    }
     return userCredential;
   }
   
