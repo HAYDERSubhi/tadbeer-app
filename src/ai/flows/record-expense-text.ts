@@ -1,3 +1,4 @@
+
 // src/ai/flows/record-expense-text.ts
 'use server';
 
@@ -48,10 +49,17 @@ const extractAndCategorizePrompt = ai.definePrompt({
     **Instructions:**
     1.  Analyze the text carefully. The text can be a full sentence like "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or just the item's name, like "قهوة" (coffee).
     2.  Extract the amount, description, and date.
-    3.  If the text is just an item name (e.g., "قهوة"), you should set the 'description' to that name, and the 'amount' to 0. The primary goal in this case is to get the category.
-    4.  If no date is mentioned, use today's date, which is {{currentDate}}.
-    5.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "transport". For "قهوة" (coffee), it should be "food".
-    6.  Return all the extracted information in the required JSON format.
+    3.  **Crucially, you must understand Iraqi number formats.** For example:
+        - "50 ألف" or "خمسين الف" means 50000.
+        - "عشرتالاف" or "عشرة آلاف" means 10000.
+        - "ميتين وخمسة وعشرين الف" means 225000.
+        - "ربع مليون" means 250000.
+        - "الفين ونص" means 2500.
+        Accurately convert these phrases to a numerical value for the 'amount' field.
+    4.  If the text is just an item name (e.g., "قهوة"), you should set the 'description' to that name, and the 'amount' to 0. The primary goal in this case is to get the category.
+    5.  If no date is mentioned, use today's date, which is {{currentDate}}.
+    6.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "transport". For "قهوة" (coffee), it should be "food".
+    7.  Return all the extracted information in the required JSON format.
 
     **Available Categories (ID: Name):**
     {{#each categories}}
