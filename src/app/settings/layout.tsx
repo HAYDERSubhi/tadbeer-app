@@ -43,6 +43,10 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
             <main className="flex-1 p-4 sm:p-6">
                 {children}
             </main>
+            
+            <footer className="p-4 text-center text-xs text-muted-foreground border-t">
+                <Link href="/privacy" className="hover:underline">سياسة الخصوصية</Link>
+            </footer>
 
             <PageNavigation />
         </div>
