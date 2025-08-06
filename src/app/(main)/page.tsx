@@ -426,7 +426,11 @@ export default function DashboardPage() {
                     <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                     <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
                  </SheetHeader>
-                 <ManualExpenseForm setOpen={setIsVoiceReviewOpen} initialData={voiceExpenseData} />
+                 <ManualExpenseForm 
+                    key={JSON.stringify(voiceExpenseData)}
+                    setOpen={setIsVoiceReviewOpen} 
+                    initialData={voiceExpenseData} 
+                 />
               </SheetContent>
             </VoiceReviewComponent>
 

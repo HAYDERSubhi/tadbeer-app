@@ -57,13 +57,13 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      title: '',
-      amount: 0,
-      category: '',
-      date: new Date(),
-      description: '',
-      isOutOfBudget: false,
-      outOfBudgetDetails: '',
+      title: initialData?.title || '',
+      amount: initialData?.amount || 0,
+      category: initialData?.category || '',
+      date: initialData?.date ? new Date(initialData.date) : new Date(),
+      description: initialData?.description || '',
+      isOutOfBudget: initialData?.isOutOfBudget || false,
+      outOfBudgetDetails: initialData?.outOfBudgetDetails || '',
     },
   });
 
@@ -79,8 +79,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    // FIX: Only run auto-categorization if there's no initial data (i.e., not from voice input)
-    // and the title is not empty.
+    // Only run auto-categorization if there's no initial data (i.e., not from voice input)
+    // and the title is not empty, and category is not already set
     if (initialData || !debouncedTitle || form.getValues('category')) {
       return;
     }
@@ -104,31 +104,6 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
 
     getCategorySuggestion();
   }, [debouncedTitle, categoryMap, form, initialData]);
-
-
-  useEffect(() => {
-    if (initialData) {
-      form.reset({
-        title: initialData.title || '',
-        amount: initialData.amount || 0,
-        category: initialData.category || '',
-        date: initialData.date ? new Date(initialData.date) : new Date(),
-        description: initialData.description || '',
-        isOutOfBudget: initialData.isOutOfBudget || false,
-        outOfBudgetDetails: initialData.outOfBudgetDetails || '',
-      });
-    } else {
-      form.reset({
-        title: '',
-        amount: 0,
-        category: '',
-        date: new Date(),
-        description: '',
-        isOutOfBudget: false,
-        outOfBudgetDetails: '',
-      });
-    }
-  }, [initialData, form]);
 
   const addExpenseMutation = useMutation({
     mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
@@ -169,7 +144,6 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
             {...form.register('title')} 
             placeholder="مثال: غداء عمل"
             autoFocus={false}
-            key={initialData?.title || 'new'}
         />
         {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
     </div>
@@ -254,7 +228,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
             render={({ field }) => (
                 <Checkbox
                     id="isOutOfBudget"
-                    checked={field.value}
+                    checked={!!field.value}
                     onCheckedChange={field.onChange}
                 />
             )}
