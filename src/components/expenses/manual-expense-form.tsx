@@ -79,9 +79,9 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    // Don't categorize if the user has already manually selected a category,
-    // or if the title is empty, or if an amount is already set (likely from voice input).
-    if (!debouncedTitle || form.getValues('category') || form.getValues('amount')) {
+    // FIX: Only run auto-categorization if there's no initial data (i.e., not from voice input)
+    // and the title is not empty.
+    if (initialData || !debouncedTitle || form.getValues('category')) {
       return;
     }
 
@@ -103,7 +103,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     };
 
     getCategorySuggestion();
-  }, [debouncedTitle, categoryMap, form]);
+  }, [debouncedTitle, categoryMap, form, initialData]);
 
 
   useEffect(() => {

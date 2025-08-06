@@ -216,8 +216,7 @@ export default function DashboardPage() {
             title: result.description, 
             amount: result.amount,
             category: result.category,
-            // Convert date string to a Date object
-            date: result.date ? new Date(result.date).toISOString() : new Date().toISOString()
+            date: result.date // Pass date string directly
         });
         setIsVoiceReviewOpen(true);
 
