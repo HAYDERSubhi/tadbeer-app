@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 217 91% 60%; /* Classic Blue */
+    --primary: 173 80% 40%; /* Teal */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -33,12 +33,12 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 173 80% 40%; /* Teal */
     --radius: 0.75rem;
     
     /* Chart Colors */
-    --chart-1: 217 91% 60%;   /* Classic Blue */
-    --chart-2: 173 80% 40%;   /* Teal/Cyan */
+    --chart-1: 173 80% 40%;   /* Teal */
+    --chart-2: 217 91% 60%;   /* Blue */
     --chart-3: 0 84.2% 60.2%; /* Red */
     --chart-4: 48 96% 51%;    /* Yellow */
     --chart-5: 262 83% 58%;   /* Purple */
@@ -56,7 +56,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%; /* Classic Blue */
+    --primary: 173 70% 50%; /* Teal */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -73,11 +73,11 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 173 70% 50%; /* Teal */
     
     /* Chart Colors */
-    --chart-1: 217 91% 60%;   /* Classic Blue */
-    --chart-2: 173 70% 50%;   /* Teal/Cyan */
+    --chart-1: 173 70% 50%;   /* Teal */
+    --chart-2: 217 91% 60%;   /* Blue */
     --chart-3: 0 74% 50%;     /* Red */
     --chart-4: 48 96% 61%;    /* Yellow */
     --chart-5: 262 73% 68%;   /* Purple */
