@@ -84,9 +84,6 @@ import {
     AlertTriangle,
     Terminal,
     Rocket,
-    CheckCircle,
-    XCircle,
-    Info,
 } from "lucide-react"
 
 const colors = [
@@ -298,8 +295,8 @@ export default function PreviewPage() {
                     <Label htmlFor="airplane-mode">وضع الطيران</Label>
                 </div>
                  <div className="space-y-3">
-                    <Label htmlFor="slider-value">المستوى: {sliderValue}</Label>
-                    <Slider id="slider-value" value={sliderValue} onValueChange={setSliderValue} max={100} step={1} />
+                    <Label htmlFor="slider-value">المستوى: {sliderValue[0]}</Label>
+                    <Slider id="slider-value" defaultValue={sliderValue} onValueChange={setSliderValue} max={100} step={1} />
                 </div>
             </div>
         </div>
@@ -454,3 +451,5 @@ export default function PreviewPage() {
     </div>
   )
 }
+
+    
