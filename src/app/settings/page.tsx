@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing, Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -73,6 +73,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
+import Link from 'next/link';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -1251,7 +1252,13 @@ export default function SettingsPage() {
             icon={Info}
             title={`حول التطبيق - إصدار ${version}`}
         >
-          <div className="p-4 text-center">
+          <div className="p-4 text-center space-y-4">
+            <Button asChild variant="outline" className="w-full">
+                <Link href="mailto:feedback@tadbeer.app">
+                    <Mail className="ml-2 h-4 w-4" />
+                    إرسال ملاحظات واقتراحات
+                </Link>
+            </Button>
             <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
@@ -1351,3 +1358,5 @@ const CategoryEditDialog = ({
     </DialogComponent>
   );
 };
+
+    
