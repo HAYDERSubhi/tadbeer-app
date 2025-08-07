@@ -253,7 +253,7 @@ export default function PreviewPage() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="email">البريد الإلكتروني (خطأ)</Label>
-                    <Input id="email" value="email@invalid" className="border-destructive focus-visible:ring-destructive" />
+                    <Input id="email" defaultValue="email@invalid" className="border-destructive focus-visible:ring-destructive" />
                     <p className="text-sm text-destructive">الرجاء إدخال بريد إلكتروني صالح.</p>
                 </div>
                  <div className="space-y-2">
@@ -425,7 +425,7 @@ export default function PreviewPage() {
                             <SheetDescription>
                                 قم بإجراء التغييرات على ملفك الشخصي هنا. انقر فوق حفظ عند الانتهاء.
                             </SheetDescription>
-                            </SheetHeader>
+                            </Header>
                         </SheetContent>
                     </Sheet>
                     <AlertDialog>
