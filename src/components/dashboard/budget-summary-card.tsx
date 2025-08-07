@@ -97,7 +97,7 @@ export default function BudgetSummaryCard() {
                         <span>المصروف: {formatCurrency(budgetData.monthlySpent)}</span>
                         <span>المتبقي: {formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
                     </div>
-                    <Progress value={budgetData.spentPercentage} className="h-2.5" />
+                    <Progress value={budgetData.spentPercentage} className="h-4" />
                 </div>
 
                 {/* Section 2: Main Stats with '+' separator */}
@@ -155,7 +155,7 @@ export default function BudgetSummaryCard() {
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
                                     <span className="text-sm font-semibold">{formatCurrency(week.spent)}</span>
                                 </div>
-                                <Progress value={week.progress} className="h-2" indicatorcolor={week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                                <Progress value={week.progress} className="h-3" indicatorcolor={week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                             </div>
                         ))}
                     </div>
