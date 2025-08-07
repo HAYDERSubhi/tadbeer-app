@@ -7,11 +7,15 @@
 
 @layer base {
   :root {
-    --background: 220 60% 99%;
+    --background-start-rgb: 220 20% 99%;
+    --background-end-rgb: 220 20% 95%;
+    --background: 220 20% 99%;
     --foreground: 222 47% 11%;
 
-    --card: 0 0% 100%;
+    --card-rgb: 224 71% 98%;
+    --card: 224 71% 98%;
     --card-foreground: 222 47% 11%;
+    --card-border-rgb: 221 83% 80%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
@@ -46,11 +50,15 @@
   }
 
   .dark {
+    --background-start-rgb: 222 47% 11%;
+    --background-end-rgb: 222 40% 5%;
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 11%;
+    --card-rgb: 222 47% 15%;
+    --card: 222 47% 15%;
     --card-foreground: 210 40% 98%;
+    --card-border-rgb: 217 91% 70%;
 
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
@@ -91,6 +99,8 @@
     @apply bg-background text-foreground;
     font-family: 'Tajawal', sans-serif;
     direction: rtl; /* RTL support */
+    background: radial-gradient(circle at 50% 0%, hsl(var(--background-start-rgb)) 0%, hsl(var(--background-end-rgb)) 100%);
+    min-height: 100vh;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
