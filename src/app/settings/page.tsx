@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -72,6 +72,7 @@ import {
 } from "@/components/ui/accordion";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
+import { Switch } from '@/components/ui/switch';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -218,6 +219,7 @@ export default function SettingsPage() {
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [appTone, setAppTone] = useState<AppTone>('formal');
+  const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
   
   // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
@@ -273,6 +275,7 @@ export default function SettingsPage() {
       setTotalBudgetInput(formatNumberWithCommas(userSettings.budget?.totalBudget));
       setZeroSpendDaysTargetInput(userSettings.budget?.zeroSpendDaysTarget?.toString() || '4');
       setAppTone(userSettings.appTone || 'formal');
+      setDailyReminderEnabled(userSettings.notifications?.dailyReminderEnabled ?? false);
       
       const stringBudgets = Object.entries(userSettings.categoryBudgets || {}).reduce((acc, [key, value]) => {
           acc[key] = formatNumberWithCommas(value as number);
@@ -378,8 +381,32 @@ export default function SettingsPage() {
     });
   }
 
-  const handleSaveAppearanceSettings = () => {
-    updateSettingsMutation.mutate({ appTone });
+  const handleSaveAppearanceSettings = async () => {
+    
+    if (dailyReminderEnabled) {
+      // Request permission if not already granted
+      if ('Notification' in window && Notification.permission !== 'granted') {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') {
+              toast({
+                  title: 'تم رفض الإذن',
+                  description: 'لا يمكننا إرسال تذكيرات بدون إذنك.',
+                  variant: 'destructive',
+              });
+              setDailyReminderEnabled(false);
+              updateSettingsMutation.mutate({
+                appTone,
+                notifications: { dailyReminderEnabled: false },
+              });
+              return;
+          }
+      }
+    }
+
+    updateSettingsMutation.mutate({
+      appTone,
+      notifications: { dailyReminderEnabled },
+    });
   };
 
   // --- Category Management ---
@@ -875,7 +902,7 @@ export default function SettingsPage() {
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
-          title="المظهر والشخصية"
+          title="المظهر والإشعارات"
         >
           <div className="space-y-4">
             <h3 className="text-base font-semibold">شخصية المدرب المالي</h3>
@@ -917,11 +944,33 @@ export default function SettingsPage() {
                   <p className="text-xs text-muted-foreground">مدربك المالي المحترف، يقدم نصائح دقيقة ومبنية على البيانات بالفصحى.</p>
                 </div>
               </div>
-
             </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-base font-semibold">الإشعارات</h3>
+              <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="daily-reminder" className="text-sm font-medium">
+                    التذكير اليومي
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    إرسال إشعار يومي في الساعة 8 مساءً لتسجيل المصروفات.
+                  </p>
+                </div>
+                <Switch
+                  id="daily-reminder"
+                  checked={dailyReminderEnabled}
+                  onCheckedChange={setDailyReminderEnabled}
+                  aria-label="تفعيل التذكير اليومي"
+                />
+              </div>
+            </div>
+            
             <Button onClick={handleSaveAppearanceSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
               {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-              حفظ تغييرات المظهر
+              حفظ التغييرات
             </Button>
           </div>
         </AccordionItemWrapper>

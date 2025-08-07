@@ -11,6 +11,7 @@ import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
 import { usePathname } from 'next/navigation';
+import NotificationManager from '@/components/notifications/notification-manager';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -63,6 +64,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (user) {
     return (
       <AppDataProvider>
+        <NotificationManager />
         {isFullHeightPage ? (
            <main className="h-screen flex-1 flex flex-col">{children}</main>
         ) : (

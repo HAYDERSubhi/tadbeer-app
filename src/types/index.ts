@@ -73,6 +73,10 @@ export type Category = {
     isDefault?: boolean; // To distinguish default from user-created
 };
 
+export type NotificationSettings = {
+  dailyReminderEnabled?: boolean;
+}
+
 export type UserSettings = {
   budget: UserBudgetSettings;
   categoryBudgets: Record<string, number>;
@@ -81,4 +85,5 @@ export type UserSettings = {
   recurringPayments?: RecurringPayment[];
   appTone?: AppTone;
   categories?: Category[];
+  notifications?: NotificationSettings;
 };

@@ -176,6 +176,7 @@ const defaultSettings: UserSettings = {
     recurringPayments: [],
     appTone: 'formal',
     categories: Object.values(DEFAULT_CATEGORIES), // Initialize with default categories
+    notifications: { dailyReminderEnabled: false },
 };
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
@@ -203,6 +204,7 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
             appTone: data.appTone || 'formal',
             // If user has no categories, give them the default list
             categories: data.categories && data.categories.length > 0 ? data.categories : defaultSettings.categories,
+            notifications: { ...defaultSettings.notifications, ...data.notifications },
         };
         return mergedSettings;
     } else {
