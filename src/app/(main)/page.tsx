@@ -402,7 +402,7 @@ export default function DashboardPage() {
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <Plus className="w-8 h-8" />
+                    <Pencil className="w-8 h-8" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
             </Link>
