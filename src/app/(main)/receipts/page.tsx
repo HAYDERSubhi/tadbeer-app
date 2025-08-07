@@ -13,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles, AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn, Receipt, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
-import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useCategories } from '@/hooks/use-categories';
 
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
@@ -38,6 +38,7 @@ export default function DetailedReceiptPage() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const { categories } = useCategories();
 
     // State for overall page flow
     const [viewState, setViewState] = useState<ViewState>('initial');
@@ -63,12 +64,12 @@ export default function DetailedReceiptPage() {
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-    const categoryMap = useMemo(() => {
-        return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
-            acc[id] = name;
+    const categoryMapForAI = useMemo(() => {
+        return categories.reduce((acc, cat) => {
+            acc[cat.id] = cat.name;
             return acc;
         }, {} as Record<string, string>);
-    }, []);
+    }, [categories]);
 
     useEffect(() => {
         let isMounted = true;
@@ -186,7 +187,7 @@ export default function DetailedReceiptPage() {
         try {
             const result = await analyzeDetailedReceipt({
                 receiptImages: images.map(img => img.src),
-                categories: categoryMap,
+                categories: categoryMapForAI,
             });
             const transactionDate = result.transactionDate ? format(new Date(result.transactionDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
             setStoreInfo({ name: result.storeName || '', date: transactionDate });
@@ -487,8 +488,8 @@ export default function DetailedReceiptPage() {
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {Object.entries(defaultCategories).map(([id, cat]) => (
-                                                        <SelectItem key={id} value={id}>{cat.name}</SelectItem>
+                                                    {categories.map((cat) => (
+                                                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
