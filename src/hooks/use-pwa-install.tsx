@@ -29,7 +29,7 @@ export const usePWAInstall = () => {
       deferredPrompt = e as BeforeInstallPromptEvent;
       
       // Check if the toast has been shown before
-      const hasSeenInstallPrompt = localStorage.getItem('hasSeenInstallPrompt');
+      const hasSeenInstallPrompt = localStorage.getItem('hasSeenInstallPrompt_v2');
 
       if (!hasSeenInstallPrompt) {
         // Show the install toast
@@ -54,7 +54,7 @@ export const usePWAInstall = () => {
             </Button>
           ),
         });
-        localStorage.setItem('hasSeenInstallPrompt', 'true');
+        localStorage.setItem('hasSeenInstallPrompt_v2', 'true');
       }
     };
 
