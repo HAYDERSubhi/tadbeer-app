@@ -164,7 +164,7 @@ export default function DashboardPage() {
       recognition.onerror = (event) => {
         if (event.error !== 'aborted') {
           console.error('Speech recognition error', event.error);
-          setVoiceError(`خطأ في التعرف على الصوت: ${event.error}`);
+          setVoiceError(`خطأ في التعرف على الصوت: ${'${event.error}'}`);
         }
         setIsVoiceRecording(false);
         setIsVoiceLoading(false);
