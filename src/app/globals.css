@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 220 20% 98%; /* Light Grayish Blue */
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -45,15 +45,13 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --background-start-rgb: 10, 20, 35;
-    --background-end-rgb: 5, 10, 20;
+    --background: 173 10% 10%; /* Dark Desaturated Teal */
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 173 10% 12%; /* Darker Teal for cards */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 173 10% 10%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 173 70% 50%; /* Teal */
@@ -71,7 +69,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 22.5%; /* Slightly lighter border */
     --input: 217.2 32.6% 17.5%;
     --ring: 173 70% 50%; /* Teal */
     
@@ -93,9 +91,6 @@
     font-family: 'Tajawal', sans-serif;
     direction: rtl; /* RTL support */
     min-height: 100vh;
-  }
-  .dark body {
-    background: linear-gradient(to bottom, rgb(var(--background-start-rgb)), rgb(var(--background-end-rgb)));
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
