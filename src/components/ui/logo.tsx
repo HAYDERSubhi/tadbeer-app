@@ -14,7 +14,6 @@ const Logo = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         priority // The logo is important, so we prioritize its loading
-        data-ai-hint="logo"
     />
   </div>
 );
