@@ -97,7 +97,7 @@ export default function BudgetSummaryCard() {
                         <span>المصروف: {formatCurrency(budgetData.monthlySpent)}</span>
                         <span>المتبقي: {formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
                     </div>
-                    <Progress value={budgetData.spentPercentage} className="h-4" />
+                    <Progress value={budgetData.spentPercentage} className="h-4 sm:h-5" />
                 </div>
 
                 {/* Section 2: Main Stats with '+' separator */}
@@ -128,7 +128,7 @@ export default function BudgetSummaryCard() {
                          <StatItem 
                             title="المصروف الشهري"
                             value={formatCurrency(budgetData.monthlySpent)}
-                            color="text-destructive"
+                            color="text-orange-600 dark:text-orange-400"
                         />
                     </div>
                     {/* Bottom-Left: مصروف اليوم */}
@@ -136,7 +136,7 @@ export default function BudgetSummaryCard() {
                         <StatItem 
                             title="مصروف اليوم"
                             value={formatCurrency(budgetData.dailySpent)}
-                            color="text-destructive"
+                            color="text-orange-600 dark:text-orange-400"
                         />
                     </div>
                 </div>
@@ -155,7 +155,7 @@ export default function BudgetSummaryCard() {
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
                                     <span className="text-sm font-semibold">{formatCurrency(week.spent)}</span>
                                 </div>
-                                <Progress value={week.progress} className="h-3" indicatorcolor={week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                                <Progress value={week.progress} className="h-3 sm:h-4" indicatorcolor={week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
                             </div>
                         ))}
                     </div>
