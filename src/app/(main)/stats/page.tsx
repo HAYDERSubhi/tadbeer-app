@@ -426,8 +426,8 @@ export default function StatisticsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-2xl font-display mb-2">لا توجد بيانات مصاريف لعرضها</h2>
-        <p className="text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
+        <h2 className="text-xl font-bold mb-2">لا توجد بيانات مصاريف لعرضها</h2>
+        <p className="text-sm text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
     );
   }
