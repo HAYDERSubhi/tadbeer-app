@@ -24,13 +24,13 @@ import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
+import { useCategories } from '@/hooks/use-categories';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -53,6 +53,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { categories } = useCategories();
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -67,20 +68,18 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     },
   });
 
-  const categoryMap = useMemo(() => {
-    return Object.entries(CATEGORIES).reduce((acc, [id, { name }]) => {
-      acc[id] = name;
+  const categoryMapForAI = useMemo(() => {
+    return categories.reduce((acc, cat) => {
+      acc[cat.id] = cat.name;
       return acc;
     }, {} as Record<string, string>);
-  }, []);
+  }, [categories]);
 
   const [isCategorizing, setIsCategorizing] = useState(false);
   const expenseTitle = form.watch('title');
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    // Only run auto-categorization if there's no initial data (i.e., not from voice input)
-    // and the title is not empty, and category is not already set
     if (initialData || !debouncedTitle || form.getValues('category')) {
       return;
     }
@@ -90,7 +89,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       try {
         const result = await recordExpenseAction({
           expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
-          categories: categoryMap,
+          categories: categoryMapForAI,
         });
         if (result.category) {
           form.setValue('category', result.category, { shouldValidate: true });
@@ -103,7 +102,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     };
 
     getCategorySuggestion();
-  }, [debouncedTitle, categoryMap, form, initialData]);
+  }, [debouncedTitle, categoryMapForAI, form, initialData]);
 
   const addExpenseMutation = useMutation({
     mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
@@ -166,9 +165,9 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                 <SelectValue placeholder={isCategorizing ? 'جاري التصنيف...' : 'اختر فئة'} />
                 </SelectTrigger>
                 <SelectContent>
-                {Object.values(CATEGORIES).map((cat) => (
+                {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
+                      <span className="mr-2">{cat.icon}</span>{cat.name}
                     </SelectItem>
                 ))}
                 </SelectContent>
@@ -209,7 +208,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                 locale={arIQ}
                 disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                 />
-            </PopoverContent>
+              </PopoverContent>
             </Popover>
         )}
         />

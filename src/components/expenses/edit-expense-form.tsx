@@ -24,10 +24,10 @@ import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateExpense } from '@/services/firestore';
+import { useCategories } from '@/hooks/use-categories';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -45,6 +45,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { categories } = useCategories();
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -110,7 +111,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
                   <SelectValue placeholder="اختر فئة" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(CATEGORIES).map((cat) => (
+                  {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>

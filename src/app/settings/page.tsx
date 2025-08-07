@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -48,9 +48,8 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { useToast } from "@/hooks/use-toast";
-import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone } from '@/types';
+import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
 import * as XLSX from 'xlsx';
-import { CATEGORIES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -72,6 +71,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCategories } from '@/hooks/use-categories';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -119,8 +119,6 @@ type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
 
 // --- Mapping Dialog Component ---
-// This component is now defined outside the main SettingsPage component
-// to prevent re-rendering issues and ensure stability.
 const MappingDialog = ({
   isOpen,
   setIsOpen,
@@ -206,6 +204,7 @@ export default function SettingsPage() {
   const isMobile = useIsMobile();
 
   const { userSettings, expenses, incomes } = useAppData();
+  const { categories, getIconComponent } = useCategories();
 
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
@@ -226,7 +225,9 @@ export default function SettingsPage() {
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [isDataResetOpen, setIsDataResetOpen] = useState(false);
-
+  
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
   const [deleteOptions, setDeleteOptions] = useState({
     expenses: false,
@@ -283,7 +284,6 @@ export default function SettingsPage() {
       if (initialFamilyMembers && initialFamilyMembers.length > 0) {
         setFamilyMembers(initialFamilyMembers);
       } else {
-        // If no members exist, initialize with one default member
         setFamilyMembers([{ id: crypto.randomUUID(), type: 'adult', age: 30 }]);
       }
       setRecurringPayments(userSettings.recurringPayments || []);
@@ -382,6 +382,44 @@ export default function SettingsPage() {
     updateSettingsMutation.mutate({ appTone });
   };
 
+  // --- Category Management ---
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setIsCategoryDialogOpen(true);
+  };
+  
+  const handleAddNewCategory = () => {
+    setEditingCategory(null);
+    setIsCategoryDialogOpen(true);
+  };
+  
+  const handleDeleteCategory = (categoryId: string) => {
+    const updatedCategories = categories.filter(c => c.id !== categoryId);
+    updateSettingsMutation.mutate({ categories: updatedCategories });
+    toast({ title: "تم الحذف", description: "تم حذف الفئة بنجاح."});
+  };
+
+  const handleSaveCategory = (categoryData: { name: string; icon: string }) => {
+    let updatedCategories: Category[];
+    if (editingCategory) {
+      // Update existing
+      updatedCategories = categories.map(c => 
+        c.id === editingCategory.id ? { ...c, ...categoryData } : c
+      );
+    } else {
+      // Add new
+      const newCategory: Category = {
+        id: categoryData.name.toLowerCase().replace(/\s+/g, '_') + '_' + crypto.randomUUID().slice(0,4),
+        name: categoryData.name,
+        icon: categoryData.icon,
+        isDefault: false
+      };
+      updatedCategories = [...categories, newCategory];
+    }
+    updateSettingsMutation.mutate({ categories: updatedCategories });
+    setIsCategoryDialogOpen(false);
+  };
+  
 
   // --- Income Management ---
   const incomeForm = useForm<IncomeFormData>({
@@ -521,7 +559,6 @@ export default function SettingsPage() {
     try {
         await signOutUser();
         toast({ title: 'تم تسجيل الخروج', description: 'نأمل أن نراك قريباً!' });
-        // The main layout will handle the redirect to /login automatically.
     } catch (error) {
         toast({ title: 'خطأ', description: 'لم نتمكن من تسجيل خروجك.', variant: 'destructive' });
     }
@@ -560,7 +597,7 @@ export default function SettingsPage() {
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
-      'الفئة': CATEGORIES[exp.category as keyof typeof CATEGORIES]?.name || exp.category,
+      'الفئة': categories.find(c => c.id === exp.category)?.name || exp.category,
       'التاريخ': new Date(exp.date),
       'الوصف': exp.description || '',
     }));
@@ -615,9 +652,9 @@ export default function SettingsPage() {
           return;
       }
       const categoryNameToIdMap = new Map<string, string>();
-      Object.entries(CATEGORIES).forEach(([id, catData]) => {
+      categories.forEach((catData) => {
           const normalizedName = catData.name.trim().normalize("NFKD");
-          categoryNameToIdMap.set(normalizedName, id);
+          categoryNameToIdMap.set(normalizedName, catData.id);
       });
       const newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[] = [];
       parsedDataCache.forEach((row, rowIndex) => {
@@ -686,7 +723,7 @@ export default function SettingsPage() {
       localStorage.setItem(LOCAL_STORAGE_MAP_KEY, JSON.stringify(columnMap));
   };
   
-  const defaultSettings = {
+  const defaultSettingsForReset = {
       budget: { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 },
       categoryBudgets: {},
       profile: {
@@ -709,12 +746,12 @@ export default function SettingsPage() {
 
         const settingsToReset: Partial<UserSettings> = {};
         if (options.budgetSettings) {
-            settingsToReset.budget = defaultSettings.budget;
-            settingsToReset.categoryBudgets = defaultSettings.categoryBudgets;
+            settingsToReset.budget = defaultSettingsForReset.budget;
+            settingsToReset.categoryBudgets = defaultSettingsForReset.categoryBudgets;
             settingsToReset.recurringPayments = [];
         }
         if (options.profileSettings) {
-            settingsToReset.profile = defaultSettings.profile;
+            settingsToReset.profile = defaultSettingsForReset.profile;
         }
 
         if (Object.keys(settingsToReset).length > 0) {
@@ -998,13 +1035,55 @@ export default function SettingsPage() {
         <AccordionItemWrapper
             value="item-3"
             icon={SlidersHorizontal}
-            title="إدارة الميزانية"
+            title="إدارة الميزانية والفئات"
         >
-            {/* Budget & Goals */}
+             {/* Budget & Goals */}
             <div className="space-y-4">
                  <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
+            </div>
+            
+            <Separator />
+
+            {/* Category Management */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">إدارة الفئات</h3>
+              <div className="border rounded-lg p-2 space-y-2 max-h-72 overflow-y-auto">
+                {categories.map(cat => (
+                  <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{getIconComponent(cat.icon)}</span>
+                      <span>{cat.name}</span>
+                      {cat.isDefault && <span className="text-xs text-muted-foreground">(افتراضي)</span>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditCategory(cat)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {!cat.isDefault && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle><AlertDialogDescription>سيتم حذف هذه الفئة. المصاريف المسجلة تحتها ستبقى لكن لن تتمكن من اختيار هذه الفئة مستقبلاً.</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteCategory(cat.id)}>نعم، قم بالحذف</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" className="w-full" onClick={handleAddNewCategory}>
+                <UserPlus className="ml-2 h-4 w-4" /> إضافة فئة جديدة
+              </Button>
             </div>
             
             <Separator />
@@ -1013,10 +1092,10 @@ export default function SettingsPage() {
             <div className="space-y-4">
                  <h3 className='text-lg font-semibold'>ميزانيات الفئات</h3>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-4">
-                    {Object.entries(CATEGORIES).map(([id, category]) => (
-                        <div key={id} className="flex items-center gap-4">
-                            <span className="flex items-center gap-2 w-1/3"><span className="text-xl">{category.icon}</span><Label htmlFor={`category-${id}`}>{category.name}</Label></span>
-                            <Input id={`category-${id}`} type="text" inputMode="decimal" value={categoryBudgets[id] || ''} onChange={(e) => handleCategoryBudgetChange(id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(id, '0'); }} placeholder="0" className="flex-1" />
+                    {categories.map((category) => (
+                        <div key={category.id} className="flex items-center gap-4">
+                            <span className="flex items-center gap-2 w-1/3"><span className="text-xl">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`}>{category.name}</Label></span>
+                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1" />
                         </div>
                     ))}
                 </div>
@@ -1060,7 +1139,7 @@ export default function SettingsPage() {
                                     <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
                                     <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
-                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{Object.values(CATEGORIES).map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.icon} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
                                 <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
@@ -1127,7 +1206,6 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
-
       </Accordion>
       
       <MappingDialog
@@ -1139,6 +1217,88 @@ export default function SettingsPage() {
         isProcessing={addMultipleExpensesMutation.isPending}
       />
 
+       <CategoryEditDialog
+            key={editingCategory?.id || 'new'}
+            isOpen={isCategoryDialogOpen}
+            setIsOpen={setIsCategoryDialogOpen}
+            isMobile={isMobile}
+            onSave={handleSaveCategory}
+            category={editingCategory}
+        />
+
     </div>
   );
 }
+
+
+// --- Category Edit/Add Dialog ---
+const categorySchema = z.object({
+  name: z.string().min(2, "الاسم مطلوب (حرفين على الأقل)").max(25, "الاسم طويل جدًا"),
+  icon: z.string().min(1, "الرمز مطلوب"),
+});
+type CategoryFormData = z.infer<typeof categorySchema>;
+
+const CategoryEditDialog = ({
+  isOpen,
+  setIsOpen,
+  isMobile,
+  onSave,
+  category,
+}: {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  isMobile: boolean;
+  onSave: (data: CategoryFormData) => void;
+  category: Category | null;
+}) => {
+  
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: category?.name || "",
+      icon: category?.icon || "",
+    },
+  });
+
+  const onSubmit = (data: CategoryFormData) => {
+    onSave(data);
+    form.reset();
+  };
+
+  const DialogComponent = isMobile ? Sheet : Dialog;
+  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+  return (
+    <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
+          <DialogDescription>
+            {category?.isDefault ? "يمكنك تعديل اسم ورمز الفئات الافتراضية." : "أضف اسمًا ورمزًا (Emoji) لفئتك الجديدة."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-1 py-4">
+          <form id="category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cat-name">اسم الفئة</Label>
+              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" />
+              {form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="cat-icon">الرمز (Emoji)</Label>
+              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" />
+               {form.formState.errors.icon && <p className="text-sm text-destructive mt-1">{form.formState.errors.icon.message}</p>}
+            </div>
+          </form>
+        </div>
+        <DialogFooter className="pt-4 border-t">
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
+          <Button type="submit" form="category-form">
+            <Save className="ml-2 h-4 w-4" />
+            حفظ
+          </Button>
+        </DialogFooter>
+      </DialogContentComponent>
+    </DialogComponent>
+  );
+};

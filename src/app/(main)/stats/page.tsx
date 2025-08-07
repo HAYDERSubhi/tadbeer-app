@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, isAfter, compareDesc, differenceInDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
-import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { forecastExpenses, ForecastExpensesOutput } from '@/ai/flows/forecast-expenses';
@@ -25,16 +24,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
-
-
-// Chart config using keys from defaultCategories
-const chartConfig = Object.entries(defaultCategories).reduce((acc, [key, value]) => {
-  acc[key as keyof typeof acc] = { label: value.name, color: value.chartColor };
-  return acc;
-}, {} as ChartConfig & { expenses: { label: string, color: string }});
-
-chartConfig.expenses = { label: "المصاريف", color: "hsl(var(--accent))" };
-
+import { useCategories } from '@/hooks/use-categories';
 
 interface PieChartDataItem {
   name: string;
@@ -51,7 +41,7 @@ interface TrendChartDataItem {
 interface CategorySummaryItem {
   id: string;
   name: string;
-  icon: string;
+  icon: React.ReactNode;
   total: number;
   percentage: number;
   color: string;
@@ -71,6 +61,7 @@ interface ForecastData {
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings } = useAppData();
+  const { categories, categoryMap, getIconComponent } = useCategories();
 
   const categoryBudgets = userSettings?.categoryBudgets || {};
 
@@ -87,8 +78,23 @@ export default function StatisticsPage() {
 
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+  const chartConfig = useMemo(() => {
+      const config: ChartConfig = {};
+      categories.forEach(cat => {
+          // A little hack to find the chart color from default categories if it exists
+          const defaultCat = Object.values(categoryMap).find(c => c.id === cat.id);
+          config[cat.id] = { 
+              label: cat.name, 
+              color: defaultCat?.chartColor || 'hsl(var(--muted))',
+              icon: () => getIconComponent(cat.icon),
+          };
+      });
+      config.expenses = { label: "المصاريف", color: "hsl(var(--accent))" };
+      return config;
+  }, [categories, categoryMap, getIconComponent]);
+
+
   // Derive available years and months from expenses data.
-  // This is more efficient than using state and useEffect for derived data.
   const availableYears = useMemo(() => {
     if (expenses.length === 0) return [];
     const dates = expenses.map(e => {
@@ -105,9 +111,6 @@ export default function StatisticsPage() {
     return Array.from(new Set(dates.map(d => format(d, 'yyyy-MM')))).sort((a, b) => b.localeCompare(a));
   }, [expenses]);
 
-  // This effect safely synchronizes the selected filter with the available options.
-  // It runs only when the available options change (i.e., when expenses change).
-  // Using the functional form of setState prevents an infinite loop.
   useEffect(() => {
     setSelectedYear(currentYear => {
         if (availableYears.length > 0 && !availableYears.includes(currentYear)) {
@@ -150,7 +153,6 @@ export default function StatisticsPage() {
       periodStart = startOfYear(new Date(selectedYear, 0, 1));
       periodEnd = endOfYear(new Date(selectedYear, 0, 1));
     } else {
-      // 'month' view
       const yearFromMonth = parseInt(selectedMonth.substring(0, 4), 10);
       const monthFromMonth = parseInt(selectedMonth.substring(5, 7), 10) - 1;
 
@@ -174,56 +176,44 @@ export default function StatisticsPage() {
 
     const totalExpensesInPeriod = currentFilteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-    // Pie Chart & Category Summary Data
     const categoryTotals: { [key: string]: number } = {};
     currentFilteredExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
 
     const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total]) => ({
-      name: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
+      name: categoryMap[catKey]?.name || catKey,
       value: total,
       key: catKey,
-      fill: defaultCategories[catKey as keyof typeof defaultCategories]?.chartColor || 'hsl(var(--muted))',
+      fill: chartConfig[catKey]?.color || 'hsl(var(--muted))',
     }));
 
     const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
       .map(([catKey, total]) => {
-        const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories];
+        const categoryInfo = categoryMap[catKey];
         const budget = categoryBudgets[catKey];
-
-        // If the category is not in our predefined list, create a temporary entry for it.
-        const effectiveCategoryInfo = categoryInfo || {
-            name: catKey, // Use the key as the name
-            icon: '❓', // Default icon for unknown
-            color: 'bg-gray-400',
-            chartColor: 'hsl(var(--muted))',
-        };
-
+        
         return {
           id: catKey,
-          name: effectiveCategoryInfo.name,
-          icon: effectiveCategoryInfo.icon,
+          name: categoryInfo?.name || catKey,
+          icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
           total,
           percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-          color: effectiveCategoryInfo.color,
-          chartColor: effectiveCategoryInfo.chartColor,
+          color: categoryInfo?.color || 'bg-gray-400',
+          chartColor: chartConfig[catKey]?.color || 'hsl(var(--muted))',
           budget,
         };
       })
       .sort((a, b) => b.total - a.total);
 
-    // Trend Chart Data
-    const trendSourceData = currentFilteredExpenses;
-
     let trendData: TrendChartDataItem[] = [];
     if (view === 'year') {
-      const monthlyTotals: { [key: string]: number } = {}; // key: "YYYY-MM"
+      const monthlyTotals: { [key: string]: number } = {};
       for (let i = 0; i < 12; i++) {
         const monthKey = format(new Date(selectedYear, i, 1), 'yyyy-MM');
         monthlyTotals[monthKey] = 0;
       }
-      trendSourceData.forEach(exp => {
+      currentFilteredExpenses.forEach(exp => {
         const monthKey = format(parseISO(exp.date), 'yyyy-MM');
         if (monthlyTotals.hasOwnProperty(monthKey)) {
           monthlyTotals[monthKey] += exp.amount;
@@ -234,15 +224,14 @@ export default function StatisticsPage() {
         expenses: total,
       }));
     } else {
-      // 'month' view, show daily trend
       const dailyTotals: { [date: string]: number } = {};
       let day = periodStart;
       while (day <= periodEnd) {
         const formattedDate = format(day, 'd');
         dailyTotals[formattedDate] = 0;
-        day = subDays(day, -1); // next day
+        day = subDays(day, -1);
       }
-      trendSourceData.forEach(exp => {
+      currentFilteredExpenses.forEach(exp => {
         const formattedDate = format(parseISO(exp.date), 'd');
         if (dailyTotals.hasOwnProperty(formattedDate)) {
           dailyTotals[formattedDate] += exp.amount;
@@ -254,7 +243,6 @@ export default function StatisticsPage() {
       }));
     }
     
-    // Top 6 categories trend data (OPTIMIZED)
     const lastSixMonths = availableMonths.length > 1 ? availableMonths.slice(0, 6).reverse() : [];
     let categoriesTrendData: any[] = [];
 
@@ -266,7 +254,6 @@ export default function StatisticsPage() {
             } catch { return false; }
         });
 
-        // Pre-process data to avoid nested loops
         const monthlyCategoryTotals: Record<string, Record<string, number>> = {};
         lastSixMonths.forEach(monthKey => {
             monthlyCategoryTotals[monthKey] = {};
@@ -280,7 +267,6 @@ export default function StatisticsPage() {
             monthlyCategoryTotals[monthKey][exp.category] = (monthlyCategoryTotals[monthKey][exp.category] || 0) + exp.amount;
         });
         
-        // Calculate total spending per category over the period to find the top 6
         const totalSpendingInTrendPeriod: Record<string, number> = {};
         Object.values(monthlyCategoryTotals).forEach(categoryTotals => {
             Object.entries(categoryTotals).forEach(([catKey, amount]) => {
@@ -293,25 +279,23 @@ export default function StatisticsPage() {
             .slice(0, 6)
             .map(([key]) => key);
             
-        // Build the final structure using the pre-processed data
         categoriesTrendData = top6CategoryKeys.map(catKey => {
-            const categoryInfo = defaultCategories[catKey as keyof typeof defaultCategories] || defaultCategories.other;
-            const monthlyTrend = lastSixMonths.map(monthKey => {
-                const amount = monthlyCategoryTotals[monthKey]?.[catKey] || 0;
-                return {
-                    month: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
-                    amount: amount,
-                };
-            });
+            const categoryInfo = categoryMap[catKey];
+            if (!categoryInfo) return null;
+            
+            const monthlyTrend = lastSixMonths.map(monthKey => ({
+                month: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+                amount: monthlyCategoryTotals[monthKey]?.[catKey] || 0,
+            }));
             
             return {
                 categoryId: catKey,
                 categoryName: categoryInfo.name,
-                categoryIcon: categoryInfo.icon,
+                categoryIcon: getIconComponent(categoryInfo.icon),
                 totalAmount: totalSpendingInTrendPeriod[catKey],
                 monthlyTrend: monthlyTrend,
             };
-        });
+        }).filter(Boolean);
     }
 
     return {
@@ -322,12 +306,10 @@ export default function StatisticsPage() {
       topCategoriesTrendData: categoriesTrendData,
       filteredExpenses: currentFilteredExpenses,
     };
-  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent, chartConfig]);
   
-  // Effect for fetching forecast
   useEffect(() => {
     const getForecast = async () => {
-      // Need at least a few expenses to forecast
       if (expenses.length < 5) {
         setIsForecastLoading(false);
         setForecast(null);
@@ -343,14 +325,12 @@ export default function StatisticsPage() {
         } catch { return false; }
       });
       
-      // Still need some data in the last 90 days
       if(relevantExpenses.length < 5) {
          setIsForecastLoading(false);
          setForecast(null);
          return;
       }
 
-      // Find the date of the first expense in the period to get an accurate duration
       const firstExpenseDate = relevantExpenses.reduce((oldest, exp) => {
         const expDate = parseISO(exp.date);
         return expDate < oldest ? expDate : oldest;
@@ -369,7 +349,7 @@ export default function StatisticsPage() {
 
       const categoryForecasts = Object.entries(categoryTotals)
         .map(([catKey, total]) => ({
-          categoryName: defaultCategories[catKey as keyof typeof defaultCategories]?.name || catKey,
+          categoryName: categoryMap[catKey]?.name || catKey,
           predictedAmount: Math.round((total / daysInPeriod) * 30),
         }))
         .sort((a,b) => b.predictedAmount - a.predictedAmount)
@@ -379,14 +359,13 @@ export default function StatisticsPage() {
         const aiResult = await forecastExpenses({ 
           totalForecastAmount,
           categoryForecasts,
-          historicalExpenses: relevantExpenses.slice(0, 20).map(e => ({ // send a sample for context
+          historicalExpenses: relevantExpenses.slice(0, 20).map(e => ({
             amount: e.amount,
-            category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+            category: categoryMap[e.category]?.name || e.category,
             date: format(new Date(e.date), 'yyyy-MM-dd'),
           })),
         });
         
-        // Combine calculated data with AI advice
         setForecast({
             totalForecastAmount,
             categoryForecasts,
@@ -395,7 +374,6 @@ export default function StatisticsPage() {
         
       } catch (e) {
         console.error("Failed to get forecast advice", e);
-        // Fallback: Show calculated forecast even if AI fails
         setForecast({
             totalForecastAmount,
             categoryForecasts,
@@ -407,7 +385,7 @@ export default function StatisticsPage() {
     };
 
     getForecast();
-  }, [expenses]);
+  }, [expenses, categoryMap]);
 
   const formatYAxisTick = (tick: any) => {
     const value = Number(tick);
@@ -525,7 +503,7 @@ export default function StatisticsPage() {
                     setActiveDonutSlice(null);
                   }}
                   label={({ name, percent, x, y, payload }) => {
-                    if (percent * 100 < 5) return null; // Only show for larger slices to avoid clutter
+                    if (percent * 100 < 5) return null;
                      const displayName = name.length > 10 ? `${name.substring(0, 8)}...` : name;
                     return (
                         <text
@@ -684,7 +662,7 @@ export default function StatisticsPage() {
               <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
                 <div className="mb-4">
                     <div className="flex items-center gap-3">
-                        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl", defaultCategories[catTrend.categoryId as keyof typeof defaultCategories]?.color)}>
+                        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl")}>
                             {catTrend.categoryIcon}
                         </span>
                         <h3 className="text-lg font-semibold">{catTrend.categoryName}</h3>
@@ -707,7 +685,7 @@ export default function StatisticsPage() {
                           <Line
                               type="monotone"
                               dataKey="amount"
-                              stroke={`var(--color-${catTrend.categoryId})`}
+                              stroke={chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}
                               strokeWidth={2.5}
                               activeDot={{ r: 6 }}
                           />
@@ -771,20 +749,20 @@ export default function StatisticsPage() {
                     <p className="font-semibold">التوقعات حسب الفئة:</p>
                     <div className="space-y-4">
                         {forecast.categoryForecasts.sort((a,b) => b.predictedAmount - a.predictedAmount).map(catForecast => {
-                            const categoryId = Object.keys(defaultCategories).find(key => defaultCategories[key as keyof typeof defaultCategories].name === catForecast.categoryName);
-                            const categoryInfo = categoryId ? defaultCategories[categoryId as keyof typeof defaultCategories] : defaultCategories.other;
+                            const categoryId = Object.keys(categoryMap).find(key => categoryMap[key].name === catForecast.categoryName);
+                            const categoryInfo = categoryId ? categoryMap[categoryId] : null;
                             const percentage = forecast.totalForecastAmount > 0 ? (catForecast.predictedAmount / forecast.totalForecastAmount) * 100 : 0;
 
                             return (
                                 <div key={catForecast.categoryName}>
                                     <div className="flex justify-between items-center mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg">{categoryInfo.icon}</span>
+                                            <span className="text-lg">{categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}</span>
                                             <span className="text-sm font-medium">{catForecast.categoryName}</span>
                                         </div>
                                         <span className="text-sm font-semibold">{catForecast.predictedAmount.toLocaleString()} د.ع</span>
                                     </div>
-                                    <Progress value={percentage} className="h-2" indicatorcolor={categoryInfo.chartColor} />
+                                    <Progress value={percentage} className="h-2" indicatorcolor={categoryId ? chartConfig[categoryId]?.color : 'hsl(var(--primary))'} />
                                 </div>
                             )
                         })}
@@ -802,7 +780,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-
-
-    

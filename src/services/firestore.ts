@@ -16,7 +16,8 @@ import {
     writeBatch,
     updateDoc
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
+import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 // =================================
 // Expenses Service
@@ -174,6 +175,7 @@ const defaultSettings: UserSettings = {
     },
     recurringPayments: [],
     appTone: 'formal',
+    categories: Object.values(DEFAULT_CATEGORIES), // Initialize with default categories
 };
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
@@ -199,10 +201,13 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
             },
             recurringPayments,
             appTone: data.appTone || 'formal',
+            // If user has no categories, give them the default list
+            categories: data.categories && data.categories.length > 0 ? data.categories : defaultSettings.categories,
         };
         return mergedSettings;
     } else {
-        // Document doesn't exist, just return the default object.
+        // Document doesn't exist, create it with default settings
+        await setDoc(settingsDocRef, defaultSettings);
         return defaultSettings;
     }
 };

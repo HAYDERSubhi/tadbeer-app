@@ -6,7 +6,6 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { UserProfile, Goal } from '@/types';
 import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
-import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -44,6 +43,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addGoal, deleteGoal } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { useCategories } from '@/hooks/use-categories';
 
 const goalSchema = z.object({
   name: z.string().min(3, { message: 'اسم الهدف مطلوب (3 أحرف على الأقل)' }),
@@ -57,6 +57,7 @@ function PlannerContent() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { categoryMap } = useCategories();
   const goalIdFromQuery = searchParams.get('goalId');
 
   const { goals, expenses, userSettings } = useAppData();
@@ -149,7 +150,7 @@ function PlannerContent() {
         const plannerInput: FinancialPlannerInput = {
             goal: { name: selectedGoal.name, targetAmount: selectedGoal.targetAmount, targetDate: format(new Date(selectedGoal.targetDate), 'yyyy-MM-dd') },
             userProfile: { monthlyIncome: userProfile.monthlyIncome, familyMembers: userProfile.familyMembers.map(({ id, ...rest}) => rest) },
-            expenses: expenses.map(e => ({ ...e, category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category })),
+            expenses: expenses.map(e => ({ ...e, category: categoryMap[e.category]?.name || e.category })),
             userMessage: "أريد خطة مفصلة لتحقيق هذا الهدف.",
         };
         const result = await financialPlanner(plannerInput);

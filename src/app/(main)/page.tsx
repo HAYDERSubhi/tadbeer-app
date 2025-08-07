@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
-import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
 import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
@@ -33,6 +32,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Image from 'next/image';
+import { useCategories } from '@/hooks/use-categories';
 
 
 const tourSteps = [
@@ -74,6 +74,7 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { categories, categoryMap, getIconComponent } = useCategories();
 
   const { expenses, userSettings } = useAppData();
 
@@ -90,12 +91,12 @@ export default function DashboardPage() {
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
-  const categoryMap = useMemo(() => {
-    return Object.entries(defaultCategories).reduce((acc, [id, { name }]) => {
-      acc[id] = name;
+  const categoryMapForAI = useMemo(() => {
+    return categories.reduce((acc, cat) => {
+      acc[cat.id] = cat.name;
       return acc;
     }, {} as Record<string, string>);
-  }, []);
+  }, [categories]);
 
   const upcomingPayments = useMemo(() => {
     const tomorrow = startOfDay(addDays(new Date(), 1));
@@ -208,7 +209,7 @@ export default function DashboardPage() {
     try {
         const input: RecordExpenseWithTextInput = {
             expenseText: transcript,
-            categories: categoryMap
+            categories: categoryMapForAI
         };
         const result: RecordExpenseWithTextOutput = await recordExpenseAction(input);
         
@@ -262,7 +263,7 @@ export default function DashboardPage() {
       expenses: monthlyExpenses.map(e => ({
         title: e.title,
         amount: e.amount,
-        category: defaultCategories[e.category as keyof typeof defaultCategories]?.name || e.category,
+        category: categoryMap[e.category]?.name || e.category,
         date: format(new Date(e.date), 'yyyy-MM-dd'),
       })),
       categoryBudgets: categoryBudgets,
@@ -272,7 +273,7 @@ export default function DashboardPage() {
       } : undefined,
       appTone: userSettings?.appTone || 'formal',
     };
-  }, [expenses, userSettings]);
+  }, [expenses, userSettings, categoryMap]);
 
   useEffect(() => {
     if (!user || !financialCoachInput) {
@@ -313,7 +314,7 @@ export default function DashboardPage() {
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+    const categoryInfo = categoryMap[expense.category];
     
     const EditComponent = isMobile ? Sheet : Dialog;
     
@@ -321,12 +322,12 @@ export default function DashboardPage() {
       <Fragment>
         <li className="flex items-center p-3 transition-colors hover:bg-muted/50 rounded-lg">
           <div className="flex flex-1 items-center gap-3 overflow-hidden">
-            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl", categoryInfo.color)}>
-              {categoryInfo.icon}
+            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted")}>
+              {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
             </span>
             <div className='overflow-hidden'>
               <p className="font-semibold truncate text-sm">{expense.title}</p>
-              <p className="text-xs text-muted-foreground">{categoryInfo.name}</p>
+              <p className="text-xs text-muted-foreground">{categoryInfo?.name || 'فئة غير معروفة'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

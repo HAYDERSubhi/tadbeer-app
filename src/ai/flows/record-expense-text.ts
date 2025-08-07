@@ -21,7 +21,7 @@ const RecordExpenseWithTextInputSchema = z.object({
     .describe("The user's transcribed expense in Iraqi dialect. This could be a full sentence like 'دفعت 50 ألف على البانزين' or just an item name like 'قهوة'."),
   categories: z
     .record(z.string(), z.string())
-    .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),
+    .describe('A map of available category IDs to their descriptive names, to be used for categorization. The AI MUST choose from these.'),
 });
 export type RecordExpenseWithTextInput = z.infer<typeof RecordExpenseWithTextInputSchema>;
 
@@ -90,6 +90,11 @@ const recordExpenseWithTextFlow = ai.defineFlow(
         throw new Error("Could not extract expense information from the text.");
     }
     
+    // Fallback: if AI returns a category not in the list, default to 'other'
+    if (!Object.keys(input.categories).includes(output.category)) {
+      output.category = 'other';
+    }
+
     return output;
   }
 );

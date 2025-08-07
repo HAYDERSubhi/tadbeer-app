@@ -1,4 +1,5 @@
 
+
 export type Expense = {
   id: string;
   uid: string;
@@ -65,6 +66,13 @@ export type LinkedCard = {
 
 export type AppTone = 'formal' | 'colloquial';
 
+export type Category = {
+    id: string;
+    name: string;
+    icon: string; // Emoji
+    isDefault?: boolean; // To distinguish default from user-created
+};
+
 export type UserSettings = {
   budget: UserBudgetSettings;
   categoryBudgets: Record<string, number>;
@@ -72,4 +80,5 @@ export type UserSettings = {
   linkedCard?: LinkedCard | null;
   recurringPayments?: RecurringPayment[];
   appTone?: AppTone;
+  categories?: Category[];
 };

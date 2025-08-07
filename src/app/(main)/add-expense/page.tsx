@@ -18,7 +18,6 @@ import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES } from '@/lib/constants';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
@@ -27,6 +26,7 @@ import { recordExpenseAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useCategories } from '@/hooks/use-categories';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -45,6 +45,7 @@ export default function AddExpensePage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const { categories, getIconComponent } = useCategories();
 
     const [isCategorizing, setIsCategorizing] = useState(false);
     
@@ -64,12 +65,12 @@ export default function AddExpensePage() {
     const expenseTitle = form.watch('title');
     const debouncedTitle = useDebounce(expenseTitle, 500);
 
-    const categoryMap = useMemo(() => {
-        return Object.entries(CATEGORIES).reduce((acc, [id, { name }]) => {
-            acc[id] = name;
+    const categoryMapForAI = useMemo(() => {
+        return categories.reduce((acc, cat) => {
+            acc[cat.id] = cat.name;
             return acc;
         }, {} as Record<string, string>);
-    }, []);
+    }, [categories]);
 
     useEffect(() => {
         if (!debouncedTitle) {
@@ -81,7 +82,7 @@ export default function AddExpensePage() {
           try {
             const result = await recordExpenseAction({
               expenseText: debouncedTitle,
-              categories: categoryMap,
+              categories: categoryMapForAI,
             });
             if (result.category) {
               form.setValue('category', result.category, { shouldValidate: true });
@@ -94,7 +95,7 @@ export default function AddExpensePage() {
         };
 
         getCategorySuggestion();
-    }, [debouncedTitle, categoryMap, form]);
+    }, [debouncedTitle, categoryMapForAI, form]);
     
     const addExpenseMutation = useMutation({
         mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
@@ -142,19 +143,19 @@ export default function AddExpensePage() {
                 {/* Category Grid */}
                 <div className="space-y-3">
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
-                        {Object.entries(CATEGORIES).map(([id, cat]) => (
+                        {categories.map((cat) => (
                             <div 
-                                key={id} 
-                                onClick={() => form.setValue('category', id, { shouldValidate: true })}
+                                key={cat.id} 
+                                onClick={() => form.setValue('category', cat.id, { shouldValidate: true })}
                                 className={cn(
                                     "flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 cursor-pointer transition-all duration-200",
-                                    selectedCategory === id 
+                                    selectedCategory === cat.id 
                                         ? 'border-primary bg-primary/10 shadow-lg scale-105'
                                         : 'border-transparent bg-muted/60 hover:border-primary/50'
                                 )}
                             >
-                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === id ? 'bg-primary/20 text-primary' : 'bg-background')}>
-                                    {cat.icon}
+                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === cat.id ? 'bg-primary/20 text-primary' : 'bg-background')}>
+                                    {getIconComponent(cat.icon)}
                                 </span>
                                 <p className="text-xs font-medium break-words">{cat.name}</p>
                             </div>

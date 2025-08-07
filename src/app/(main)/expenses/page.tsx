@@ -4,7 +4,6 @@
 import { useMemo } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORIES as defaultCategories } from '@/lib/constants';
 import { Trash2Icon, DollarSign, Loader2Icon, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,11 +14,13 @@ import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
+import { useCategories } from '@/hooks/use-categories';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { expenses, isLoading, isError, error, queryClient } = useAppData();
+  const { categoryMap, getIconComponent } = useCategories();
 
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
@@ -80,17 +81,17 @@ export default function AllExpensesPage() {
               ) : (
                   <ul className="divide-y divide-border">
                   {allSortedExpenses.map((expense) => {
-                      const categoryInfo = defaultCategories[expense.category as keyof typeof defaultCategories] || defaultCategories.other;
+                      const categoryInfo = categoryMap[expense.category];
                       return (
                       <li key={expense.id} className="group flex items-center justify-between p-4 transition-colors hover:bg-muted/50">
                           <div className="flex flex-1 items-center gap-3 min-w-0">
                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-muted text-xl">
-                              {categoryInfo.icon}
+                              {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
                           </span>
                           <div className="min-w-0">
                               <p className="font-semibold truncate text-xs">{expense.title}</p>
                               <p className="text-xs text-muted-foreground">
-                                  {categoryInfo.name}
+                                  {categoryInfo?.name || 'فئة غير معروفة'}
                               </p>
                           </div>
                           </div>
