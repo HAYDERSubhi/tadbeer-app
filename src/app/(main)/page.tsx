@@ -6,7 +6,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, StopCircle, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, StopCircle, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus, FileScan } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -437,7 +437,7 @@ export default function DashboardPage() {
 
             <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <Receipt className="w-8 h-8" />
+                    <FileScan className="w-8 h-8" />
                 </span>
                 <p className="font-semibold text-sm">فاتورة</p>
             </Link>
@@ -551,3 +551,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
