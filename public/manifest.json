@@ -1,12 +1,8 @@
 
 {
-  "name": "تدبير | Tadbeer",
+  "name": "تدبير",
   "short_name": "تدبير",
-  "description": "تطبيقك المالي الذكي لإدارة المصاريف وتحقيق الأهداف.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#222c5b",
-  "theme_color": "#2563eb",
+  "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -18,5 +14,10 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
 }

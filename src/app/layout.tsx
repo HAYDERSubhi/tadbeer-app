@@ -16,10 +16,10 @@ export const metadata: Metadata = {
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
     images: [
       {
-        url: '/icon-512x512.png',
-        width: 512,
-        height: 512,
-        alt: 'شعار تطبيق تدبير',
+        url: '/og-image.png', // Using the specific OG image
+        width: 1200,
+        height: 630,
+        alt: 'شعار تطبيق تدبير مع خلفية',
       },
     ],
     locale: 'ar_IQ',
@@ -30,18 +30,18 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-     images: ['/icon-512x512.png'],
+     images: ['/og-image.png'],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'تدبير',
-    startupImage: '/icon-512x512.png',
+    startupImage: '/apple-touch-icon.png',
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.ico', // You should have a favicon.ico in your public folder
     shortcut: '/icon-192x192.png',
-    apple: '/icon-192x192.png',
+    apple: '/apple-touch-icon.png',
   },
 };
 
