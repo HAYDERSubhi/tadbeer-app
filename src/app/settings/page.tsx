@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing, Mail } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing, Mail, MessageSquare } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -74,6 +74,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -228,6 +229,7 @@ export default function SettingsPage() {
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [isDataResetOpen, setIsDataResetOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -1253,12 +1255,39 @@ export default function SettingsPage() {
             title={`حول التطبيق - إصدار ${version}`}
         >
           <div className="p-4 text-center space-y-4">
-            <Button asChild variant="outline" className="w-full">
-                <Link href="mailto:feedback@tadbeer.app">
-                    <Mail className="ml-2 h-4 w-4" />
-                    إرسال ملاحظات واقتراحات
-                </Link>
-            </Button>
+              <FormDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                       <MessageSquare className="ml-2 h-4 w-4" />
+                       إرسال ملاحظات واقتراحات
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>إرسال ملاحظات</DialogTitle>
+                        <DialogDescription>
+                            نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="feedback-subject">الموضوع</Label>
+                            <Input id="feedback-subject" placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="feedback-details">التفاصيل</Label>
+                            <Textarea id="feedback-details" placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsFeedbackOpen(false)}>إلغاء</Button>
+                        <Button onClick={() => {
+                            toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
+                            setIsFeedbackOpen(false);
+                        }}>إرسال</Button>
+                    </DialogFooter>
+                </DialogContent>
+              </FormDialog>
             <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
@@ -1358,5 +1387,3 @@ const CategoryEditDialog = ({
     </DialogComponent>
   );
 };
-
-    
