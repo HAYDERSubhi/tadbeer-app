@@ -2,10 +2,7 @@
 // src/hooks/use-pwa-install.tsx
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useToast } from './use-toast';
-import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Define the event type, as it's not in standard TS libs yet
 interface BeforeInstallPromptEvent extends Event {
@@ -20,49 +17,45 @@ interface BeforeInstallPromptEvent extends Event {
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
 export const usePWAInstall = () => {
-  const { toast } = useToast();
+  const [canInstall, setCanInstall] = useState(false);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
+    const beforeInstallHandler = (e: Event) => {
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       deferredPrompt = e as BeforeInstallPromptEvent;
-      
-      // Check if the toast has been shown before
-      const hasSeenInstallPrompt = localStorage.getItem('hasSeenInstallPrompt_v2');
-
-      if (!hasSeenInstallPrompt) {
-        // Show the install toast
-        toast({
-          title: "ثبّت التطبيق على جهازك!",
-          description: "احصل على تجربة استخدام أفضل وأسرع بالوصول المباشر من شاشتك الرئيسية.",
-          duration: 20000, // Make it stay longer
-          action: (
-            <Button
-              onClick={() => {
-                if (deferredPrompt) {
-                  deferredPrompt.prompt();
-                  deferredPrompt.userChoice.then(() => {
-                    deferredPrompt = null;
-                  });
-                }
-              }}
-              className="mt-2 w-full sm:w-auto"
-            >
-              <Download className="ml-2 h-4 w-4" />
-              تثبيت
-            </Button>
-          ),
-        });
-        localStorage.setItem('hasSeenInstallPrompt_v2', 'true');
-      }
+      setCanInstall(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    const appInstalledHandler = () => {
+      deferredPrompt = null;
+      setCanInstall(false);
+    };
+
+    window.addEventListener('beforeinstallprompt', beforeInstallHandler);
+    window.addEventListener('appinstalled', appInstalledHandler);
+
+    // Check if the app is already installed on initial load
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setCanInstall(false);
+    }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('beforeinstallprompt', beforeInstallHandler);
+      window.removeEventListener('appinstalled', appInstalledHandler);
     };
-  }, [toast]);
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    if (!deferredPrompt) {
+      return;
+    }
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      deferredPrompt = null;
+      setCanInstall(false);
+    }
+  }, []);
+
+  return { canInstall, handleInstall };
 };
