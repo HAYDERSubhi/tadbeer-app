@@ -7,82 +7,76 @@
 
 @layer base {
   :root {
-    --background: 220 20% 99%;
-    --foreground: 222 47% 11%;
-    
-    --card-rgb: 255, 255, 255;
-    --card-border-rgb: 220, 13%, 61%;
-    
-    --card: hsl(var(--card-rgb));
-    --card-foreground: 222 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 209 28% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 209 28% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 209 28% 14%;
 
-    --primary: 43 96% 56%; /* Vivid Yellow */
-    --primary-foreground: 43 96% 19%;
-    
+    --primary: 42 100% 61%; /* Yellow: #ffbb39 */
+    --primary-foreground: 209 28% 14%;
+
+    --secondary: 204 86% 20%; /* Dark Blue: #083c5d */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --secondary: 180 80% 40%; /* Teal */
-    --secondary-foreground: 180 80% 98%;
-    
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-
-    --accent: 180 80% 96%; /* Lighter Teal for hover */
-    --accent-foreground: 180 80% 10%;
-
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 43 96% 56%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 42 100% 61%;
     --radius: 0.75rem;
 
     /* Chart Colors */
-    --chart-1: 221 83% 53%;   /* Blue */
+    --chart-1: 204 86% 20%;   /* Dark Blue */
     --chart-2: 160 60% 45%;   /* Teal/Green */
-    --chart-3: 40 90% 55%;    /* Orange */
+    --chart-3: 42 100% 61%;   /* Yellow */
     --chart-4: 262 80% 65%;   /* Purple */
     --chart-5: 340 82% 60%;   /* Pink */
   }
 
   .dark {
-    --background: 222 40% 12%; /* Dark Slate Blue */
-    --foreground: 210 40% 98%;
+    --background: 209 28% 14%; /* Very Dark Blue from palette: #1d2731 */
+    --foreground: 0 0% 98%;
 
-    --card-rgb: 222, 40%, 16%; /* Slightly lighter slate blue for cards */
-    --card-border-rgb: 212, 32%, 30%;
+    --card: 209 28% 17%;
+    --card-foreground: 0 0% 98%;
 
-    --card: hsla(var(--card-rgb), 0.6);
-    --card-foreground: 210 40% 98%;
+    --popover: 209 28% 14%;
+    --popover-foreground: 0 0% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    
-    --primary: 43 96% 63%; /* Vivid Yellow */
-    --primary-foreground: 43 96% 19%;
-    
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --primary: 42 100% 61%; /* Yellow: #ffbb39 */
+    --primary-foreground: 209 28% 14%;
 
-    --secondary: 180 70% 45%; /* Teal */
-    --secondary-foreground: 180 70% 98%;
+    --secondary: 204 86% 20%; /* Dark Blue: #083c5d */
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 217 32% 22%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 180 70% 30%; /* Darker Teal for hover */
-    --accent-foreground: 180 70% 98%;
+    --accent: 217 32% 22%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
 
     --border: 217 32% 27%;
     --input: 217 32% 27%;
-    --ring: 43 96% 63%;
+    --ring: 42 100% 61%;
 
     /* Chart Colors */
-    --chart-1: 221 83% 53%;   /* Blue */
+    --chart-1: 204 86% 30%;   /* Dark Blue */
     --chart-2: 160 60% 45%;   /* Teal/Green */
-    --chart-3: 40 90% 55%;    /* Orange */
+    --chart-3: 42 100% 61%;   /* Yellow */
     --chart-4: 262 80% 65%;   /* Purple */
     --chart-5: 340 82% 60%;   /* Pink */
   }

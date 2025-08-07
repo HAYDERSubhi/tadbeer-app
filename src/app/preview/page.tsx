@@ -323,7 +323,7 @@ export default function PreviewPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>خطأ!</AlertTitle>
                   <AlertDescription>
-                    هذا تنبيه خطأ لجذب انتباه المستخدم لمشكلة.
+                    هذا تنبيه خطير لجذب انتباه المستخدم لمشكلة.
                   </AlertDescription>
                 </Alert>
             </div>
@@ -451,5 +451,3 @@ export default function PreviewPage() {
     </div>
   )
 }
-
-    
