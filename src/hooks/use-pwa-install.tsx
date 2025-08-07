@@ -1,4 +1,3 @@
-
 // src/hooks/use-pwa-install.tsx
 "use client";
 
@@ -21,23 +20,23 @@ export const usePWAInstall = () => {
 
   useEffect(() => {
     const beforeInstallHandler = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      // Stash the event so it can be triggered later.
       deferredPrompt = e as BeforeInstallPromptEvent;
+      // Update UI to notify the user they can install the PWA
       setCanInstall(true);
     };
 
     const appInstalledHandler = () => {
+      // Clear the deferredPrompt so it can be garbage collected
       deferredPrompt = null;
+      // Hide the install button
       setCanInstall(false);
     };
 
     window.addEventListener('beforeinstallprompt', beforeInstallHandler);
     window.addEventListener('appinstalled', appInstalledHandler);
-
-    // Check if the app is already installed on initial load
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setCanInstall(false);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', beforeInstallHandler);
@@ -49,12 +48,12 @@ export const usePWAInstall = () => {
     if (!deferredPrompt) {
       return;
     }
+    // Show the install prompt
     await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      deferredPrompt = null;
-      setCanInstall(false);
-    }
+    // Wait for the user to respond to the prompt
+    await deferredPrompt.userChoice;
+    // We've used the prompt, and can't use it again, throw it away
+    deferredPrompt = null;
   }, []);
 
   return { canInstall, handleInstall };
