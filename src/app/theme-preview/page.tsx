@@ -15,8 +15,8 @@ export default function ThemePreviewPage() {
   return (
     <div className="theme-preview-container p-4 sm:p-8 font-sans">
       <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-foreground">معاينة ثيم "النعناع الأخضر"</h1>
-        <p className="text-muted-foreground mt-2 text-lg">هذه معاينة لكيف ستبدو المكونات الرئيسية في التطبيق بالهوية البصرية الجديدة.</p>
+        <h1 className="text-4xl font-bold text-foreground">معاينة ثيم "التدرج الحيوي"</h1>
+        <p className="text-muted-foreground mt-2 text-lg">هذه معاينة لكيف ستبدو الأزرار بتدرجات لونية جذابة.</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -26,7 +26,7 @@ export default function ThemePreviewPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Home className="text-primary"/> بطاقة رئيسية</CardTitle>
-              <CardDescription>هذا هو الشكل الجديد للبطاقات. لاحظ الظل الناعم وعدم وجود حدود.</CardDescription>
+              <CardDescription>هذا هو شكل البطاقات مع خلفية نظيفة لإبراز الأزرار المتدرجة.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p>هذا نص عادي داخل البطاقة لاختبار إمكانية القراءة والتباين.</p>
@@ -36,7 +36,7 @@ export default function ThemePreviewPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">زر أساسي</Button>
+              <Button className="w-full">زر أساسي متدرج</Button>
             </CardFooter>
           </Card>
 
@@ -112,21 +112,21 @@ export default function ThemePreviewPage() {
                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground"><Palette /></div>
                         <div>
                             <p className="font-bold">Primary (الأساسي)</p>
-                            <p className="text-sm text-muted-foreground">اللون الأخضر الزمردي للثقة والاستقرار.</p>
+                            <p className="text-sm text-muted-foreground">تدرج أزرق حيوي لإبراز الأزرار.</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-accent-foreground"><CreditCard /></div>
+                        <div className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center text-destructive-foreground"><AlertTriangle /></div>
                         <div>
-                            <p className="font-bold">Accent (التمييز)</p>
-                            <p className="text-sm text-muted-foreground">لون النعناع الفاتح للتفاعلات.</p>
+                            <p className="font-bold">Destructive (الحذف)</p>
+                            <p className="text-sm text-muted-foreground">تدرج أحمر للإجراءات الخطرة.</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-background border flex items-center justify-center text-foreground"><DollarSign /></div>
                         <div>
                             <p className="font-bold">Background (الخلفية)</p>
-                            <p className="text-sm text-muted-foreground">لون الخلفية الرئيسي للتطبيق.</p>
+                            <p className="text-sm text-muted-foreground">خلفيات هادئة ومحايدة للتركيز.</p>
                         </div>
                     </div>
                 </CardContent>
