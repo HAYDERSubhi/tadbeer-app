@@ -38,11 +38,11 @@ const FinancialCoachOutputSchema = z.object({
     insights: z.array(
         z.object({
             title: z.string().describe("A short, catchy title for the insight."),
-            description: z.string().describe("A one-sentence description of the advice or observation."),
+            description: z.string().describe("A one-sentence, very concise description of the advice or observation."),
             icon: z.enum(["Trophy", "Salad", "CookingPot", "TrendingUp", "Lightbulb", "PiggyBank", "Baby", "School"]).describe("A suitable Lucide icon name for the insight."),
             type: z.enum(['praise', 'tip', 'warning']).describe("The type of insight, used for styling."),
         })
-    ).describe("An array of 2-4 personalized financial insights."),
+    ).describe("An array of the 3 most important and personalized financial insights."),
 });
 export type FinancialCoachOutput = z.infer<typeof FinancialCoachOutputSchema>;
 
@@ -61,7 +61,7 @@ const prompt = ai.definePrompt({
     input: {schema: FinancialCoachInputSchema},
     output: {schema: FinancialCoachOutputSchema},
     prompt: `You are a friendly and encouraging financial coach for an Iraqi user. Your goal is to help them build healthy spending habits.
-Analyze their spending for the current month based on the data provided and generate 2-4 short, actionable, and encouraging tips.
+Analyze their spending for the current month based on the data provided and generate exactly 3 of the most important, short, actionable, and encouraging tips.
 
 **Crucially, you MUST adopt the personality and tone requested by the user through the 'appTone' parameter.**
 - If 'appTone' is 'formal' or not provided, your response (titles and descriptions) **MUST be in Modern Standard Arabic**. Your name is "أستاذ حريص". Be professional and encouraging.
@@ -103,7 +103,7 @@ Analyze their spending for the current month based on the data provided and gene
     
 6.  **Consider Family Context**: If the user profile is provided, use the family members' ages to give more specific advice. For example, if there are children, you could suggest saving on school-related expenses or planning for family-friendly, low-cost activities. Use icons like "Baby" or "School".
 
-7.  **Format:** The output must be in JSON. The language for title and description must match the requested 'appTone'. **The description for each insight must be a single, concise sentence.**
+7.  **Format:** The output must be in JSON. The language for title and description must match the requested 'appTone'. **The description for each insight must be a single, very concise sentence.**
 `,
 });
 
