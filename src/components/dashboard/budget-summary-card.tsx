@@ -128,7 +128,7 @@ export default function BudgetSummaryCard() {
                          <StatItem 
                             title="المصروف الشهري"
                             value={formatCurrency(budgetData.monthlySpent)}
-                            color="text-red-500 dark:text-red-400"
+                            color="text-destructive"
                         />
                     </div>
                     {/* Bottom-Left: مصروف اليوم */}
@@ -136,7 +136,7 @@ export default function BudgetSummaryCard() {
                         <StatItem 
                             title="مصروف اليوم"
                             value={formatCurrency(budgetData.dailySpent)}
-                            color="text-red-500 dark:text-red-400"
+                            color="text-destructive"
                         />
                     </div>
                 </div>

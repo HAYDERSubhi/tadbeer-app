@@ -401,7 +401,7 @@ export default function DashboardPage() {
       <Card id="expense-input-methods">
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 group-hover:bg-blue-200/60 dark:group-hover:bg-blue-800/60 transition-colors">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                     <Plus className="w-8 h-8" />
                 </span>
                 <p className="font-semibold text-sm">يدوي</p>
@@ -409,11 +409,11 @@ export default function DashboardPage() {
             
             <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
                 <span className={cn(
-                    "flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 group-hover:bg-green-200/60 dark:group-hover:bg-green-800/60 transition-colors", 
-                    isVoiceRecording && "bg-red-500/20 animate-pulse"
+                    "flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors", 
+                    isVoiceRecording && "bg-destructive/20 animate-pulse"
                 )}>
                     {isVoiceLoading ? <Loader2 className="w-8 h-8 text-foreground animate-spin" /> : 
-                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-red-500" /> : 
+                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-destructive" /> : 
                     <Mic className="w-8 h-8" />}
                 </span>
                 <p className="font-semibold text-sm">
@@ -436,7 +436,7 @@ export default function DashboardPage() {
             </VoiceReviewComponent>
 
             <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300 group-hover:bg-purple-200/60 dark:group-hover:bg-purple-800/60 transition-colors">
+                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                     <Receipt className="w-8 h-8" />
                 </span>
                 <p className="font-semibold text-sm">فاتورة</p>
@@ -444,7 +444,7 @@ export default function DashboardPage() {
             
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
               <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 group-hover:bg-amber-200/60 dark:group-hover:bg-amber-800/60 transition-colors">
+                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
                       <CreditCard className="w-8 h-8" />
                   </span>
                   <p className="font-semibold text-sm">بطاقة</p>

@@ -952,7 +952,7 @@ export default function SettingsPage() {
                                 {incomes.map(income => (
                                     <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                         <div className="flex items-center gap-3">
-                                            <span className={cn("p-2 rounded-full", income.type === 'recurring' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600')}>
+                                            <span className={cn("p-2 rounded-full", income.type === 'recurring' ? 'bg-primary/10 text-primary' : 'bg-green-100 dark:bg-green-900/50 dark:text-green-300 text-green-600')}>
                                                 {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                                             </span>
                                             <div>
