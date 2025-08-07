@@ -80,7 +80,6 @@ export default function DashboardPage() {
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(true);
-  const [visibleExpensesCount, setVisibleExpensesCount] = useState(5);
   
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
@@ -484,7 +483,7 @@ export default function DashboardPage() {
         <CardContent className="p-0">
           {allSortedExpenses.length > 0 ? (
             <ul className="divide-y divide-border">
-              {allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => (
+              {allSortedExpenses.slice(0, 5).map((expense) => (
                 <ExpenseListItem key={expense.id} expense={expense} />
               ))}
             </ul>
@@ -492,13 +491,6 @@ export default function DashboardPage() {
             <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
           )}
         </CardContent>
-        {allSortedExpenses.length > visibleExpensesCount && (
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => setVisibleExpensesCount(prev => prev + 20)}>
-              عرض المزيد
-            </Button>
-          </CardFooter>
-        )}
       </Card>
 
       {/* Smart Insights Card */}
