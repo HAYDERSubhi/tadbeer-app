@@ -7,80 +7,80 @@
 
 @layer base {
   :root {
-    --background: 48 33% 94%; /* Ivory white */
-    --foreground: 220 25% 25%; /* Dark Blue */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
 
-    --card: 48 20% 99%;
-    --card-foreground: 220 25% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 48 20% 99%;
-    --popover-foreground: 220 25% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 47 100% 63%;  /* Keycard Yellow */
-    --primary-foreground: 45 100% 15%;
+    --primary: 217 91% 60%; /* Classic Blue */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 15% 85%;
-    --secondary-foreground: 220 25% 25%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 215.4 16.3% 46.9%;
 
-    --muted: 220 15% 90%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 180 80% 40%; /* Teal Accent */
-    --accent-foreground: 180 30% 95%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 215.4 16.3% 46.9%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: 47 100% 63%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
     --radius: 0.75rem;
-
+    
     /* Chart Colors */
-    --chart-1: 47 100% 63%;   /* Keycard Yellow */
-    --chart-2: 220 40% 55%;   /* Medium Blue */
-    --chart-3: 180 80% 40%;   /* Teal Accent */
-    --chart-4: 220 30% 75%;   /* Lighter Blue */
-    --chart-5: 24 80% 60%;    /* Contrasting Orange */
+    --chart-1: 217 91% 60%;   /* Classic Blue */
+    --chart-2: 173 80% 40%;   /* Teal/Cyan */
+    --chart-3: 0 84.2% 60.2%; /* Red */
+    --chart-4: 48 96% 51%;    /* Yellow */
+    --chart-5: 262 83% 58%;   /* Purple */
   }
 
   .dark {
-    --background: 220 25% 15%; /* Dark Blue */
-    --background-start-rgb: 27, 36, 48;
-    --background-end-rgb: 20, 26, 36;
-    --foreground: 220 10% 85%;
+    --background: 222.2 84% 4.9%;
+    --background-start-rgb: 10, 20, 35;
+    --background-end-rgb: 5, 10, 20;
+    --foreground: 210 40% 98%;
 
-    --card: 220 25% 18%;
-    --card-foreground: 220 10% 85%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 220 25% 12%;
-    --popover-foreground: 220 10% 85%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 47 100% 63%; /* Keycard Yellow */
-    --primary-foreground: 45 100% 15%;
+    --primary: 217 91% 60%; /* Classic Blue */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 220 15% 30%;
-    --secondary-foreground: 220 10% 85%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 15% 25%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 180 80% 50%; /* Teal Accent */
-    --accent-foreground: 180 30% 95%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 220 15% 30%;
-    --input: 220 15% 30%;
-    --ring: 47 100% 63%;
-
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    
     /* Chart Colors */
-    --chart-1: 47 100% 63%;   /* Keycard Yellow */
-    --chart-2: 220 40% 65%;   /* Medium Blue */
-    --chart-3: 180 80% 50%;   /* Teal Accent */
-    --chart-4: 210 50% 80%;   /* Contrasting Light Blue */
-    --chart-5: 350 80% 70%;   /* Contrasting Pink */
+    --chart-1: 217 91% 60%;   /* Classic Blue */
+    --chart-2: 173 70% 50%;   /* Teal/Cyan */
+    --chart-3: 0 74% 50%;     /* Red */
+    --chart-4: 48 96% 61%;    /* Yellow */
+    --chart-5: 262 73% 68%;   /* Purple */
   }
 }
 
