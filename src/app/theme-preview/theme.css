@@ -2,6 +2,7 @@
 /* This CSS file is only for the theme preview page */
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
 
+/* MINT & SAGE THEME */
 .theme-preview-container {
     --background: 0 0% 100%;
     --foreground: 224 71.4% 4.1%;
@@ -9,42 +10,42 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 43 96% 63%; /* Keycard Yellow */
-    --primary-foreground: 224 71.4% 4.1%; /* Dark text on yellow */
+    --primary: 145 58% 45%; /* Professional Emerald Green */
+    --primary-foreground: 145 50% 96%;
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 222 47.4% 11.2%;
     --muted: 220 14.3% 95.9%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 180 100% 25%; /* Teal */
-    --accent-foreground: 210 20% 98%;
+    --accent: 150 56% 65%; /* Bright Mint Green */
+    --accent-foreground: 150 40% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 224 71.4% 4.1%;
+    --ring: 145 58% 45%;
     --radius: 0.5rem;
 }
 
 .dark .theme-preview-container {
-    --background: 222 47% 11%; /* Dark Blue-Gray */
+    --background: 150 14% 10%; /* Charcoal Green */
     --foreground: 210 20% 98%;
-    --card: 222 47% 14%; /* Slightly lighter than background */
+    --card: 150 14% 13%; 
     --card-foreground: 210 20% 98%;
-    --popover: 222 47% 11%;
+    --popover: 150 14% 10%;
     --popover-foreground: 210 20% 98%;
-    --primary: 43 96% 63%; /* Keycard Yellow */
-    --primary-foreground: 224 71.4% 4.1%;
+    --primary: 145 63% 39%; /* Brighter Emerald for dark mode */
+    --primary-foreground: 145 50% 96%;
     --secondary: 215 27.9% 16.9%;
     --secondary-foreground: 210 20% 98%;
     --muted: 215 27.9% 16.9%;
     --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 180 80% 50%; /* Brighter Teal */
-    --accent-foreground: 222 47% 11%;
+    --accent: 150 56% 65%; /* Bright Mint Green */
+    --accent-foreground: 150 40% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
-    --ring: 43 96% 63%;
+    --ring: 145 63% 39%;
 }
 
 .theme-preview-container {

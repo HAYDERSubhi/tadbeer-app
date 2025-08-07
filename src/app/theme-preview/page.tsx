@@ -15,7 +15,7 @@ export default function ThemePreviewPage() {
   return (
     <div className="theme-preview-container p-4 sm:p-8 font-sans">
       <header className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-foreground">معاينة ثيم "البطاقة الذهبية"</h1>
+        <h1 className="text-4xl font-bold text-foreground">معاينة ثيم "النعناع الأخضر"</h1>
         <p className="text-muted-foreground mt-2 text-lg">هذه معاينة لكيف ستبدو المكونات الرئيسية في التطبيق بالهوية البصرية الجديدة.</p>
       </header>
 
@@ -112,14 +112,14 @@ export default function ThemePreviewPage() {
                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground"><Palette /></div>
                         <div>
                             <p className="font-bold">Primary (الأساسي)</p>
-                            <p className="text-sm text-muted-foreground">اللون الذهبي للأزرار والعناصر المهمة.</p>
+                            <p className="text-sm text-muted-foreground">اللون الأخضر الزمردي للثقة والاستقرار.</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-accent-foreground"><CreditCard /></div>
                         <div>
                             <p className="font-bold">Accent (التمييز)</p>
-                            <p className="text-sm text-muted-foreground">اللون الأزرق المخضر للعناصر الثانوية.</p>
+                            <p className="text-sm text-muted-foreground">لون النعناع الفاتح للتفاعلات.</p>
                         </div>
                     </div>
                      <div className="flex items-center gap-2">
