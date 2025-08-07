@@ -36,12 +36,12 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'تدبير',
-    startupImage: '/apple-touch-icon.png',
+    startupImage: '/logo.png',
   },
   icons: {
-    icon: '/logo.png', // Use the new logo for favicon
-    shortcut: '/icon-192x192.png',
-    apple: '/apple-touch-icon.png',
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
   },
 };
 
