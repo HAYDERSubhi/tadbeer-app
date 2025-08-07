@@ -470,6 +470,36 @@ export default function DashboardPage() {
           <BudgetSummaryCard />
       )}
 
+      {/* All Expenses List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <div className="flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              <span>أحدث المصاريف</span>
+            </div>
+          </CardTitle>
+          <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {allSortedExpenses.length > 0 ? (
+            <ul className="divide-y divide-border">
+              {allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => (
+                <ExpenseListItem key={expense.id} expense={expense} />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
+          )}
+        </CardContent>
+        {allSortedExpenses.length > visibleExpensesCount && (
+          <CardFooter>
+            <Button variant="outline" className="w-full" onClick={() => setVisibleExpensesCount(prev => prev + 20)}>
+              عرض المزيد
+            </Button>
+          </CardFooter>
+        )}
+      </Card>
 
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
@@ -517,39 +547,7 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* All Expenses List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              <span>أحدث المصاريف</span>
-            </div>
-          </CardTitle>
-          <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {allSortedExpenses.length > 0 ? (
-            <ul className="divide-y divide-border">
-              {allSortedExpenses.slice(0, visibleExpensesCount).map((expense) => (
-                <ExpenseListItem key={expense.id} expense={expense} />
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
-          )}
-        </CardContent>
-        {allSortedExpenses.length > visibleExpensesCount && (
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => setVisibleExpensesCount(prev => prev + 20)}>
-              عرض المزيد
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
+      
     </div>
   );
 }
-
-    
