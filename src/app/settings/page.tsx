@@ -34,7 +34,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter as DialogFooterComponent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -185,13 +185,13 @@ const MappingDialog = ({
             ))}
           </div>
         </div>
-        <DialogFooterComponent className="pt-4 border-t">
+        <DialogFooter className="pt-4 border-t">
           <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
           <Button onClick={handleProcess} disabled={isProcessing}>
             {isProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {isProcessing ? 'جاري المعالجة...' : 'تأكيد واستيراد البيانات'}
           </Button>
-        </DialogFooterComponent>
+        </DialogFooter>
       </DialogContentComponent>
     </DialogComponent>
   );
@@ -211,6 +211,7 @@ export default function SettingsPage() {
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
   const [isMappingColumns, setIsMappingColumns] = useState(false);
+  const [isFileProcessing, setIsFileProcessing] = useState(false);
   const [fileHeaders, setFileHeaders] = useState<string[]>([]);
   const [parsedDataCache, setParsedDataCache] = useState<any[][]>([]);
 
@@ -224,6 +225,8 @@ export default function SettingsPage() {
   const [isRecurringPaymentDialogOpen, setIsRecurringPaymentDialogOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [isDataResetOpen, setIsDataResetOpen] = useState(false);
+
 
   const [deleteOptions, setDeleteOptions] = useState({
     expenses: false,
@@ -542,6 +545,9 @@ export default function SettingsPage() {
     onError: (e) => {
       console.error("Import error:", e);
       toast({ title: "فشل الاستيراد", description: "حدث خطأ أثناء حفظ البيانات.", variant: "destructive" });
+    },
+    onSettled: () => {
+      setIsFileProcessing(false);
     }
   });
 
@@ -574,6 +580,7 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setIsFileProcessing(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -590,6 +597,7 @@ export default function SettingsPage() {
         setIsMappingColumns(true);
       } catch (error: any) {
         toast({ title: "فشل الاستيراد", description: error.message || "حدث خطأ أثناء قراءة الملف.", variant: "destructive" });
+        setIsFileProcessing(false);
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -599,9 +607,11 @@ export default function SettingsPage() {
   
   const processAndSaveExpenses = (columnMap: Record<string, number | null>) => {
       if (!user) return;
+      setIsFileProcessing(true);
       const missingRequired = REQUIRED_FIELDS.filter(field => columnMap[field] === null || columnMap[field] === undefined);
       if (missingRequired.length > 0) {
           toast({ title: "حقول مطلوبة مفقودة", description: `يرجى ربط الحقول التالية: ${missingRequired.map(f => COLUMN_MAP_CONFIG[f as keyof typeof COLUMN_MAP_CONFIG].label).join(', ')}`, variant: "destructive" });
+          setIsFileProcessing(false);
           return;
       }
       const categoryNameToIdMap = new Map<string, string>();
@@ -669,6 +679,7 @@ export default function SettingsPage() {
 
       if (newExpenses.length === 0) {
         toast({ title: "لم يتم استيراد أي بيانات", description: "لم يتم العثور على أي صفوف صالحة.", variant: "destructive" });
+        setIsFileProcessing(false);
         return;
       }
       addMultipleExpensesMutation.mutate(newExpenses);
@@ -733,6 +744,7 @@ export default function SettingsPage() {
         }
 
         setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false });
+        setIsDataResetOpen(false);
     },
     onError: () => {
       toast({ title: "خطأ", description: "لم نتمكن من حذف البيانات المحددة.", variant: "destructive" });
@@ -1069,7 +1081,10 @@ export default function SettingsPage() {
         >
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
-                <Button className="w-full" variant="outline" onClick={handleImportClick}>استيراد البيانات (Excel)</Button>
+                <Button className="w-full" variant="outline" onClick={handleImportClick} disabled={isFileProcessing}>
+                  {isFileProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  استيراد البيانات (Excel)
+                </Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
              
@@ -1078,28 +1093,28 @@ export default function SettingsPage() {
              <div>
                  <h4 className='font-semibold'>حذف وتصفير البيانات</h4>
                  <p className="text-xs text-muted-foreground mb-2">حذف البيانات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</p>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                <Dialog open={isDataResetOpen} onOpenChange={setIsDataResetOpen}>
+                    <DialogTrigger asChild>
                         <Button className="w-full" variant="destructive"><Trash2 className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>حذف وتصفير البيانات</AlertDialogTitle><AlertDialogDescription>اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription></AlertDialogHeader>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>حذف وتصفير البيانات</DialogTitle><DialogDescription>اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</DialogDescription></DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="font-semibold text-foreground">بيانات المعاملات:</div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal" onMouseDown={(e) => e.preventDefault()}>حذف جميع المصاريف</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal" onMouseDown={(e) => e.preventDefault()}>حذف جميع الأهداف المالية</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal" onMouseDown={(e) => e.preventDefault()}>حذف جميع مصادر الدخل</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal">حذف جميع المصاريف</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal">حذف جميع الأهداف المالية</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal">حذف جميع مصادر الدخل</Label></div>
                             <Separator />
                             <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal" onMouseDown={(e) => e.preventDefault()}>تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal" onMouseDown={(e) => e.preventDefault()}>تصفير الملف الشخصي</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal">تصفير الملف الشخصي</Label></div>
                         </div>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel onClick={() => setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false })}>إلغاء</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                        <DialogFooter>
+                            <Button variant="ghost" onClick={() => setIsDataResetOpen(false)}>إلغاء</Button>
+                            <Button variant="destructive" onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
              </div>
         </AccordionItemWrapper>
          
