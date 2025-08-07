@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
     images: [
       {
-        url: '/logo.png', // Using the original, stable logo name
+        url: '/icon-512x512.png',
         width: 512,
         height: 512,
         alt: 'شعار تطبيق تدبير',
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: 'summary',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
-     images: ['/logo.png'], // Using the original, stable logo name
+     images: ['/icon-512x512.png'],
   },
   appleWebApp: {
     capable: true,
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FFDA63',
+  themeColor: '#2563eb',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -66,6 +66,3 @@ export default function RootLayout({
     </html>
   );
 }
-    
-
-    
