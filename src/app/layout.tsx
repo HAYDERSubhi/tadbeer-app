@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'تدبير',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
      images: ['/icon-512x512.png'],
@@ -36,10 +36,12 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'تدبير',
+    startupImage: '/icon-512x512.png',
   },
   icons: {
     icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    shortcut: '/icon-192x192.png',
+    apple: '/icon-192x192.png',
   },
 };
 
