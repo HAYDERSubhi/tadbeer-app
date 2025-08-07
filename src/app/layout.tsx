@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
     images: [
       {
-        url: '/og-image.png', // Using the specific OG image
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'شعار تطبيق تدبير مع خلفية',
@@ -39,14 +39,14 @@ export const metadata: Metadata = {
     startupImage: '/apple-touch-icon.png',
   },
   icons: {
-    icon: '/favicon.ico', // You should have a favicon.ico in your public folder
+    icon: '/logo.png', // Use the new logo for favicon
     shortcut: '/icon-192x192.png',
     apple: '/apple-touch-icon.png',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2563eb',
+  themeColor: '#FFDA63',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

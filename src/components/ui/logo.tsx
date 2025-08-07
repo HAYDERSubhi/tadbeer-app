@@ -9,7 +9,7 @@ const Logo = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
     {...props}
   >
     <Image 
-        src="/logo-main.png" 
+        src="/logo.png" 
         alt="شعار تطبيق تدبير" 
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

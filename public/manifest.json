@@ -1,6 +1,5 @@
-
 {
-  "name": "تدبير",
+  "name": "تدبير | Tadbeer",
   "short_name": "تدبير",
   "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
   "icons": [
@@ -15,8 +14,8 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
+  "theme_color": "#FFDA63",
+  "background_color": "#213645",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait"
