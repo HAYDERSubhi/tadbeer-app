@@ -23,17 +23,6 @@ const nextConfig = {
       },
     ],
   },
-  async redirects() {
-    return [
-      // Redirect from the root to the preview page for easy access during development
-      // This can be removed later if needed.
-      {
-        source: '/',
-        destination: '/preview',
-        permanent: false,
-      },
-    ]
-  },
   // This is a workaround for a build issue with the handlebars dependency in genkit.
   // It ensures that the package is treated as an external dependency by the server components.
   serverExternalPackages: ['handlebars'],
