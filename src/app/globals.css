@@ -46,6 +46,8 @@
 
   .dark {
     --background: 209 28% 14%; /* Very Dark Blue from palette: #1d2731 */
+    --background-start-rgb: 29, 39, 49;
+    --background-end-rgb: 15, 23, 31;
     --foreground: 0 0% 98%;
 
     --card: 209 28% 17%;
@@ -91,6 +93,9 @@
     font-family: 'Tajawal', sans-serif;
     direction: rtl; /* RTL support */
     min-height: 100vh;
+  }
+  .dark body {
+    background: linear-gradient(to bottom, rgb(var(--background-start-rgb)), rgb(var(--background-end-rgb)));
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
