@@ -1,4 +1,3 @@
-
 // src/app/(main)/add-expense/page.tsx
 "use client";
 
@@ -135,19 +134,16 @@ export default function AddExpensePage() {
 
                 <div className="space-y-4">
                      <div className="relative">
-                        <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                        <Input {...form.register('title')} placeholder="ما الذي أنفقت عليه؟ (مثال: قهوة)" className="pr-10" />
+                        <Input {...form.register('title')} placeholder="اسم السلعة/الخدمة" />
                     </div>
                     {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
 
                     <div className="relative">
-                        <Tag className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input 
                             {...form.register('amount')} 
                             type="number"
                             inputMode="decimal"
-                            placeholder="أدخل المبلغ"
-                            className="pr-10"
+                            placeholder="المبلغ"
                         />
                     </div>
                     {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
@@ -160,7 +156,8 @@ export default function AddExpensePage() {
                                 <PopoverTrigger asChild>
                                     <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal relative pr-10", !field.value && "text-muted-foreground")}>
                                          <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                                        <span>التاريخ:</span>
+                                        {field.value ? <span className="mr-2 font-semibold">{format(field.value, "dd/MM/yyyy")}</span> : <span>اختر تاريخاً</span>}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
@@ -172,8 +169,7 @@ export default function AddExpensePage() {
                      {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
                     
                     <div className="relative">
-                       <FileText className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
-                       <Textarea {...form.register('description')} placeholder="الوصف (اختياري)" className="pr-10 min-h-[60px]" />
+                       <Textarea {...form.register('description')} placeholder="الوصف (اختياري)" className="min-h-[60px]" />
                     </div>
                     
                     <div className="flex items-center space-x-2 space-x-reverse pt-2">
@@ -187,8 +183,7 @@ export default function AddExpensePage() {
 
                     {form.watch('isOutOfBudget') && (
                         <div className="relative">
-                            <Hash className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
-                            <Textarea {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" className="pr-10 min-h-[60px]" />
+                            <Textarea {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" className="min-h-[60px]" />
                         </div>
                     )}
                 </div>
@@ -226,4 +221,3 @@ export default function AddExpensePage() {
         </div>
     );
 }
-
