@@ -1,3 +1,4 @@
+
 // src/app/(main)/add-expense/page.tsx
 "use client";
 
@@ -216,7 +217,7 @@ export default function AddExpensePage() {
                 </div>
             </form>
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
+            <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
                  <Button onClick={form.handleSubmit(onSubmit)} className="w-full h-14 text-lg" disabled={addExpenseMutation.isPending}>
                     {addExpenseMutation.isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
                     <span className="mr-2">حفظ المصروف</span>
@@ -225,3 +226,4 @@ export default function AddExpensePage() {
         </div>
     );
 }
+
