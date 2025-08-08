@@ -1,11 +1,11 @@
 {
   "name": "تدبير",
   "short_name": "تدبير",
+  "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#23A59A",
-  "description": "تطبيقك المالي الذكي لإدارة المصاريف والأهداف.",
+  "theme_color": "#2abf92",
   "icons": [
     {
       "src": "/logo.png",
@@ -16,7 +16,8 @@
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
