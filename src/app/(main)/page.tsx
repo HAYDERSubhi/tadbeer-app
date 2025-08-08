@@ -1,4 +1,3 @@
-
 // src/app/(main)/page.tsx
 
 "use client";
@@ -472,13 +471,12 @@ export default function DashboardPage() {
       {/* All Expenses List */}
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-sm font-semibold">
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
+              <History className="h-4 w-4 text-primary" />
               <span>أحدث المصاريف</span>
             </div>
           </CardTitle>
-          <CardDescription>قائمة بآخر المصاريف التي قمت بتسجيلها.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {allSortedExpenses.length > 0 ? (
