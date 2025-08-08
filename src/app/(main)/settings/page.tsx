@@ -70,7 +70,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
@@ -944,7 +944,7 @@ export default function SettingsPage() {
           <div className="space-y-6">
              <div>
                 <h3 className="text-base font-semibold mb-3">شخصية المدرب المالي</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                 
                 <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
                     <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border">
@@ -1410,5 +1410,9 @@ const CategoryEditDialog = ({
     
 
     
+
+    
+
+
 
     
