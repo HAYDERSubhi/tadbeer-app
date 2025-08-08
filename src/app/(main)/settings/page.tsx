@@ -960,7 +960,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">كرومي</h4>
-                  <p className="text-xs text-muted-foreground">صديقك الصدوق، نصائحه ودية ومباشرة، وأحيانًا ساخرة!</p>
+                  <p className="text-xs text-muted-foreground">صديقك الصدوق، نصائحه ودية ومباشرة.</p>
                 </div>
               </div>
 
@@ -978,7 +978,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h4 className="font-bold text-sm">أستاذ حريص</h4>
-                  <p className="text-xs text-muted-foreground">مدربك المالي المحترف، يقدم نصائح دقيقة ومبنية على البيانات بالفصحى.</p>
+                  <p className="text-xs text-muted-foreground">مدربك المالي المحترف، يقدم نصائح دقيقة.</p>
                 </div>
               </div>
             </div>
@@ -1225,7 +1225,7 @@ export default function SettingsPage() {
                                     <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
                                     <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
-                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{cat.icon} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
                                 <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
