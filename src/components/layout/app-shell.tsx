@@ -32,11 +32,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     <Download className="h-5 w-5" />
                 </Button>
              )}
-             <Button asChild variant="ghost" size="icon">
-              <Link href="/settings">
-                <Settings className="h-5 w-5" />
-              </Link>
-            </Button>
             <Button
               variant="ghost"
               size="icon"
