@@ -1,4 +1,3 @@
-
 // src/app/(main)/add-expense/page.tsx
 "use client";
 
@@ -133,7 +132,6 @@ export default function AddExpensePage() {
         <div className="flex flex-col h-full">
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
 
-                {/* Form Fields */}
                 <div className="space-y-4">
                      <div className="relative">
                         <Pencil className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -194,7 +192,6 @@ export default function AddExpensePage() {
                     )}
                 </div>
 
-                {/* Category Grid */}
                 <div className="space-y-3">
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
                         {categories.map((cat) => (
@@ -217,14 +214,14 @@ export default function AddExpensePage() {
                     </div>
                      {form.formState.errors.category && <p className="text-sm text-destructive mt-1 text-center">{form.formState.errors.category.message}</p>}
                 </div>
-
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
-                     <Button type="submit" className="w-full h-14 text-lg" disabled={addExpenseMutation.isPending}>
-                        {addExpenseMutation.isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
-                        <span className="mr-2">حفظ المصروف</span>
-                    </Button>
-                </div>
             </form>
+
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
+                 <Button onClick={form.handleSubmit(onSubmit)} className="w-full h-14 text-lg" disabled={addExpenseMutation.isPending}>
+                    {addExpenseMutation.isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
+                    <span className="mr-2">حفظ المصروف</span>
+                </Button>
+            </div>
         </div>
     );
 }
