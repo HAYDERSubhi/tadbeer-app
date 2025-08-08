@@ -53,7 +53,7 @@ import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, updateExpense } from '@/services/firestore';
+import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, updateExpense, addFeedback } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -229,10 +229,15 @@ export default function SettingsPage() {
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [isDataResetOpen, setIsDataResetOpen] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+
+  // State for Feedback Dialog
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackSubject, setFeedbackSubject] = useState('');
+  const [feedbackDetails, setFeedbackDetails] = useState('');
+
 
   const [deleteOptions, setDeleteOptions] = useState({
     expenses: false,
@@ -592,6 +597,35 @@ export default function SettingsPage() {
     } catch (error) {
         toast({ title: 'خطأ', description: 'لم نتمكن من تسجيل خروجك.', variant: 'destructive' });
     }
+  }
+
+  // --- Feedback ---
+  const feedbackMutation = useMutation({
+    mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
+        if (!user) throw new Error("User not authenticated");
+        return addFeedback(user.uid, feedback);
+    },
+    onSuccess: () => {
+        toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
+        setIsFeedbackOpen(false);
+        setFeedbackSubject('');
+        setFeedbackDetails('');
+    },
+    onError: () => {
+        toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
+    }
+  });
+
+  const handleSendFeedback = () => {
+    if (!feedbackDetails.trim() || !user) {
+        toast({ title: "المحتوى فارغ", description: "يرجى كتابة التفاصيل قبل الإرسال.", variant: "destructive" });
+        return;
+    }
+    feedbackMutation.mutate({
+        subject: feedbackSubject.trim() || "بدون موضوع",
+        details: feedbackDetails.trim(),
+        email: user.email || 'anonymous'
+    });
   }
 
   // --- Data Import/Export & Reset ---
@@ -1272,19 +1306,19 @@ export default function SettingsPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="feedback-subject">الموضوع</Label>
-                            <Input id="feedback-subject" placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." />
+                            <Input id="feedback-subject" value={feedbackSubject} onChange={(e) => setFeedbackSubject(e.target.value)} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="feedback-details">التفاصيل</Label>
-                            <Textarea id="feedback-details" placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32" />
+                            <Textarea id="feedback-details" value={feedbackDetails} onChange={(e) => setFeedbackDetails(e.target.value)} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32" />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setIsFeedbackOpen(false)}>إلغاء</Button>
-                        <Button onClick={() => {
-                            toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
-                            setIsFeedbackOpen(false);
-                        }}>إرسال</Button>
+                        <Button onClick={handleSendFeedback} disabled={feedbackMutation.isPending}>
+                            {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                            إرسال
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
               </FormDialog>

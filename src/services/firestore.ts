@@ -1,4 +1,3 @@
-
 // src/services/firestore.ts
 import { db } from '@/lib/firebase';
 import { 
@@ -250,4 +249,15 @@ export const deleteCollection = async (uid: string, collectionName: string) => {
     });
 
     await batch.commit();
+};
+
+export const addFeedback = async (uid: string, feedback: { subject: string; details: string; email?: string }) => {
+    if (!db) throw new Error("Firestore is not initialized");
+    // Feedback is stored in a top-level collection, but we still link it to the user
+    const feedbackCol = collection(db, 'feedback');
+    await addDoc(feedbackCol, {
+        ...feedback,
+        uid: uid,
+        createdAt: serverTimestamp(),
+    });
 };
