@@ -862,10 +862,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4 pb-20">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold">الإعدادات</h1>
-        <p className="text-muted-foreground">قم بإدارة حسابك وتفضيلاتك وبياناتك من هنا.</p>
-      </div>
 
       {/* Account and Theme Section */}
       <Card>
@@ -1314,9 +1310,7 @@ export default function SettingsPage() {
             onSave={handleSaveCategory}
             category={editingCategory}
         />
-      <footer className="p-4 text-center text-xs text-muted-foreground border-t mt-auto">
-        <Link href="/privacy" className="hover:underline">سياسة الخصوصية</Link>
-      </footer>
+      
     </div>
   );
 }
