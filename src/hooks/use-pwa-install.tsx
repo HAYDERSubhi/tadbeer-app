@@ -18,6 +18,14 @@ export const usePWAInstall = () => {
   const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
+    // 1. Register the service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => console.log('Service Worker registered with scope:', registration.scope))
+        .catch((error) => console.error('Service Worker registration failed:', error));
+    }
+
+    // 2. Listen for the install prompt event
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       const typedEvent = event as BeforeInstallPromptEvent;
@@ -27,7 +35,7 @@ export const usePWAInstall = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // This event fires after the app is installed
+    // 3. Listen for when the app is installed
     const handleAppInstalled = () => {
       setIsInstallable(false);
       setInstallPrompt(null);
@@ -50,13 +58,11 @@ export const usePWAInstall = () => {
     const { outcome } = await installPrompt.userChoice;
     
     if (outcome === 'accepted') {
-      // The prompt was accepted, the 'appinstalled' event will handle the state change.
       console.log('User accepted the PWA installation');
     } else {
       console.log('User dismissed the PWA installation');
     }
-    // We clear the prompt regardless of the outcome.
-    // The browser will only fire the `beforeinstallprompt` event once.
+    
     setInstallPrompt(null);
     setIsInstallable(false);
 
