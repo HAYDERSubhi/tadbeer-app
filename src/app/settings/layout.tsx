@@ -3,15 +3,17 @@
 "use client";
 
 import Link from 'next/link';
-import { MoonIcon, SunIcon, ArrowLeft } from 'lucide-react';
+import { MoonIcon, SunIcon, ArrowLeft, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import PageNavigation from '@/components/layout/page-navigation';
 import { AppDataProvider } from '@/hooks/use-app-data';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
     const { theme, setTheme } = useTheme();
+    const { canInstall, handleInstall } = usePWAInstall();
 
     return (
         <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -27,6 +29,11 @@ function SettingsLayoutContent({ children }: { children: React.ReactNode }) {
                     </div>
                    
                     <div className="flex items-center gap-2">
+                         {canInstall && (
+                            <Button variant="ghost" size="icon" onClick={handleInstall} aria-label="تثبيت التطبيق">
+                                <Download className="h-5 w-5" />
+                            </Button>
+                         )}
                         <Button
                             variant="ghost"
                             size="icon"
