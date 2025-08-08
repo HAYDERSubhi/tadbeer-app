@@ -70,7 +70,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
