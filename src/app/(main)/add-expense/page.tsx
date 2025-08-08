@@ -131,14 +131,6 @@ export default function AddExpensePage() {
 
     return (
         <div className="flex flex-col h-full">
-            <header className="flex items-center justify-end p-2 border-b">
-                 <Button asChild variant="ghost" size="icon">
-                    <Link href="/">
-                        <ChevronsRight className="h-5 w-5" />
-                    </Link>
-                </Button>
-            </header>
-
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
                 {/* Category Grid */}
                 <div className="space-y-3">
