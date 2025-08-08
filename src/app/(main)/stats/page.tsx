@@ -558,7 +558,7 @@ export default function StatisticsPage() {
               {categorySummary.map(item => (
                 <AccordionItem value={item.id} key={item.id} className="border-b" ref={(el) => (itemRefs.current[item.id] = el)}>
                   <AccordionTrigger 
-                    className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50 text-base font-medium"
+                    className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50"
                     onClick={() => {
                       setTimeout(() => {
                         const itemEl = itemRefs.current[item.id];
@@ -579,7 +579,7 @@ export default function StatisticsPage() {
                          </div>
                       </div>
                       <div className='text-left ml-4'>
-                        <p className="text-base font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                        <p className="text-sm font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
                             <div className='w-24 mt-1'>
                                 <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
