@@ -62,7 +62,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertTitle as AlertTitleComponent, AlertDescription as AlertDescriptionComponent } from '@/components/ui/alert';
-import { version } from '../../../package.json';
+import { version } from '../../../../package.json';
 import { useAppData } from '@/hooks/use-app-data';
 import {
   Accordion,
