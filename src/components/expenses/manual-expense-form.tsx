@@ -53,7 +53,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { categories } = useCategories();
+  const { categories, getIconComponent } = useCategories();
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -167,7 +167,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                 <SelectContent>
                 {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      <span className="mr-2">{cat.icon}</span>{cat.name}
+                      <span className="mr-2">{getIconComponent(cat.icon)}</span>
+                      <span>{cat.name}</span>
                     </SelectItem>
                 ))}
                 </SelectContent>

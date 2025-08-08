@@ -45,7 +45,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { categories } = useCategories();
+  const { categories, getIconComponent } = useCategories();
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -113,7 +113,8 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
                 <SelectContent>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                       <span className="mr-2">{getIconComponent(cat.icon)}</span>
+                       <span>{cat.name}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
