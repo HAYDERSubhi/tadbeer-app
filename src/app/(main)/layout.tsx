@@ -10,13 +10,11 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
-import { usePathname } from 'next/navigation';
 import NotificationManager from '@/components/notifications/notification-manager';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
     // If not loading and no user is found, redirect to the login page.
@@ -58,23 +56,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  const isFullHeightPage = pathname === '/add-expense' || pathname === '/receipts';
-
   // If there is a user, render the main app shell with the data provider.
   if (user) {
     return (
       <AppDataProvider>
         <NotificationManager />
-        {isFullHeightPage ? (
-           <main className="h-screen flex-1 flex flex-col">{children}</main>
-        ) : (
-          <AppShell>
-            <main className="flex-1 p-4 sm:p-6">
-              {children}
-            </main>
-            <PageNavigation />
-          </AppShell>
-        )}
+        <AppShell>
+          <main className="flex-1 p-4 sm:p-6">
+            {children}
+          </main>
+          <PageNavigation />
+        </AppShell>
       </AppDataProvider>
     );
   }
