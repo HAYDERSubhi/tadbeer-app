@@ -1,4 +1,3 @@
-
 // src/components/expenses/manual-expense-form.tsx
 "use client";
 
@@ -37,7 +36,6 @@ const expenseSchema = z.object({
   amount: z.coerce.number().min(1, { message: 'المبلغ يجب أن يكون أكبر من صفر' }),
   category: z.string().min(1, { message: 'الفئة مطلوبة' }),
   date: z.date({ required_error: 'التاريخ مطلوب' }),
-  description: z.string().optional(),
   isOutOfBudget: z.boolean().optional(),
   outOfBudgetDetails: z.string().optional(),
 });
@@ -62,7 +60,6 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       amount: initialData?.amount || 0,
       category: initialData?.category || '',
       date: initialData?.date ? new Date(initialData.date) : new Date(),
-      description: initialData?.description || '',
       isOutOfBudget: initialData?.isOutOfBudget || false,
       outOfBudgetDetails: initialData?.outOfBudgetDetails || '',
     },
@@ -167,8 +164,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                 <SelectContent>
                 {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      <span className="mr-2">{getIconComponent(cat.icon)}</span>
-                      <span>{cat.name}</span>
+                       <span className="mr-2">{getIconComponent(cat.icon)}</span>
+                       <span>{cat.name}</span>
                     </SelectItem>
                 ))}
                 </SelectContent>
@@ -214,11 +211,6 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         )}
         />
         {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
-    </div>
-
-    <div>
-        <Label htmlFor="description">الوصف (اختياري)</Label>
-        <Input id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
     </div>
 
     <div className="flex items-center space-x-2 space-x-reverse">

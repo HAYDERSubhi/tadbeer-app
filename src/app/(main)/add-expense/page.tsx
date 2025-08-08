@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Textarea } from '@/components/ui/textarea';
 import { Save, CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -25,13 +24,13 @@ import { recordExpenseAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
+import { Textarea } from '@/components/ui/textarea';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
   amount: z.coerce.number().min(0.01, { message: 'المبلغ يجب أن يكون أكبر من صفر' }),
   category: z.string().min(1, { message: 'الفئة مطلوبة' }),
   date: z.date({ required_error: 'التاريخ مطلوب' }),
-  description: z.string().optional(),
   isOutOfBudget: z.boolean().optional(),
   outOfBudgetDetails: z.string().optional(),
 });
@@ -67,7 +66,6 @@ export default function AddExpensePage() {
             amount: undefined,
             category: '',
             date: new Date(),
-            description: '',
             isOutOfBudget: false,
             outOfBudgetDetails: '',
         },
@@ -192,10 +190,6 @@ export default function AddExpensePage() {
                         )}
                     />
                      {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
-                    
-                    <div className="relative">
-                       <Textarea {...form.register('description')} placeholder="الوصف (اختياري)" className="min-h-[60px]" />
-                    </div>
                     
                     <div className="flex items-center space-x-2 space-x-reverse pt-2">
                         <Controller

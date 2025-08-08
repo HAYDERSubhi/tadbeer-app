@@ -1,4 +1,3 @@
-
 // src/components/expenses/edit-expense-form.tsx
 "use client";
 
@@ -34,7 +33,6 @@ const expenseSchema = z.object({
   amount: z.coerce.number().min(1, { message: 'المبلغ يجب أن يكون أكبر من صفر' }),
   category: z.string().min(1, { message: 'الفئة مطلوبة' }),
   date: z.date({ required_error: 'التاريخ مطلوب' }),
-  description: z.string().optional(),
   isOutOfBudget: z.boolean().optional(),
   outOfBudgetDetails: z.string().optional(),
 });
@@ -54,7 +52,6 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
       amount: expense.amount,
       category: expense.category,
       date: new Date(expense.date),
-      description: expense.description || '',
       isOutOfBudget: expense.isOutOfBudget || false,
       outOfBudgetDetails: expense.outOfBudgetDetails || '',
     },
@@ -160,11 +157,6 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
           )}
         />
         {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="description">الوصف (اختياري)</Label>
-        <Input id="description" {...form.register('description')} placeholder="تفاصيل إضافية عن المصروف" />
       </div>
 
       <div className="flex items-center space-x-2 space-x-reverse">
