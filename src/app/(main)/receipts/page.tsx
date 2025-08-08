@@ -340,19 +340,16 @@ export default function DetailedReceiptPage() {
                         <Upload className="h-5 w-5 text-primary" />
                         تحليل الفواتير المفصلة
                     </CardTitle>
-                    <CardDescription>
-                       التقط صورًا واضحة أو قم برفعها من جهازك. يمكنك إضافة صور متعددة، وتعديلها إذا لزم الأمر.
-                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Button variant="outline" size="lg" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="ml-2" />
-                            رفع ملف
+                            تحميل فاتورة
                         </Button>
                         <Button variant="outline" size="lg" onClick={() => setViewState('camera')}>
                             <Camera className="ml-2" />
-                            استخدام الكاميرا
+                            مسح فاتورة
                         </Button>
                     </div>
                     <Input
