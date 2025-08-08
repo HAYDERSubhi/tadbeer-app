@@ -196,7 +196,6 @@ export default function AddExpensePage() {
 
                 {/* Category Grid */}
                 <div className="space-y-3">
-                    <h2 className="text-lg font-bold text-center text-foreground">اختر فئة</h2>
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
                         {categories.map((cat) => (
                             <div 
