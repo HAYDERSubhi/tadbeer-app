@@ -935,7 +935,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4">
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
