@@ -468,7 +468,7 @@ export default function DashboardPage() {
           <BudgetSummaryCard />
       )}
 
-      {/* All Expenses List */}
+      {/* Recent Expenses List */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
@@ -494,13 +494,12 @@ export default function DashboardPage() {
       {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-sm font-semibold">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               <span>نصائح المدرب المالي</span>
             </div>
           </CardTitle>
-          <CardDescription>تحليلات وتوصيات ذكية بناءً على إنفاقك الأخير.</CardDescription>
         </CardHeader>
         <CardContent>
           {isInsightsLoading ? (
