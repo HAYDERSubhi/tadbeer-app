@@ -1,14 +1,15 @@
-
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
-import { useMemo } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
 import { useAppData } from '@/hooks/use-app-data';
 import { startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '../ui/button';
+import { Eye, EyeOff } from 'lucide-react';
 
 const DEFAULT_BUDGET_SETTINGS = { totalBudget: 0, weeklyBudget: 0, zeroSpendDaysTarget: 4 };
 
@@ -25,6 +26,7 @@ const StatItem = ({ title, value, color }: { title: string, value: string, color
 
 export default function BudgetSummaryCard() {
     const { expenses, userSettings } = useAppData();
+    const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
     const budgetData = useMemo(() => {
         const today = new Date();
@@ -86,18 +88,30 @@ export default function BudgetSummaryCard() {
     }, [expenses, userSettings]);
 
     const formatCurrency = (value: number) => `${value.toLocaleString('ar-EG')}\u00A0د.ع`;
+    const privacyPlaceholder = "•••••• د.ع";
 
     return (
         <Card id="budget-summary-card" className="bg-card">
+            <CardHeader className="flex-row items-center justify-between p-4 pb-0 sm:p-6 sm:pb-0">
+                {/* The title can be empty or have some text if needed later */}
+                <CardTitle></CardTitle> 
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setIsPrivacyMode(!isPrivacyMode)}>
+                    {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
+            </CardHeader>
             <CardContent className="space-y-4 p-4 sm:p-6">
                 
                 {/* Section 1: Main Progress Bar */}
                 <div className="pt-2 space-y-2">
                     <div className="flex justify-between text-xs sm:text-sm text-muted-foreground px-1">
-                        <span>المصروف: {formatCurrency(budgetData.monthlySpent)}</span>
-                        <span>المتبقي: {formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
+                        <span>المصروف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.monthlySpent)}</span>
+                        <span>المتبقي: {isPrivacyMode ? privacyPlaceholder : formatCurrency(Math.max(0, budgetData.remainingBudget))}</span>
                     </div>
-                    <Progress value={budgetData.spentPercentage} className="h-4 sm:h-5" />
+                     <Progress 
+                        value={isPrivacyMode ? 100 : budgetData.spentPercentage} 
+                        className="h-4 sm:h-5" 
+                        indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined}
+                    />
                 </div>
 
                 {/* Section 2: Main Stats with '+' separator */}
@@ -111,7 +125,7 @@ export default function BudgetSummaryCard() {
                     <div className="flex justify-center items-center">
                          <StatItem 
                             title="إجمالي الميزانية" 
-                            value={formatCurrency(budgetData.totalBudget)}
+                            value={isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.totalBudget)}
                             color="text-foreground"
                         />
                     </div>
@@ -119,7 +133,7 @@ export default function BudgetSummaryCard() {
                     <div className="flex justify-center items-center">
                         <StatItem 
                             title="الميزانية المتبقية" 
-                            value={formatCurrency(Math.max(0, budgetData.remainingBudget))} 
+                            value={isPrivacyMode ? privacyPlaceholder : formatCurrency(Math.max(0, budgetData.remainingBudget))} 
                             color="text-green-600 dark:text-green-400"
                         />
                     </div>
@@ -127,7 +141,7 @@ export default function BudgetSummaryCard() {
                     <div className="flex justify-center items-center">
                          <StatItem 
                             title="المصروف الشهري"
-                            value={formatCurrency(budgetData.monthlySpent)}
+                            value={isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.monthlySpent)}
                             color="text-orange-600 dark:text-orange-400"
                         />
                     </div>
@@ -135,7 +149,7 @@ export default function BudgetSummaryCard() {
                     <div className="flex justify-center items-center">
                         <StatItem 
                             title="مصروف اليوم"
-                            value={formatCurrency(budgetData.dailySpent)}
+                            value={isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.dailySpent)}
                             color="text-orange-600 dark:text-orange-400"
                         />
                     </div>
@@ -146,16 +160,20 @@ export default function BudgetSummaryCard() {
                 {/* Section 3: Weekly Summary */}
                 <div className="space-y-4">
                     <p className="text-center text-sm font-medium text-muted-foreground">
-                        الهدف الأسبوعي: ~{formatCurrency(budgetData.weeklyTarget)}
+                        الهدف الأسبوعي: ~{isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.weeklyTarget)}
                     </p>
                     <div className="grid grid-cols-4 gap-x-3 sm:gap-x-4 gap-y-2">
                         {budgetData.weeklySummaries.map(week => (
                             <div key={week.week} className="w-full space-y-2 text-center">
                                  <div className="flex flex-col items-center">
                                     <span className="text-xs text-muted-foreground">الأسبوع {week.week}</span>
-                                    <span className="text-sm font-semibold">{formatCurrency(week.spent)}</span>
+                                    <span className="text-sm font-semibold">{isPrivacyMode ? privacyPlaceholder : formatCurrency(week.spent)}</span>
                                 </div>
-                                <Progress value={week.progress} className="h-3 sm:h-4" indicatorcolor={week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'} />
+                                <Progress 
+                                    value={isPrivacyMode ? 100 : week.progress} 
+                                    className="h-3 sm:h-4" 
+                                    indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : week.isOverBudget ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+                                />
                             </div>
                         ))}
                     </div>
