@@ -12,11 +12,13 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
 import { usePathname } from 'next/navigation';
 import NotificationManager from '@/components/notifications/notification-manager';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  usePWAInstall(); // Initialize PWA install logic at a higher level
 
   useEffect(() => {
     // If not loading and no user is found, redirect to the login page.
@@ -58,7 +60,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  const isFullHeightPage = pathname === '/add-expense';
+  const isFullHeightPage = pathname === '/add-expense' || pathname === '/receipts';
 
   // If there is a user, render the main app shell with the data provider.
   if (user) {
