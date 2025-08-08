@@ -132,30 +132,7 @@ export default function AddExpensePage() {
     return (
         <div className="flex flex-col h-full">
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
-                {/* Category Grid */}
-                <div className="space-y-3">
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
-                        {categories.map((cat) => (
-                            <div 
-                                key={cat.id} 
-                                onClick={() => form.setValue('category', cat.id, { shouldValidate: true })}
-                                className={cn(
-                                    "flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 cursor-pointer transition-all duration-200",
-                                    selectedCategory === cat.id 
-                                        ? 'border-primary bg-primary/10 shadow-lg scale-105'
-                                        : 'border-transparent bg-muted/60 hover:border-primary/50'
-                                )}
-                            >
-                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === cat.id ? 'bg-primary/20 text-primary' : 'bg-background')}>
-                                    {getIconComponent(cat.icon)}
-                                </span>
-                                <p className="text-xs font-medium break-words">{cat.name}</p>
-                            </div>
-                        ))}
-                    </div>
-                     {form.formState.errors.category && <p className="text-sm text-destructive mt-1 text-center">{form.formState.errors.category.message}</p>}
-                </div>
-                
+
                 {/* Form Fields */}
                 <div className="space-y-4">
                      <div className="relative">
@@ -215,6 +192,31 @@ export default function AddExpensePage() {
                             <Textarea {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" className="pr-10 min-h-[60px]" />
                         </div>
                     )}
+                </div>
+
+                {/* Category Grid */}
+                <div className="space-y-3">
+                    <h2 className="text-lg font-bold text-center text-foreground">اختر فئة</h2>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
+                        {categories.map((cat) => (
+                            <div 
+                                key={cat.id} 
+                                onClick={() => form.setValue('category', cat.id, { shouldValidate: true })}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 cursor-pointer transition-all duration-200",
+                                    selectedCategory === cat.id 
+                                        ? 'border-primary bg-primary/10 shadow-lg scale-105'
+                                        : 'border-transparent bg-muted/60 hover:border-primary/50'
+                                )}
+                            >
+                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === cat.id ? 'bg-primary/20 text-primary' : 'bg-background')}>
+                                    {getIconComponent(cat.icon)}
+                                </span>
+                                <p className="text-xs font-medium break-words">{cat.name}</p>
+                            </div>
+                        ))}
+                    </div>
+                     {form.formState.errors.category && <p className="text-sm text-destructive mt-1 text-center">{form.formState.errors.category.message}</p>}
                 </div>
 
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
