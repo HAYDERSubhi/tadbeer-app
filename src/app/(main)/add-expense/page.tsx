@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, CalendarIcon, Loader2, ChevronsRight, Pencil, Tag, Hash, FileText } from 'lucide-react';
+import { Save, CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,6 @@ import { addExpense } from '@/services/firestore';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
 
@@ -38,6 +37,19 @@ const expenseSchema = z.object({
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
+
+const formatNumberWithCommas = (value: string | number | undefined) => {
+    if (value === null || value === undefined || value === '') return '';
+    const numericString = String(value).replace(/,/g, '');
+    const number = Number(numericString);
+    if (isNaN(number)) return '';
+    return new Intl.NumberFormat('en-US').format(number);
+};
+
+const parseFormattedNumber = (value: string | undefined) => {
+    if (!value) return '';
+    return value.replace(/,/g, '');
+};
 
 export default function AddExpensePage() {
     const { user } = useAuth();
@@ -139,11 +151,24 @@ export default function AddExpensePage() {
                     {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
 
                     <div className="relative">
-                        <Input 
-                            {...form.register('amount')} 
-                            type="number"
-                            inputMode="decimal"
-                            placeholder="المبلغ"
+                        <Controller
+                            name="amount"
+                            control={form.control}
+                            render={({ field: { onChange, value, ...restField } }) => (
+                                <Input
+                                    {...restField}
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="المبلغ"
+                                    value={value === 0 ? '' : formatNumberWithCommas(value)}
+                                    onChange={(e) => {
+                                        const parsed = parseFormattedNumber(e.target.value);
+                                        if (parsed === '' || !isNaN(Number(parsed))) {
+                                            onChange(parsed === '' ? 0 : Number(parsed));
+                                        }
+                                    }}
+                                />
+                            )}
                         />
                     </div>
                     {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
