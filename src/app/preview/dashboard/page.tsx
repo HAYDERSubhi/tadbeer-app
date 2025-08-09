@@ -1,4 +1,3 @@
-
 // src/app/preview/dashboard/page.tsx
 "use client";
 
@@ -58,13 +57,19 @@ export default function DashboardPreviewPage() {
                  {/* RTL Progress Bar */}
                 <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
                     <div 
-                        className="absolute top-0 right-0 h-full bg-primary" 
+                        className="absolute top-0 right-0 h-full bg-primary rounded-md" 
                         style={{ width: `${budgetData.spentPercentage}%` }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                            {budgetData.spentPercentage.toFixed(0)}%
                         </span>
+                    </div>
+                     {/* Weekly dividers */}
+                    <div className="absolute inset-0 flex justify-around">
+                        <div className="w-px h-full bg-background/30"></div>
+                        <div className="w-px h-full bg-background/30"></div>
+                        <div className="w-px h-full bg-background/30"></div>
                     </div>
                 </div>
                 
