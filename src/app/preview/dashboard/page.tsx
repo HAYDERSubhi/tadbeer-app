@@ -55,7 +55,7 @@ export default function DashboardPreviewPage() {
     // البنية والتصميم (من الأسفل للأعلى):
     // -----------------------------------------------------------------------------------------
     // 1. حاوية رئيسية (relative): تضبط الحجم العام وتستخدم `overflow-hidden` لضمان حواف دائرية ناعمة.
-    // 2. طبقة الألوان (absolute, z-0): حاوية `flex` مع `flex-row-reverse` لعرض الأسابيع من اليمين لليسار.
+    // 2. طبقة الألوان (absolute, z-0): حاوية `flex` لعرض الأسابيع من اليمين لليسار (السلوك الطبيعي في RTL).
     // 3. طبقة الفواصل (absolute, z-10): حاوية شفافة تغطي الشريط، تحتوي على 3 خطوط عمودية سوداء بموقع دقيق.
     // 4. طبقة النص (absolute, z-20): حاوية شفافة في الأعلى لعرض النسبة المئوية في المنتصف.
     // =========================================================================================
@@ -63,11 +63,13 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
     
+    // The order here is Week 1, Week 2, Week 3, Week 4.
+    // In an RTL flex container, this will render from right to left correctly.
     const weeklyExpenses = [
-      750000,  // Week 1
+      750000,  // Week 1 (Rightmost)
       1100000, // Week 2
       1300000, // Week 3
-      0        // Week 4 has not started yet
+      0        // Week 4 (Leftmost)
     ];
     
     const totalSpentForScenario = weeklyExpenses.reduce((a, b) => a + b, 0);
@@ -110,7 +112,8 @@ export default function DashboardPreviewPage() {
                 <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
                     
                     {/* Layer 1: The colored segments (Bottom Layer, z-0) */}
-                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
+                    {/* This flex container will naturally flow from Right to Left because the page is RTL */}
+                    <div className="absolute inset-0 z-0 flex">
                         {budgetData.weeklySummaries.map((week, index) => (
                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                         ))}
@@ -118,9 +121,9 @@ export default function DashboardPreviewPage() {
 
                     {/* Layer 2: The dividers (Middle Layer, z-10) */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
-                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '25%'}}></div>
-                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '50%'}}></div>
-                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '75%'}}></div>
+                         <div className="absolute h-1 w-px bg-black/75 bottom-0" style={{right: '25%'}}></div>
+                         <div className="absolute h-1 w-px bg-black/75 bottom-0" style={{right: '50%'}}></div>
+                         <div className="absolute h-1 w-px bg-black/75 bottom-0" style={{right: '75%'}}></div>
                     </div>
                    
                     {/* Layer 3: Percentage Text Overlay (Top Layer, z-20) */}
