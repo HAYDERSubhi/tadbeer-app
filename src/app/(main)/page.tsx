@@ -395,26 +395,32 @@ export default function DashboardPage() {
         </Alert>
       )}
 
+      {/* Budget Summary Card - This now has the privacy button */}
+      {userBudget.totalBudget > 0 && (
+          <BudgetSummaryCard />
+      )}
+
       {/* Add Expense Section */}
       <Card id="expense-input-methods">
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center p-4">
-            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <Pencil className="w-8 h-8" />
+        <CardContent className="p-3">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <Pencil className="w-6 h-6 sm:w-7 sm:h-7" />
                 </span>
-                <p className="font-semibold text-sm">يدوي</p>
+                <p className="font-semibold text-xs">يدوي</p>
             </Link>
             
-            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
+            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
                 <span className={cn(
-                    "flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors", 
+                    "flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors", 
                     isVoiceRecording && "bg-destructive/20 animate-pulse"
                 )}>
-                    {isVoiceLoading ? <Loader2 className="w-8 h-8 text-foreground animate-spin" /> : 
-                    isVoiceRecording ? <StopCircle className="w-8 h-8 text-destructive" /> : 
-                    <Mic className="w-8 h-8" />}
+                    {isVoiceLoading ? <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 text-foreground animate-spin" /> : 
+                    isVoiceRecording ? <StopCircle className="w-6 h-6 sm:w-7 sm:h-7 text-destructive" /> : 
+                    <Mic className="w-6 h-6 sm:w-7 sm:h-7" />}
                 </span>
-                <p className="font-semibold text-sm">
+                <p className="font-semibold text-xs">
                     {isVoiceLoading ? 'تحليل' : isVoiceRecording ? 'استماع' : 'صوت'}
                 </p>
             </div>
@@ -433,19 +439,19 @@ export default function DashboardPage() {
               </SheetContent>
             </VoiceReviewComponent>
 
-            <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <FileScan className="w-8 h-8" />
+            <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <FileScan className="w-6 h-6 sm:w-7 sm:h-7" />
                 </span>
-                <p className="font-semibold text-sm">فاتورة</p>
+                <p className="font-semibold text-xs">فاتورة</p>
             </Link>
             
             <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group">
-                  <span className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                      <CreditCard className="w-8 h-8" />
+              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                  <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                      <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
                   </span>
-                  <p className="font-semibold text-sm">بطاقة</p>
+                  <p className="font-semibold text-xs">بطاقة</p>
               </div>
               <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <SheetHeader>
@@ -461,12 +467,9 @@ export default function DashboardPage() {
                   </div>
               </SheetContent>
             </CardComponent>
+          </div>
         </CardContent>
       </Card>
-
-      {userBudget.totalBudget > 0 && (
-          <BudgetSummaryCard />
-      )}
 
       {/* Recent Expenses List */}
       <Card>
