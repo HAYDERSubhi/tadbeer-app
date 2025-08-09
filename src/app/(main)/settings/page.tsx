@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -591,22 +592,6 @@ export default function SettingsPage() {
         toast({ title: 'خطأ', description: 'لم نتمكن من تسجيل خروجك.', variant: 'destructive' });
     }
   }
-
-  // --- Feedback ---
-  const feedbackMutation = useMutation({
-    mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
-        if (!user) throw new Error("User not authenticated");
-        return addFeedback(user.uid, feedback);
-    },
-    onSuccess: () => {
-        toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
-        setIsFeedbackOpen(false);
-    },
-    onError: () => {
-        toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
-    }
-  });
-
 
   // --- Data Import/Export & Reset ---
   const addMultipleExpensesMutation = useMutation({
@@ -1255,11 +1240,9 @@ export default function SettingsPage() {
         >
           <div className="p-4 text-center space-y-4">
               <FeedbackDialog 
-                isMobile={isMobile}
                 isOpen={isFeedbackOpen}
                 setIsOpen={setIsFeedbackOpen}
-                user={user}
-                feedbackMutation={feedbackMutation}
+                isMobile={isMobile}
               />
             <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
           </div>
@@ -1375,7 +1358,9 @@ const feedbackSchema = z.object({
 type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 
-const FeedbackDialog = ({ isOpen, setIsOpen, isMobile, user, feedbackMutation }: any) => {
+const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, isMobile: boolean }) => {
+    const { user } = useAuth();
+    const { toast } = useToast();
 
     const form = useForm<FeedbackFormData>({
         resolver: zodResolver(feedbackSchema),
@@ -1383,6 +1368,20 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile, user, feedbackMutation }:
             subject: '',
             details: '',
         }
+    });
+
+    const feedbackMutation = useMutation({
+      mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
+          if (!user) throw new Error("User not authenticated");
+          return addFeedback(user.uid, feedback);
+      },
+      onSuccess: () => {
+          toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
+          setIsOpen(false);
+      },
+      onError: () => {
+          toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
+      }
     });
 
     const handleSendFeedback = (data: FeedbackFormData) => {
