@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 
@@ -43,8 +42,6 @@ export default function DashboardPreviewPage() {
     };
   }, []);
 
-  const formatCurrency = (value: number) => `${value.toLocaleString('ar-EG')}\u00A0د.ع`;
-
   return (
     <div className="bg-background min-h-screen">
         {/* Header to explain what this page is */}
@@ -58,17 +55,14 @@ export default function DashboardPreviewPage() {
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
             <div className="p-3 space-y-3">
-                 <div className="relative">
-                    <Progress value={budgetData.spentPercentage} className="h-6 rounded-lg" indicatorClassName="bg-primary/80" />
-                     {/* Weekly dividers */}
-                    <div className="absolute inset-0 flex justify-around items-center px-[2px]">
-                        <div className="w-px h-full bg-background/30"></div>
-                        <div className="w-px h-full bg-background/30"></div>
-                        <div className="w-px h-full bg-background/30"></div>
-                    </div>
-                     {/* Percentage Text */}
+                 {/* RTL Progress Bar */}
+                <div className="relative h-6 w-full overflow-hidden rounded-lg bg-secondary">
+                    <div 
+                        className="absolute top-0 right-0 h-full bg-primary" 
+                        style={{ width: `${budgetData.spentPercentage}%` }}
+                    />
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary-foreground drop-shadow-sm">
+                        <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                            {budgetData.spentPercentage.toFixed(0)}%
                         </span>
                     </div>
@@ -181,5 +175,3 @@ export default function DashboardPreviewPage() {
     </div>
   );
 }
-
-    
