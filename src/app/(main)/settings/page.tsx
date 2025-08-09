@@ -167,16 +167,16 @@ const MappingDialog = ({
     <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
       <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-6 w-6 text-primary" />ربط أعمدة الملف</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" />ربط أعمدة الملف</DialogTitle>
           <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-1">
           <div className="space-y-4 py-4">
             {Object.entries(COLUMN_MAP_CONFIG).map(([field, config]) => (
               <div key={field} className="grid grid-cols-3 items-center gap-4">
-                <Label htmlFor={`map-${field}`} className="text-right">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
+                <Label htmlFor={`map-${field}`} className="text-right text-xs">{config.label} {REQUIRED_FIELDS.includes(field as any) && <span className="text-destructive">*</span>}</Label>
                 <Select value={columnMap[field] !== null && columnMap[field] !== undefined ? String(columnMap[field]) : '_EMPTY_'} onValueChange={(value) => { const newIndex = value === '_EMPTY_' ? null : parseInt(value, 10); setColumnMap(prev => ({ ...prev, [field]: newIndex })); }}>
-                  <SelectTrigger id={`map-${field}`} className="col-span-2"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
+                  <SelectTrigger id={`map-${field}`} className="col-span-2 h-9 text-xs"><SelectValue placeholder="اختر عمودًا..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_EMPTY_">-- لا يوجد --</SelectItem>
                     {fileHeaders.map((header, index) => (<SelectItem key={index} value={String(index)}>{`العمود ${getColumnName(index)}: ${header || '(فارغ)'}`}</SelectItem>))}
@@ -870,7 +870,7 @@ export default function SettingsPage() {
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
-          <AccordionTrigger className="py-2 px-3 hover:no-underline">
+          <AccordionTrigger className="py-2 px-3 hover:no-underline text-sm">
               <div className="flex items-center gap-2 w-full">
                   <div className="p-1.5 bg-primary/10 rounded-md text-primary">
                       {React.createElement(icon, { className: "h-4 w-4" })}
@@ -902,14 +902,14 @@ export default function SettingsPage() {
         <CardContent className="p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
                  <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                    <Users className="h-6 w-6" />
+                    <Users className="h-5 w-5" />
                 </div>
                 <div>
-                    <p className="font-semibold truncate max-w-[150px] sm:max-w-xs">{isAnonymous ? "حساب زائر" : user?.email}</p>
+                    <p className="font-semibold truncate max-w-[150px] sm:max-w-xs text-sm">{isAnonymous ? "حساب زائر" : user?.email}</p>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="link" className="p-0 h-auto text-sm text-destructive hover:no-underline flex items-center gap-1">
-                                <LogOut className="h-4 w-4" />
+                            <Button variant="link" className="p-0 h-auto text-xs text-destructive hover:no-underline flex items-center gap-1">
+                                <LogOut className="h-3 w-3" />
                                 تسجيل الخروج
                             </Button>
                         </AlertDialogTrigger>
@@ -935,7 +935,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+      <Accordion type="single" collapsible className="w-full space-y-4">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -946,8 +946,8 @@ export default function SettingsPage() {
                 <h3 className="font-semibold mb-3 text-sm">شخصية المدرب المالي</h3>
                 <div className="grid grid-cols-2 gap-4">
                 
-                <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border">
+                <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border">
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#FFE0B2"/><path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/><path d="M25.5,37.8c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2c0.3-0.4,0.2-1-0.2-1.3c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8C24.2,38.3,25,38.3,25.5,37.8z" fill="#795548" opacity="0"/><g><ellipse cx="24.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/><ellipse cx="39.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/></g><path d="M50,26c-2.4,0-4.6,1-6.2,2.6c-1.2-3.1-4.1-5.3-7.5-5.3s-6.3,2.2-7.5,5.3C17.6,27,15.4,26,13,26c-4.4,0-8,3.6-8,8s3.6,8,8,8h2c2.2,0,4-1.8,4-4v-2h18v2c0,2.2,1.8,4,4,4h2c4.4,0,8-3.6,8-8S54.4,26,50,26z" fill="#6D4C41"/></svg>
                     </div>
                     <div>
@@ -956,8 +956,8 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border">
+                <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border">
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#C5CAE9"/><path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/><path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/><path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/><path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/><path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/><path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/></svg>
                     </div>
                     <div>
@@ -1007,24 +1007,24 @@ export default function SettingsPage() {
                 <h3 className='text-sm font-semibold'>إدارة الدخل</h3>
                 
                 <Card className="text-center bg-muted/50">
-                    <CardContent className="p-4">
-                        <Label>إجمالي الدخل الشهري المتكرر</Label>
-                        <p className="text-2xl font-bold text-primary">{formatNumberWithCommas(totalRecurringIncome)} د.ع</p>
+                    <CardContent className="p-3">
+                        <Label className="text-xs">إجمالي الدخل الشهري المتكرر</Label>
+                        <p className="text-xl font-bold text-primary">{formatNumberWithCommas(totalRecurringIncome)} د.ع</p>
                     </CardContent>
                 </Card>
 
                 <div>
-                    <h4 className="font-medium mb-2 text-sm">مصادر الدخل الحالية</h4>
+                    <h4 className="font-medium mb-2 text-xs">مصادر الدخل الحالية</h4>
                     <div className="space-y-2">
                         {incomes.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-sm">لا توجد مصادر دخل مسجلة.</p>
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد مصادر دخل مسجلة.</p>
                         ) : (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
                                 {incomes.map(income => (
-                                    <li key={income.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                    <li key={income.id} className="flex items-center justify-between p-2.5 border-b last:border-b-0">
                                         <div className="flex items-center gap-3">
                                             <span className={cn("p-2 rounded-full", income.type === 'recurring' ? 'bg-primary/10 text-primary' : 'bg-green-100 dark:bg-green-900/50 dark:text-green-300 text-green-600')}>
-                                                {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
+                                                {income.type === 'recurring' ? <Repeat className="h-4 w-4" /> : <Wallet className="h-4 w-4" />}
                                             </span>
                                             <div>
                                                 <p className="font-semibold text-sm">{income.title}</p>
@@ -1075,25 +1075,25 @@ export default function SettingsPage() {
             <div className="space-y-4">
                 <h3 className='text-sm font-semibold'>الملف الشخصي</h3>
                 <div className="space-y-3">
-                    <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
-                    <div className="space-y-3 rounded-lg border bg-background p-4">
+                    <Label className="text-xs">أفراد الأسرة (بمن فيهم أنت)</Label>
+                    <div className="space-y-3 rounded-lg border bg-background p-3">
                         {familyMembers.map((member, index) => (
                         <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
-                            <span className='text-muted-foreground'>{index + 1}.</span>
+                            <span className='text-muted-foreground text-xs'>{index + 1}.</span>
                             <Select value={member.type} onValueChange={(value) => handleMemberChange(member.id, 'type', value)}>
-                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="w-[100px] h-9 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="adult">بالغ</SelectItem>
                                     <SelectItem value="child">طفل</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px]" min="0" />
+                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px] h-9 text-xs" min="0" />
                             <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
                                 <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </Button>
                         </div>
                         ))}
-                        <Button variant="outline" onClick={handleAddMember} className="w-full"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
+                        <Button variant="outline" size="sm" onClick={handleAddMember} className="w-full text-xs"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
                     </div>
                 </div>
                 <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
@@ -1111,8 +1111,8 @@ export default function SettingsPage() {
              {/* Budget & Goals */}
             <div className="space-y-4">
                  <h3 className='text-sm font-semibold'>الميزانية والأهداف</h3>
-                <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
-                <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
+                <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
+                <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget" className="text-xs">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
             </div>
             
             <Separator />
@@ -1124,7 +1124,7 @@ export default function SettingsPage() {
                 {categories.map(cat => (
                   <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <span className="text-xl">{getIconComponent(cat.icon)}</span>
+                      <span className="text-lg">{getIconComponent(cat.icon)}</span>
                       <span className="text-sm">{cat.name}</span>
                       {cat.isDefault && <span className="text-xs text-muted-foreground">(افتراضي)</span>}
                     </div>
@@ -1162,11 +1162,11 @@ export default function SettingsPage() {
             {/* Category Budgets */}
             <div className="space-y-4">
                  <h3 className='text-sm font-semibold'>ميزانيات الفئات</h3>
-                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-4">
+                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-3">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-4">
-                            <span className="flex items-center gap-2 w-1/3 text-sm"><span className="text-xl">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`}>{category.name}</Label></span>
-                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1" />
+                            <span className="flex items-center gap-2 w-1/3 text-sm"><span className="text-lg">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`} className="text-xs">{category.name}</Label></span>
+                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1 h-9 text-sm" />
                         </div>
                     ))}
                 </div>
@@ -1178,14 +1178,14 @@ export default function SettingsPage() {
             <div className="space-y-4">
                 <h3 className='text-sm font-semibold'>الدفعات الدورية</h3>
                 <div>
-                     <h4 className="font-medium mb-2 text-sm">الدفعات الحالية</h4>
+                     <h4 className="font-medium mb-2 text-xs">الدفعات الحالية</h4>
                     <div className="space-y-2">
                         {recurringPayments.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-sm">لا توجد دفعات متكررة مسجلة.</p>
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد دفعات متكررة مسجلة.</p>
                         ) : (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
                                 {recurringPayments.map(p => (
-                                    <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                    <li key={p.id} className="flex items-center justify-between p-2.5 border-b last:border-b-0">
                                         <div className="flex-1"><p className="font-semibold text-sm">{p.title}</p><p className="text-xs text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
                                         <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap text-sm">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
                                     </li>
@@ -1406,14 +1406,3 @@ const CategoryEditDialog = ({
     </DialogComponent>
   );
 };
-
-    
-
-    
-
-    
-
-
-
-    
-
