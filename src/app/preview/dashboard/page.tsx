@@ -30,20 +30,22 @@ export default function DashboardPreviewPage() {
     
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
+    
+    // Day 10 of the month
     const currentDayOfMonth = 10;
-    const totalSpentForScenario = 2750000;
+    
+    // Calculate total spent
+    const weeklyExpenses = [
+      750000,   // Week 1 spent
+      2000000,  // Week 2 spent
+      0,        // Week 3 spent
+      0         // Week 4 spent
+    ];
+    const totalSpentForScenario = weeklyExpenses.reduce((a, b) => a + b, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpentForScenario / mockBudget) * 100 : 0;
     
-    const weeklyExpenses = [
-      750000,   // Week 1
-      2000000,  // Week 2
-      0,        // Week 3
-      0         // Week 4
-    ];
-
     const weeklySummaries = weeklyExpenses.map((spent, index) => {
         const weekNumber = index + 1;
-        // Assuming a 30-day month for simplicity, so each week is ~7.5 days. Let's stick to 7.
         const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
         let progress = 0;
@@ -91,7 +93,7 @@ export default function DashboardPreviewPage() {
                 {/* The Smart Progress Bar */}
                 <div className="relative h-6 w-full rounded-md bg-secondary">
                     
-                    {/* Colored segments container - now with z-0 and overflow-hidden */}
+                    {/* Colored segments container */}
                     <div className="absolute inset-0 z-0 flex rounded-md overflow-hidden">
                       {budgetData.weeklySummaries.map((week, index) => (
                           <div key={index} className="w-1/4 bg-transparent relative">
@@ -102,14 +104,15 @@ export default function DashboardPreviewPage() {
                           </div>
                       ))}
                     </div>
-
+                    
                     {/* Dividers container - now with z-10 to ensure it's on top and precise positioning */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '25%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '50%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '75%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '100%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '25%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '50%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '75%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '100%'}}></div>
                     </div>
+
 
                     {/* Percentage Text Overlay - with z-10 */}
                     <div className="absolute inset-0 flex items-center justify-center z-10">
