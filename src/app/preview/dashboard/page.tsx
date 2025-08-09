@@ -23,7 +23,7 @@ import Link from 'next/link';
 export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
-    // SCENARIO: Day 10 of the month.
+    // SCENARIO: Day 10 of the month (Week 2).
     // Budget: 4,000,000 total (1,000,000 per week)
     // Week 1 spent: 750,000 (within budget -> green)
     // Week 2 spent: 2,000,000 (over budget > 25% -> red)
@@ -91,7 +91,7 @@ export default function DashboardPreviewPage() {
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
                 {/* The Smart Progress Bar */}
-                <div className="relative h-6 w-full rounded-md bg-secondary">
+                 <div className="relative h-6 w-full rounded-md bg-secondary">
                     
                     {/* Colored segments container */}
                     <div className="absolute inset-0 z-0 flex rounded-md overflow-hidden">
@@ -104,17 +104,15 @@ export default function DashboardPreviewPage() {
                           </div>
                       ))}
                     </div>
-                    
-                    {/* Dividers container - now with z-10 to ensure it's on top and precise positioning */}
+
+                    {/* Dividers container */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
                         <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '25%'}}></div>
                         <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '50%'}}></div>
                         <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '75%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '100%'}}></div>
                     </div>
 
-
-                    {/* Percentage Text Overlay - with z-10 */}
+                    {/* Percentage Text Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center z-10">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage.toFixed(0)}%
