@@ -117,6 +117,12 @@ const recurringPaymentSchema = z.object({
 
 type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
+const feedbackSchema = z.object({
+  subject: z.string(),
+  details: z.string().min(1, { message: "التفاصيل مطلوبة" }),
+});
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
+
 
 // --- Mapping Dialog Component ---
 const MappingDialog = ({
@@ -193,6 +199,170 @@ const MappingDialog = ({
       </DialogContentComponent>
     </DialogComponent>
   );
+};
+
+
+// --- Category Edit/Add Dialog ---
+const categorySchema = z.object({
+  name: z.string().min(2, "الاسم مطلوب (حرفين على الأقل)").max(25, "الاسم طويل جدًا"),
+  icon: z.string().min(1, "الرمز مطلوب"),
+});
+type CategoryFormData = z.infer<typeof categorySchema>;
+
+const CategoryEditDialog = ({
+  isOpen,
+  setIsOpen,
+  isMobile,
+  onSave,
+  category,
+}: {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  isMobile: boolean;
+  onSave: (data: CategoryFormData) => void;
+  category: Category | null;
+}) => {
+  
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: category?.name || "",
+      icon: category?.icon || "",
+    },
+  });
+
+  useEffect(() => {
+    form.reset({
+      name: category?.name || "",
+      icon: category?.icon || "",
+    })
+  }, [category, form])
+
+  const onSubmit = (data: CategoryFormData) => {
+    onSave(data);
+    form.reset();
+  };
+
+  const DialogComponent = isMobile ? Sheet : Dialog;
+  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+  return (
+    <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="text-sm">{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
+          <DialogDescription className="text-xs">
+            {category?.isDefault ? "يمكنك تعديل اسم ورمز الفئات الافتراضية." : "أضف اسمًا ورمزًا (Emoji) لفئتك الجديدة."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-1 py-4">
+          <form id="category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cat-name" className="text-xs">اسم الفئة</Label>
+              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" className="text-xs h-9" />
+              {form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="cat-icon" className="text-xs">الرمز (Emoji)</Label>
+              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" className="text-xs h-9" />
+               {form.formState.errors.icon && <p className="text-sm text-destructive mt-1">{form.formState.errors.icon.message}</p>}
+            </div>
+          </form>
+        </div>
+        <DialogFooter className="pt-4 border-t">
+          <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
+          <Button type="submit" form="category-form" className="text-xs h-9">
+            <Save className="ml-2 h-4 w-4" />
+            حفظ
+          </Button>
+        </DialogFooter>
+      </DialogContentComponent>
+    </DialogComponent>
+  );
+};
+
+
+const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, isMobile: boolean }) => {
+    const { user } = useAuth();
+    const { toast } = useToast();
+
+    const form = useForm<FeedbackFormData>({
+        resolver: zodResolver(feedbackSchema),
+        defaultValues: {
+            subject: '',
+            details: '',
+        }
+    });
+
+    const feedbackMutation = useMutation({
+      mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
+          if (!user) throw new Error("User not authenticated");
+          return addFeedback(user.uid, feedback);
+      },
+      onSuccess: () => {
+          toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
+          setIsOpen(false);
+          form.reset();
+      },
+      onError: () => {
+          toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
+      }
+    });
+
+    const handleSendFeedback = (data: FeedbackFormData) => {
+        if (!user) {
+            toast({ title: "المستخدم غير مسجل", description: "يرجى تسجيل الدخول لإرسال الملاحظات.", variant: "destructive" });
+            return;
+        }
+        feedbackMutation.mutate({
+            subject: data.subject.trim() || "بدون موضوع",
+            details: data.details.trim(),
+            email: user.email || 'anonymous'
+        });
+    }
+
+    const DialogComponent = isMobile ? Sheet : Dialog;
+    const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+    return (
+        <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full text-xs h-9">
+                    <MessageSquare className="ml-2 h-4 w-4" />
+                    إرسال ملاحظات واقتراحات
+                </Button>
+            </DialogTrigger>
+            <DialogContentComponent className={isMobile ? "flex flex-col" : ""}>
+                <DialogHeader>
+                    <DialogTitle className="text-sm">إرسال ملاحظات</DialogTitle>
+                    <DialogDescription className="text-xs">
+                        نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto">
+                    <form onSubmit={form.handleSubmit(handleSendFeedback)} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="feedback-subject" className="text-xs">الموضوع</Label>
+                            <Input id="feedback-subject" {...form.register('subject')} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." className="text-xs h-9" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="feedback-details" className="text-xs">التفاصيل</Label>
+                            <Textarea id="feedback-details" {...form.register('details')} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32 text-xs" />
+                            {form.formState.errors.details && <p className="text-sm text-destructive mt-1">{form.formState.errors.details.message}</p>}
+                        </div>
+                    
+                        <DialogFooter className="pt-4 border-t">
+                            <Button variant="ghost" type="button" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
+                            <Button type="submit" disabled={feedbackMutation.isPending} className="text-xs h-9">
+                                {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                                إرسال
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </div>
+            </DialogContentComponent>
+        </DialogComponent>
+    );
 };
 
 
@@ -834,18 +1004,18 @@ export default function SettingsPage() {
   const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode }) => (
     <AccordionItem value={value} className="border-b-0">
       <Card>
-        <CardHeader className="p-0">
-          <AccordionTrigger className="py-2 px-3 hover:no-underline text-sm font-medium">
-              <div className="flex items-center gap-2 w-full">
-                  <div className="p-1.5 bg-primary/10 rounded-md text-primary">
-                      {React.createElement(icon, { className: "h-4 w-4" })}
-                  </div>
-                  <div className="text-right flex-1">
-                      <h3 className="font-semibold text-right text-sm">{title}</h3>
+        <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium">
+          <CardHeader className="w-full py-3">
+              <div className="flex items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-primary/10 rounded-md text-primary">
+                          {React.createElement(icon, { className: "h-4 w-4" })}
+                      </div>
+                      <h3 className="font-semibold text-sm">{title}</h3>
                   </div>
               </div>
-          </AccordionTrigger>
-        </CardHeader>
+          </CardHeader>
+        </AccordionTrigger>
         <AccordionContent>
             <div className="border-t">
                 <div className="p-4 space-y-6">
@@ -900,7 +1070,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-2">
+      <Accordion type="multiple" className="w-full space-y-2">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -955,7 +1125,7 @@ export default function SettingsPage() {
               </div>
             </div>
             
-            <Button onClick={handleSaveAppearanceSettings} className="w-full h-9 text-sm" disabled={updateSettingsMutation.isPending}>
+            <Button onClick={handleSaveAppearanceSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
               {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
               حفظ التغييرات
             </Button>
@@ -1270,174 +1440,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-// --- Category Edit/Add Dialog ---
-const categorySchema = z.object({
-  name: z.string().min(2, "الاسم مطلوب (حرفين على الأقل)").max(25, "الاسم طويل جدًا"),
-  icon: z.string().min(1, "الرمز مطلوب"),
-});
-type CategoryFormData = z.infer<typeof categorySchema>;
-
-const CategoryEditDialog = ({
-  isOpen,
-  setIsOpen,
-  isMobile,
-  onSave,
-  category,
-}: {
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  isMobile: boolean;
-  onSave: (data: CategoryFormData) => void;
-  category: Category | null;
-}) => {
-  
-  const form = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: category?.name || "",
-      icon: category?.icon || "",
-    },
-  });
-
-  useEffect(() => {
-    form.reset({
-      name: category?.name || "",
-      icon: category?.icon || "",
-    })
-  }, [category, form])
-
-  const onSubmit = (data: CategoryFormData) => {
-    onSave(data);
-    form.reset();
-  };
-
-  const DialogComponent = isMobile ? Sheet : Dialog;
-  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
-
-  return (
-    <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="text-sm">{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
-          <DialogDescription className="text-xs">
-            {category?.isDefault ? "يمكنك تعديل اسم ورمز الفئات الافتراضية." : "أضف اسمًا ورمزًا (Emoji) لفئتك الجديدة."}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-1 py-4">
-          <form id="category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cat-name" className="text-xs">اسم الفئة</Label>
-              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" className="text-xs h-9" />
-              {form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="cat-icon" className="text-xs">الرمز (Emoji)</Label>
-              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" className="text-xs h-9" />
-               {form.formState.errors.icon && <p className="text-sm text-destructive mt-1">{form.formState.errors.icon.message}</p>}
-            </div>
-          </form>
-        </div>
-        <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
-          <Button type="submit" form="category-form" className="text-xs h-9">
-            <Save className="ml-2 h-4 w-4" />
-            حفظ
-          </Button>
-        </DialogFooter>
-      </DialogContentComponent>
-    </DialogComponent>
-  );
-};
-
-const feedbackSchema = z.object({
-  subject: z.string(),
-  details: z.string().min(1, { message: "التفاصيل مطلوبة" }),
-});
-type FeedbackFormData = z.infer<typeof feedbackSchema>;
-
-
-const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, isMobile: boolean }) => {
-    const { user } = useAuth();
-    const { toast } = useToast();
-
-    const form = useForm<FeedbackFormData>({
-        resolver: zodResolver(feedbackSchema),
-        defaultValues: {
-            subject: '',
-            details: '',
-        }
-    });
-
-    const feedbackMutation = useMutation({
-      mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
-          if (!user) throw new Error("User not authenticated");
-          return addFeedback(user.uid, feedback);
-      },
-      onSuccess: () => {
-          toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
-          setIsOpen(false);
-      },
-      onError: () => {
-          toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
-      }
-    });
-
-    const handleSendFeedback = (data: FeedbackFormData) => {
-        if (!user) {
-            toast({ title: "المستخدم غير مسجل", description: "يرجى تسجيل الدخول لإرسال الملاحظات.", variant: "destructive" });
-            return;
-        }
-        feedbackMutation.mutate({
-            subject: data.subject.trim() || "بدون موضوع",
-            details: data.details.trim(),
-            email: user.email || 'anonymous'
-        });
-    }
-
-    useEffect(() => {
-      if (!isOpen) {
-        form.reset();
-      }
-    }, [isOpen, form]);
-
-    const DialogComponent = isMobile ? Sheet : Dialog;
-
-    return (
-        <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full text-xs h-9">
-                    <MessageSquare className="ml-2 h-4 w-4" />
-                    إرسال ملاحظات واقتراحات
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle className="text-sm">إرسال ملاحظات</DialogTitle>
-                    <DialogDescription className="text-xs">
-                        نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
-                    </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={form.handleSubmit(handleSendFeedback)} className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="feedback-subject" className="text-xs">الموضوع</Label>
-                        <Input id="feedback-subject" {...form.register('subject')} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." className="text-xs h-9" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="feedback-details" className="text-xs">التفاصيل</Label>
-                        <Textarea id="feedback-details" {...form.register('details')} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32 text-xs" />
-                        {form.formState.errors.details && <p className="text-sm text-destructive mt-1">{form.formState.errors.details.message}</p>}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" type="button" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
-                        <Button type="submit" disabled={feedbackMutation.isPending} className="text-xs h-9">
-                            {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                            إرسال
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </DialogComponent>
-    );
-};
