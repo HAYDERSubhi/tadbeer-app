@@ -28,10 +28,10 @@ export default function DashboardPreviewPage() {
 
     // The user's specified scenario
     const weeklyExpenses = [
-      1200000, // Week 1
-      750000,  // Week 2
-      2000000, // Week 3
-      1000000  // Week 4
+      1200000, // Week 1: Over by 20% -> Orange
+      750000,  // Week 2: Under budget -> Green
+      2000000, // Week 3: Over by 100% -> Red
+      1000000  // Week 4: Exactly on budget -> Green
     ];
 
     const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0); // Total: 4,950,000
@@ -68,7 +68,6 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden p-4 space-y-4">
-            {/* Multi-colored Progress Bar */}
             <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
