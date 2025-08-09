@@ -43,6 +43,7 @@ export default function DashboardPreviewPage() {
 
     const weeklySummaries = weeklyExpenses.map((spent, index) => {
         const weekNumber = index + 1;
+        // Assuming a 30-day month for simplicity, so each week is ~7.5 days. Let's stick to 7.
         const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
         let progress = 0;
@@ -85,64 +86,66 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
 
         {/* The new proposed "Smart Card" */}
-        <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
-            
-            {/* The Smart Progress Bar */}
-            <div className="relative h-6 w-full rounded-md bg-secondary">
-                {/* Colored segments container */}
-                <div className="absolute inset-0 flex overflow-hidden rounded-md">
-                  {budgetData.weeklySummaries.map((week, index) => (
-                      <div key={index} className="w-1/4 bg-transparent relative">
-                         <div 
-                           className={cn("h-full", week.colorClass)} 
-                           style={{ width: `${week.progress * 100}%` }}
-                         />
-                      </div>
-                  ))}
-                </div>
+        <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
+            <CardContent className="p-4 space-y-4">
+                {/* The Smart Progress Bar */}
+                <div className="relative h-6 w-full rounded-md bg-secondary">
+                    
+                    {/* Colored segments container - now with z-0 and overflow-hidden */}
+                    <div className="absolute inset-0 z-0 flex rounded-md overflow-hidden">
+                      {budgetData.weeklySummaries.map((week, index) => (
+                          <div key={index} className="w-1/4 bg-transparent relative">
+                             <div 
+                               className={cn("h-full", week.colorClass)} 
+                               style={{ width: `${week.progress * 100}%` }}
+                             />
+                          </div>
+                      ))}
+                    </div>
 
-                {/* Dividers container - now with z-10 to ensure it's on top */}
-                <div className="absolute inset-0 flex pointer-events-none z-10">
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '25%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '50%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '75%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '100%'}}></div>
-                </div>
+                    {/* Dividers container - now with z-10 to ensure it's on top and precise positioning */}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '25%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '50%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '75%'}}></div>
+                        <div className="absolute h-1 w-0.5 bg-gray-400/50 bottom-0" style={{right: '100%'}}></div>
+                    </div>
 
-                {/* Percentage Text Overlay - also with z-10 */}
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                    <span className="text-xs font-bold text-black/70 drop-shadow-sm">
-                        {budgetData.spentPercentage.toFixed(0)}%
-                    </span>
+                    {/* Percentage Text Overlay - with z-10 */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                        <span className="text-xs font-bold text-black/70 drop-shadow-sm">
+                            {budgetData.spentPercentage.toFixed(0)}%
+                        </span>
+                    </div>
                 </div>
-            </div>
             
-            <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                        <Pencil className="w-6 h-6 sm:w-7 sm:h-7" />
-                    </span>
-                    <p className="font-semibold text-xs">يدوي</p>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                            <Pencil className="w-6 h-6 sm:w-7 sm:h-7" />
+                        </span>
+                        <p className="font-semibold text-xs">يدوي</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                            <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
+                        </span>
+                        <p className="font-semibold text-xs">صوت</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                            <FileScan className="w-6 h-6 sm:w-7 sm:h-7" />
+                        </span>
+                        <p className="font-semibold text-xs">فاتورة</p>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                            <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
+                        </span>
+                        <p className="font-semibold text-xs">بطاقة</p>
+                    </div>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                        <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
-                    </span>
-                    <p className="font-semibold text-xs">صوت</p>
-                </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                        <FileScan className="w-6 h-6 sm:w-7 sm:h-7" />
-                    </span>
-                    <p className="font-semibold text-xs">فاتورة</p>
-                </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                        <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
-                    </span>
-                    <p className="font-semibold text-xs">بطاقة</p>
-                </div>
-            </div>
+            </CardContent>
         </Card>
 
 
