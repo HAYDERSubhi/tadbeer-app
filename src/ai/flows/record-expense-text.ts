@@ -45,6 +45,8 @@ const extractAndCategorizePrompt = ai.definePrompt({
     output: { schema: RecordExpenseWithTextOutputSchema },
     prompt: `You are an AI assistant that helps users in Iraq record their expenses from a text input in Iraqi Arabic dialect.
     You will receive a text of the expense, and you need to extract all information and categorize it in one step.
+    
+    Today's date is: {{currentDate}}.
 
     **Instructions:**
     1.  Analyze the text carefully. The text can be a full sentence like "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or just the item's name, like "قهوة" (coffee).
@@ -57,7 +59,7 @@ const extractAndCategorizePrompt = ai.definePrompt({
         - "الفين ونص" means 2500.
         Accurately convert these phrases to a numerical value for the 'amount' field.
     4.  If the text is just an item name (e.g., "قهوة"), you should set the 'description' to that name, and the 'amount' to 0. The primary goal in this case is to get the category.
-    5.  If no date is mentioned, use today's date, which is {{currentDate}}.
+    5.  If no date is mentioned in the text, you **MUST** use today's date, which is provided as \`{{currentDate}}\`.
     6.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "transport". For "قهوة" (coffee), it should be "food".
     7.  Return all the extracted information in the required JSON format.
 
