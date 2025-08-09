@@ -26,21 +26,22 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4; // 1,000,000 per week
 
-    // The user's specified scenario: Week 1, spent 750,000
+    // Scenario: Week 1, spent 750,000
     const weeklyExpenses = [
-      750000, // Week 1: Under budget -> Green
-      0,      // Week 2: No expenses yet
-      0,      // Week 3: No expenses yet
-      0       // Week 4: No expenses yet
+      750000, // Week 1
+      0,      // Week 2
+      0,      // Week 3
+      0       // Week 4
     ];
 
-    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0); // Total: 750,000
+    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
     const weeklySummaries = weeklyExpenses.map((spent) => {
         if (spent === 0) {
             return { spent, colorClass: 'bg-transparent' }; // Make future weeks transparent
         }
+        
         const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
         let colorClass = 'bg-primary'; // Green (default)
         if (overspendRatio > 0.25) {
@@ -70,9 +71,9 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
 
         {/* The new proposed "Smart Card" */}
-        <Card className="overflow-hidden p-4 space-y-4">
-            {/* The main progress bar container */}
-            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden flex-row-reverse">
+        <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
+            {/* The Smart Progress Bar */}
+            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
@@ -87,27 +88,27 @@ export default function DashboardPreviewPage() {
             </div>
             
             <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                        <Pencil className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <Pencil className="w-6 h-6 sm:w-7 sm:h-7" />
                     </span>
                     <p className="font-semibold text-xs">يدوي</p>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                        <Mic className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
                     </span>
                     <p className="font-semibold text-xs">صوت</p>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                        <FileScan className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <FileScan className="w-6 h-6 sm:w-7 sm:h-7" />
                     </span>
                     <p className="font-semibold text-xs">فاتورة</p>
                 </div>
-                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                        <CreditCard className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                        <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
                     </span>
                     <p className="font-semibold text-xs">بطاقة</p>
                 </div>
