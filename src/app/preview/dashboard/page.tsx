@@ -25,40 +25,34 @@ export default function DashboardPreviewPage() {
   const budgetData = useMemo(() => {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4; // 1,000,000 per week
-    const mockExpenses = [
-        // Week 1: 1.2M (Over budget -> Orange)
-        { title: 'دفعة أولى للسيارة', cat: 'السيارة الخاصة', amount: 1200000 },
-        // Week 2: 750k (Within budget)
-        { title: 'إيجار المنزل', cat: 'فواتير وخدمات', amount: 750000 },
-        // Week 3: 2M (Severely over budget -> Red)
-        { title: 'شراء أجهزة كهربائية للمنزل', cat: 'مستلزمات منزلية', amount: 2000000 },
-        // Week 4: 1M (Exactly on budget)
-        { title: 'مصاريف العائلة الشهرية', cat: 'طعام وشراب', amount: 1000000 },
+
+    // The user's specified scenario
+    const weeklyExpenses = [
+      1200000, // Week 1
+      750000,  // Week 2
+      2000000, // Week 3
+      1000000  // Week 4
     ];
 
-    const totalSpent = mockExpenses.reduce((sum, exp) => sum + exp.amount, 0); // Total: 4,950,000
+    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0); // Total: 4,950,000
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
-    let progressColorClass = 'bg-primary'; // Default green
-    
-    if (totalSpent > weeklyBudget) {
-      const weekIndex = Math.floor((totalSpent - 1) / weeklyBudget); // Which week's budget are we in? (0-indexed)
-      const startOfCurrentWeekBudget = weekIndex * weeklyBudget;
-      const spentInCurrentWeekPortion = totalSpent - startOfCurrentWeekBudget;
-      const weeklyOverspendRatio = spentInCurrentWeekPortion / weeklyBudget;
-      
-      if (weeklyOverspendRatio > 1.25) {
-        progressColorClass = 'bg-destructive'; // Red
-      } else if (weeklyOverspendRatio > 1) {
-        progressColorClass = 'bg-orange-500'; // Orange
-      }
-    }
+    const weeklySummaries = weeklyExpenses.map((spent) => {
+        const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
+        let colorClass = 'bg-primary'; // Green (default)
+        if (overspendRatio > 0.25) {
+            colorClass = 'bg-destructive'; // Red
+        } else if (overspendRatio > 0) {
+            colorClass = 'bg-orange-500'; // Orange
+        }
+        return { spent, colorClass };
+    });
     
     return {
       totalBudget: mockBudget,
       totalSpent,
       spentPercentage,
-      progressColorClass,
+      weeklySummaries
     };
   }, []);
 
@@ -73,56 +67,46 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
 
         {/* The new proposed "Smart Card" */}
-        <Card className="overflow-hidden">
-            <div className="p-4 space-y-3">
-                {/* RTL Progress Bar */}
-                <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
-                    {/* The main progress indicator */}
-                     <div
-                        className={cn("absolute top-0 right-0 h-full rounded-md", budgetData.progressColorClass)}
-                        style={{ width: `${budgetData.spentPercentage > 100 ? 100 : budgetData.spentPercentage}%` }}
-                    />
-                    
-                    {/* Percentage Text Overlay */}
-                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-bold text-black/70 drop-shadow-sm">
-                           {budgetData.spentPercentage.toFixed(0)}%
-                        </span>
-                    </div>
+        <Card className="overflow-hidden p-4 space-y-4">
+            {/* Multi-colored Progress Bar */}
+            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
+                {/* The colored segments for each week */}
+                {budgetData.weeklySummaries.map((week, index) => (
+                    <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
+                ))}
 
-                    {/* Weekly dividers */}
-                     <div className="absolute inset-0 flex">
-                        <div className="absolute top-0 bottom-0 left-1/4 w-px bg-background/30 -translate-x-1/2"></div>
-                        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-background/30 -translate-x-1/2"></div>
-                        <div className="absolute top-0 bottom-0 left-3/4 w-px bg-background/30 -translate-x-1/2"></div>
-                    </div>
+                {/* Percentage Text Overlay */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-bold text-black/70 drop-shadow-sm">
+                        {budgetData.spentPercentage.toFixed(0)}%
+                    </span>
                 </div>
-                
-                 <div className="grid grid-cols-4 gap-2 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                            <Pencil className="w-6 h-6" />
-                        </span>
-                        <p className="font-semibold text-xs">يدوي</p>
-                    </div>
-                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                            <Mic className="w-6 h-6" />
-                        </span>
-                        <p className="font-semibold text-xs">صوت</p>
-                    </div>
-                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                            <FileScan className="w-6 h-6" />
-                        </span>
-                        <p className="font-semibold text-xs">فاتورة</p>
-                    </div>
-                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
-                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
-                            <CreditCard className="w-6 h-6" />
-                        </span>
-                        <p className="font-semibold text-xs">بطاقة</p>
-                    </div>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                        <Pencil className="w-6 h-6" />
+                    </span>
+                    <p className="font-semibold text-xs">يدوي</p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                        <Mic className="w-6 h-6" />
+                    </span>
+                    <p className="font-semibold text-xs">صوت</p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                        <FileScan className="w-6 h-6" />
+                    </span>
+                    <p className="font-semibold text-xs">فاتورة</p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                    <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                        <CreditCard className="w-6 h-6" />
+                    </span>
+                    <p className="font-semibold text-xs">بطاقة</p>
                 </div>
             </div>
         </Card>
