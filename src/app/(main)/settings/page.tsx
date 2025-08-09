@@ -285,6 +285,7 @@ const CategoryEditDialog = ({
 const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, isMobile: boolean }) => {
     const { user } = useAuth();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const form = useForm<FeedbackFormData>({
         resolver: zodResolver(feedbackSchema),
@@ -300,11 +301,13 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setI
           return addFeedback(user.uid, feedback);
       },
       onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['feedback', user?.uid] });
           toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
           setIsOpen(false);
           form.reset();
       },
-      onError: () => {
+      onError: (e) => {
+          console.error("Feedback error:", e);
           toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
       }
     });
