@@ -1,7 +1,7 @@
 // src/app/preview/dashboard/page.tsx
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Pencil,
   Mic,
@@ -41,6 +41,25 @@ const StatItem = ({ title, value, color, size = 'default' }: { title: string, va
 // Main Preview Component
 export default function DashboardPreviewPage() {
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  
+  const budgetData = useMemo(() => {
+    const mockBudget = 2000000;
+    const mockExpenses = [
+        { title: 'فاتورة كهرباء الشهر الماضي', cat: 'فواتير وخدمات', amount: 85000 },
+        { title: 'تعبئة وقود للسيارة 90 لتر', cat: 'السيارة الخاصة', amount: 50000 },
+        { title: 'غداء عمل مع الفريق', cat: 'طعام وشراب', amount: 15000 },
+        { title: 'شراء ملابس جديدة للعيد', cat: 'كماليات شخصية', amount: 120000 }
+    ];
+
+    const totalSpent = mockExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
+    
+    return {
+      totalBudget: mockBudget,
+      totalSpent,
+      spentPercentage,
+    };
+  }, []);
 
   const formatCurrency = (value: number) => `${value.toLocaleString('ar-EG')}\u00A0د.ع`;
   const privacyPlaceholder = "•••••• د.ع";
@@ -57,25 +76,15 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
-             <CardHeader className="flex-row items-center justify-end p-2 pb-0">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setIsPrivacyMode(!isPrivacyMode)}>
-                    {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </Button>
-            </CardHeader>
-            <div className="p-4 pt-0 space-y-4">
-                
-                {/* 1. Monthly Progress Bar */}
+            <div className="p-4 pt-4 space-y-4">
                  <div>
                     <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
-                        <span>صرفت 62%</span>
-                        <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(2000000)}</span>
+                        <span>صرفت {budgetData.spentPercentage.toFixed(0)}%</span>
+                        <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.totalBudget)}</span>
                     </div>
-                    <Progress value={isPrivacyMode ? 100 : 62.5} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
+                    <Progress value={isPrivacyMode ? 100 : budgetData.spentPercentage} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
                 </div>
                 
-                <Separator />
-
-                {/* 2. Expense Input Methods - Horizontal & Compact Layout */}
                  <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
                         <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
@@ -103,6 +112,11 @@ export default function DashboardPreviewPage() {
                     </div>
                 </div>
             </div>
+             <CardHeader className="flex-row items-center justify-end p-2 pt-0">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setIsPrivacyMode(!isPrivacyMode)}>
+                    {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
+            </CardHeader>
         </Card>
 
 
