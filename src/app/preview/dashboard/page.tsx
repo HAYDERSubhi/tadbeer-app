@@ -80,13 +80,6 @@ export default function DashboardPreviewPage() {
                         {budgetData.spentPercentage.toFixed(0)}%
                     </span>
                 </div>
-
-                 {/* Divider lines */}
-                <div className="absolute inset-0 flex justify-around">
-                    <div className="h-full w-px bg-background/30" style={{ left: '25%' }}></div>
-                    <div className="h-full w-px bg-background/30" style={{ left: '50%' }}></div>
-                    <div className="h-full w-px bg-background/30" style={{ left: '75%' }}></div>
-                </div>
             </div>
             
             <div className="grid grid-cols-4 gap-2 text-center">
