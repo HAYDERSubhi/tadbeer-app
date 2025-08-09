@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
@@ -155,7 +155,7 @@ export default function DashboardPage() {
       recognition.onerror = (event) => {
         if (event.error !== 'aborted') {
           console.error('Speech recognition error', event.error);
-          setVoiceError(`خطأ في التعرف على الصوت: \${'${event.error}'}`);
+          setVoiceError(`خطأ في التعرف على الصوت: ${'${event.error}'}`);
         }
         setIsVoiceRecording(false);
         setIsVoiceLoading(false);
@@ -333,17 +333,34 @@ export default function DashboardPage() {
         
         const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         
+        // --- Smart Color Logic ---
         let colorClass = 'bg-transparent';
         if (spent > 0 && weeklyBudget > 0) {
-            const overspendRatio = spent / weeklyBudget;
-            if (overspendRatio > 1.25) {
-                colorClass = 'bg-destructive';
-            } else if (overspendRatio > 1) {
-                colorClass = 'bg-orange-400';
-            } else {
-                colorClass = 'bg-primary';
+            let budgetForComparison = weeklyBudget;
+            
+            // If it's the current week, calculate budget proportionally to elapsed days.
+            if (isWithinInterval(today, { start: weekStart, end: weekEnd })) {
+                // differenceInDays is exclusive of the end date, so add 1.
+                // It calculates (today - weekStart), so +1 makes it inclusive.
+                const elapsedDays = differenceInDays(today, weekStart) + 1;
+                budgetForComparison = (weeklyBudget / 7) * elapsedDays;
+            } else if (isFuture(weekStart)) {
+                // If the week is entirely in the future, don't color it.
+                budgetForComparison = Infinity;
             }
+            // For past weeks, the budgetForComparison remains the full weeklyBudget.
+
+            const overspendRatio = spent / budgetForComparison;
+            if (overspendRatio > 1.25) {
+                colorClass = 'bg-destructive'; // Significantly over budget
+            } else if (overspendRatio > 1) {
+                colorClass = 'bg-orange-400'; // Slightly over budget
+            } else {
+                colorClass = 'bg-primary'; // Within budget
+            }
+
         } else if (spent > 0 && weeklyBudget === 0) {
+            // If there's no budget but there is spending, just show the primary color.
             colorClass = 'bg-primary';
         }
 
@@ -447,27 +464,26 @@ export default function DashboardPage() {
       <Card id="budget-and-input-card" className="overflow-hidden">
         <CardContent className="p-4 space-y-4">
           {userBudget.totalBudget > 0 ? (
-            // --- The multi-color progress bar ---
-            <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-              {/* Layer 1: The colored segments for each week. `flex` without reverse ensures RTL flow. */}
-              <div className="absolute inset-0 z-0 flex">
-                {budgetData.weeklySummaries.map((week, index) => (
-                  <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
-                ))}
+             <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+                {/* Layer 1: The colored segments. `flex` without reverse ensures RTL flow. */}
+                <div className="absolute inset-0 z-0 flex">
+                  {budgetData.weeklySummaries.map((week, index) => (
+                    <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
+                  ))}
+                </div>
+                {/* Layer 2: The dividers. `z-10` places them above colors. */}
+                <div className="absolute inset-0 z-10 pointer-events-none flex">
+                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '25%' }} />
+                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '50%' }} />
+                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '75%' }} />
+                </div>
+                {/* Layer 3: Percentage Text Overlay. `z-20` is the top-most layer. */}
+                <div className="absolute inset-0 z-20 flex items-center justify-center">
+                  <span className="text-xs font-bold text-black/70 drop-shadow-sm">
+                    {budgetData.spentPercentage.toFixed(0)}%
+                  </span>
+                </div>
               </div>
-              {/* Layer 2: The dividers. `z-10` places them above colors. */}
-              <div className="absolute inset-0 z-10 pointer-events-none flex">
-                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '25%' }} />
-                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '50%' }} />
-                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '75%' }} />
-              </div>
-              {/* Layer 3: Percentage Text Overlay. `z-20` is the top-most layer. */}
-              <div className="absolute inset-0 z-20 flex items-center justify-center">
-                <span className="text-xs font-bold text-black/70 drop-shadow-sm">
-                  {budgetData.spentPercentage.toFixed(0)}%
-                </span>
-              </div>
-            </div>
           ) : (
             <div className="text-center p-2 rounded-lg bg-muted/50">
                <h3 className='font-semibold text-sm'>أهلاً بك في تدبير</h3>
