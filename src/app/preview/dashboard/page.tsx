@@ -92,7 +92,7 @@ export default function DashboardPreviewPage() {
             <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
-                    <div key={index} className="w-1/4 bg-secondary relative">
+                    <div key={index} className="w-1/4 bg-transparent relative">
                        {/* This inner div shows the actual progress with the correct color and width */}
                        <div 
                          className={cn("h-full", week.colorClass)} 
@@ -100,6 +100,13 @@ export default function DashboardPreviewPage() {
                        />
                     </div>
                 ))}
+                
+                {/* Subtle dividers */}
+                <div className="absolute inset-0 flex pointer-events-none">
+                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
+                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
+                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
+                </div>
 
                 {/* Percentage Text Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
