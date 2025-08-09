@@ -31,16 +31,15 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
     
-    // Day 10 of the month
     const currentDayOfMonth = 10;
     const weekNumber = Math.ceil(currentDayOfMonth / 7);
     const progressInCurrentWeek = (currentDayOfMonth - ((weekNumber - 1) * 7)) / 7;
     
     const weeklyExpenses = [
-      750000,   // Week 1 spent
-      2000000,  // Week 2 spent
-      0,        // Week 3 spent
-      0         // Week 4 spent
+      750000,
+      2000000,
+      0,
+      0
     ];
     const totalSpentForScenario = weeklyExpenses.reduce((a, b) => a + b, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpentForScenario / mockBudget) * 100 : 0;
@@ -84,10 +83,9 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-                 {/* RTL Progress Bar - Rebuilt from scratch */}
                 <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
                     {/* Z-0: Colored backgrounds */}
-                    <div className="absolute inset-0 z-0 flex">
+                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
                         {budgetData.weeklySummaries.map((week, index) => {
                             let widthPercent = 0;
                             if (week.isPastWeek) {
@@ -95,27 +93,19 @@ export default function DashboardPreviewPage() {
                             } else if (week.isCurrentWeek) {
                                 widthPercent = budgetData.progressInCurrentWeek * 100;
                             }
-
                             return (
-                                <div key={index} className={cn("h-full w-1/4 relative", week.colorClass)}>
-                                    {/* This inner div ensures correct width application within the flex item */}
-                                    <div className="absolute inset-y-0 right-0 h-full" style={{ width: `${widthPercent}%` }}/>
-                                </div>
-                            );
+                                <div key={index} className={cn("h-full w-1/4", week.colorClass)} style={{width: `${widthPercent}%`}}/>
+                            )
                         })}
                     </div>
-
+                    
                     {/* Z-10: Dividers */}
-                    <div className="absolute inset-0 z-10 flex">
-                        {/* Render 3 dividers for 4 weeks */}
-                        {[...Array(3)].map((_, index) => (
-                           <div key={index} className="w-1/4 h-full relative">
-                               {/* The divider is on the left edge of each week's container */}
-                               <div className="absolute left-0 top-0 h-full w-px bg-black/50" />
-                           </div>
-                        ))}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '25%'}}></div>
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '50%'}}></div>
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '75%'}}></div>
                     </div>
-
+                   
                     {/* Z-20: Text Overlay */}
                     <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
