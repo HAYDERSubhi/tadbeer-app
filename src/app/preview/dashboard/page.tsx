@@ -31,8 +31,7 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
     const currentDayOfMonth = 10;
-    const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
-
+    
     const weeklyExpenses = [
       750000,   // Week 1
       2000000,  // Week 2
@@ -45,19 +44,17 @@ export default function DashboardPreviewPage() {
     
     const weeklySummaries = weeklyExpenses.map((spent, index) => {
         const weekNumber = index + 1;
-        
-        // Skip future weeks
-        if (weekNumber > currentWeekNumber) {
-            return { spent, colorClass: 'bg-secondary', progress: 0 };
-        }
+        const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
-        let progress = 1; // Full progress for past weeks
-        if (weekNumber === currentWeekNumber) {
+        let progress = 0;
+        if (weekNumber < currentWeekNumber) {
+            progress = 1; // Full progress for past weeks
+        } else if (weekNumber === currentWeekNumber) {
             const daysIntoWeek = currentDayOfMonth - (weekNumber - 1) * 7;
             progress = daysIntoWeek / 7;
         }
 
-        const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
+        const overspendRatio = spent > 0 ? (spent - weeklyBudget) / weeklyBudget : 0;
         let colorClass = 'bg-primary'; // Green (within budget)
         if (overspendRatio > 0.25) {
             colorClass = 'bg-destructive'; // Red (overspent by >25%)
@@ -101,11 +98,12 @@ export default function DashboardPreviewPage() {
                     </div>
                 ))}
                 
-                {/* Subtle dividers */}
+                {/* Subtle dividers at the end of each week */}
                 <div className="absolute inset-0 flex pointer-events-none">
-                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
-                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
-                    <div className="w-1/4 h-full relative"><div className="absolute right-0 bottom-0 h-1/4 w-px bg-gray-400/50"></div></div>
+                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '25%'}}></div>
+                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '50%'}}></div>
+                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '75%'}}></div>
+                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '100%'}}></div>
                 </div>
 
                 {/* Percentage Text Overlay */}
