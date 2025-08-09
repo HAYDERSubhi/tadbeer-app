@@ -56,14 +56,27 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      title: initialData?.title || '',
-      amount: initialData?.amount || 0,
-      category: initialData?.category || '',
-      date: initialData?.date ? new Date(initialData.date) : new Date(),
-      isOutOfBudget: initialData?.isOutOfBudget || false,
-      outOfBudgetDetails: initialData?.outOfBudgetDetails || '',
+      title: '',
+      amount: 0,
+      category: '',
+      date: new Date(),
+      isOutOfBudget: false,
+      outOfBudgetDetails: '',
     },
   });
+
+  // Effect to reset the form whenever the initialData prop changes.
+  // This is crucial for the voice input feature to correctly populate the form.
+  useEffect(() => {
+      form.reset({
+        title: initialData?.title || '',
+        amount: initialData?.amount || 0,
+        category: initialData?.category || '',
+        date: initialData?.date ? new Date(initialData.date) : new Date(),
+        isOutOfBudget: initialData?.isOutOfBudget || false,
+        outOfBudgetDetails: initialData?.outOfBudgetDetails || '',
+      });
+  }, [initialData, form]);
 
   const categoryMapForAI = useMemo(() => {
     return categories.reduce((acc, cat) => {
@@ -77,8 +90,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    // Only run if there is no initial data, there is a debounced title,
-    // and the category has not been set by initial data or by the user yet.
+    // Only run if there is no initial data title (i.e., not voice input), 
+    // there is a debounced title, and the category has not been set by the user yet.
     if (initialData?.title || !debouncedTitle || form.getValues('category')) {
       return;
     }
