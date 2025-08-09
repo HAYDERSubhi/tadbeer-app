@@ -77,7 +77,9 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const debouncedTitle = useDebounce(expenseTitle, 500);
 
   useEffect(() => {
-    if (initialData || !debouncedTitle || form.getValues('category')) {
+    // Only run if there is no initial data, there is a debounced title,
+    // and the category has not been set by initial data or by the user yet.
+    if (initialData?.title || !debouncedTitle || form.getValues('category')) {
       return;
     }
 
