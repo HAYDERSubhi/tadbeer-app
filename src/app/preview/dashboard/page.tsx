@@ -23,28 +23,40 @@ import Link from 'next/link';
 export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
-    // Scenario: Day 10 of the month
+    // SCENARIO: Day 10 of the month.
     // Budget: 4,000,000 total (1,000,000 per week)
     // Week 1 spent: 750,000
     // Week 2 spent: 2,000,000
+    
     const mockBudget = 4000000;
-    const weeklyBudget = mockBudget / 4; 
+    const weeklyBudget = mockBudget / 4;
+    const currentDayOfMonth = 10;
+    const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
     const weeklyExpenses = [
-      750000,   // Week 1 spending
-      2000000,  // Week 2 spending
-      0,        // Week 3 (not yet reached)
-      0         // Week 4 (not yet reached)
+      750000,   // Week 1
+      2000000,  // Week 2
+      0,        // Week 3
+      0         // Week 4
     ];
 
     const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
-    const weeklySummaries = weeklyExpenses.map((spent) => {
-        if (spent === 0) {
-            return { spent, colorClass: 'bg-transparent' }; // Future weeks are transparent
-        }
+    const weeklySummaries = weeklyExpenses.map((spent, index) => {
+        const weekNumber = index + 1;
         
+        // Skip future weeks
+        if (weekNumber > currentWeekNumber) {
+            return { spent, colorClass: 'bg-secondary', progress: 0 };
+        }
+
+        let progress = 1; // Full progress for past weeks
+        if (weekNumber === currentWeekNumber) {
+            const daysIntoWeek = currentDayOfMonth - (weekNumber - 1) * 7;
+            progress = daysIntoWeek / 7;
+        }
+
         const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
         let colorClass = 'bg-primary'; // Green (within budget)
         if (overspendRatio > 0.25) {
@@ -52,7 +64,7 @@ export default function DashboardPreviewPage() {
         } else if (overspendRatio > 0) {
             colorClass = 'bg-orange-400'; // Orange (overspent by <=25%)
         }
-        return { spent, colorClass };
+        return { spent, colorClass, progress };
     });
     
     return {
@@ -75,11 +87,18 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
+            
             {/* The Smart Progress Bar */}
             <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
-                    <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
+                    <div key={index} className="w-1/4 bg-secondary relative">
+                       {/* This inner div shows the actual progress with the correct color and width */}
+                       <div 
+                         className={cn("h-full", week.colorClass)} 
+                         style={{ width: `${week.progress * 100}%` }}
+                       />
+                    </div>
                 ))}
 
                 {/* Percentage Text Overlay */}
