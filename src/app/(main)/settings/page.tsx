@@ -70,7 +70,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
@@ -876,7 +876,7 @@ export default function SettingsPage() {
                       {React.createElement(icon, { className: "h-4 w-4" })}
                   </div>
                   <div className="text-right flex-1">
-                      <h3 className="font-semibold text-right text-xs">{title}</h3>
+                      <h3 className="font-semibold text-right text-sm">{title}</h3>
                   </div>
               </div>
           </AccordionTrigger>
@@ -935,7 +935,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4">
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -951,8 +951,8 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#FFE0B2"/><path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/><path d="M25.5,37.8c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2c0.3-0.4,0.2-1-0.2-1.3c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8C24.2,38.3,25,38.3,25.5,37.8z" fill="#795548" opacity="0"/><g><ellipse cx="24.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/><ellipse cx="39.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/></g><path d="M50,26c-2.4,0-4.6,1-6.2,2.6c-1.2-3.1-4.1-5.3-7.5-5.3s-6.3,2.2-7.5,5.3C17.6,27,15.4,26,13,26c-4.4,0-8,3.6-8,8s3.6,8,8,8h2c2.2,0,4-1.8,4-4v-2h18v2c0,2.2,1.8,4,4,4h2c4.4,0,8-3.6,8-8S54.4,26,50,26z" fill="#6D4C41"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-xs">كرومي</h4>
-                    <p className="text-xs text-muted-foreground">صديقك الصدوق، نصائحه ودية.</p>
+                    <h4 className="font-bold text-sm">كرومي</h4>
+                    <p className="text-xs text-muted-foreground">صديقك، نصائحه ودية.</p>
                     </div>
                 </div>
 
@@ -961,8 +961,8 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#C5CAE9"/><path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/><path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/><path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/><path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/><path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/><path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-xs">أستاذ حريص</h4>
-                    <p className="text-xs text-muted-foreground">مدربك المحترف، يقدم نصائح دقيقة.</p>
+                    <h4 className="font-bold text-sm">أستاذ حريص</h4>
+                    <p className="text-xs text-muted-foreground">مدرب محترف ودقيق.</p>
                     </div>
                 </div>
                 </div>
@@ -1004,7 +1004,7 @@ export default function SettingsPage() {
         >
             {/* Income Section */}
             <div className="space-y-4">
-                <h3 className='text-base font-semibold'>إدارة الدخل</h3>
+                <h3 className='text-sm font-semibold'>إدارة الدخل</h3>
                 
                 <Card className="text-center bg-muted/50">
                     <CardContent className="p-4">
@@ -1073,7 +1073,7 @@ export default function SettingsPage() {
             
             {/* Profile Section */}
             <div className="space-y-4">
-                <h3 className='text-base font-semibold'>الملف الشخصي</h3>
+                <h3 className='text-sm font-semibold'>الملف الشخصي</h3>
                 <div className="space-y-3">
                     <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
                     <div className="space-y-3 rounded-lg border bg-background p-4">
@@ -1110,7 +1110,7 @@ export default function SettingsPage() {
         >
              {/* Budget & Goals */}
             <div className="space-y-4">
-                 <h3 className='text-base font-semibold'>الميزانية والأهداف</h3>
+                 <h3 className='text-sm font-semibold'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
             </div>
@@ -1119,7 +1119,7 @@ export default function SettingsPage() {
 
             {/* Category Management */}
             <div className="space-y-4">
-              <h3 className="text-base font-semibold">إدارة الفئات</h3>
+              <h3 className="text-sm font-semibold">إدارة الفئات</h3>
               <div className="border rounded-lg p-2 space-y-2 max-h-72 overflow-y-auto">
                 {categories.map(cat => (
                   <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
@@ -1161,7 +1161,7 @@ export default function SettingsPage() {
             
             {/* Category Budgets */}
             <div className="space-y-4">
-                 <h3 className='text-base font-semibold'>ميزانيات الفئات</h3>
+                 <h3 className='text-sm font-semibold'>ميزانيات الفئات</h3>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-4">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-4">
@@ -1176,7 +1176,7 @@ export default function SettingsPage() {
 
             {/* Recurring Payments */}
             <div className="space-y-4">
-                <h3 className='text-base font-semibold'>الدفعات الدورية</h3>
+                <h3 className='text-sm font-semibold'>الدفعات الدورية</h3>
                 <div>
                      <h4 className="font-medium mb-2 text-sm">الدفعات الحالية</h4>
                     <div className="space-y-2">
@@ -1416,3 +1416,4 @@ const CategoryEditDialog = ({
 
 
     
+
