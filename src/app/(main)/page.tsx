@@ -349,7 +349,7 @@ export default function DashboardPage() {
         const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         
         let colorClass = 'bg-transparent';
-        if (spent > 0) {
+        if (isPast(weekStart)) {
             const overspendRatio = spent / weeklyBudget;
             if (overspendRatio > 1.25) colorClass = 'bg-destructive';
             else if (overspendRatio > 1) colorClass = 'bg-orange-400';
@@ -387,7 +387,7 @@ export default function DashboardPage() {
       <Fragment>
         <li className="flex items-center p-3 transition-colors hover:bg-muted/50 rounded-lg">
           <div className="flex flex-1 items-center gap-3 overflow-hidden">
-            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted")}>
+            <span className={cn("flex h-auto w-auto shrink-0 items-center justify-center text-xl text-muted-foreground")}>
               {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
             </span>
             <div className='overflow-hidden'>
