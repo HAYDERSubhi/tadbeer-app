@@ -86,7 +86,7 @@ export default function DashboardPreviewPage() {
         <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
             
             {/* The Smart Progress Bar */}
-            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
+            <div className="relative h-6 w-full rounded-md bg-secondary flex">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className="w-1/4 bg-transparent relative">
@@ -100,10 +100,10 @@ export default function DashboardPreviewPage() {
                 
                 {/* Subtle dividers at the end of each week */}
                 <div className="absolute inset-0 flex pointer-events-none">
-                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '25%'}}></div>
-                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '50%'}}></div>
-                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '75%'}}></div>
-                    <div className="absolute bottom-0 h-1/4 w-px bg-gray-400/50" style={{left: '100%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '25%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '50%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '75%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '100%'}}></div>
                 </div>
 
                 {/* Percentage Text Overlay */}
