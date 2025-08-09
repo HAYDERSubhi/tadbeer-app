@@ -18,34 +18,32 @@ export default function NotificationManager() {
     }
 
     const manageReminder = async () => {
+        if (!dailyReminderEnabled || Notification.permission !== 'granted') {
+            return;
+        }
+
         const registration = await navigator.serviceWorker.ready;
-        const existingNotifications = await registration.getNotifications({ tag: NOTIFICATION_TAG });
 
-        // First, clear any existing reminders to avoid duplicates
-        existingNotifications.forEach(notification => notification.close());
+        // Check if a notification for today has already been shown
+        const lastShown = localStorage.getItem('dailyReminderLastShown');
+        const todayStr = new Date().toDateString();
 
-        if (dailyReminderEnabled && Notification.permission === 'granted') {
-            const now = new Date();
-            let reminderTime = new Date();
-            reminderTime.setHours(20, 0, 0, 0); // 8:00 PM
-
-            // If it's already past 8 PM today, schedule for tomorrow
-            if (now > reminderTime) {
-                reminderTime.setDate(reminderTime.getDate() + 1);
-            }
-            
-            const delay = reminderTime.getTime() - now.getTime();
-            
-            // We use the service worker to show the notification
-            // This is more reliable than setTimeout in a component for PWAs
+        if (lastShown === todayStr) {
+            return; // Already shown today
+        }
+        
+        const now = new Date();
+        // Check if it's after 8 PM
+        if (now.getHours() >= 20) {
             registration.showNotification('تذكير يومي من تدبير', {
                 tag: NOTIFICATION_TAG,
                 body: 'لا تنس تسجيل مصروفاتك لهذا اليوم!',
-                icon: '/icon-192x192.png',
-                showTrigger: new (window as any).TimestampTrigger(Date.now() + delay),
-                renotify: true, // Allow re-notification each day
+                icon: '/logo.png',
+                renotify: true,
+            }).then(() => {
+                localStorage.setItem('dailyReminderLastShown', todayStr);
             }).catch(err => {
-                console.error('Failed to schedule notification:', err);
+                console.error('Failed to show notification:', err);
             });
         }
     };
