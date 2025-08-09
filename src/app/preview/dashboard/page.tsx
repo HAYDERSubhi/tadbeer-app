@@ -25,19 +25,20 @@ export default function DashboardPreviewPage() {
   const budgetData = useMemo(() => {
     // SCENARIO: Day 21 of the month (End of Week 3).
     // Budget: 4,000,000 total (1,000,000 per week)
-    // Week 1 spent: 750,000 (within budget -> green)
+    // Week 1 spent: 750,000 (within budget -> green/primary)
     // Week 2 spent: 1,100,000 (over budget by 10% -> orange)
-    // Week 3 spent: 1,300,000 (over budget by 30% -> red)
+    // Week 3 spent: 1,300,000 (over budget by 30% -> red/destructive)
     
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
     
     const weeklyExpenses = [
-      750000,
-      1100000,
-      1300000,
-      0
+      750000,  // Week 1
+      1100000, // Week 2
+      1300000, // Week 3
+      0        // Week 4 has not started yet
     ];
+    
     const totalSpentForScenario = weeklyExpenses.reduce((a, b) => a + b, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpentForScenario / mockBudget) * 100 : 0;
     
@@ -58,7 +59,7 @@ export default function DashboardPreviewPage() {
     
     return {
       totalBudget: mockBudget,
-      spentPercentage,
+      spentPercentage: Math.round(spentPercentage),
       weeklySummaries,
     };
   }, []);
@@ -74,25 +75,25 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-               <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-                    {/* Colored sections for each week */}
-                    <div className="absolute inset-0 flex flex-row-reverse z-0">
+                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+                    {/* The colored segments for each week - REVERSED */}
+                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
                         {budgetData.weeklySummaries.map((week, index) => (
                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                         ))}
                     </div>
 
-                     {/* The dividers */}
+                    {/* The dividers */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '25%'}}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '50%'}}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{right: '75%'}}></div>
+                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '25%'}}></div>
+                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '50%'}}></div>
+                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '75%'}}></div>
                     </div>
                    
                     {/* Percentage Text Overlay */}
                     <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                         <span className="text-sm font-bold text-black/70 drop-shadow-sm">
-                            {budgetData.spentPercentage.toFixed(0)}%
+                            {budgetData.spentPercentage}%
                         </span>
                     </div>
                 </div>
