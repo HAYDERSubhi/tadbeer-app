@@ -464,7 +464,7 @@ export default function DashboardPage() {
 
       {/* --- Combined Budget and Input Card --- */}
       <Card id="budget-and-input-card" className="overflow-hidden">
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="px-4 py-3 space-y-3">
           {userBudget.totalBudget > 0 ? (
              <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
                 {/* Layer 1: The colored segments. */}
