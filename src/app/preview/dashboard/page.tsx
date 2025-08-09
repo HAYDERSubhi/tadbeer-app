@@ -111,8 +111,22 @@ export default function DashboardPreviewPage() {
             <ul className="divide-y divide-border">
                 {[{title: 'فاتورة كهرباء الشهر الماضي', cat: 'فواتير وخدمات', amount: '85,000'}, {title: 'تعبئة وقود للسيارة 90 لتر', cat: 'السيارة الخاصة', amount: '50,000'}, {title: 'غداء عمل مع الفريق', cat: 'طعام وشراب', amount: '15,000'}, {title: 'شراء ملابس جديدة للعيد', cat: 'كماليات شخصية', amount: '120,000'}].map(item => (
                   <li key={item.title} className="flex items-center p-3">
-                    <div className="flex flex-1 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted">🛒</span><div><p className="font-semibold text-sm truncate">{item.title}</p><p className="text-xs text-muted-foreground">{item.cat}</p></div></div>
-                    <div className="flex items-center gap-2"><div className="text-end"><p className="font-bold text-sm text-foreground">{item.amount} د.ع</p><p className="text-xs text-muted-foreground">قبل يومين</p></div><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4 text-muted-foreground" /></Button></div>
+                    <div className="flex flex-1 items-center gap-3 min-w-0">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted">🛒</span>
+                        <div className="min-w-0">
+                            <p className="font-semibold text-xs truncate">{item.title}</p>
+                            <p className="text-xs text-muted-foreground">{item.cat}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="text-end">
+                            <p className="font-bold text-xs text-foreground">{item.amount} د.ع</p>
+                            <p className="text-xs text-muted-foreground">قبل يومين</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    </div>
                   </li>
                 ))}
             </ul>
@@ -128,9 +142,33 @@ export default function DashboardPreviewPage() {
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"><PiggyBank className="h-4 w-4" /></span><div><p className="font-semibold text-sm">إدارة ممتازة للميزانية!</p><p className="text-xs text-muted-foreground">أنت تسير بشكل ممتاز هذا الشهر، استمر بذلك.</p></div></div>
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"><CookingPot className="h-4 w-4" /></span><div><p className="font-semibold text-sm">فكر في الطبخ المنزلي</p><p className="text-xs text-muted-foreground">لاحظنا ارتفاعاً في مصاريف المطاعم. الطبخ في المنزل قد يوفر الكثير.</p></div></div>
-                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"><TrendingUp className="h-4 w-4" /></span><div><p className="font-semibold text-sm">مراقبة مصاريف الترفيه</p><p className="text-xs text-muted-foreground">مصاريف الترفيه أعلى من المتوسط هذا الشهر، هل تود وضع ميزانية لها؟</p></div></div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                        <PiggyBank className="h-4 w-4" />
+                    </span>
+                    <div>
+                        <p className="font-semibold text-xs">إدارة ممتازة للميزانية!</p>
+                        <p className="text-xs text-muted-foreground">أنت تسير بشكل ممتاز هذا الشهر، استمر بذلك.</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                        <CookingPot className="h-4 w-4" />
+                    </span>
+                    <div>
+                        <p className="font-semibold text-xs">فكر في الطبخ المنزلي</p>
+                        <p className="text-xs text-muted-foreground">لاحظنا ارتفاعاً في مصاريف المطاعم. الطبخ في المنزل قد يوفر الكثير.</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                        <TrendingUp className="h-4 w-4" />
+                    </span>
+                    <div>
+                        <p className="font-semibold text-xs">مراقبة مصاريف الترفيه</p>
+                        <p className="text-xs text-muted-foreground">مصاريف الترفيه أعلى من المتوسط هذا الشهر، هل تود وضع ميزانية لها؟</p>
+                    </div>
+                </div>
             </CardContent>
         </Card>
 
