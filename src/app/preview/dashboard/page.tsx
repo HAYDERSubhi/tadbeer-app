@@ -64,21 +64,15 @@ export default function DashboardPreviewPage() {
             </CardHeader>
             <div className="p-4 pt-0 space-y-4">
                 
-                {/* 1. Compact Budget Summary */}
-                <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                        <StatItem title="المصروف الشهري" value={isPrivacyMode ? privacyPlaceholder : formatCurrency(1250000)} color="text-orange-600 dark:text-orange-400" />
-                        <StatItem title="المتبقي من الميزانية" value={isPrivacyMode ? privacyPlaceholder : formatCurrency(750000)} color="text-green-600 dark:text-green-400" size="large"/>
+                {/* 1. Monthly Progress Bar */}
+                 <div>
+                    <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
+                        <span>صرفت 62%</span>
+                        <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(2000000)}</span>
                     </div>
-                    <div>
-                        <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
-                            <span>صرفت 62% من ميزانيتك</span>
-                            <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(2000000)}</span>
-                        </div>
-                        <Progress value={isPrivacyMode ? 100 : 62.5} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
-                    </div>
+                    <Progress value={isPrivacyMode ? 100 : 62.5} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
                 </div>
-
+                
                 <Separator />
 
                 {/* 2. Expense Input Methods - Horizontal & Compact Layout */}
