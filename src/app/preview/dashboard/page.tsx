@@ -86,15 +86,12 @@ export default function DashboardPreviewPage() {
         </div>
 
       <main className="p-4 sm:p-6 space-y-6">
-
-        {/* The new proposed "Smart Card" */}
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
                 {/* The Smart Progress Bar */}
-                 <div className="relative h-6 w-full rounded-md bg-secondary">
-                    
+                <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
                     {/* Colored segments container */}
-                    <div className="absolute inset-0 z-0 flex rounded-md overflow-hidden">
+                    <div className="absolute inset-0 z-0 flex">
                       {budgetData.weeklySummaries.map((week, index) => (
                           <div key={index} className="w-1/4 bg-transparent relative">
                              <div 
@@ -106,10 +103,12 @@ export default function DashboardPreviewPage() {
                     </div>
 
                     {/* Dividers container */}
-                    <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '25%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '50%'}}></div>
-                        <div className="absolute h-1 w-0.5 bg-black bottom-0" style={{right: '75%'}}></div>
+                    <div className="absolute inset-0 z-10">
+                       <div className="relative h-full w-full">
+                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '25%'}}></div>
+                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '50%'}}></div>
+                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '75%'}}></div>
+                        </div>
                     </div>
 
                     {/* Percentage Text Overlay */}
