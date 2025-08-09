@@ -43,7 +43,7 @@ export default function DashboardPreviewPage() {
         if (overspendRatio > 0.25) {
             colorClass = 'bg-destructive'; // Red
         } else if (overspendRatio > 0) {
-            colorClass = 'bg-orange-500'; // Orange
+            colorClass = 'bg-orange-400'; // Lighter Orange
         }
         return { spent, colorClass };
     });
@@ -80,6 +80,13 @@ export default function DashboardPreviewPage() {
                     <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                         {budgetData.spentPercentage.toFixed(0)}%
                     </span>
+                </div>
+
+                 {/* Divider lines */}
+                <div className="absolute inset-0 flex justify-around">
+                    <div className="h-full w-px bg-background/30" style={{ left: '25%' }}></div>
+                    <div className="h-full w-px bg-background/30" style={{ left: '50%' }}></div>
+                    <div className="h-full w-px bg-background/30" style={{ left: '75%' }}></div>
                 </div>
             </div>
             
