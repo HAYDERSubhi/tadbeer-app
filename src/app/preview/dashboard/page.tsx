@@ -59,7 +59,7 @@ export default function DashboardPreviewPage() {
         <Card className="overflow-hidden">
             <div className="p-3 space-y-3">
                  <div className="relative">
-                    <Progress value={budgetData.spentPercentage} className="h-6 rounded-lg" indicatorClassName="bg-primary/80" />
+                    <Progress value={budgetData.spentPercentage} className="h-6 rounded-lg" indicatorClassName="bg-primary/80 rounded-lg" />
                      {/* Weekly dividers */}
                     <div className="absolute inset-0 flex justify-around items-center px-[2px]">
                         <div className="w-px h-full bg-black/30"></div>
@@ -181,5 +181,3 @@ export default function DashboardPreviewPage() {
     </div>
   );
 }
-
-    
