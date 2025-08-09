@@ -23,15 +23,18 @@ import Link from 'next/link';
 export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
+    // Scenario: Day 10 of the month
+    // Budget: 4,000,000 total (1,000,000 per week)
+    // Week 1 spent: 750,000
+    // Week 2 spent: 2,000,000
     const mockBudget = 4000000;
-    const weeklyBudget = mockBudget / 4; // 1,000,000 per week
+    const weeklyBudget = mockBudget / 4; 
 
-    // Scenario: Week 1, spent 750,000
     const weeklyExpenses = [
-      750000, // Week 1
-      0,      // Week 2
-      0,      // Week 3
-      0       // Week 4
+      750000,   // Week 1 spending
+      2000000,  // Week 2 spending
+      0,        // Week 3 (not yet reached)
+      0         // Week 4 (not yet reached)
     ];
 
     const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0);
@@ -39,15 +42,15 @@ export default function DashboardPreviewPage() {
     
     const weeklySummaries = weeklyExpenses.map((spent) => {
         if (spent === 0) {
-            return { spent, colorClass: 'bg-transparent' }; // Make future weeks transparent
+            return { spent, colorClass: 'bg-transparent' }; // Future weeks are transparent
         }
         
         const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
-        let colorClass = 'bg-primary'; // Green (default)
+        let colorClass = 'bg-primary'; // Green (within budget)
         if (overspendRatio > 0.25) {
-            colorClass = 'bg-destructive'; // Red
+            colorClass = 'bg-destructive'; // Red (overspent by >25%)
         } else if (overspendRatio > 0) {
-            colorClass = 'bg-orange-400'; // Lighter Orange
+            colorClass = 'bg-orange-400'; // Orange (overspent by <=25%)
         }
         return { spent, colorClass };
     });
