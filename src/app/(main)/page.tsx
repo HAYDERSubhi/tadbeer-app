@@ -391,16 +391,12 @@ export default function DashboardPage() {
               {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
             </span>
             <div className='overflow-hidden'>
-              <p className="font-semibold truncate text-sm">{expense.title}</p>
-              <p className="text-xs text-muted-foreground">{categoryInfo?.name || 'فئة غير معروفة'}</p>
+              <p className="font-semibold truncate text-xs">{expense.title}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-end">
               <p className="font-bold text-foreground text-sm">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(expense.date), 'd MMM', { locale: arIQ })}
-              </p>
             </div>
             <EditComponent open={isEditOpen} onOpenChange={setIsEditOpen}>
               <DropdownMenu>
