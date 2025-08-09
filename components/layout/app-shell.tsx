@@ -22,11 +22,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-foreground">تدبير</span>
           </Link>
           <div className="flex items-center gap-2">
-             <Button asChild variant="ghost" size="icon">
-              <Link href="/settings">
-                <Settings className="h-5 w-5" />
-              </Link>
-            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
@@ -26,7 +26,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
-import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -309,6 +308,57 @@ export default function DashboardPage() {
     if (!user) return;
     deleteMutation.mutate(expenseId);
   };
+
+  const budgetData = useMemo(() => {
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+
+    const totalBudget = userSettings?.budget?.totalBudget || 0;
+    const weeklyBudget = totalBudget / 4;
+
+    const monthlyExpenses = expenses.filter(exp => {
+      try {
+        const expDate = new Date(exp.date);
+        return isWithinInterval(expDate, { start: monthStart, end: endOfMonth(today) });
+      } catch {
+        return false;
+      }
+    });
+
+    const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+    
+    const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
+        const weekStart = addWeeks(monthStart, index);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 }); // Assuming week starts on Saturday (6)
+
+        const weekExpenses = monthlyExpenses.filter(exp => {
+            const expDate = new Date(exp.date);
+            return isWithinInterval(expDate, { start: weekStart, end: weekEnd });
+        });
+        
+        const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        
+        let colorClass = 'bg-primary';
+        if (weeklyBudget > 0) {
+            const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
+            if (overspendRatio > 0.25) {
+                colorClass = 'bg-destructive'; // Red
+            } else if (overspendRatio > 0) {
+                colorClass = 'bg-orange-400'; // Lighter Orange
+            }
+        }
+
+        return { spent, colorClass };
+    });
+    
+    return {
+      totalBudget,
+      totalSpent,
+      spentPercentage,
+      weeklySummaries
+    };
+  }, [expenses, userSettings]);
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -395,9 +445,25 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* Budget Summary Card - This now has the privacy button */}
       {userBudget.totalBudget > 0 && (
-          <BudgetSummaryCard />
+         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
+            <CardContent className="p-4 space-y-4">
+                {/* The Smart Progress Bar */}
+                <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden flex-row-reverse">
+                    {/* The colored segments for each week */}
+                    {budgetData.weeklySummaries.map((week, index) => (
+                        <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
+                    ))}
+
+                    {/* Percentage Text Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-black/70 drop-shadow-sm">
+                            {budgetData.spentPercentage.toFixed(0)}%
+                        </span>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
       )}
 
       {/* Add Expense Section */}
