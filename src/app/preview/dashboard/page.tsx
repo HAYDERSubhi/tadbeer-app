@@ -56,7 +56,7 @@ export default function DashboardPreviewPage() {
         <Card className="overflow-hidden">
             <div className="p-3 space-y-3">
                  {/* RTL Progress Bar */}
-                <div className="relative h-6 w-full overflow-hidden rounded-lg bg-secondary">
+                <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
                     <div 
                         className="absolute top-0 right-0 h-full bg-primary" 
                         style={{ width: `${budgetData.spentPercentage}%` }}
