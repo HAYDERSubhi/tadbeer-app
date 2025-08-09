@@ -57,12 +57,20 @@ export default function DashboardPreviewPage() {
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
             <div className="p-3 space-y-3">
-                 <div>
-                    <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
-                        <span>صرفت {budgetData.spentPercentage.toFixed(0)}%</span>
-                        <span>الهدف: {formatCurrency(budgetData.totalBudget)}</span>
+                 <div className="relative">
+                    <Progress value={budgetData.spentPercentage} className="h-4 rounded-md" indicatorClassName="bg-primary/80" />
+                     {/* Weekly dividers */}
+                    <div className="absolute inset-0 flex justify-around items-center px-[2px]">
+                        <div className="w-px h-full bg-background/30"></div>
+                        <div className="w-px h-full bg-background/30"></div>
+                        <div className="w-px h-full bg-background/30"></div>
                     </div>
-                    <Progress value={budgetData.spentPercentage} className="h-3 rounded-md" indicatorClassName="bg-primary/80" />
+                     {/* Percentage Text */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-primary-foreground drop-shadow-sm">
+                            صرفت {budgetData.spentPercentage.toFixed(0)}%
+                        </span>
+                    </div>
                 </div>
                 
                  <div className="grid grid-cols-4 gap-2 text-center">
