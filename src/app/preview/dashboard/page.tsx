@@ -25,8 +25,8 @@ export default function DashboardPreviewPage() {
   const budgetData = useMemo(() => {
     // SCENARIO: Day 10 of the month.
     // Budget: 4,000,000 total (1,000,000 per week)
-    // Week 1 spent: 750,000
-    // Week 2 spent: 2,000,000
+    // Week 1 spent: 750,000 (within budget -> green)
+    // Week 2 spent: 2,000,000 (over budget > 25% -> red)
     
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
@@ -47,10 +47,10 @@ export default function DashboardPreviewPage() {
         const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
         let progress = 0;
-        if (weekNumber < currentWeekNumber) {
-            progress = 1; // Full progress for past weeks
-        } else if (weekNumber === currentWeekNumber) {
-            const daysIntoWeek = currentDayOfMonth - (weekNumber - 1) * 7;
+        if (spent > 0 && weekNumber < currentWeekNumber) {
+            progress = 1; // Full progress for past weeks with spending
+        } else if (spent > 0 && weekNumber === currentWeekNumber) {
+            const daysIntoWeek = currentDayOfMonth - ((weekNumber - 1) * 7);
             progress = daysIntoWeek / 7;
         }
 
@@ -86,24 +86,25 @@ export default function DashboardPreviewPage() {
         <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
             
             {/* The Smart Progress Bar */}
-            <div className="relative h-6 w-full rounded-md bg-secondary flex">
-                {/* The colored segments for each week */}
-                {budgetData.weeklySummaries.map((week, index) => (
-                    <div key={index} className="w-1/4 bg-transparent relative">
-                       {/* This inner div shows the actual progress with the correct color and width */}
-                       <div 
-                         className={cn("h-full", week.colorClass)} 
-                         style={{ width: `${week.progress * 100}%` }}
-                       />
-                    </div>
-                ))}
-                
-                {/* Subtle dividers at the end of each week */}
-                <div className="absolute inset-0 flex pointer-events-none">
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '25%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '50%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '75%'}}></div>
-                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{left: '100%'}}></div>
+            <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
+                {/* Colored segments container */}
+                <div className="absolute inset-0 flex">
+                  {budgetData.weeklySummaries.map((week, index) => (
+                      <div key={index} className="w-1/4 bg-transparent relative">
+                         <div 
+                           className={cn("h-full", week.colorClass)} 
+                           style={{ width: `${week.progress * 100}%` }}
+                         />
+                      </div>
+                  ))}
+                </div>
+
+                {/* Dividers container - now with z-10 */}
+                <div className="absolute inset-0 flex pointer-events-none z-10">
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '25%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '50%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '75%'}}></div>
+                    <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '100%'}}></div>
                 </div>
 
                 {/* Percentage Text Overlay */}
