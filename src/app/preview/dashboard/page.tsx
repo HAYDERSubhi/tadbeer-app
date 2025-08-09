@@ -23,21 +23,40 @@ import Link from 'next/link';
 export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
-    const mockBudget = 2000000;
+    const mockBudget = 4000000;
+    const weeklyBudget = mockBudget / 4;
     const mockExpenses = [
+        // Week 1 spending: 85k + 50k + 15k = 150k (within 1M budget)
         { title: 'فاتورة كهرباء الشهر الماضي', cat: 'فواتير وخدمات', amount: 85000 },
         { title: 'تعبئة وقود للسيارة 90 لتر', cat: 'السيارة الخاصة', amount: 50000 },
         { title: 'غداء عمل مع الفريق', cat: 'طعام وشراب', amount: 15000 },
-        { title: 'شراء ملابس جديدة للعيد', cat: 'كماليات شخصية', amount: 120000 }
+        // Week 2 spending: 1.1M (slightly over budget -> orange)
+        { title: 'شراء أثاث جديد', cat: 'كماليات شخصية', amount: 1100000 } 
     ];
 
     const totalSpent = mockExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
+    // Determine the color based on spending level for the current week
+    let progressColorClass = 'bg-primary'; // Default green
+    const currentWeekIndex = Math.floor((totalSpent / mockBudget) * 4);
+    const weekStartAmount = currentWeekIndex * weeklyBudget;
+    const spentInCurrentWeek = totalSpent - weekStartAmount;
+    
+    if (spentInCurrentWeek > weeklyBudget) {
+        const overBudgetPercentage = (spentInCurrentWeek - weeklyBudget) / weeklyBudget;
+        if (overBudgetPercentage > 0.25) {
+            progressColorClass = 'bg-destructive'; // Red
+        } else {
+            progressColorClass = 'bg-orange-500'; // Orange
+        }
+    }
+    
     return {
       totalBudget: mockBudget,
       totalSpent,
       spentPercentage,
+      progressColorClass,
     };
   }, []);
 
@@ -54,19 +73,24 @@ export default function DashboardPreviewPage() {
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
             <div className="p-3 space-y-3">
-                 {/* RTL Progress Bar */}
+                {/* RTL Progress Bar */}
                 <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
+                    {/* The main progress indicator */}
                     <div 
-                        className="absolute top-0 right-0 h-full bg-primary rounded-md" 
+                        className={cn("absolute top-0 right-0 h-full", budgetData.progressColorClass)}
                         style={{ width: `${budgetData.spentPercentage}%` }}
                     />
+                    
+                    {/* Percentage Text Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                            {budgetData.spentPercentage.toFixed(0)}%
                         </span>
                     </div>
-                     {/* Weekly dividers */}
+
+                    {/* Weekly dividers */}
                     <div className="absolute inset-0 flex justify-around">
+                        {/* We only need 3 dividers for 4 sections */}
                         <div className="w-px h-full bg-background/30"></div>
                         <div className="w-px h-full bg-background/30"></div>
                         <div className="w-px h-full bg-background/30"></div>
