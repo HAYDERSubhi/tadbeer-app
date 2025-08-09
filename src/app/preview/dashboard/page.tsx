@@ -88,9 +88,9 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-                {/* The Smart Progress Bar */}
+                 {/* The Smart Progress Bar */}
                 <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
-                    {/* Colored segments container */}
+                    {/* Colored segments container - This is the background layer */}
                     <div className="absolute inset-0 z-0 flex">
                       {budgetData.weeklySummaries.map((week, index) => (
                           <div key={index} className="w-1/4 bg-transparent relative">
@@ -102,17 +102,16 @@ export default function DashboardPreviewPage() {
                       ))}
                     </div>
 
-                    {/* Dividers container */}
-                    <div className="absolute inset-0 z-10">
-                       <div className="relative h-full w-full">
-                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '25%'}}></div>
-                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '50%'}}></div>
-                            <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{right: '75%'}}></div>
-                        </div>
-                    </div>
+                    {/* Dividers container - This layer is on top of colors */}
+                    <div
+                      className="absolute bottom-0 left-0 w-full h-1 bg-transparent z-10"
+                      style={{
+                        boxShadow: 'calc(25% - 1px) 0 0 0 black, calc(50% - 1px) 0 0 0 black, calc(75% - 1px) 0 0 0 black',
+                      }}
+                    />
 
-                    {/* Percentage Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                    {/* Percentage Text Overlay - This is the top-most layer */}
+                    <div className="absolute inset-0 flex items-center justify-center z-20">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage.toFixed(0)}%
                         </span>
