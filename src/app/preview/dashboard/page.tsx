@@ -23,11 +23,42 @@ import Link from 'next/link';
 export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
-    // SCENARIO: Day 21 of the month (End of Week 3).
-    // Budget: 4,000,000 total (1,000,000 per week)
-    // Week 1 spent: 750,000 (within budget -> green/primary)
-    // Week 2 spent: 1,100,000 (over budget by 10% -> orange)
-    // Week 3 spent: 1,300,000 (over budget by 30% -> red/destructive)
+    // =========================================================================================
+    // آلية عمل شريط التقدم للميزانية (شرح مفصل)
+    // =========================================================================================
+    //
+    // الهدف: عرض النسبة المئوية الإجمالية للمصروفات من الميزانية الشهرية، مع توضيح حالة الصرف لكل أسبوع.
+    //
+    // -----------------------------------------------------------------------------------------
+    // السيناريو الحالي:
+    // -----------------------------------------------------------------------------------------
+    // - الوضع الزمني: نهاية الأسبوع الثالث من الشهر.
+    // - الميزانية الشهرية الإجمالية: 4,000,000 دينار.
+    // - الميزانية الأسبوعية (الميزانية الشهرية / 4): 1,000,000 دينار.
+    //
+    // - مصروفات الأسبوع الأول (أقصى اليمين): 750,000 (أقل من الميزانية الأسبوعية -> أخضر).
+    // - مصروفات الأسبوع الثاني: 1,100,000 (تجاوز طفيف بنسبة 10% -> برتقالي).
+    // - مصروفات الأسبوع الثالث: 1,300,000 (تجاوز كبير بنسبة 30% -> أحمر).
+    // - مصروفات الأسبوع الرابع (أقصى اليسار): 0 (لم يبدأ بعد -> شفاف).
+    //
+    // - إجمالي الصرف الحالي: 3,150,000 دينار.
+    // - النسبة المئوية المعروضة: (3,150,000 / 4,000,000) * 100 = 78.75% (مقربة إلى 79%).
+    //
+    // -----------------------------------------------------------------------------------------
+    // منطق الألوان:
+    // -----------------------------------------------------------------------------------------
+    // - أخضر (bg-primary): الصرف <= 100% من الميزانية الأسبوعية.
+    // - برتقالي (bg-orange-400): الصرف > 100% و <= 125% من الميزانية الأسبوعية.
+    // - أحمر (bg-destructive): الصرف > 125% من الميزانية الأسبوعية.
+    //
+    // -----------------------------------------------------------------------------------------
+    // البنية والتصميم (من الأسفل للأعلى):
+    // -----------------------------------------------------------------------------------------
+    // 1. حاوية رئيسية (relative): تضبط الحجم العام وتستخدم `overflow-hidden` لضمان حواف دائرية ناعمة.
+    // 2. طبقة الألوان (absolute, z-0): حاوية `flex` مع `flex-row-reverse` لعرض الأسابيع من اليمين لليسار.
+    // 3. طبقة الفواصل (absolute, z-10): حاوية شفافة تغطي الشريط، تحتوي على 3 خطوط عمودية سوداء بموقع دقيق.
+    // 4. طبقة النص (absolute, z-20): حاوية شفافة في الأعلى لعرض النسبة المئوية في المنتصف.
+    // =========================================================================================
     
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
@@ -45,10 +76,10 @@ export default function DashboardPreviewPage() {
     const weeklySummaries = weeklyExpenses.map((spent) => {
         let colorClass = 'bg-transparent';
         if (spent > 0) {
-            const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
-            if (overspendRatio > 0.25) {
+            const overspendRatio = spent / weeklyBudget;
+            if (overspendRatio > 1.25) {
                 colorClass = 'bg-destructive'; // Red
-            } else if (overspendRatio > 0) {
+            } else if (overspendRatio > 1) {
                 colorClass = 'bg-orange-400'; // Orange
             } else {
                 colorClass = 'bg-primary'; // Green (Teal)
@@ -75,22 +106,24 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-                <div className="relative h-6 w-full rounded-full bg-secondary">
-                    {/* The colored segments for each week */}
-                    <div className="absolute inset-0 z-0 flex flex-row-reverse overflow-hidden rounded-full">
+                {/* The Smart Progress Bar Container */}
+                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+                    
+                    {/* Layer 1: The colored segments (Bottom Layer, z-0) */}
+                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
                         {budgetData.weeklySummaries.map((week, index) => (
                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                         ))}
                     </div>
 
-                    {/* The dividers */}
+                    {/* Layer 2: The dividers (Middle Layer, z-10) */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '25%'}}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '50%'}}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '75%'}}></div>
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '25%'}}></div>
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '50%'}}></div>
+                         <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '75%'}}></div>
                     </div>
                    
-                    {/* Percentage Text Overlay */}
+                    {/* Layer 3: Percentage Text Overlay (Top Layer, z-20) */}
                     <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                         <span className="text-sm font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage}%
