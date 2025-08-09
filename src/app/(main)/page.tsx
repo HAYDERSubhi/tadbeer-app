@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
@@ -323,8 +323,32 @@ export default function DashboardPage() {
     const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
     
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-        const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 6 }), index);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 });
+        let weekStart: Date;
+        let weekEnd: Date;
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+
+        switch (index) {
+            case 0: // Week 1: 1-7
+                weekStart = new Date(currentYear, currentMonth, 1);
+                weekEnd = new Date(currentYear, currentMonth, 7, 23, 59, 59, 999);
+                break;
+            case 1: // Week 2: 8-14
+                weekStart = new Date(currentYear, currentMonth, 8);
+                weekEnd = new Date(currentYear, currentMonth, 14, 23, 59, 59, 999);
+                break;
+            case 2: // Week 3: 15-21
+                weekStart = new Date(currentYear, currentMonth, 15);
+                weekEnd = new Date(currentYear, currentMonth, 21, 23, 59, 59, 999);
+                break;
+            case 3: // Week 4: 22-EOM
+                weekStart = new Date(currentYear, currentMonth, 22);
+                weekEnd = endOfMonth(today);
+                break;
+            default: // Should not happen
+                weekStart = today;
+                weekEnd = today;
+        }
 
         const weekExpenses = monthlyExpenses.filter(exp => {
             const expDate = parseISO(exp.date);
@@ -340,27 +364,23 @@ export default function DashboardPage() {
             
             // If it's the current week, calculate budget proportionally to elapsed days.
             if (isWithinInterval(today, { start: weekStart, end: weekEnd })) {
-                // differenceInDays is exclusive of the end date, so add 1.
-                // It calculates (today - weekStart), so +1 makes it inclusive.
-                const elapsedDays = differenceInDays(today, weekStart) + 1;
-                budgetForComparison = (weeklyBudget / 7) * elapsedDays;
+                const daysInThisWeek = differenceInDays(weekEnd, weekStart) + 1;
+                const elapsedDaysInWeek = differenceInDays(today, weekStart) + 1;
+                budgetForComparison = (weeklyBudget / daysInThisWeek) * elapsedDaysInWeek;
             } else if (isFuture(weekStart)) {
-                // If the week is entirely in the future, don't color it.
                 budgetForComparison = Infinity;
             }
-            // For past weeks, the budgetForComparison remains the full weeklyBudget.
 
-            const overspendRatio = spent / budgetForComparison;
+            const overspendRatio = budgetForComparison > 0 ? spent / budgetForComparison : Infinity;
             if (overspendRatio > 1.25) {
-                colorClass = 'bg-destructive'; // Significantly over budget
+                colorClass = 'bg-destructive';
             } else if (overspendRatio > 1) {
-                colorClass = 'bg-orange-400'; // Slightly over budget
+                colorClass = 'bg-orange-400';
             } else {
-                colorClass = 'bg-primary'; // Within budget
+                colorClass = 'bg-primary';
             }
 
         } else if (spent > 0 && weeklyBudget === 0) {
-            // If there's no budget but there is spending, just show the primary color.
             colorClass = 'bg-primary';
         }
 
@@ -465,19 +485,19 @@ export default function DashboardPage() {
         <CardContent className="p-4 space-y-4">
           {userBudget.totalBudget > 0 ? (
              <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-                {/* Layer 1: The colored segments. `flex` without reverse ensures RTL flow. */}
+                {/* Layer 1: The colored segments. */}
                 <div className="absolute inset-0 z-0 flex">
                   {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                   ))}
                 </div>
-                {/* Layer 2: The dividers. `z-10` places them above colors. */}
+                {/* Layer 2: The dividers. */}
                 <div className="absolute inset-0 z-10 pointer-events-none flex">
-                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '25%' }} />
-                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '50%' }} />
-                  <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '75%' }} />
+                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '25%' }} />
+                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '50%' }} />
+                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '75%' }} />
                 </div>
-                {/* Layer 3: Percentage Text Overlay. `z-20` is the top-most layer. */}
+                {/* Layer 3: Percentage Text Overlay. */}
                 <div className="absolute inset-0 z-20 flex items-center justify-center">
                   <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                     {budgetData.spentPercentage.toFixed(0)}%
