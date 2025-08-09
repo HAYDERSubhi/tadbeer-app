@@ -1,0 +1,139 @@
+// src/app/preview/dashboard/page.tsx
+"use client";
+
+import {
+  Pencil,
+  Mic,
+  FileScan,
+  CreditCard,
+  History,
+  Sparkles,
+  MoreHorizontal,
+  Wallet,
+  CookingPot,
+  PiggyBank,
+  TrendingUp
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import Link from 'next/link';
+
+// Reusable component for displaying a single statistic item
+const StatItem = ({ title, value, color, size = 'default' }: { title: string, value: string, color?: string, size?: 'default' | 'large' }) => (
+  <div className="flex flex-col items-center gap-0">
+    <span className={cn("text-xs text-muted-foreground", size === 'large' && 'sm:text-sm')}>{title}</span>
+    <span className={cn(
+      "font-bold",
+      color,
+      size === 'default' ? 'text-lg' : 'text-2xl sm:text-3xl'
+    )}>
+      {value}
+    </span>
+  </div>
+);
+
+// Main Preview Component
+export default function DashboardPreviewPage() {
+  return (
+    <div className="bg-background min-h-screen">
+        {/* Header to explain what this page is */}
+        <div className="p-4 text-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-b border-yellow-200 dark:border-yellow-800">
+            <h1 className="font-bold">صفحة المعاينة</h1>
+            <p className="text-sm">هذه الصفحة هي عرض مرئي للتصميم المقترح. الوظائف معطلة. <Link href="/" className="underline font-semibold">العودة للرئيسية</Link></p>
+        </div>
+
+      <main className="p-4 sm:p-6 space-y-6">
+
+        {/* The new proposed "Smart Card" */}
+        <Card className="overflow-hidden">
+            <div className="p-4 space-y-4">
+                {/* 1. Expense Input Methods - Horizontal Layout */}
+                <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                            <Pencil className="w-6 h-6" />
+                        </span>
+                        <p className="font-semibold text-xs">يدوي</p>
+                    </div>
+                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                            <Mic className="w-6 h-6" />
+                        </span>
+                        <p className="font-semibold text-xs">صوت</p>
+                    </div>
+                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                            <FileScan className="w-6 h-6" />
+                        </span>
+                        <p className="font-semibold text-xs">فاتورة</p>
+                    </div>
+                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
+                        <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
+                            <CreditCard className="w-6 h-6" />
+                        </span>
+                        <p className="font-semibold text-xs">بطاقة</p>
+                    </div>
+                </div>
+
+                <Separator />
+
+                {/* 2. Compact Budget Summary */}
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <StatItem title="المصروف الشهري" value="1,250,000 د.ع" color="text-orange-600 dark:text-orange-400" />
+                        <StatItem title="المتبقي من الميزانية" value="750,000 د.ع" color="text-green-600 dark:text-green-400" size="large"/>
+                    </div>
+                    <div>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
+                            <span>صرفت 62% من ميزانيتك</span>
+                            <span>الهدف: 2,000,000 د.ع</span>
+                        </div>
+                        <Progress value={62.5} className="h-3" />
+                    </div>
+                </div>
+            </div>
+        </Card>
+
+
+        {/* Placeholder for Recent Expenses */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              أحدث المصاريف
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ul className="divide-y divide-border">
+                {[{title: 'فاتورة كهرباء', cat: 'فواتير', amount: '85,000'}, {title: 'بنزين للسيارة', cat: 'السيارة', amount: '50,000'}, {title: 'غداء من المطعم', cat: 'طعام وشراب', amount: '15,000'}].map(item => (
+                  <li key={item.title} className="flex items-center p-3">
+                    <div className="flex flex-1 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted">🛒</span><div><p className="font-semibold text-sm">{item.title}</p><p className="text-xs text-muted-foreground">{item.cat}</p></div></div>
+                    <div className="flex items-center gap-2"><div className="text-end"><p className="font-bold text-foreground text-sm">{item.amount} د.ع</p><p className="text-xs text-muted-foreground">اليوم</p></div><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4 text-muted-foreground" /></Button></div>
+                  </li>
+                ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Placeholder for Financial Coach Insights */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    نصائح المدرب المالي
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"><PiggyBank className="h-4 w-4" /></span><div><p className="font-semibold text-sm">إدارة ممتازة للميزانية!</p><p className="text-xs text-muted-foreground">أنت تسير بشكل ممتاز هذا الشهر، استمر بذلك.</p></div></div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"><CookingPot className="h-4 w-4" /></span><div><p className="font-semibold text-sm">فكر في الطبخ المنزلي</p><p className="text-xs text-muted-foreground">لاحظنا ارتفاعاً في مصاريف المطاعم. الطبخ في المنزل قد يوفر الكثير.</p></div></div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"><TrendingUp className="h-4 w-4" /></span><div><p className="font-semibold text-sm">مراقبة مصاريف الترفيه</p><p className="text-xs text-muted-foreground">مصاريف الترفيه أعلى من المتوسط هذا الشهر، هل تود وضع ميزانية لها؟</p></div></div>
+            </CardContent>
+        </Card>
+
+      </main>
+    </div>
+  );
+}
