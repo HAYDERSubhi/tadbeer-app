@@ -57,7 +57,12 @@ export default function DashboardPreviewPage() {
                 colorClass = 'bg-primary'; // Green
             }
         }
-        return { spent, colorClass };
+        return { 
+          spent, 
+          colorClass,
+          isCurrentWeek: (index + 1) === weekNumber,
+          isPastWeek: (index + 1) < weekNumber,
+        };
     });
     
     return {
@@ -65,7 +70,6 @@ export default function DashboardPreviewPage() {
       spentPercentage,
       weeklySummaries,
       progressInCurrentWeek,
-      currentWeekNumber: weekNumber
     };
   }, []);
 
@@ -80,47 +84,40 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-                 {/* The Smart Progress Bar */}
-                <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
-                    {/* Layer 1: Colored Segments (background) */}
-                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
-                      {budgetData.weeklySummaries.map((week, index) => {
-                          const weekNum = index + 1;
-                          let widthPercent = 100;
-                          
-                          // For past weeks, it's fully colored
-                          if (weekNum < budgetData.currentWeekNumber) {
-                              widthPercent = 100;
-                          } 
-                          // For the current week, color is based on time progress
-                          else if (weekNum === budgetData.currentWeekNumber) {
-                              widthPercent = budgetData.progressInCurrentWeek * 100;
-                          }
-                          // For future weeks, no color
-                          else {
-                              widthPercent = 0;
-                          }
+                 {/* RTL Progress Bar - Rebuilt from scratch */}
+                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+                    {/* Z-0: Colored backgrounds */}
+                    <div className="absolute inset-0 z-0 flex">
+                        {budgetData.weeklySummaries.map((week, index) => {
+                            let widthPercent = 0;
+                            if (week.isPastWeek) {
+                                widthPercent = 100;
+                            } else if (week.isCurrentWeek) {
+                                widthPercent = budgetData.progressInCurrentWeek * 100;
+                            }
 
-                          return (
-                            <div key={index} className="w-1/4 h-full">
-                               <div 
-                                 className={cn("h-full", week.colorClass)} 
-                                 style={{ width: `${widthPercent}%` }}
-                               />
-                            </div>
-                          )
-                      })}
-                    </div>
-                    
-                    {/* Layer 2: Dividers (foreground) */}
-                    <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '25%' }}></div>
-                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '50%' }}></div>
-                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '75%' }}></div>
+                            return (
+                                <div key={index} className={cn("h-full w-1/4 relative", week.colorClass)}>
+                                    {/* This inner div ensures correct width application within the flex item */}
+                                    <div className="absolute inset-y-0 right-0 h-full" style={{ width: `${widthPercent}%` }}/>
+                                </div>
+                            );
+                        })}
                     </div>
 
-                    {/* Layer 3: Percentage Text Overlay (top-most) */}
-                    <div className="absolute inset-0 z-20 flex items-center justify-center">
+                    {/* Z-10: Dividers */}
+                    <div className="absolute inset-0 z-10 flex">
+                        {/* Render 3 dividers for 4 weeks */}
+                        {[...Array(3)].map((_, index) => (
+                           <div key={index} className="w-1/4 h-full relative">
+                               {/* The divider is on the left edge of each week's container */}
+                               <div className="absolute left-0 top-0 h-full w-px bg-black/50" />
+                           </div>
+                        ))}
+                    </div>
+
+                    {/* Z-20: Text Overlay */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage.toFixed(0)}%
                         </span>
