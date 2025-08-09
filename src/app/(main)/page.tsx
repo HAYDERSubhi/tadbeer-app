@@ -41,15 +41,9 @@ const tourSteps = [
     placement: 'center',
   },
   {
-    selector: '#budget-summary-card',
+    selector: '#budget-and-input-card',
     title: 'لوحة التحكم الرئيسية',
-    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك، مصروفاتك، والمبلغ المتبقي لك هذا الشهر.',
-    placement: 'bottom',
-  },
-  {
-    selector: '#expense-input-methods',
-    title: 'طرق إضافة المصروفات',
-    content: 'يمكنك إضافة مصروفاتك يدويًا، عبر الصوت، من خلال تحليل فاتورة، أو بمزامنة بطاقتك الإلكترونية.',
+    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك، وإضافة مصروفاتك بسهولة.',
     placement: 'bottom',
   },
    {
@@ -330,8 +324,7 @@ export default function DashboardPage() {
     
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
         const weekStart = addWeeks(monthStart, index);
-        // Ensure weekEnd does not go past the end of the month
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 }); // Assuming week starts on Saturday (6)
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 });
 
         const weekExpenses = monthlyExpenses.filter(exp => {
             const expDate = parseISO(exp.date);
@@ -344,14 +337,14 @@ export default function DashboardPage() {
         if (spent > 0 && weeklyBudget > 0) {
             const overspendRatio = spent / weeklyBudget;
             if (overspendRatio > 1.25) {
-                colorClass = 'bg-destructive'; // Red
+                colorClass = 'bg-destructive';
             } else if (overspendRatio > 1) {
-                colorClass = 'bg-orange-400'; // Orange
+                colorClass = 'bg-orange-400';
             } else {
-                colorClass = 'bg-primary'; // Green (Teal)
+                colorClass = 'bg-primary';
             }
         } else if (spent > 0 && weeklyBudget === 0) {
-            colorClass = 'bg-primary'; // If there's spending but no budget, show as primary color
+            colorClass = 'bg-primary';
         }
 
         return { spent, colorClass };
@@ -450,37 +443,39 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {userBudget.totalBudget > 0 && (
-         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
-            <CardContent className="p-4 space-y-4">
-                {/* The Smart Progress Bar */}
-                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-                    {/* Layer 1: The colored segments for each week */}
-                    <div className="absolute inset-0 z-0 flex">
-                        {budgetData.weeklySummaries.map((week, index) => (
-                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
-                        ))}
-                    </div>
-                    {/* Layer 2: The dividers */}
-                    <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '25%' }}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '50%' }}></div>
-                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '75%' }}></div>
-                    </div>
-                    {/* Layer 3: Percentage Text Overlay */}
-                    <div className="absolute inset-0 z-20 flex items-center justify-center">
-                        <span className="text-xs font-bold text-black/70 drop-shadow-sm">
-                            {budgetData.spentPercentage.toFixed(0)}%
-                        </span>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-      )}
+      {/* --- Combined Budget and Input Card --- */}
+      <Card id="budget-and-input-card" className="overflow-hidden">
+        <CardContent className="p-4 space-y-4">
+          {userBudget.totalBudget > 0 ? (
+            // --- The multi-color progress bar ---
+            <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+              {/* Layer 1: The colored segments for each week. `flex-row-reverse` ensures RTL flow. */}
+              <div className="absolute inset-0 z-0 flex flex-row-reverse">
+                {budgetData.weeklySummaries.map((week, index) => (
+                  <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
+                ))}
+              </div>
+              {/* Layer 2: The dividers. `z-10` places them above colors. */}
+              <div className="absolute inset-0 z-10 pointer-events-none">
+                <div className="absolute top-0 bottom-0 right-[25%] h-1 w-px self-center bg-black" />
+                <div className="absolute top-0 bottom-0 right-[50%] h-1 w-px self-center bg-black" />
+                <div className="absolute top-0 bottom-0 right-[75%] h-1 w-px self-center bg-black" />
+              </div>
+              {/* Layer 3: Percentage Text Overlay. `z-20` is the top-most layer. */}
+              <div className="absolute inset-0 z-20 flex items-center justify-center">
+                <span className="text-xs font-bold text-black/70 drop-shadow-sm">
+                  {budgetData.spentPercentage.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center p-2 rounded-lg bg-muted/50">
+               <h3 className='font-semibold text-sm'>أهلاً بك في تدبير</h3>
+               <p className='text-xs text-muted-foreground'>ابدأ بتحديد ميزانية شهرية من الإعدادات لإطلاق العنان لقوة التطبيق.</p>
+            </div>
+          )}
 
-      {/* Add Expense Section */}
-      <Card id="expense-input-methods">
-        <CardContent className="p-3">
+          {/* --- Expense Input Methods --- */}
           <div className="grid grid-cols-4 gap-2 text-center">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
                 <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
