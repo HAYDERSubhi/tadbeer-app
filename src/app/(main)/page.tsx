@@ -16,7 +16,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
@@ -156,7 +156,7 @@ export default function DashboardPage() {
       recognition.onerror = (event) => {
         if (event.error !== 'aborted') {
           console.error('Speech recognition error', event.error);
-          setVoiceError(`خطأ في التعرف على الصوت: ${'${event.error}'}`);
+          setVoiceError(`خطأ في التعرف على الصوت: \${event.error}`);
         }
         setIsVoiceRecording(false);
         setIsVoiceLoading(false);
@@ -228,7 +228,8 @@ export default function DashboardPage() {
 
 
   const allSortedExpenses = useMemo(() => {
-     return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (!expenses) return [];
+    return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
   
   const financialCoachInput = useMemo(() => {
@@ -467,7 +468,7 @@ export default function DashboardPage() {
                 <div className="absolute inset-0 z-0 flex">
                   {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className="h-full w-1/4 relative">
-                        <div className={cn("h-full", week.colorClass)} style={{width: `${week.progressPercentage}%`}}/>
+                        <div className={cn("h-full", week.colorClass)} style={{width: `\${week.progressPercentage}%`}}/>
                     </div>
                   ))}
                 </div>
@@ -632,5 +633,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     

@@ -12,7 +12,7 @@ import { useMutation } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
-import { format } from 'date-fns';
+import { format, compareDesc } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { useCategories } from '@/hooks/use-categories';
 
@@ -47,7 +47,7 @@ export default function AllExpensesPage() {
   
   const allSortedExpenses = useMemo(() => {
      if (!expenses) return [];
-     return [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
 
 
@@ -124,3 +124,5 @@ export default function AllExpensesPage() {
     </div>
   );
 }
+
+    
