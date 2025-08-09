@@ -322,23 +322,16 @@ export default function DashboardPage() {
 
     const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-    
+
     let currentWeekIndex = 0;
     if (dayOfMonth > 7 && dayOfMonth <= 14) currentWeekIndex = 1;
     else if (dayOfMonth > 14 && dayOfMonth <= 21) currentWeekIndex = 2;
     else if (dayOfMonth > 21) currentWeekIndex = 3;
 
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-        let weekStartDay: number, weekEndDay: number, daysInWeek: number;
-
-        switch (index) {
-            case 0: weekStartDay = 1; weekEndDay = 7; break;
-            case 1: weekStartDay = 8; weekEndDay = 14; break;
-            case 2: weekStartDay = 15; weekEndDay = 21; break;
-            case 3: weekStartDay = 22; weekEndDay = getDaysInMonth(today); break;
-            default: weekStartDay = 1; weekEndDay = 7;
-        }
-        daysInWeek = weekEndDay - weekStartDay + 1;
+        const weekStartDay = (index * 7) + 1;
+        const weekEndDay = (index === 3) ? getDaysInMonth(today) : (index + 1) * 7;
+        const daysInWeek = weekEndDay - weekStartDay + 1;
         
         const weekStart = new Date(today.getFullYear(), today.getMonth(), weekStartDay);
         const weekEnd = new Date(today.getFullYear(), today.getMonth(), weekEndDay, 23, 59, 59, 999);
@@ -351,9 +344,9 @@ export default function DashboardPage() {
         const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         
         let colorClass = 'bg-transparent';
+        
         if (spent > 0 && weeklyBudget > 0) {
             const overspendRatio = spent / weeklyBudget;
-
             if (overspendRatio > 1.25) {
                 colorClass = 'bg-destructive';
             } else if (overspendRatio > 1) {
@@ -364,7 +357,7 @@ export default function DashboardPage() {
         } else if (spent > 0 && weeklyBudget === 0) {
             colorClass = 'bg-primary';
         }
-        
+
         let progressPercentage = 100; // Default for past weeks
         if (index === currentWeekIndex) {
             const daysPassedInWeek = dayOfMonth - weekStartDay + 1;
@@ -483,10 +476,10 @@ export default function DashboardPage() {
                   ))}
                 </div>
                 {/* Layer 2: The dividers. */}
-                <div className="absolute inset-0 z-10 pointer-events-none flex">
-                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '25%' }} />
-                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '50%' }} />
-                  <div className="absolute top-0 bottom-0 h-full w-px self-end bg-black/20" style={{ right: '75%' }} />
+                <div className="absolute inset-0 z-10 pointer-events-none flex items-end">
+                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70" style={{ right: '25%' }} />
+                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70" style={{ right: '50%' }} />
+                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70" style={{ right: '75%' }} />
                 </div>
                 {/* Layer 3: Percentage Text Overlay. */}
                 <div className="absolute inset-0 z-20 flex items-center justify-center">
