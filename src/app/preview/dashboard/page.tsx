@@ -31,6 +31,8 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4;
     const currentDayOfMonth = 10;
+    const totalSpentForScenario = 2750000;
+    const spentPercentage = mockBudget > 0 ? (totalSpentForScenario / mockBudget) * 100 : 0;
     
     const weeklyExpenses = [
       750000,   // Week 1
@@ -39,34 +41,34 @@ export default function DashboardPreviewPage() {
       0         // Week 4
     ];
 
-    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0);
-    const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
-    
     const weeklySummaries = weeklyExpenses.map((spent, index) => {
         const weekNumber = index + 1;
         const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
 
         let progress = 0;
-        if (spent > 0 && weekNumber < currentWeekNumber) {
-            progress = 1; // Full progress for past weeks with spending
-        } else if (spent > 0 && weekNumber === currentWeekNumber) {
+        if (weekNumber < currentWeekNumber) {
+            progress = 1; // Full progress for past weeks
+        } else if (weekNumber === currentWeekNumber) {
             const daysIntoWeek = currentDayOfMonth - ((weekNumber - 1) * 7);
             progress = daysIntoWeek / 7;
         }
 
-        const overspendRatio = spent > 0 ? (spent - weeklyBudget) / weeklyBudget : 0;
-        let colorClass = 'bg-primary'; // Green (within budget)
-        if (overspendRatio > 0.25) {
-            colorClass = 'bg-destructive'; // Red (overspent by >25%)
-        } else if (overspendRatio > 0) {
-            colorClass = 'bg-orange-400'; // Orange (overspent by <=25%)
+        let colorClass = 'bg-transparent';
+        if (spent > 0) {
+            const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
+            if (overspendRatio > 0.25) {
+                colorClass = 'bg-destructive'; // Red
+            } else if (overspendRatio > 0) {
+                colorClass = 'bg-orange-400'; // Orange
+            } else {
+                colorClass = 'bg-primary'; // Green
+            }
         }
         return { spent, colorClass, progress };
     });
     
     return {
       totalBudget: mockBudget,
-      totalSpent,
       spentPercentage,
       weeklySummaries
     };
@@ -86,9 +88,9 @@ export default function DashboardPreviewPage() {
         <Card className="overflow-hidden bg-card border shadow-sm rounded-md p-4 space-y-4">
             
             {/* The Smart Progress Bar */}
-            <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
+            <div className="relative h-6 w-full rounded-md bg-secondary">
                 {/* Colored segments container */}
-                <div className="absolute inset-0 flex">
+                <div className="absolute inset-0 flex overflow-hidden rounded-md">
                   {budgetData.weeklySummaries.map((week, index) => (
                       <div key={index} className="w-1/4 bg-transparent relative">
                          <div 
@@ -99,7 +101,7 @@ export default function DashboardPreviewPage() {
                   ))}
                 </div>
 
-                {/* Dividers container - now with z-10 */}
+                {/* Dividers container - now with z-10 to ensure it's on top */}
                 <div className="absolute inset-0 flex pointer-events-none z-10">
                     <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '25%'}}></div>
                     <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '50%'}}></div>
@@ -107,8 +109,8 @@ export default function DashboardPreviewPage() {
                     <div className="absolute bottom-0 h-1 w-0.5 bg-gray-400/50" style={{right: '100%'}}></div>
                 </div>
 
-                {/* Percentage Text Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                {/* Percentage Text Overlay - also with z-10 */}
+                <div className="absolute inset-0 flex items-center justify-center z-10">
                     <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                         {budgetData.spentPercentage.toFixed(0)}%
                     </span>
