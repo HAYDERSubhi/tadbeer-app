@@ -1,6 +1,7 @@
 // src/app/preview/dashboard/page.tsx
 "use client";
 
+import { useState } from 'react';
 import {
   Pencil,
   Mic,
@@ -12,7 +13,9 @@ import {
   Wallet,
   CookingPot,
   PiggyBank,
-  TrendingUp
+  TrendingUp,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +40,11 @@ const StatItem = ({ title, value, color, size = 'default' }: { title: string, va
 
 // Main Preview Component
 export default function DashboardPreviewPage() {
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+
+  const formatCurrency = (value: number) => `${value.toLocaleString('ar-EG')}\u00A0د.ع`;
+  const privacyPlaceholder = "•••••• د.ع";
+
   return (
     <div className="bg-background min-h-screen">
         {/* Header to explain what this page is */}
@@ -49,20 +57,25 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
-            <div className="p-4 space-y-4">
+             <CardHeader className="flex-row items-center justify-end p-2 pb-0">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setIsPrivacyMode(!isPrivacyMode)}>
+                    {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
+            </CardHeader>
+            <div className="p-4 pt-0 space-y-4">
                 
                 {/* 1. Compact Budget Summary */}
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                        <StatItem title="المصروف الشهري" value="1,250,000 د.ع" color="text-orange-600 dark:text-orange-400" />
-                        <StatItem title="المتبقي من الميزانية" value="750,000 د.ع" color="text-green-600 dark:text-green-400" size="large"/>
+                        <StatItem title="المصروف الشهري" value={isPrivacyMode ? privacyPlaceholder : formatCurrency(1250000)} color="text-orange-600 dark:text-orange-400" />
+                        <StatItem title="المتبقي من الميزانية" value={isPrivacyMode ? privacyPlaceholder : formatCurrency(750000)} color="text-green-600 dark:text-green-400" size="large"/>
                     </div>
                     <div>
                         <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
                             <span>صرفت 62% من ميزانيتك</span>
-                            <span>الهدف: 2,000,000 د.ع</span>
+                            <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(2000000)}</span>
                         </div>
-                        <Progress value={62.5} className="h-3" />
+                        <Progress value={isPrivacyMode ? 100 : 62.5} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
                     </div>
                 </div>
 
