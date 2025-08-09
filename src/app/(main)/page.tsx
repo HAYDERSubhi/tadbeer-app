@@ -385,7 +385,7 @@ export default function DashboardPage() {
     
     return (
       <Fragment>
-        <li className="flex items-center p-3 transition-colors hover:bg-muted/50 rounded-lg">
+        <li className="flex items-center p-2 transition-colors hover:bg-muted/50 rounded-lg">
           <div className="flex flex-1 items-center gap-3 overflow-hidden">
             <span className={cn("flex h-auto w-auto shrink-0 items-center justify-center text-xl text-muted-foreground")}>
               {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
@@ -460,7 +460,7 @@ export default function DashboardPage() {
 
       {/* --- Combined Budget and Input Card --- */}
       <Card id="budget-and-input-card" className="overflow-hidden">
-        <CardContent className="px-4 py-2 space-y-3">
+        <CardContent className="py-2 px-4 space-y-3">
           {userBudget.totalBudget > 0 ? (
              <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
                 {/* Layer 1: The colored segments. */}
@@ -570,7 +570,7 @@ export default function DashboardPage() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 pt-1">
           {allSortedExpenses.length > 0 ? (
             <ul className="divide-y divide-border">
               {allSortedExpenses.slice(0, 5).map((expense) => (
@@ -632,3 +632,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
