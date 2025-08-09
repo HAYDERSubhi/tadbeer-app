@@ -75,9 +75,9 @@ export default function DashboardPreviewPage() {
       <main className="p-4 sm:p-6 space-y-6">
         <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
-                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-                    {/* The colored segments for each week - REVERSED */}
-                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
+                <div className="relative h-6 w-full rounded-full bg-secondary">
+                    {/* The colored segments for each week */}
+                    <div className="absolute inset-0 z-0 flex flex-row-reverse overflow-hidden rounded-full">
                         {budgetData.weeklySummaries.map((week, index) => (
                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                         ))}
@@ -85,9 +85,9 @@ export default function DashboardPreviewPage() {
 
                     {/* The dividers */}
                     <div className="absolute inset-0 z-10 pointer-events-none">
-                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '25%'}}></div>
-                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '50%'}}></div>
-                        <div className="absolute h-1 w-px bg-black/50 bottom-0" style={{right: '75%'}}></div>
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '25%'}}></div>
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '50%'}}></div>
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{left: '75%'}}></div>
                     </div>
                    
                     {/* Percentage Text Overlay */}
