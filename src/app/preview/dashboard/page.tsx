@@ -72,7 +72,7 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
-            <div className="p-3 space-y-3">
+            <div className="p-4 space-y-3">
                 {/* RTL Progress Bar */}
                 <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
                     {/* The main progress indicator */}
@@ -89,11 +89,10 @@ export default function DashboardPreviewPage() {
                     </div>
 
                     {/* Weekly dividers */}
-                    <div className="absolute inset-0 flex justify-around">
-                        {/* We only need 3 dividers for 4 sections */}
-                        <div className="w-px h-full bg-background/30"></div>
-                        <div className="w-px h-full bg-background/30"></div>
-                        <div className="w-px h-full bg-background/30"></div>
+                    <div className="absolute inset-0">
+                        <div className="absolute top-0 bottom-0 left-1/4 w-px bg-background/30 -translate-x-1/2"></div>
+                        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-background/30 -translate-x-1/2"></div>
+                        <div className="absolute top-0 bottom-0 left-3/4 w-px bg-background/30 -translate-x-1/2"></div>
                     </div>
                 </div>
                 
