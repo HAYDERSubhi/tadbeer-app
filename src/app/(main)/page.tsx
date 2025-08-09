@@ -1,4 +1,5 @@
 
+
 // src/app/(main)/page.tsx
 
 "use client";
@@ -357,14 +358,13 @@ export default function DashboardPage() {
             else colorClass = 'bg-primary';
         }
 
-        let progressPercentage = 100;
-        if (index === currentWeekIndex) {
+        let progressPercentage = 0;
+        if (index < currentWeekIndex) {
+            progressPercentage = 100; // Past weeks are fully colored
+        } else if (index === currentWeekIndex) {
             const daysInThisWeek = weekEndDay - weekStartDay + 1;
-            const daysPassedInWeek = dayOfMonth - weekStartDay + 1;
+            const daysPassedInWeek = Math.max(0, dayOfMonth - weekStartDay + 1);
             progressPercentage = (daysPassedInWeek / daysInThisWeek) * 100;
-        } else if (index > currentWeekIndex) {
-            progressPercentage = 0;
-            colorClass = 'bg-transparent';
         }
 
         return { spent, colorClass, progressPercentage };
@@ -468,7 +468,7 @@ export default function DashboardPage() {
                 <div className="absolute inset-0 z-0 flex">
                   {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className="h-full w-1/4 relative">
-                        <div className={cn("h-full", week.colorClass)} style={{width: `\${week.progressPercentage}%`}}/>
+                        <div className={cn("h-full", week.colorClass)} style={{width: `${week.progressPercentage}%`}}/>
                     </div>
                   ))}
                 </div>
@@ -582,6 +582,16 @@ export default function DashboardPage() {
             <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
           )}
         </CardContent>
+        {allSortedExpenses.length > 5 && (
+            <CardFooter className="p-2">
+                 <Button variant="ghost" asChild className="w-full">
+                     <Link href="/expenses">
+                        عرض كل المصاريف
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                     </Link>
+                </Button>
+            </CardFooter>
+        )}
       </Card>
 
       {/* Smart Insights Card */}
@@ -633,6 +643,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
 
