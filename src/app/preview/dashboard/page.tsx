@@ -24,32 +24,34 @@ export default function DashboardPreviewPage() {
   
   const budgetData = useMemo(() => {
     const mockBudget = 4000000;
-    const weeklyBudget = mockBudget / 4;
+    const weeklyBudget = mockBudget / 4; // 1,000,000 per week
     const mockExpenses = [
-        // Week 1 spending: 85k + 50k + 15k = 150k (within 1M budget)
-        { title: 'فاتورة كهرباء الشهر الماضي', cat: 'فواتير وخدمات', amount: 85000 },
-        { title: 'تعبئة وقود للسيارة 90 لتر', cat: 'السيارة الخاصة', amount: 50000 },
-        { title: 'غداء عمل مع الفريق', cat: 'طعام وشراب', amount: 15000 },
-        // Week 2 spending: 1.1M (slightly over budget -> orange)
-        { title: 'شراء أثاث جديد', cat: 'كماليات شخصية', amount: 1100000 } 
+        // Week 1: 1.2M (Over budget -> Orange)
+        { title: 'دفعة أولى للسيارة', cat: 'السيارة الخاصة', amount: 1200000 },
+        // Week 2: 750k (Within budget)
+        { title: 'إيجار المنزل', cat: 'فواتير وخدمات', amount: 750000 },
+        // Week 3: 2M (Severely over budget -> Red)
+        { title: 'شراء أجهزة كهربائية للمنزل', cat: 'مستلزمات منزلية', amount: 2000000 },
+        // Week 4: 1M (Exactly on budget)
+        { title: 'مصاريف العائلة الشهرية', cat: 'طعام وشراب', amount: 1000000 },
     ];
 
-    const totalSpent = mockExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalSpent = mockExpenses.reduce((sum, exp) => sum + exp.amount, 0); // Total: 4,950,000
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
-    // Determine the color based on spending level for the current week
     let progressColorClass = 'bg-primary'; // Default green
-    const currentWeekIndex = Math.floor((totalSpent / mockBudget) * 4);
-    const weekStartAmount = currentWeekIndex * weeklyBudget;
-    const spentInCurrentWeek = totalSpent - weekStartAmount;
     
-    if (spentInCurrentWeek > weeklyBudget) {
-        const overBudgetPercentage = (spentInCurrentWeek - weeklyBudget) / weeklyBudget;
-        if (overBudgetPercentage > 0.25) {
-            progressColorClass = 'bg-destructive'; // Red
-        } else {
-            progressColorClass = 'bg-orange-500'; // Orange
-        }
+    if (totalSpent > weeklyBudget) {
+      const weekIndex = Math.floor((totalSpent - 1) / weeklyBudget); // Which week's budget are we in? (0-indexed)
+      const startOfCurrentWeekBudget = weekIndex * weeklyBudget;
+      const spentInCurrentWeekPortion = totalSpent - startOfCurrentWeekBudget;
+      const weeklyOverspendRatio = spentInCurrentWeekPortion / weeklyBudget;
+      
+      if (weeklyOverspendRatio > 1.25) {
+        progressColorClass = 'bg-destructive'; // Red
+      } else if (weeklyOverspendRatio > 1) {
+        progressColorClass = 'bg-orange-500'; // Orange
+      }
     }
     
     return {
@@ -76,20 +78,20 @@ export default function DashboardPreviewPage() {
                 {/* RTL Progress Bar */}
                 <div className="relative h-6 w-full overflow-hidden rounded-md bg-secondary">
                     {/* The main progress indicator */}
-                    <div 
-                        className={cn("absolute top-0 right-0 h-full", budgetData.progressColorClass)}
-                        style={{ width: `${budgetData.spentPercentage}%` }}
+                     <div
+                        className={cn("absolute top-0 right-0 h-full rounded-md", budgetData.progressColorClass)}
+                        style={{ width: `${budgetData.spentPercentage > 100 ? 100 : budgetData.spentPercentage}%` }}
                     />
                     
                     {/* Percentage Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center">
+                     <div className="absolute inset-0 flex items-center justify-center">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                            {budgetData.spentPercentage.toFixed(0)}%
                         </span>
                     </div>
 
                     {/* Weekly dividers */}
-                    <div className="absolute inset-0">
+                     <div className="absolute inset-0 flex">
                         <div className="absolute top-0 bottom-0 left-1/4 w-px bg-background/30 -translate-x-1/2"></div>
                         <div className="absolute top-0 bottom-0 left-1/2 w-px bg-background/30 -translate-x-1/2"></div>
                         <div className="absolute top-0 bottom-0 left-3/4 w-px bg-background/30 -translate-x-1/2"></div>
