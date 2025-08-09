@@ -323,7 +323,7 @@ export default function DashboardPage() {
     const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
     
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-        const weekStart = addWeeks(monthStart, index);
+        const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 6 }), index);
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 });
 
         const weekExpenses = monthlyExpenses.filter(exp => {
@@ -449,17 +449,17 @@ export default function DashboardPage() {
           {userBudget.totalBudget > 0 ? (
             // --- The multi-color progress bar ---
             <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-              {/* Layer 1: The colored segments for each week. `flex-row-reverse` ensures RTL flow. */}
-              <div className="absolute inset-0 z-0 flex flex-row-reverse">
+              {/* Layer 1: The colored segments for each week. `flex` without reverse ensures RTL flow. */}
+              <div className="absolute inset-0 z-0 flex">
                 {budgetData.weeklySummaries.map((week, index) => (
                   <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
                 ))}
               </div>
               {/* Layer 2: The dividers. `z-10` places them above colors. */}
-              <div className="absolute inset-0 z-10 pointer-events-none">
-                <div className="absolute top-0 bottom-0 right-[25%] h-1 w-px self-center bg-black" />
-                <div className="absolute top-0 bottom-0 right-[50%] h-1 w-px self-center bg-black" />
-                <div className="absolute top-0 bottom-0 right-[75%] h-1 w-px self-center bg-black" />
+              <div className="absolute inset-0 z-10 pointer-events-none flex">
+                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '25%' }} />
+                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '50%' }} />
+                <div className="absolute top-0 bottom-0 h-1 w-px self-end bg-black" style={{ right: '75%' }} />
               </div>
               {/* Layer 3: Percentage Text Overlay. `z-20` is the top-most layer. */}
               <div className="absolute inset-0 z-20 flex items-center justify-center">
