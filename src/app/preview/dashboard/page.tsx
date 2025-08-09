@@ -28,7 +28,7 @@ const StatItem = ({ title, value, color, size = 'default' }: { title: string, va
     <span className={cn(
       "font-bold",
       color,
-      size === 'default' ? 'text-lg' : 'text-2xl sm:text-3xl'
+      size === 'default' ? 'text-lg' : 'text-xl sm:text-2xl'
     )}>
       {value}
     </span>
@@ -50,8 +50,26 @@ export default function DashboardPreviewPage() {
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
             <div className="p-4 space-y-4">
-                {/* 1. Expense Input Methods - Horizontal Layout */}
-                <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+                
+                {/* 1. Compact Budget Summary */}
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                        <StatItem title="المصروف الشهري" value="1,250,000 د.ع" color="text-orange-600 dark:text-orange-400" />
+                        <StatItem title="المتبقي من الميزانية" value="750,000 د.ع" color="text-green-600 dark:text-green-400" size="large"/>
+                    </div>
+                    <div>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
+                            <span>صرفت 62% من ميزانيتك</span>
+                            <span>الهدف: 2,000,000 د.ع</span>
+                        </div>
+                        <Progress value={62.5} className="h-3" />
+                    </div>
+                </div>
+
+                <Separator />
+
+                {/* 2. Expense Input Methods - Horizontal & Compact Layout */}
+                 <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
                         <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
                             <Pencil className="w-6 h-6" />
@@ -77,28 +95,11 @@ export default function DashboardPreviewPage() {
                         <p className="font-semibold text-xs">بطاقة</p>
                     </div>
                 </div>
-
-                <Separator />
-
-                {/* 2. Compact Budget Summary */}
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <StatItem title="المصروف الشهري" value="1,250,000 د.ع" color="text-orange-600 dark:text-orange-400" />
-                        <StatItem title="المتبقي من الميزانية" value="750,000 د.ع" color="text-green-600 dark:text-green-400" size="large"/>
-                    </div>
-                    <div>
-                        <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
-                            <span>صرفت 62% من ميزانيتك</span>
-                            <span>الهدف: 2,000,000 د.ع</span>
-                        </div>
-                        <Progress value={62.5} className="h-3" />
-                    </div>
-                </div>
             </div>
         </Card>
 
 
-        {/* Placeholder for Recent Expenses */}
+        {/* Placeholder for Recent Expenses with smaller fonts */}
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -108,10 +109,10 @@ export default function DashboardPreviewPage() {
           </CardHeader>
           <CardContent className="p-0">
             <ul className="divide-y divide-border">
-                {[{title: 'فاتورة كهرباء', cat: 'فواتير', amount: '85,000'}, {title: 'بنزين للسيارة', cat: 'السيارة', amount: '50,000'}, {title: 'غداء من المطعم', cat: 'طعام وشراب', amount: '15,000'}].map(item => (
+                {[{title: 'فاتورة كهرباء الشهر الماضي', cat: 'فواتير وخدمات', amount: '85,000'}, {title: 'تعبئة وقود للسيارة 90 لتر', cat: 'السيارة الخاصة', amount: '50,000'}, {title: 'غداء عمل مع الفريق', cat: 'طعام وشراب', amount: '15,000'}, {title: 'شراء ملابس جديدة للعيد', cat: 'كماليات شخصية', amount: '120,000'}].map(item => (
                   <li key={item.title} className="flex items-center p-3">
-                    <div className="flex flex-1 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted">🛒</span><div><p className="font-semibold text-sm">{item.title}</p><p className="text-xs text-muted-foreground">{item.cat}</p></div></div>
-                    <div className="flex items-center gap-2"><div className="text-end"><p className="font-bold text-foreground text-sm">{item.amount} د.ع</p><p className="text-xs text-muted-foreground">اليوم</p></div><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4 text-muted-foreground" /></Button></div>
+                    <div className="flex flex-1 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xl bg-muted">🛒</span><div><p className="font-semibold text-sm truncate">{item.title}</p><p className="text-xs text-muted-foreground">{item.cat}</p></div></div>
+                    <div className="flex items-center gap-2"><div className="text-end"><p className="font-bold text-sm text-foreground">{item.amount} د.ع</p><p className="text-xs text-muted-foreground">قبل يومين</p></div><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4 text-muted-foreground" /></Button></div>
                   </li>
                 ))}
             </ul>
