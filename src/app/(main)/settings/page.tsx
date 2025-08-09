@@ -557,10 +557,20 @@ export default function SettingsPage() {
   }
 
   const handleSaveAppearanceSettings = async () => {
-    
-    if (dailyReminderEnabled) {
-      // Request permission if not already granted
-      if ('Notification' in window && Notification.permission !== 'granted') {
+    updateSettingsMutation.mutate({
+      appTone,
+      notifications: { dailyReminderEnabled },
+    });
+  };
+  
+  const handleDailyReminderChange = async (checked: boolean) => {
+    if (checked) {
+      if (!('Notification' in window)) {
+        toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
+        return;
+      }
+      
+      if (Notification.permission !== 'granted') {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') {
               toast({
@@ -568,21 +578,13 @@ export default function SettingsPage() {
                   description: 'لا يمكننا إرسال تذكيرات بدون إذنك.',
                   variant: 'destructive',
               });
-              setDailyReminderEnabled(false);
-              updateSettingsMutation.mutate({
-                appTone,
-                notifications: { dailyReminderEnabled: false },
-              });
-              return;
+              return; // Keep switch off
           }
       }
     }
-
-    updateSettingsMutation.mutate({
-      appTone,
-      notifications: { dailyReminderEnabled },
-    });
+    setDailyReminderEnabled(checked);
   };
+
 
   // --- Category Management ---
   const handleEditCategory = (category: Category) => {
@@ -1122,7 +1124,7 @@ export default function SettingsPage() {
                 <Switch
                   id="daily-reminder"
                   checked={dailyReminderEnabled}
-                  onCheckedChange={setDailyReminderEnabled}
+                  onCheckedChange={handleDailyReminderChange}
                   aria-label="تفعيل التذكير اليومي"
                 />
               </div>
