@@ -70,7 +70,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import Link from 'next/link';
@@ -935,7 +935,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-1">
+      <Accordion type="single" collapsible className="w-full space-y-4">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -943,7 +943,7 @@ export default function SettingsPage() {
         >
           <div className="space-y-6">
              <div>
-                <h3 className="text-base font-semibold mb-3">شخصية المدرب المالي</h3>
+                <h3 className="font-semibold mb-3 text-sm">شخصية المدرب المالي</h3>
                 <div className="grid grid-cols-2 gap-4">
                 
                 <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-4 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
@@ -951,7 +951,7 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#FFE0B2"/><path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/><path d="M25.5,37.8c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2c0.3-0.4,0.2-1-0.2-1.3c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8C24.2,38.3,25,38.3,25.5,37.8z" fill="#795548" opacity="0"/><g><ellipse cx="24.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/><ellipse cx="39.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/></g><path d="M50,26c-2.4,0-4.6,1-6.2,2.6c-1.2-3.1-4.1-5.3-7.5-5.3s-6.3,2.2-7.5,5.3C17.6,27,15.4,26,13,26c-4.4,0-8,3.6-8,8s3.6,8,8,8h2c2.2,0,4-1.8,4-4v-2h18v2c0,2.2,1.8,4,4,4h2c4.4,0,8-3.6,8-8S54.4,26,50,26z" fill="#6D4C41"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-sm">كرومي</h4>
+                    <h4 className="font-bold text-xs">كرومي</h4>
                     <p className="text-xs text-muted-foreground">صديقك الصدوق، نصائحه ودية.</p>
                     </div>
                 </div>
@@ -961,7 +961,7 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#C5CAE9"/><path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/><path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/><path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/><path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/><path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/><path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-sm">أستاذ حريص</h4>
+                    <h4 className="font-bold text-xs">أستاذ حريص</h4>
                     <p className="text-xs text-muted-foreground">مدربك المحترف، يقدم نصائح دقيقة.</p>
                     </div>
                 </div>
@@ -971,7 +971,7 @@ export default function SettingsPage() {
             <Separator />
             
             <div>
-              <h3 className="text-base font-semibold mb-3">الإشعارات</h3>
+              <h3 className="font-semibold mb-3 text-sm">الإشعارات</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">
                   <Label htmlFor="daily-reminder" className="text-sm font-medium">
@@ -1004,7 +1004,7 @@ export default function SettingsPage() {
         >
             {/* Income Section */}
             <div className="space-y-4">
-                <h3 className='text-lg font-semibold'>إدارة الدخل</h3>
+                <h3 className='text-base font-semibold'>إدارة الدخل</h3>
                 
                 <Card className="text-center bg-muted/50">
                     <CardContent className="p-4">
@@ -1014,10 +1014,10 @@ export default function SettingsPage() {
                 </Card>
 
                 <div>
-                    <h4 className="font-medium mb-2">مصادر الدخل الحالية</h4>
+                    <h4 className="font-medium mb-2 text-sm">مصادر الدخل الحالية</h4>
                     <div className="space-y-2">
                         {incomes.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background">لا توجد مصادر دخل مسجلة.</p>
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-sm">لا توجد مصادر دخل مسجلة.</p>
                         ) : (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
                                 {incomes.map(income => (
@@ -1027,14 +1027,14 @@ export default function SettingsPage() {
                                                 {income.type === 'recurring' ? <Repeat className="h-5 w-5" /> : <Wallet className="h-5 w-5" />}
                                             </span>
                                             <div>
-                                                <p className="font-semibold">{income.title}</p>
-                                                <p className="text-sm text-muted-foreground">
+                                                <p className="font-semibold text-sm">{income.title}</p>
+                                                <p className="text-xs text-muted-foreground">
                                                     {income.type === 'recurring' ? 'شهري' : `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}`}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className='flex items-center'>
-                                            <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap">{income.amount.toLocaleString()}&nbsp;د.ع</p>
+                                            <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap text-sm">{income.amount.toLocaleString()}&nbsp;د.ع</p>
                                             <div className="flex items-center gap-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
@@ -1073,7 +1073,7 @@ export default function SettingsPage() {
             
             {/* Profile Section */}
             <div className="space-y-4">
-                <h3 className='text-lg font-semibold'>الملف الشخصي</h3>
+                <h3 className='text-base font-semibold'>الملف الشخصي</h3>
                 <div className="space-y-3">
                     <Label>أفراد الأسرة (بمن فيهم أنت)</Label>
                     <div className="space-y-3 rounded-lg border bg-background p-4">
@@ -1110,7 +1110,7 @@ export default function SettingsPage() {
         >
              {/* Budget & Goals */}
             <div className="space-y-4">
-                 <h3 className='text-lg font-semibold'>الميزانية والأهداف</h3>
+                 <h3 className='text-base font-semibold'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
             </div>
@@ -1119,13 +1119,13 @@ export default function SettingsPage() {
 
             {/* Category Management */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">إدارة الفئات</h3>
+              <h3 className="text-base font-semibold">إدارة الفئات</h3>
               <div className="border rounded-lg p-2 space-y-2 max-h-72 overflow-y-auto">
                 {categories.map(cat => (
                   <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{getIconComponent(cat.icon)}</span>
-                      <span>{cat.name}</span>
+                      <span className="text-sm">{cat.name}</span>
                       {cat.isDefault && <span className="text-xs text-muted-foreground">(افتراضي)</span>}
                     </div>
                     <div className="flex items-center gap-1">
@@ -1161,11 +1161,11 @@ export default function SettingsPage() {
             
             {/* Category Budgets */}
             <div className="space-y-4">
-                 <h3 className='text-lg font-semibold'>ميزانيات الفئات</h3>
+                 <h3 className='text-base font-semibold'>ميزانيات الفئات</h3>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-4">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-4">
-                            <span className="flex items-center gap-2 w-1/3"><span className="text-xl">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`}>{category.name}</Label></span>
+                            <span className="flex items-center gap-2 w-1/3 text-sm"><span className="text-xl">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`}>{category.name}</Label></span>
                             <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1" />
                         </div>
                     ))}
@@ -1176,18 +1176,18 @@ export default function SettingsPage() {
 
             {/* Recurring Payments */}
             <div className="space-y-4">
-                <h3 className='text-lg font-semibold'>الدفعات الدورية</h3>
+                <h3 className='text-base font-semibold'>الدفعات الدورية</h3>
                 <div>
-                     <h4 className="font-medium mb-2">الدفعات الحالية</h4>
+                     <h4 className="font-medium mb-2 text-sm">الدفعات الحالية</h4>
                     <div className="space-y-2">
                         {recurringPayments.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background">لا توجد دفعات متكررة مسجلة.</p>
+                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-sm">لا توجد دفعات متكررة مسجلة.</p>
                         ) : (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
                                 {recurringPayments.map(p => (
                                     <li key={p.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                                        <div className="flex-1"><p className="font-semibold">{p.title}</p><p className="text-sm text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
-                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
+                                        <div className="flex-1"><p className="font-semibold text-sm">{p.title}</p><p className="text-xs text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: arIQ})}</p></div>
+                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap text-sm">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
                                     </li>
                                 ))}
                             </ul>
@@ -1241,7 +1241,7 @@ export default function SettingsPage() {
              <Separator />
 
              <div>
-                 <h4 className='font-semibold'>حذف وتصفير البيانات</h4>
+                 <h4 className='font-semibold text-sm'>حذف وتصفير البيانات</h4>
                  <p className="text-xs text-muted-foreground mb-2">حذف البيانات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</p>
                 <Dialog open={isDataResetOpen} onOpenChange={setIsDataResetOpen}>
                     <DialogTrigger asChild>
