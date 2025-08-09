@@ -26,18 +26,21 @@ export default function DashboardPreviewPage() {
     const mockBudget = 4000000;
     const weeklyBudget = mockBudget / 4; // 1,000,000 per week
 
-    // The user's specified scenario
+    // The user's specified scenario: Week 1, spent 750,000
     const weeklyExpenses = [
-      1200000, // Week 1: Over by 20% -> Orange
-      750000,  // Week 2: Under budget -> Green
-      2000000, // Week 3: Over by 100% -> Red
-      1000000  // Week 4: Exactly on budget -> Green
+      750000, // Week 1: Under budget -> Green
+      0,      // Week 2: No expenses yet
+      0,      // Week 3: No expenses yet
+      0       // Week 4: No expenses yet
     ];
 
-    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0); // Total: 4,950,000
+    const totalSpent = weeklyExpenses.reduce((sum, exp) => sum + exp, 0); // Total: 750,000
     const spentPercentage = mockBudget > 0 ? (totalSpent / mockBudget) * 100 : 0;
     
     const weeklySummaries = weeklyExpenses.map((spent) => {
+        if (spent === 0) {
+            return { spent, colorClass: 'bg-transparent' }; // Make future weeks transparent
+        }
         const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
         let colorClass = 'bg-primary'; // Green (default)
         if (overspendRatio > 0.25) {
@@ -68,7 +71,8 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden p-4 space-y-4">
-            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden">
+            {/* The main progress bar container */}
+            <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden flex-row-reverse">
                 {/* The colored segments for each week */}
                 {budgetData.weeklySummaries.map((week, index) => (
                     <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
