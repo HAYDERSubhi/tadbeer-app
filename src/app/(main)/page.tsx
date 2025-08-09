@@ -306,6 +306,7 @@ export default function DashboardPage() {
   const budgetData = useMemo(() => {
     const today = new Date();
     const monthStart = startOfMonth(today);
+    const dayOfMonth = getDate(today);
 
     const totalBudget = userSettings?.budget?.totalBudget || 0;
     const weeklyBudget = totalBudget > 0 ? totalBudget / 4 : 0;
@@ -322,33 +323,25 @@ export default function DashboardPage() {
     const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
     const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
     
+    let currentWeekIndex = 0;
+    if (dayOfMonth > 7 && dayOfMonth <= 14) currentWeekIndex = 1;
+    else if (dayOfMonth > 14 && dayOfMonth <= 21) currentWeekIndex = 2;
+    else if (dayOfMonth > 21) currentWeekIndex = 3;
+
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-        let weekStart: Date;
-        let weekEnd: Date;
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth();
+        let weekStartDay: number, weekEndDay: number, daysInWeek: number;
 
         switch (index) {
-            case 0: // Week 1: 1-7
-                weekStart = new Date(currentYear, currentMonth, 1);
-                weekEnd = new Date(currentYear, currentMonth, 7, 23, 59, 59, 999);
-                break;
-            case 1: // Week 2: 8-14
-                weekStart = new Date(currentYear, currentMonth, 8);
-                weekEnd = new Date(currentYear, currentMonth, 14, 23, 59, 59, 999);
-                break;
-            case 2: // Week 3: 15-21
-                weekStart = new Date(currentYear, currentMonth, 15);
-                weekEnd = new Date(currentYear, currentMonth, 21, 23, 59, 59, 999);
-                break;
-            case 3: // Week 4: 22-EOM
-                weekStart = new Date(currentYear, currentMonth, 22);
-                weekEnd = endOfMonth(today);
-                break;
-            default: // Should not happen
-                weekStart = today;
-                weekEnd = today;
+            case 0: weekStartDay = 1; weekEndDay = 7; break;
+            case 1: weekStartDay = 8; weekEndDay = 14; break;
+            case 2: weekStartDay = 15; weekEndDay = 21; break;
+            case 3: weekStartDay = 22; weekEndDay = getDaysInMonth(today); break;
+            default: weekStartDay = 1; weekEndDay = 7;
         }
+        daysInWeek = weekEndDay - weekStartDay + 1;
+        
+        const weekStart = new Date(today.getFullYear(), today.getMonth(), weekStartDay);
+        const weekEnd = new Date(today.getFullYear(), today.getMonth(), weekEndDay, 23, 59, 59, 999);
 
         const weekExpenses = monthlyExpenses.filter(exp => {
             const expDate = parseISO(exp.date);
@@ -371,8 +364,16 @@ export default function DashboardPage() {
         } else if (spent > 0 && weeklyBudget === 0) {
             colorClass = 'bg-primary';
         }
+        
+        let progressPercentage = 100; // Default for past weeks
+        if (index === currentWeekIndex) {
+            const daysPassedInWeek = dayOfMonth - weekStartDay + 1;
+            progressPercentage = (daysPassedInWeek / daysInWeek) * 100;
+        } else if (index > currentWeekIndex) {
+            colorClass = 'bg-transparent'; // Future weeks are empty
+        }
 
-        return { spent, colorClass };
+        return { spent, colorClass, progressPercentage };
     });
     
     return {
@@ -476,7 +477,9 @@ export default function DashboardPage() {
                 {/* Layer 1: The colored segments. */}
                 <div className="absolute inset-0 z-0 flex">
                   {budgetData.weeklySummaries.map((week, index) => (
-                    <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
+                    <div key={index} className="h-full w-1/4 relative">
+                        <div className={cn("h-full", week.colorClass)} style={{width: `${week.progressPercentage}%`}}/>
+                    </div>
                   ))}
                 </div>
                 {/* Layer 2: The dividers. */}
