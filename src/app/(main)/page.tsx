@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
+import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
@@ -314,11 +314,11 @@ export default function DashboardPage() {
     const monthStart = startOfMonth(today);
 
     const totalBudget = userSettings?.budget?.totalBudget || 0;
-    const weeklyBudget = totalBudget / 4;
+    const weeklyBudget = totalBudget > 0 ? totalBudget / 4 : 0;
 
     const monthlyExpenses = expenses.filter(exp => {
       try {
-        const expDate = new Date(exp.date);
+        const expDate = parseISO(exp.date);
         return isWithinInterval(expDate, { start: monthStart, end: endOfMonth(today) });
       } catch {
         return false;
@@ -330,23 +330,28 @@ export default function DashboardPage() {
     
     const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
         const weekStart = addWeeks(monthStart, index);
+        // Ensure weekEnd does not go past the end of the month
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 6 }); // Assuming week starts on Saturday (6)
 
         const weekExpenses = monthlyExpenses.filter(exp => {
-            const expDate = new Date(exp.date);
+            const expDate = parseISO(exp.date);
             return isWithinInterval(expDate, { start: weekStart, end: weekEnd });
         });
         
         const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         
-        let colorClass = 'bg-primary';
-        if (weeklyBudget > 0) {
-            const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
-            if (overspendRatio > 0.25) {
+        let colorClass = 'bg-transparent';
+        if (spent > 0 && weeklyBudget > 0) {
+            const overspendRatio = spent / weeklyBudget;
+            if (overspendRatio > 1.25) {
                 colorClass = 'bg-destructive'; // Red
-            } else if (overspendRatio > 0) {
-                colorClass = 'bg-orange-400'; // Lighter Orange
+            } else if (overspendRatio > 1) {
+                colorClass = 'bg-orange-400'; // Orange
+            } else {
+                colorClass = 'bg-primary'; // Green (Teal)
             }
+        } else if (spent > 0 && weeklyBudget === 0) {
+            colorClass = 'bg-primary'; // If there's spending but no budget, show as primary color
         }
 
         return { spent, colorClass };
@@ -449,14 +454,21 @@ export default function DashboardPage() {
          <Card id="budget-summary-card" className="overflow-hidden bg-card border shadow-sm rounded-md">
             <CardContent className="p-4 space-y-4">
                 {/* The Smart Progress Bar */}
-                <div className="relative h-6 w-full rounded-md bg-secondary flex overflow-hidden flex-row-reverse">
-                    {/* The colored segments for each week */}
-                    {budgetData.weeklySummaries.map((week, index) => (
-                        <div key={index} className={cn("h-full", week.colorClass)} style={{ width: '25%' }} />
-                    ))}
-
-                    {/* Percentage Text Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
+                    {/* Layer 1: The colored segments for each week */}
+                    <div className="absolute inset-0 z-0 flex">
+                        {budgetData.weeklySummaries.map((week, index) => (
+                            <div key={index} className={cn("h-full w-1/4", week.colorClass)} />
+                        ))}
+                    </div>
+                    {/* Layer 2: The dividers */}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '25%' }}></div>
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '50%' }}></div>
+                        <div className="absolute h-1 w-px bg-black bottom-0" style={{ right: '75%' }}></div>
+                    </div>
+                    {/* Layer 3: Percentage Text Overlay */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage.toFixed(0)}%
                         </span>
