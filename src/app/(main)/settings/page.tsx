@@ -564,25 +564,39 @@ export default function SettingsPage() {
   };
   
   const handleDailyReminderChange = async (checked: boolean) => {
-    if (checked) {
-      if (!('Notification' in window)) {
-        toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
-        return;
-      }
-      
-      if (Notification.permission !== 'granted') {
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-              toast({
-                  title: 'تم رفض الإذن',
-                  description: 'لا يمكننا إرسال تذكيرات بدون إذنك.',
-                  variant: 'destructive',
-              });
-              return; // Keep switch off
-          }
-      }
+    if (!checked) {
+      setDailyReminderEnabled(false);
+      return;
     }
-    setDailyReminderEnabled(checked);
+  
+    if (!('Notification' in window)) {
+      toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
+      return;
+    }
+    
+    if (Notification.permission === 'granted') {
+      setDailyReminderEnabled(true);
+    } else if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setDailyReminderEnabled(true);
+        toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح.'});
+      } else {
+        setDailyReminderEnabled(false);
+        toast({
+          title: 'تم رفض الإذن',
+          description: 'لا يمكننا إرسال تذكيرات بدون إذنك.',
+          variant: 'destructive',
+        });
+      }
+    } else { // Permission was denied
+      setDailyReminderEnabled(false);
+      toast({
+        title: 'تم رفض الإذن',
+        description: 'لا يمكننا إرسال تذكيرات بدون إذنك. يرجى تفعيلها من إعدادات المتصفح.',
+        variant: 'destructive',
+      });
+    }
   };
 
 
