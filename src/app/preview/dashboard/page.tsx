@@ -1,7 +1,7 @@
 // src/app/preview/dashboard/page.tsx
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   Pencil,
   Mic,
@@ -10,37 +10,18 @@ import {
   History,
   Sparkles,
   MoreHorizontal,
-  Wallet,
   CookingPot,
   PiggyBank,
   TrendingUp,
-  Eye,
-  EyeOff
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from 'next/link';
 
-// Reusable component for displaying a single statistic item
-const StatItem = ({ title, value, color, size = 'default' }: { title: string, value: string, color?: string, size?: 'default' | 'large' }) => (
-  <div className="flex flex-col items-center gap-0">
-    <span className={cn("text-xs text-muted-foreground", size === 'large' && 'sm:text-sm')}>{title}</span>
-    <span className={cn(
-      "font-bold",
-      color,
-      size === 'default' ? 'text-lg' : 'text-xl sm:text-2xl'
-    )}>
-      {value}
-    </span>
-  </div>
-);
-
 // Main Preview Component
 export default function DashboardPreviewPage() {
-  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
   
   const budgetData = useMemo(() => {
     const mockBudget = 2000000;
@@ -62,7 +43,6 @@ export default function DashboardPreviewPage() {
   }, []);
 
   const formatCurrency = (value: number) => `${value.toLocaleString('ar-EG')}\u00A0د.ع`;
-  const privacyPlaceholder = "•••••• د.ع";
 
   return (
     <div className="bg-background min-h-screen">
@@ -76,16 +56,16 @@ export default function DashboardPreviewPage() {
 
         {/* The new proposed "Smart Card" */}
         <Card className="overflow-hidden">
-            <div className="p-4 pt-4 space-y-4">
+            <div className="p-3 space-y-3">
                  <div>
                     <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
                         <span>صرفت {budgetData.spentPercentage.toFixed(0)}%</span>
-                        <span>الهدف: {isPrivacyMode ? privacyPlaceholder : formatCurrency(budgetData.totalBudget)}</span>
+                        <span>الهدف: {formatCurrency(budgetData.totalBudget)}</span>
                     </div>
-                    <Progress value={isPrivacyMode ? 100 : budgetData.spentPercentage} className="h-3" indicatorcolor={isPrivacyMode ? 'hsl(var(--muted))' : undefined} />
+                    <Progress value={budgetData.spentPercentage} className="h-3 rounded-md" indicatorClassName="bg-primary/80" />
                 </div>
                 
-                 <div className="grid grid-cols-4 gap-2 sm:gap-3 text-center">
+                 <div className="grid grid-cols-4 gap-2 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted transition-colors">
                         <span className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary transition-colors">
                             <Pencil className="w-6 h-6" />
@@ -112,11 +92,6 @@ export default function DashboardPreviewPage() {
                     </div>
                 </div>
             </div>
-             <CardHeader className="flex-row items-center justify-end p-2 pt-0">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setIsPrivacyMode(!isPrivacyMode)}>
-                    {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </Button>
-            </CardHeader>
         </Card>
 
 
