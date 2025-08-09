@@ -16,5 +16,8 @@
         "function": "nextServer"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
