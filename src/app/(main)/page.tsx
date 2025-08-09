@@ -357,21 +357,10 @@ export default function DashboardPage() {
         
         const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
         
-        // --- Smart Color Logic ---
         let colorClass = 'bg-transparent';
         if (spent > 0 && weeklyBudget > 0) {
-            let budgetForComparison = weeklyBudget;
-            
-            // If it's the current week, calculate budget proportionally to elapsed days.
-            if (isWithinInterval(today, { start: weekStart, end: weekEnd })) {
-                const daysInThisWeek = differenceInDays(weekEnd, weekStart) + 1;
-                const elapsedDaysInWeek = differenceInDays(today, weekStart) + 1;
-                budgetForComparison = (weeklyBudget / daysInThisWeek) * elapsedDaysInWeek;
-            } else if (isFuture(weekStart)) {
-                budgetForComparison = Infinity;
-            }
+            const overspendRatio = spent / weeklyBudget;
 
-            const overspendRatio = budgetForComparison > 0 ? spent / budgetForComparison : Infinity;
             if (overspendRatio > 1.25) {
                 colorClass = 'bg-destructive';
             } else if (overspendRatio > 1) {
@@ -379,7 +368,6 @@ export default function DashboardPage() {
             } else {
                 colorClass = 'bg-primary';
             }
-
         } else if (spent > 0 && weeklyBudget === 0) {
             colorClass = 'bg-primary';
         }
