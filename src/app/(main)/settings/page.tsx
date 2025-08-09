@@ -10,8 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useTheme } from 'next-themes';
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Moon, Sun, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, WandSparkles, CalendarClock, Eye, ChevronDown, Bot, UserCog, GripVertical, ListOrdered, BellRing, Mail, MessageSquare } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -44,8 +43,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
-  SheetDescription,
 } from '@/components/ui/sheet';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
@@ -53,7 +50,7 @@ import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, updateExpense, addFeedback } from '@/services/firestore';
+import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -73,7 +70,6 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
-import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 
 
@@ -167,8 +163,8 @@ const MappingDialog = ({
     <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
       <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><LinkIcon className="h-5 w-5 text-primary" />ربط أعمدة الملف</DialogTitle>
-          <DialogDescription>الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2 text-sm"><LinkIcon className="h-4 w-4 text-primary" />ربط أعمدة الملف</DialogTitle>
+          <DialogDescription className="text-xs">الرجاء اختيار العمود الصحيح من ملفك لكل حقل. سيتم حفظ هذا الربط للاستيرادات المستقبلية.</DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-1">
           <div className="space-y-4 py-4">
@@ -187,8 +183,8 @@ const MappingDialog = ({
           </div>
         </div>
         <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
-          <Button onClick={handleProcess} disabled={isProcessing}>
+          <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
+          <Button onClick={handleProcess} disabled={isProcessing} className="text-xs h-9">
             {isProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             {isProcessing ? 'جاري المعالجة...' : 'تأكيد واستيراد البيانات'}
           </Button>
@@ -235,10 +231,7 @@ export default function SettingsPage() {
 
   // State for Feedback Dialog
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [feedbackSubject, setFeedbackSubject] = useState('');
-  const [feedbackDetails, setFeedbackDetails] = useState('');
-
-
+  
   const [deleteOptions, setDeleteOptions] = useState({
     expenses: false,
     goals: false,
@@ -608,25 +601,12 @@ export default function SettingsPage() {
     onSuccess: () => {
         toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
         setIsFeedbackOpen(false);
-        setFeedbackSubject('');
-        setFeedbackDetails('');
     },
     onError: () => {
         toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
     }
   });
 
-  const handleSendFeedback = () => {
-    if (!feedbackDetails.trim() || !user) {
-        toast({ title: "المحتوى فارغ", description: "يرجى كتابة التفاصيل قبل الإرسال.", variant: "destructive" });
-        return;
-    }
-    feedbackMutation.mutate({
-        subject: feedbackSubject.trim() || "بدون موضوع",
-        details: feedbackDetails.trim(),
-        email: user.email || 'anonymous'
-    });
-  }
 
   // --- Data Import/Export & Reset ---
   const addMultipleExpensesMutation = useMutation({
@@ -870,7 +850,7 @@ export default function SettingsPage() {
     <AccordionItem value={value} className="border-b-0">
       <Card>
         <CardHeader className="p-0">
-          <AccordionTrigger className="py-2 px-3 hover:no-underline text-sm">
+          <AccordionTrigger className="py-2 px-3 hover:no-underline text-sm font-medium">
               <div className="flex items-center gap-2 w-full">
                   <div className="p-1.5 bg-primary/10 rounded-md text-primary">
                       {React.createElement(icon, { className: "h-4 w-4" })}
@@ -928,14 +908,14 @@ export default function SettingsPage() {
              <CardFooter className="p-0">
                  <Alert variant="destructive" className="border-0 border-t rounded-t-none">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitleComponent>بياناتك غير محفوظة!</AlertTitleComponent>
-                    <AlertDescriptionComponent>للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</AlertDescriptionComponent>
+                    <AlertTitleComponent className="text-sm">بياناتك غير محفوظة!</AlertTitleComponent>
+                    <AlertDescriptionComponent className="text-xs">للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</AlertDescriptionComponent>
                 </Alert>
              </CardFooter>
         )}
       </Card>
       
-      <Accordion type="single" collapsible className="w-full space-y-4">
+      <Accordion type="single" collapsible className="w-full space-y-2">
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -943,7 +923,7 @@ export default function SettingsPage() {
         >
           <div className="space-y-6">
              <div>
-                <h3 className="font-semibold mb-3 text-sm">شخصية المدرب المالي</h3>
+                <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
                 <div className="grid grid-cols-2 gap-4">
                 
                 <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
@@ -951,7 +931,7 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#FFE0B2"/><path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/><path d="M25.5,37.8c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2c0.3-0.4,0.2-1-0.2-1.3c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8C24.2,38.3,25,38.3,25.5,37.8z" fill="#795548" opacity="0"/><g><ellipse cx="24.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/><ellipse cx="39.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/></g><path d="M50,26c-2.4,0-4.6,1-6.2,2.6c-1.2-3.1-4.1-5.3-7.5-5.3s-6.3,2.2-7.5,5.3C17.6,27,15.4,26,13,26c-4.4,0-8,3.6-8,8s3.6,8,8,8h2c2.2,0,4-1.8,4-4v-2h18v2c0,2.2,1.8,4,4,4h2c4.4,0,8-3.6,8-8S54.4,26,50,26z" fill="#6D4C41"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-sm">كرومي</h4>
+                    <h4 className="font-semibold text-sm">كرومي</h4>
                     <p className="text-xs text-muted-foreground">صديقك، نصائحه ودية.</p>
                     </div>
                 </div>
@@ -961,7 +941,7 @@ export default function SettingsPage() {
                     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#C5CAE9"/><path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/><path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/><path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/><path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/><path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/><path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/></svg>
                     </div>
                     <div>
-                    <h4 className="font-bold text-sm">أستاذ حريص</h4>
+                    <h4 className="font-semibold text-sm">أستاذ حريص</h4>
                     <p className="text-xs text-muted-foreground">مدرب محترف ودقيق.</p>
                     </div>
                 </div>
@@ -971,7 +951,7 @@ export default function SettingsPage() {
             <Separator />
             
             <div>
-              <h3 className="font-semibold mb-3 text-sm">الإشعارات</h3>
+              <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">
                   <Label htmlFor="daily-reminder" className="text-sm font-medium">
@@ -990,7 +970,7 @@ export default function SettingsPage() {
               </div>
             </div>
             
-            <Button onClick={handleSaveAppearanceSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
+            <Button onClick={handleSaveAppearanceSettings} className="w-full h-9 text-sm" disabled={updateSettingsMutation.isPending}>
               {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
               حفظ التغييرات
             </Button>
@@ -999,12 +979,12 @@ export default function SettingsPage() {
 
         <AccordionItemWrapper 
           value="item-2"
-          icon={UserCog}
+          icon={Users}
           title="الملف الشخصي والدخل"
         >
             {/* Income Section */}
             <div className="space-y-4">
-                <h3 className='text-sm font-semibold'>إدارة الدخل</h3>
+                <h3 className='text-sm font-medium'>إدارة الدخل</h3>
                 
                 <Card className="text-center bg-muted/50">
                     <CardContent className="p-3">
@@ -1048,21 +1028,21 @@ export default function SettingsPage() {
                 </div>
                  <FormDialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
                     <DialogTrigger asChild>
-                    <Button className="w-full" variant="outline" onClick={handleAddNewIncomeClick}><UserPlus className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
+                    <Button className="w-full text-xs h-9" variant="outline" onClick={handleAddNewIncomeClick}><UserPlus className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
                     </DialogTrigger>
                     <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
-                            <SheetTitle>{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</SheetTitle>
+                            <SheetTitle className="text-sm">{editingIncomeId ? 'تعديل مصدر الدخل' : 'إضافة مصدر دخل جديد'}</SheetTitle>
                         </SheetHeader>
                         <div className="overflow-y-auto flex-1 p-6 pt-2">
                             <form onSubmit={incomeForm.handleSubmit(onIncomeSubmit)} className="space-y-4">
-                                <div className="space-y-2"><Label htmlFor="income-title">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." />{incomeForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
-                                <div className="space-y-2"><Label htmlFor="income-amount">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="income-title" className="text-xs">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." className="text-xs h-9" />{incomeForm.formState.errors.title && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="income-amount" className="text-xs">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" className="text-xs h-9" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2"><Label htmlFor="income-type">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
-                                    <div className="space-y-2"><Label>تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-sm text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
+                                    <div className="space-y-2"><Label htmlFor="income-type" className="text-xs">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="income-type" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
+                                    <div className="space-y-2"><Label className="text-xs">تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
                                 </div>
-                                <Button type="submit" className="w-full" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><Save className="ml-2 h-4 w-4" /> تحديث</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة</>}</Button>
+                                <Button type="submit" className="w-full text-xs h-9" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><Save className="ml-2 h-4 w-4" /> تحديث</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة</>}</Button>
                             </form>
                         </div>
                     </SheetContent>
@@ -1073,7 +1053,7 @@ export default function SettingsPage() {
             
             {/* Profile Section */}
             <div className="space-y-4">
-                <h3 className='text-sm font-semibold'>الملف الشخصي</h3>
+                <h3 className='text-sm font-medium'>الملف الشخصي</h3>
                 <div className="space-y-3">
                     <Label className="text-xs">أفراد الأسرة (بمن فيهم أنت)</Label>
                     <div className="space-y-3 rounded-lg border bg-background p-3">
@@ -1093,10 +1073,10 @@ export default function SettingsPage() {
                             </Button>
                         </div>
                         ))}
-                        <Button variant="outline" size="sm" onClick={handleAddMember} className="w-full text-xs"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
+                        <Button variant="outline" size="sm" onClick={handleAddMember} className="w-full text-xs h-9"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
                     </div>
                 </div>
-                <Button onClick={handleSaveProfile} className="w-full" disabled={updateSettingsMutation.isPending}>
+                <Button onClick={handleSaveProfile} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
                     {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                     حفظ الملف الشخصي
                 </Button>
@@ -1110,7 +1090,7 @@ export default function SettingsPage() {
         >
              {/* Budget & Goals */}
             <div className="space-y-4">
-                 <h3 className='text-sm font-semibold'>الميزانية والأهداف</h3>
+                 <h3 className='text-sm font-medium'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget" className="text-xs">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
             </div>
@@ -1119,7 +1099,7 @@ export default function SettingsPage() {
 
             {/* Category Management */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold">إدارة الفئات</h3>
+              <h3 className="text-sm font-medium">إدارة الفئات</h3>
               <div className="border rounded-lg p-2 space-y-2 max-h-72 overflow-y-auto">
                 {categories.map(cat => (
                   <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
@@ -1152,7 +1132,7 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full" onClick={handleAddNewCategory}>
+              <Button variant="outline" className="w-full text-xs h-9" onClick={handleAddNewCategory}>
                 <UserPlus className="ml-2 h-4 w-4" /> إضافة فئة جديدة
               </Button>
             </div>
@@ -1161,7 +1141,7 @@ export default function SettingsPage() {
             
             {/* Category Budgets */}
             <div className="space-y-4">
-                 <h3 className='text-sm font-semibold'>ميزانيات الفئات</h3>
+                 <h3 className='text-sm font-medium'>ميزانيات الفئات</h3>
                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-3">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-4">
@@ -1176,7 +1156,7 @@ export default function SettingsPage() {
 
             {/* Recurring Payments */}
             <div className="space-y-4">
-                <h3 className='text-sm font-semibold'>الدفعات الدورية</h3>
+                <h3 className='text-sm font-medium'>الدفعات الدورية</h3>
                 <div>
                      <h4 className="font-medium mb-2 text-xs">الدفعات الحالية</h4>
                     <div className="space-y-2">
@@ -1196,29 +1176,29 @@ export default function SettingsPage() {
                 </div>
                 <FormDialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="w-full" variant="outline" onClick={handleAddNewPaymentClick}><UserPlus className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
+                        <Button className="w-full text-xs h-9" variant="outline" onClick={handleAddNewPaymentClick}><UserPlus className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
                     </DialogTrigger>
                     <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
                         <SheetHeader>
-                            <SheetTitle>{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
+                            <SheetTitle className="text-sm">{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
                         </SheetHeader>
                         <div className="overflow-y-auto flex-1 p-6 pt-2">
                             <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="space-y-4">
-                                <div className="space-y-2"><Label htmlFor="rp-title">اسم الدفعة</Label><Input id="rp-title" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
-                                <div className="space-y-2"><Label htmlFor="rp-amount">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-title" className="text-xs">اسم الدفعة</Label><Input id="rp-title" className="text-xs h-9" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-amount" className="text-xs">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" className="text-xs h-9" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2"><Label htmlFor="rp-frequency">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
-                                    <div className="space-y-2"><Label>تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
+                                    <div className="space-y-2"><Label htmlFor="rp-frequency" className="text-xs">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency" className="text-xs h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
+                                    <div className="space-y-2"><Label className="text-xs">تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
-                                <div className="space-y-2"><Label htmlFor="rp-category">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
-                                <Button type="submit" className="w-full" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                                <div className="space-y-2"><Label htmlFor="rp-category" className="text-xs">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category" className="text-xs h-9"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                                <Button type="submit" className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
                             </form>
                         </div>
                     </SheetContent>
                 </FormDialog>
             </div>
              <Separator />
-            <Button onClick={handleSaveBudgetSettings} className="w-full" disabled={updateSettingsMutation.isPending}>
+            <Button onClick={handleSaveBudgetSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
                 {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                 حفظ تغييرات الميزانية
             </Button>
@@ -1230,8 +1210,8 @@ export default function SettingsPage() {
             title="إدارة البيانات"
         >
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="w-full" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
-                <Button className="w-full" variant="outline" onClick={handleImportClick} disabled={isFileProcessing}>
+                <Button className="w-full text-xs h-9" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
+                <Button className="w-full text-xs h-9" variant="outline" onClick={handleImportClick} disabled={isFileProcessing}>
                   {isFileProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                   استيراد البيانات (Excel)
                 </Button>
@@ -1241,27 +1221,27 @@ export default function SettingsPage() {
              <Separator />
 
              <div>
-                 <h4 className='font-semibold text-sm'>حذف وتصفير البيانات</h4>
+                 <h4 className='font-medium text-sm'>حذف وتصفير البيانات</h4>
                  <p className="text-xs text-muted-foreground mb-2">حذف البيانات بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</p>
                 <Dialog open={isDataResetOpen} onOpenChange={setIsDataResetOpen}>
                     <DialogTrigger asChild>
-                        <Button className="w-full" variant="destructive"><Trash2 className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
+                        <Button className="w-full text-xs h-9" variant="destructive"><Trash2 className="ml-2 h-4 w-4" />حذف وتصفير البيانات</Button>
                     </DialogTrigger>
                     <DialogContent>
-                        <DialogHeader><DialogTitle>حذف وتصفير البيانات</DialogTitle><DialogDescription>اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</DialogDescription></DialogHeader>
-                        <div className="space-y-4 py-4">
+                        <DialogHeader><DialogTitle className="text-base">حذف وتصفير البيانات</DialogTitle><DialogDescription className="text-xs">اختر البيانات التي ترغب في حذفها بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</DialogDescription></DialogHeader>
+                        <div className="space-y-4 py-4 text-sm">
                             <div className="font-semibold text-foreground">بيانات المعاملات:</div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal">حذف جميع المصاريف</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal">حذف جميع الأهداف المالية</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal">حذف جميع مصادر الدخل</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal text-xs">حذف جميع المصاريف</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal text-xs">حذف جميع الأهداف المالية</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal text-xs">حذف جميع مصادر الدخل</Label></div>
                             <Separator />
                             <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
-                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal">تصفير الملف الشخصي</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal text-xs">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
+                            <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal text-xs">تصفير الملف الشخصي</Label></div>
                         </div>
                         <DialogFooter>
-                            <Button variant="ghost" onClick={() => setIsDataResetOpen(false)}>إلغاء</Button>
-                            <Button variant="destructive" onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending}>{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</Button>
+                            <Button variant="ghost" onClick={() => setIsDataResetOpen(false)} className="text-xs h-9">إلغاء</Button>
+                            <Button variant="destructive" onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending} className="text-xs h-9">{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -1274,39 +1254,13 @@ export default function SettingsPage() {
             title={`حول التطبيق - إصدار ${version}`}
         >
           <div className="p-4 text-center space-y-4">
-              <FormDialog open={isFeedbackOpen} onOpenChange={setIsFeedbackOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                       <MessageSquare className="ml-2 h-4 w-4" />
-                       إرسال ملاحظات واقتراحات
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>إرسال ملاحظات</DialogTitle>
-                        <DialogDescription>
-                            نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="feedback-subject">الموضوع</Label>
-                            <Input id="feedback-subject" value={feedbackSubject} onChange={(e) => setFeedbackSubject(e.target.value)} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="feedback-details">التفاصيل</Label>
-                            <Textarea id="feedback-details" value={feedbackDetails} onChange={(e) => setFeedbackDetails(e.target.value)} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsFeedbackOpen(false)}>إلغاء</Button>
-                        <Button onClick={handleSendFeedback} disabled={feedbackMutation.isPending}>
-                            {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                            إرسال
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-              </FormDialog>
+              <FeedbackDialog 
+                isMobile={isMobile}
+                isOpen={isFeedbackOpen}
+                setIsOpen={setIsFeedbackOpen}
+                user={user}
+                feedbackMutation={feedbackMutation}
+              />
             <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
@@ -1364,6 +1318,13 @@ const CategoryEditDialog = ({
     },
   });
 
+  useEffect(() => {
+    form.reset({
+      name: category?.name || "",
+      icon: category?.icon || "",
+    })
+  }, [category, form])
+
   const onSubmit = (data: CategoryFormData) => {
     onSave(data);
     form.reset();
@@ -1376,28 +1337,28 @@ const CategoryEditDialog = ({
     <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
       <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-sm">{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
+          <DialogDescription className="text-xs">
             {category?.isDefault ? "يمكنك تعديل اسم ورمز الفئات الافتراضية." : "أضف اسمًا ورمزًا (Emoji) لفئتك الجديدة."}
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-1 py-4">
           <form id="category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cat-name">اسم الفئة</Label>
-              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" />
+              <Label htmlFor="cat-name" className="text-xs">اسم الفئة</Label>
+              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" className="text-xs h-9" />
               {form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}
             </div>
              <div className="space-y-2">
-              <Label htmlFor="cat-icon">الرمز (Emoji)</Label>
-              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" />
+              <Label htmlFor="cat-icon" className="text-xs">الرمز (Emoji)</Label>
+              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" className="text-xs h-9" />
                {form.formState.errors.icon && <p className="text-sm text-destructive mt-1">{form.formState.errors.icon.message}</p>}
             </div>
           </form>
         </div>
         <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={() => setIsOpen(false)}>إلغاء</Button>
-          <Button type="submit" form="category-form">
+          <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
+          <Button type="submit" form="category-form" className="text-xs h-9">
             <Save className="ml-2 h-4 w-4" />
             حفظ
           </Button>
@@ -1405,4 +1366,79 @@ const CategoryEditDialog = ({
       </DialogContentComponent>
     </DialogComponent>
   );
+};
+
+const feedbackSchema = z.object({
+  subject: z.string(),
+  details: z.string().min(1, { message: "التفاصيل مطلوبة" }),
+});
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
+
+
+const FeedbackDialog = ({ isOpen, setIsOpen, isMobile, user, feedbackMutation }: any) => {
+
+    const form = useForm<FeedbackFormData>({
+        resolver: zodResolver(feedbackSchema),
+        defaultValues: {
+            subject: '',
+            details: '',
+        }
+    });
+
+    const handleSendFeedback = (data: FeedbackFormData) => {
+        if (!user) {
+            toast({ title: "المستخدم غير مسجل", description: "يرجى تسجيل الدخول لإرسال الملاحظات.", variant: "destructive" });
+            return;
+        }
+        feedbackMutation.mutate({
+            subject: data.subject.trim() || "بدون موضوع",
+            details: data.details.trim(),
+            email: user.email || 'anonymous'
+        });
+    }
+
+    useEffect(() => {
+      if (!isOpen) {
+        form.reset();
+      }
+    }, [isOpen, form]);
+
+    const DialogComponent = isMobile ? Sheet : Dialog;
+
+    return (
+        <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="w-full text-xs h-9">
+                    <MessageSquare className="ml-2 h-4 w-4" />
+                    إرسال ملاحظات واقتراحات
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="text-sm">إرسال ملاحظات</DialogTitle>
+                    <DialogDescription className="text-xs">
+                        نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={form.handleSubmit(handleSendFeedback)} className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="feedback-subject" className="text-xs">الموضوع</Label>
+                        <Input id="feedback-subject" {...form.register('subject')} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." className="text-xs h-9" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="feedback-details" className="text-xs">التفاصيل</Label>
+                        <Textarea id="feedback-details" {...form.register('details')} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32 text-xs" />
+                        {form.formState.errors.details && <p className="text-sm text-destructive mt-1">{form.formState.errors.details.message}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" type="button" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
+                        <Button type="submit" disabled={feedbackMutation.isPending} className="text-xs h-9">
+                            {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                            إرسال
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </DialogComponent>
+    );
 };
