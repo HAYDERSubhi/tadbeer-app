@@ -33,8 +33,9 @@ export default function DashboardPreviewPage() {
     
     // Day 10 of the month
     const currentDayOfMonth = 10;
+    const weekNumber = Math.ceil(currentDayOfMonth / 7);
+    const progressInCurrentWeek = (currentDayOfMonth - ((weekNumber - 1) * 7)) / 7;
     
-    // Calculate total spent
     const weeklyExpenses = [
       750000,   // Week 1 spent
       2000000,  // Week 2 spent
@@ -45,17 +46,6 @@ export default function DashboardPreviewPage() {
     const spentPercentage = mockBudget > 0 ? (totalSpentForScenario / mockBudget) * 100 : 0;
     
     const weeklySummaries = weeklyExpenses.map((spent, index) => {
-        const weekNumber = index + 1;
-        const currentWeekNumber = Math.ceil(currentDayOfMonth / 7);
-
-        let progress = 0;
-        if (weekNumber < currentWeekNumber) {
-            progress = 1; // Full progress for past weeks
-        } else if (weekNumber === currentWeekNumber) {
-            const daysIntoWeek = currentDayOfMonth - ((weekNumber - 1) * 7);
-            progress = daysIntoWeek / 7;
-        }
-
         let colorClass = 'bg-transparent';
         if (spent > 0) {
             const overspendRatio = (spent - weeklyBudget) / weeklyBudget;
@@ -67,13 +57,15 @@ export default function DashboardPreviewPage() {
                 colorClass = 'bg-primary'; // Green
             }
         }
-        return { spent, colorClass, progress };
+        return { spent, colorClass };
     });
     
     return {
       totalBudget: mockBudget,
       spentPercentage,
-      weeklySummaries
+      weeklySummaries,
+      progressInCurrentWeek,
+      currentWeekNumber: weekNumber
     };
   }, []);
 
@@ -90,28 +82,45 @@ export default function DashboardPreviewPage() {
             <CardContent className="p-4 space-y-4">
                  {/* The Smart Progress Bar */}
                 <div className="relative h-6 w-full rounded-md bg-secondary overflow-hidden">
-                    {/* Colored segments container - This is the background layer */}
-                    <div className="absolute inset-0 z-0 flex">
-                      {budgetData.weeklySummaries.map((week, index) => (
-                          <div key={index} className="w-1/4 bg-transparent relative">
-                             <div 
-                               className={cn("h-full", week.colorClass)} 
-                               style={{ width: `${week.progress * 100}%` }}
-                             />
-                          </div>
-                      ))}
+                    {/* Layer 1: Colored Segments (background) */}
+                    <div className="absolute inset-0 z-0 flex flex-row-reverse">
+                      {budgetData.weeklySummaries.map((week, index) => {
+                          const weekNum = index + 1;
+                          let widthPercent = 100;
+                          
+                          // For past weeks, it's fully colored
+                          if (weekNum < budgetData.currentWeekNumber) {
+                              widthPercent = 100;
+                          } 
+                          // For the current week, color is based on time progress
+                          else if (weekNum === budgetData.currentWeekNumber) {
+                              widthPercent = budgetData.progressInCurrentWeek * 100;
+                          }
+                          // For future weeks, no color
+                          else {
+                              widthPercent = 0;
+                          }
+
+                          return (
+                            <div key={index} className="w-1/4 h-full">
+                               <div 
+                                 className={cn("h-full", week.colorClass)} 
+                                 style={{ width: `${widthPercent}%` }}
+                               />
+                            </div>
+                          )
+                      })}
+                    </div>
+                    
+                    {/* Layer 2: Dividers (foreground) */}
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '25%' }}></div>
+                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '50%' }}></div>
+                        <div className="absolute h-1 w-[2px] bg-black bottom-0" style={{ right: '75%' }}></div>
                     </div>
 
-                    {/* Dividers container - This layer is on top of colors */}
-                    <div
-                      className="absolute bottom-0 left-0 w-full h-1 bg-transparent z-10"
-                      style={{
-                        boxShadow: 'calc(25% - 1px) 0 0 0 black, calc(50% - 1px) 0 0 0 black, calc(75% - 1px) 0 0 0 black',
-                      }}
-                    />
-
-                    {/* Percentage Text Overlay - This is the top-most layer */}
-                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                    {/* Layer 3: Percentage Text Overlay (top-most) */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center">
                         <span className="text-xs font-bold text-black/70 drop-shadow-sm">
                             {budgetData.spentPercentage.toFixed(0)}%
                         </span>
