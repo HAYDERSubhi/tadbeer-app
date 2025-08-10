@@ -555,24 +555,35 @@ export default function SettingsPage() {
     });
   }
 
-  const handleDailyReminderChange = (checked: boolean) => {
-    setDailyReminderEnabled(checked);
-    // The actual permission request is now handled in `use-pwa-install` hook.
-    // We just save the user's preference here.
+  const handleDailyReminderChange = async (checked: boolean) => {
+    if (!('Notification' in window)) {
+        toast({
+            title: 'الميزة غير مدعومة',
+            description: 'متصفحك لا يدعم الإشعارات.',
+            variant: 'destructive',
+        });
+        return;
+    }
+
     if (checked) {
-        if ('Notification' in window && Notification.permission === 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            setDailyReminderEnabled(true);
+            toast({
+                title: 'تم تفعيل التذكيرات',
+                description: 'ستتلقى إشعارًا يوميًا لتسجيل مصروفاتك.',
+            });
+        } else {
+            setDailyReminderEnabled(false);
             toast({
                 title: 'تم رفض الإذن',
                 description: 'لا يمكننا إرسال تذكيرات. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
                 variant: 'destructive',
                 duration: 8000
             });
-        } else if ('Notification' in window && Notification.permission === 'default') {
-             toast({
-                title: 'تفعيل الإشعارات',
-                description: 'قد يطلب منك المتصفح منح إذن الإشعارات.',
-            });
         }
+    } else {
+        setDailyReminderEnabled(false);
     }
   };
 

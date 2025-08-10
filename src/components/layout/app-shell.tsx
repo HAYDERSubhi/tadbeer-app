@@ -2,16 +2,14 @@
 "use client";
 
 import Link from 'next/link';
-import { MoonIcon, SunIcon, Settings, Download } from 'lucide-react';
+import { MoonIcon, SunIcon, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import Logo from '@/components/ui/logo';
-import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
-  const { isInstallable, handleInstallClick } = usePWAInstall();
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -22,16 +20,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-foreground">تدبير</span>
           </Link>
           <div className="flex items-center gap-2">
-             {isInstallable && (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleInstallClick}
-                    aria-label="تثبيت التطبيق"
-                >
-                    <Download className="h-5 w-5" />
-                </Button>
-             )}
             <Button
               variant="ghost"
               size="icon"
