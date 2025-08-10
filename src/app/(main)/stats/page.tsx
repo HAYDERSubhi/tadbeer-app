@@ -247,7 +247,7 @@ export default function StatisticsPage() {
                                             <span className="font-medium">{item.name}</span>
                                             <span>{item.total.toLocaleString()}&nbsp;د.ع ({item.percentage.toFixed(1)}%)</span>
                                         </div>
-                                        <Progress value={item.percentage} className="h-2" indicatorClassName="rounded-full" style={{backgroundColor: item.chartColor}}/>
+                                        <Progress value={item.percentage} className="h-2" style={{ backgroundColor: item.chartColor }} indicatorClassName="hidden" />
                                     </div>
                                 ))}
                                 </div>
