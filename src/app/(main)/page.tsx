@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
-import { financialCoach, type FinancialCoachOutput } from '@/ai/flows/financial-coach';
+import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
 import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -234,39 +234,50 @@ export default function DashboardPage() {
   }, [expenses]);
   
   const financialCoachInput = useMemo(() => {
-    const userBudget = userSettings?.budget;
+    if (!userSettings) return null; // Ensure userSettings is available
+
+    const userBudget = userSettings.budget;
     const monthlyExpenses = expenses.filter(exp => {
-      try {
-        const expDate = new Date(exp.date);
-        const start = startOfMonth(new Date());
-        const end = endOfMonth(new Date());
-        return isWithinInterval(expDate, { start, end });
-      } catch { return false; }
+        try {
+            const expDate = new Date(exp.date);
+            const start = startOfMonth(new Date());
+            const end = endOfMonth(new Date());
+            return isWithinInterval(expDate, { start, end });
+        } catch { return false; }
     });
     
-    const categoryBudgets = userSettings?.categoryBudgets;
-    const userProfile = userSettings?.profile;
-    
+    // Do not call the coach if there are no expenses for the period
     if (monthlyExpenses.length === 0) {
-      return null;
+        return null;
     }
     
-    return {
-      totalBudget: userBudget?.totalBudget || 0, // Pass 0 if not set
-      zeroSpendDaysTarget: userBudget?.zeroSpendDaysTarget || 4,
-      expenses: monthlyExpenses.map(e => ({
-        title: e.title,
-        amount: e.amount,
-        category: categoryMap[e.category]?.name || e.category,
-        date: format(new Date(e.date), 'yyyy-MM-dd'),
-      })),
-      categoryBudgets: categoryBudgets,
-      userProfile: userProfile ? {
-        monthlyIncome: userProfile.monthlyIncome,
-        familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
-      } : undefined,
-      appTone: userSettings?.appTone || 'formal',
+    const categoryBudgets = userSettings.categoryBudgets;
+    const userProfile = userSettings.profile;
+    
+    const input: FinancialCoachInput = {
+        totalBudget: userBudget?.totalBudget || 0,
+        zeroSpendDaysTarget: userBudget?.zeroSpendDaysTarget || 4,
+        expenses: monthlyExpenses.map(e => ({
+            title: e.title,
+            amount: e.amount,
+            category: categoryMap[e.category]?.name || e.category,
+            date: format(new Date(e.date), 'yyyy-MM-dd'),
+        })),
+        appTone: userSettings.appTone || 'formal',
     };
+    
+    if (categoryBudgets) {
+        input.categoryBudgets = categoryBudgets;
+    }
+
+    if (userProfile) {
+        input.userProfile = {
+            monthlyIncome: userProfile.monthlyIncome,
+            familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
+        };
+    }
+    
+    return input;
   }, [expenses, userSettings, categoryMap]);
 
   useEffect(() => {
