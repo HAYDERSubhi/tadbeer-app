@@ -556,7 +556,7 @@ export default function SettingsPage() {
     });
   }
 
-  const handleSaveAppearanceSettings = async () => {
+  const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
       appTone,
       notifications: { dailyReminderEnabled },
