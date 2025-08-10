@@ -330,14 +330,12 @@ export default function StatisticsPage() {
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent]);
   
   const financialCoachInput = useMemo(() => {
-    // Crucially, only generate input if the app is NOT in its initial loading state.
     if (isAppDataLoading) {
       return null;
     }
     
-    // If there are no expenses for the period, no need to call the AI.
     if (filteredExpenses.length === 0) {
-      return { isEmpty: true }; // Use a special flag to indicate no data
+      return { isEmpty: true };
     }
 
     let totalBudgetForPeriod: number;
@@ -378,44 +376,34 @@ export default function StatisticsPage() {
     }
     
     return input;
-  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth, isAppDataLoading]);
+  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth, selectedYear, isAppDataLoading]);
 
   useEffect(() => {
-    // This effect is now solely responsible for fetching and setting insights.
-    // It is triggered whenever the input data changes.
-    
+    if (isAppDataLoading || !financialCoachInput) {
+      return;
+    }
+  
     const getInsights = async () => {
-      // Case 1: The input is not ready yet (e.g., initial app data is loading). Do nothing.
-      if (financialCoachInput === null) {
-        return; 
-      }
-
-      // Case 2: The input is ready, but it indicates there are no expenses for the period.
-      // Clear any existing insights and stop loading.
       if ('isEmpty' in financialCoachInput && financialCoachInput.isEmpty) {
         setInsights(null);
         setIsInsightsLoading(false);
         return;
       }
       
-      // Case 3: We have valid input data to send to the AI.
-      // Set loading state and make the API call.
       setIsInsightsLoading(true);
       try {
-        // We can safely cast here because we've handled the other cases.
         const result = await financialCoach(financialCoachInput as FinancialCoachInput);
         setInsights(result.insights);
       } catch (e) {
         console.error("Failed to get financial insights for stats page", e);
-        setInsights(null); // Clear insights on error
+        setInsights(null);
       } finally {
         setIsInsightsLoading(false);
       }
     };
     
     getInsights();
-    
-  }, [financialCoachInput]);
+  }, [financialCoachInput, isAppDataLoading]);
 
 
   if (expenses.length === 0 && !isAppDataLoading) {
@@ -647,10 +635,9 @@ export default function StatisticsPage() {
         <CardContent className="h-[220px]">
           {trendChartData.length > 0 ? (
             <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 15, bottom: 5 }}>
+              <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
-                <YAxis hide={true} domain={['dataMin', 'dataMax + 5000']} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString('en-US')} د.ع`, chartConfig.expenses.label ]}
@@ -774,4 +761,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
