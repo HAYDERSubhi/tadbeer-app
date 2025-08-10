@@ -555,56 +555,11 @@ export default function SettingsPage() {
     });
   }
 
-  const handleDailyReminderChange = async (checked: boolean) => {
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      toast({
-        title: 'الميزة غير مدعومة',
-        description: 'متصفحك لا يدعم الإشعارات.',
-        variant: 'destructive',
-      });
-      return;
-    }
-  
-    if (checked) {
-      if (Notification.permission === 'granted') {
-        setDailyReminderEnabled(true);
-        updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: true } });
-        toast({
-          title: 'تم تفعيل التذكيرات',
-          description: 'الإذن ممنوح بالفعل.',
-        });
-      } else if (Notification.permission === 'denied') {
-        toast({
-          title: 'تم رفض الإذن مسبقًا',
-          description: 'يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
-          variant: 'destructive',
-          duration: 8000,
-        });
-      } else {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          setDailyReminderEnabled(true);
-          updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: true } });
-          toast({
-            title: 'تم تفعيل التذكيرات',
-            description: 'ستتلقى إشعارًا يوميًا لتسجيل مصروفاتك.',
-          });
-        } else {
-          setDailyReminderEnabled(false);
-          toast({
-            title: 'تم رفض الإذن',
-            description: 'لا يمكننا إرسال تذكيرات.',
-            variant: 'destructive',
-          });
-        }
-      }
-    } else {
-      setDailyReminderEnabled(false);
-      updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: false } });
-      toast({
-        title: 'تم إيقاف التذكيرات',
-      });
-    }
+  const handleDailyReminderChange = (checked: boolean) => {
+    setDailyReminderEnabled(checked);
+    // The actual permission request is handled by the usePWAInstall hook.
+    // This just saves the user's preference.
+    updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked } });
   };
 
 

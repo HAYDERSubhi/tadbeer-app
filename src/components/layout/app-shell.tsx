@@ -6,10 +6,12 @@ import { MoonIcon, SunIcon, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
 import Logo from '@/components/ui/logo';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
+  usePWAInstall(); // Initialize the PWA install prompt logic
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
