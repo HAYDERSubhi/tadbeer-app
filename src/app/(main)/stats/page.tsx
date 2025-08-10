@@ -415,31 +415,20 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
-                  innerRadius={60}
-                  labelLine={false}
+                  outerRadius={80}
+                  innerRadius={50}
+                  labelLine={true}
                   onMouseEnter={(data) => {
                     setActiveDonutSlice(data.payload);
                   }}
                   onMouseLeave={() => {
                     setActiveDonutSlice(null);
                   }}
-                  label={({ name, percent, x, y }) => {
-                    if (percent * 100 < 5) return null;
-                    const displayName = name.length > 8 ? `${name.substring(0, 7)}...` : name;
-                    return (
-                        <text
-                          x={x}
-                          y={y}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          className="text-[11px] fill-foreground font-semibold pointer-events-none drop-shadow-sm"
-                        >
-                          <tspan x={x} dy="-0.5em">{displayName}</tspan>
-                          <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
-                        </text>
-                    );
-                  }}
+                   label={({ name, percent }) => {
+                      if (percent * 100 < 3) return null;
+                      return `${name} ${(percent * 100).toFixed(0)}%`;
+                    }}
+                   className="text-[10px] fill-foreground font-semibold pointer-events-none"
                 >
                   {pieChartData.map((entry) => (
                     <Cell key={`cell-${entry.key}`} fill={entry.fill} />
