@@ -575,7 +575,7 @@ export default function SettingsPage() {
                     description: 'ستتلقى إشعارًا يوميًا لتسجيل مصروفاتك.',
                 });
             } else {
-                setDailyReminderEnabled(false); // Keep it false if denied
+                setDailyReminderEnabled(false); 
                 toast({
                     title: 'تم رفض الإذن',
                     description: 'لا يمكننا إرسال تذكيرات. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
