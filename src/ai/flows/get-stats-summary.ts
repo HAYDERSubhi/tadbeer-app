@@ -1,3 +1,4 @@
+
 // src/ai/flows/get-stats-summary.ts
 'use server';
 /**
@@ -14,7 +15,6 @@ import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 
-// Define schemas inside the flow or locally, but do not export them.
 const PieChartDataItemSchema = z.object({
   name: z.string(),
   value: z.number(),
@@ -58,15 +58,8 @@ const GetStatsSummaryOutputSchema = z.object({
 export type GetStatsSummaryInput = z.infer<typeof GetStatsSummaryInputSchema>;
 export type GetStatsSummaryOutput = z.infer<typeof GetStatsSummaryOutputSchema>;
 
-// This is not a true AI flow, but we define it this way to leverage the server-action architecture.
 // It's a data processing flow that runs on the server.
-export const getStatsSummary = ai.defineFlow(
-  {
-    name: 'getStatsSummary',
-    inputSchema: GetStatsSummaryInputSchema,
-    outputSchema: GetStatsSummaryOutputSchema,
-  },
-  async (input) => {
+export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetStatsSummaryOutput> {
     const { expenses, view, selectedPeriod, userSettings } = input;
 
     const categories = userSettings.categories || [];
@@ -117,7 +110,7 @@ export const getStatsSummary = ai.defineFlow(
             name: categoryMap[key]?.name || key,
             value: value,
             key: key,
-            fill: `hsl(var(${chartColors[colorIndex]}))`,
+            fill: `hsl(var(${chartColors[colorIndex % 5]}))`,
             percentage: totalForPeriod > 0 ? (value / totalForPeriod) * 100 : 0,
           };
       })
@@ -173,5 +166,4 @@ export const getStatsSummary = ai.defineFlow(
       filteredExpenses,
       periodDescription,
     };
-  }
-);
+}

@@ -1,3 +1,4 @@
+
 // src/app/actions.ts
 'use server';
 
@@ -63,6 +64,7 @@ export async function getStatsSummaryAction(
   input: GetStatsSummaryInput
 ): Promise<GetStatsSummaryOutput> {
     try {
+        // We now call the async function directly.
         const result = await getStatsSummary(input);
         return result;
     } catch (error) {

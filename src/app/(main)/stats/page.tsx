@@ -1,10 +1,11 @@
+
 // src/app/(main)/stats/page.tsx
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, AreaChart } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Area } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -64,7 +65,7 @@ const renderActiveShape = (props: any) => {
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
-  const { categories, getIconComponent } = useCategories();
+  const { categories, categoryMap, getIconComponent } = useCategories();
   
   const [view, setView] =useState<'month' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -93,13 +94,11 @@ export default function StatisticsPage() {
   
   const chartConfig = useMemo(() => {
       const config: ChartConfig = {};
-      const chartColors = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'];
       categories.forEach(cat => {
-          const colorIndex = parseInt(cat.color, 10) - 1;
           config[cat.id] = { 
               label: cat.name, 
               icon: () => getIconComponent(cat.icon),
-              color: `hsl(var(${chartColors[colorIndex % 5]}))`,
+              color: `hsl(var(--chart-${cat.color}))`,
           };
       });
       config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
@@ -145,14 +144,8 @@ export default function StatisticsPage() {
   
   const { pieChartData, trendChartData, categorySummary, totalForPeriod, filteredExpenses, periodDescription } = useMemo(() => {
      if (!statsData) return { pieChartData: [], trendChartData: [], categorySummary: [], totalForPeriod: 0, filteredExpenses: [], periodDescription: '' };
-     return {
-        ...statsData,
-        categorySummary: statsData.categorySummary.map(summary => ({
-            ...summary,
-            icon: getIconComponent(summary.icon)
-        }))
-     }
-  }, [statsData, getIconComponent]);
+     return statsData;
+  }, [statsData]);
 
 
   if (isAppDataLoading) {
@@ -284,7 +277,7 @@ export default function StatisticsPage() {
                         >
                             <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span style={{ color: item.chartColor }} className="font-bold text-lg">{item.icon}</span>
+                                <span style={{ color: item.chartColor }} className="font-bold text-lg">{getIconComponent(item.icon)}</span>
                                 <div className="flex-1 min-w-0 text-right">
                                     <p className="font-semibold text-xs truncate">{item.name}</p>
                                     <p className="text-[10px] text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
@@ -377,7 +370,7 @@ export default function StatisticsPage() {
                                                         <div key={item.category} className="flex justify-between items-center gap-2">
                                                             <div className="flex items-center gap-1.5">
                                                                 <span className="w-2 h-2 rounded-full" style={{backgroundColor: chartConfig[item.category]?.color || '#ccc'}} />
-                                                                <span>{chartConfig[item.category]?.label}</span>
+                                                                <span>{categoryMap[item.category]?.name || item.category}</span>
                                                             </div>
                                                             <span>{item.amount.toLocaleString()}</span>
                                                         </div>
