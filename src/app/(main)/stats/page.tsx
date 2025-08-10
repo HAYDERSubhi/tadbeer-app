@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,6 +69,31 @@ const CustomLabel = (props: any) => {
       </text>
     );
 };
+
+const renderCustomizedLabel = (props: any) => {
+    const RADIAN = Math.PI / 180;
+    const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+    const sin = Math.sin(-RADIAN * midAngle);
+    const cos = Math.cos(-RADIAN * midAngle);
+    const sx = cx + (outerRadius + 10) * cos;
+    const sy = cy + (outerRadius + 10) * sin;
+    const mx = cx + (outerRadius + 30) * cos;
+    const my = cy + (outerRadius + 30) * sin;
+    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+    const ey = my;
+    const textAnchor = cos >= 0 ? 'start' : 'end';
+
+    if (percent * 100 < 3) return null;
+
+    return (
+        <g>
+            <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+            <circle cx={sx} cy={sy} r={2} fill={fill} stroke="none" />
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill={fill} className="text-xs font-bold" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>{`${payload.name} ${(percent * 100).toFixed(0)}%`}</text>
+        </g>
+    );
+};
+
 
 export default function StatisticsPage() {
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
@@ -415,20 +440,16 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  innerRadius={50}
-                  labelLine={true}
+                  outerRadius={60}
+                  innerRadius={40}
+                  labelLine={false}
+                  label={renderCustomizedLabel}
                   onMouseEnter={(data) => {
                     setActiveDonutSlice(data.payload);
                   }}
                   onMouseLeave={() => {
                     setActiveDonutSlice(null);
                   }}
-                   label={({ name, percent }) => {
-                      if (percent * 100 < 3) return null;
-                      return `${name} ${(percent * 100).toFixed(0)}%`;
-                    }}
-                   className="text-[10px] fill-foreground font-semibold pointer-events-none"
                 >
                   {pieChartData.map((entry) => (
                     <Cell key={`cell-${entry.key}`} fill={entry.fill} />
