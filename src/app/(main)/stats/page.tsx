@@ -453,7 +453,7 @@ export default function StatisticsPage() {
                                         dot={{
                                             r: 4,
                                             strokeWidth: 2,
-                                            stroke: 'hsl(var(--background))'
+                                            fill: chartConfig[catTrend.categoryId]?.color
                                         }}
                                         activeDot={{
                                           r: 6,
