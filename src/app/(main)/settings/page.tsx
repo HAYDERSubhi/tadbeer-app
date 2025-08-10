@@ -555,7 +555,7 @@ export default function SettingsPage() {
     });
   }
 
-  const handleDailyReminderChange = async (checked: boolean) => {
+ const handleDailyReminderChange = async (checked: boolean) => {
     if (!('Notification' in window)) {
         toast({
             title: 'الميزة غير مدعومة',
@@ -566,26 +566,37 @@ export default function SettingsPage() {
     }
 
     if (checked) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            setDailyReminderEnabled(true);
-            toast({
-                title: 'تم تفعيل التذكيرات',
-                description: 'ستتلقى إشعارًا يوميًا لتسجيل مصروفاتك.',
-            });
-        } else {
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                setDailyReminderEnabled(true);
+                toast({
+                    title: 'تم تفعيل التذكيرات',
+                    description: 'ستتلقى إشعارًا يوميًا لتسجيل مصروفاتك.',
+                });
+            } else {
+                setDailyReminderEnabled(false); // Keep it false if denied
+                toast({
+                    title: 'تم رفض الإذن',
+                    description: 'لا يمكننا إرسال تذكيرات. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
+                    variant: 'destructive',
+                    duration: 8000
+                });
+            }
+        } catch (error) {
+            console.error("Error requesting notification permission:", error);
             setDailyReminderEnabled(false);
             toast({
-                title: 'تم رفض الإذن',
-                description: 'لا يمكننا إرسال تذكيرات. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
+                title: 'خطأ',
+                description: 'حدث خطأ أثناء طلب إذن الإشعارات.',
                 variant: 'destructive',
-                duration: 8000
             });
         }
     } else {
+        // If the user is turning it off, just update the state.
         setDailyReminderEnabled(false);
     }
-  };
+};
 
 
   const handleSaveAppearanceSettings = () => {
