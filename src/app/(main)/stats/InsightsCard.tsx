@@ -5,7 +5,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bot, PieChart, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { analyzeSpendingPatterns, type AnalyzeSpendingPatternsOutput, type AnalyzeSpendingPatternsInput } from '@/ai/flows/analyze-spending-patterns';
+import { analyzeSpendingPatternsAction } from '@/app/actions';
+import type { AnalyzeSpendingPatternsOutput, AnalyzeSpendingPatternsInput } from '@/ai/flows/analyze-spending-patterns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
@@ -63,14 +64,16 @@ export function InsightsCard({ filteredExpenses, periodDescription }: InsightsCa
           return;
       }
       if ('isEmpty' in analysisInput && analysisInput.isEmpty) {
-        setAnalysis(null);
+        // Use the default empty state from the flow
+        const result = await analyzeSpendingPatternsAction({ expenses: [], periodDescription: periodDescription });
+        setAnalysis(result);
         setIsAnalysisLoading(false);
         return;
       }
       
       setIsAnalysisLoading(true);
       try {
-        const result = await analyzeSpendingPatterns(analysisInput as AnalyzeSpendingPatternsInput);
+        const result = await analyzeSpendingPatternsAction(analysisInput as AnalyzeSpendingPatternsInput);
         setAnalysis(result);
       } catch (e) {
         console.error("Failed to get spending analysis", e);
@@ -81,7 +84,7 @@ export function InsightsCard({ filteredExpenses, periodDescription }: InsightsCa
     };
     
     getAnalysis();
-  }, [analysisInput, isAppDataLoading]);
+  }, [analysisInput, isAppDataLoading, periodDescription]);
 
   return (
     <Card>
@@ -113,19 +116,21 @@ export function InsightsCard({ filteredExpenses, periodDescription }: InsightsCa
                 </AlertDescription>
              </Alert>
 
-             <div className="p-3 rounded-lg border">
-                <p className='text-xs text-muted-foreground'>أكبر بند للإنفاق</p>
-                <div className="flex items-center justify-between">
-                    <p className="font-bold text-sm">{analysis.highestSpendingCategory.category}</p>
-                    <p className="font-bold text-sm text-primary">{analysis.highestSpendingCategory.amount.toLocaleString()}&nbsp;د.ع</p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-full bg-secondary rounded-full h-1.5">
-                        <div className="bg-primary h-1.5 rounded-full" style={{width: `${analysis.highestSpendingCategory.percentage}%`}}></div>
+             {analysis.highestSpendingCategory.amount > 0 && (
+                <div className="p-3 rounded-lg border">
+                    <p className='text-xs text-muted-foreground'>أكبر بند للإنفاق</p>
+                    <div className="flex items-center justify-between">
+                        <p className="font-bold text-sm">{analysis.highestSpendingCategory.category}</p>
+                        <p className="font-bold text-sm text-primary">{analysis.highestSpendingCategory.amount.toLocaleString()}&nbsp;د.ع</p>
                     </div>
-                    <span>{analysis.highestSpendingCategory.percentage.toFixed(0)}%</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="w-full bg-secondary rounded-full h-1.5">
+                            <div className="bg-primary h-1.5 rounded-full" style={{width: `${analysis.highestSpendingCategory.percentage}%`}}></div>
+                        </div>
+                        <span>{analysis.highestSpendingCategory.percentage.toFixed(0)}%</span>
+                    </div>
                 </div>
-             </div>
+             )}
 
              <div>
                 <h4 className="text-xs font-semibold mb-2">ملاحظات رئيسية:</h4>

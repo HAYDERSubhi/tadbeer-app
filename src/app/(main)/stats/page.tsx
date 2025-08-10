@@ -109,7 +109,7 @@ export default function StatisticsPage() {
           config[cat.id] = { 
               label: cat.name, 
               icon: () => getIconComponent(cat.icon),
-              color: cat.color,
+              color: `hsl(var(--chart-${cat.color}))`,
           };
       });
       config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
@@ -217,7 +217,7 @@ export default function StatisticsPage() {
       .map(([key, value]) => ({
         category: categoryMap[key]?.name || key,
         amount: value,
-        fill: `var(--color-${key})`
+        fill: `hsl(var(--chart-${categoryMap[key]?.color || 5}))`
       }))
       .sort((a, b) => b.amount - a.amount);
       

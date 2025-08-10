@@ -76,23 +76,23 @@ const prompt = ai.definePrompt({
 {{/each}}
 
 **Instructions:**
-1.  **Calculate Key Metrics:**
+1.  Calculate Key Metrics:
     -   Total spending for the period.
     -   Spending for each category.
     -   The category with the highest spending.
     -   The percentage of the total spending for the highest category.
 
-2.  **Generate `performanceSummary`:** Write one neutral, data-driven sentence summarizing the user's spending. Example: "إجمالي إنفاقك خلال هذه الفترة بلغ 1,250,000 د.ع." Or if a budget is present: "لقد أنفقت 85% من ميزانيتك المحددة لهذه الفترة."
+2.  Generate 'performanceSummary': Write one neutral, data-driven sentence summarizing the user's spending. Example: "إجمالي إنفاقك خلال هذه الفترة بلغ 1,250,000 د.ع." Or if a budget is present: "لقد أنفقت 85% من ميزانيتك المحددة لهذه الفترة."
 
-3.  **Identify `highestSpendingCategory`:** Find the single category with the most spending. Fill in the `category` name, total `amount`, and its `percentage` of the total spend.
+3.  Identify 'highestSpendingCategory': Find the single category with the most spending. Fill in the 'category' name, total 'amount', and its 'percentage' of the total spend.
 
-4.  **Generate `keyObservations` (Exactly 2):**
+4.  Generate 'keyObservations' (Exactly 2):
     -   These must be factual observations based on the provided data ONLY.
     -   Do NOT give advice (e.g., avoid "حاول تقليل..."). Instead, state facts (e.g., "ثلث إنفاقك كان على فئة الطعام.").
     -   Pick the two most interesting or significant data points.
-    -   **Good Example Observation:** "شكلت فئتا الطعام والمواصلات معًا 55% من إجمالي مصاريفك." (Icon: PieChart)
-    -   **Good Example Observation:** "الإنفاق على الترفيه شهد زيادة ملحوظة في الأسبوع الأخير من الشهر." (Icon: TrendingUp)
-    -   **Bad Example Observation (Coaching):** "يجب عليك مراقبة إنفاقك على التسوق."
+    -   Good Example Observation: "شكلت فئتا الطعام والمواصلات معًا 55% من إجمالي مصاريفك." (Icon: PieChart)
+    -   Good Example Observation: "الإنفاق على الترفيه شهد زيادة ملحوظة في الأسبوع الأخير من الشهر." (Icon: TrendingUp)
+    -   Bad Example Observation (Coaching): "يجب عليك مراقبة إنفاقك على التسوق."
 
 Provide the final output strictly in the specified JSON format.
 `,
