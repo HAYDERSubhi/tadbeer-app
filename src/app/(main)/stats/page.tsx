@@ -1,11 +1,10 @@
-
 // src/app/(main)/stats/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles, Bot } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, Label, Sector, Text, LabelList } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, Sector, Text, LabelList } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -96,7 +95,7 @@ export default function StatisticsPage() {
   const categoryBudgets = userSettings?.categoryBudgets || {};
 
   // Filter state
-  const [view, setView] = useState<'month' | 'year'>('month');
+  const [view, setView] =useState<'month' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   
@@ -156,7 +155,7 @@ export default function StatisticsPage() {
   }, []);
 
   const {
-    barChartData,
+    pieChartData,
     trendChartData,
     categorySummary,
     totalForPeriod,
@@ -166,7 +165,7 @@ export default function StatisticsPage() {
   } = useMemo(() => {
     if (!expenses) {
       return {
-        barChartData: [],
+        pieChartData: [],
         trendChartData: [],
         categorySummary: [],
         totalForPeriod: 0,
@@ -214,30 +213,29 @@ export default function StatisticsPage() {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
     
-    const barData = Object.entries(categoryTotals)
+    const pieData: PieChartDataItem[] = Object.entries(categoryTotals)
       .map(([key, value]) => ({
-        category: categoryMap[key]?.name || key,
-        amount: value,
-        fill: `hsl(var(--chart-${categoryMap[key]?.color || 5}))`
+        name: categoryMap[key]?.name || key,
+        value: value,
+        key: key,
+        fill: chartConfig[key]?.color || `hsl(var(--chart-5))`
       }))
-      .sort((a, b) => b.amount - a.amount);
+      .sort((a, b) => b.value - a.value);
       
-    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .map(([catKey, total]) => {
-          const categoryInfo = categoryMap[catKey];
-          const budget = categoryBudgets[catKey];
-          
-          return {
-            id: catKey,
-            name: categoryInfo?.name || catKey,
+    const summaryData: CategorySummaryItem[] = pieData.map(item => {
+        const categoryInfo = categoryMap[item.key];
+        const budget = categoryBudgets[item.key];
+        
+        return {
+            id: item.key,
+            name: categoryInfo?.name || item.key,
             icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
-            total: total,
-            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-            chartColor: `var(--color-${catKey})`,
+            total: item.value,
+            percentage: totalExpensesInPeriod > 0 ? (item.value / totalExpensesInPeriod) * 100 : 0,
+            chartColor: item.fill,
             budget,
-          };
-      });
+        };
+    });
 
     let trendData: TrendChartDataItem[] = [];
     if (view === 'year') {
@@ -333,7 +331,7 @@ export default function StatisticsPage() {
     }
 
     return {
-      barChartData: barData,
+      pieChartData: pieData,
       trendChartData: trendData,
       categorySummary: summaryData,
       totalForPeriod: totalExpensesInPeriod,
@@ -402,44 +400,61 @@ export default function StatisticsPage() {
             <PieChartIcon className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
-           {barChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+           {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
         <CardContent>
-            {barChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="w-full h-[300px]">
-                    <BarChart
-                        data={barChartData}
-                        layout="vertical"
-                        margin={{ left: 10, right: 30 }}
-                    >
-                        <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                        <XAxis type="number" hide />
-                        <YAxis
-                            dataKey="category"
-                            type="category"
-                            tickLine={false}
-                            axisLine={false}
-                            width={100}
-                            tick={(props) => (
-                                <Text {...props} width={props.width} className="text-xs fill-muted-foreground" style={{ direction: 'rtl' }}>
-                                    {props.payload.value}
-                                </Text>
-                            )}
-                        />
-                        <ChartTooltip 
-                             cursor={{fill: 'hsl(var(--muted))'}}
-                             content={<ChartTooltipContent 
-                                 formatter={(value) => `${Number(value).toLocaleString()} د.ع`}
-                                 labelFormatter={(label) => <div className="font-bold">{label}</div>}
-                             />}
-                         />
-                        <Bar dataKey="amount" radius={4}>
-                             {barChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ChartContainer>
+            {pieChartData.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div className="w-full h-[250px] relative">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={pieChartData}
+                                    activeIndex={activeIndex}
+                                    activeShape={renderActiveShape}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    dataKey="value"
+                                    onMouseEnter={onPieEnter}
+                                >
+                                    {pieChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} />
+                                    ))}
+                                </Pie>
+                            </PieChart>
+                         </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-xs text-muted-foreground">الإجمالي</span>
+                            <span className="text-xl font-bold text-foreground">
+                                {totalForPeriod.toLocaleString()}
+                            </span>
+                             <span className="text-xs text-muted-foreground">د.ع</span>
+                        </div>
+                    </div>
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                        {categorySummary.map((item, index) => (
+                            <div 
+                                key={item.id} 
+                                className="flex items-center gap-2 p-2 rounded-lg transition-colors cursor-pointer"
+                                onMouseEnter={() => setActiveIndex(index)}
+                                style={{ backgroundColor: activeIndex === index ? 'hsl(var(--muted))' : 'transparent' }}
+                            >
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium truncate">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">{item.total.toLocaleString()}&nbsp;د.ع  ({item.percentage.toFixed(1)}%)</p>
+                                </div>
+                                {item.budget && (
+                                    <div className='w-16'>
+                                        <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
@@ -457,10 +472,11 @@ export default function StatisticsPage() {
         <CardContent className="p-0">
           {categorySummary.length > 0 ? (
             <Accordion type="single" collapsible className="w-full">
-              {categorySummary.map(item => (
+              {categorySummary.map((item, index) => (
                 <AccordionItem value={item.id} key={item.id} className="border-b" ref={(el) => (itemRefs.current[item.id] = el)}>
                   <AccordionTrigger 
                     className="p-3 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50"
+                     onMouseEnter={() => setActiveIndex(index)}
                     onClick={() => {
                       setTimeout(() => {
                         const itemEl = itemRefs.current[item.id];
