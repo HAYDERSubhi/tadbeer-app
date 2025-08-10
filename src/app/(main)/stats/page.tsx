@@ -3,17 +3,17 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, BarChart3, DollarSign, Wand2, ActivityIcon, ListOrdered } from "lucide-react";
+import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, isAfter, compareDesc, differenceInDays } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, lastDayOfMonth } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { forecastExpenses, ForecastExpensesOutput } from '@/ai/flows/forecast-expenses';
+import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Accordion,
@@ -21,9 +21,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
+import { InsightIcon } from '@/components/dashboard/insight-icon';
 
 interface PieChartDataItem {
   name: string;
@@ -48,15 +48,6 @@ interface CategorySummaryItem {
   budget?: number;
 }
 
-interface ForecastData {
-  totalForecastAmount: number;
-  categoryForecasts: {
-    categoryName: string;
-    predictedAmount: number;
-  }[];
-  advice: string;
-}
-
 const formatValueForLabel = (value: any) => {
     const num = Number(value);
     if (isNaN(num) || num === 0) return '';
@@ -69,21 +60,19 @@ const formatValueForLabel = (value: any) => {
     return num.toLocaleString('en-US');
 };
 
-
 const CustomLabel = (props: any) => {
     const { x, y, value } = props;
     const formattedValue = formatValueForLabel(value);
     if (!formattedValue) return null;
   
     return (
-      <text x={x} y={y} dy={-8} fill="hsl(var(--foreground))" fontSize={10} textAnchor="middle">
+      <text x={x} y={y} dy={-4} fill="hsl(var(--foreground))" fontSize={9} textAnchor="middle">
         {formattedValue}
       </text>
     );
 };
 
 export default function StatisticsPage() {
-  const { user } = useAuth();
   const { expenses, userSettings } = useAppData();
   const { categories, categoryMap, getIconComponent } = useCategories();
 
@@ -96,16 +85,15 @@ export default function StatisticsPage() {
   
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
-  // Forecast state
-  const [forecast, setForecast] = useState<ForecastData | null>(null);
-  const [isForecastLoading, setIsForecastLoading] = useState(true);
+  // Insights state
+  const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(true);
 
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const chartConfig = useMemo(() => {
       const config: ChartConfig = {};
       categories.forEach(cat => {
-          // A little hack to find the chart color from default categories if it exists
           const defaultCat = Object.values(categoryMap).find(c => c.id === cat.id);
           config[cat.id] = { 
               label: cat.name, 
@@ -332,104 +320,78 @@ export default function StatisticsPage() {
     };
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent, chartConfig]);
   
-  useEffect(() => {
-    const getForecast = async () => {
-      if (expenses.length < 5) {
-        setIsForecastLoading(false);
-        setForecast(null);
-        return;
-      }
-      
-      setIsForecastLoading(true);
+  const financialCoachInput = useMemo(() => {
+    if (!userSettings || filteredExpenses.length === 0) return null;
 
-      const ninetyDaysAgo = subDays(new Date(), 90);
-      const relevantExpenses = expenses.filter(exp => {
-        try {
-            return isAfter(parseISO(exp.date), ninetyDaysAgo);
-        } catch { return false; }
-      });
-      
-      if(relevantExpenses.length < 5) {
-         setIsForecastLoading(false);
-         setForecast(null);
-         return;
-      }
+    let totalBudgetForPeriod: number;
+    let categoryBudgetsForPeriod: Record<string, number> = {};
+    const daysInPeriod = view === 'year' ? 365 : format(lastDayOfMonth(parseISO(`${selectedMonth}-01`)), 'd');
 
-      const firstExpenseDate = relevantExpenses.reduce((oldest, exp) => {
-        const expDate = parseISO(exp.date);
-        return expDate < oldest ? expDate : oldest;
-      }, new Date());
-
-      const daysInPeriod = Math.max(differenceInDays(new Date(), firstExpenseDate), 1);
-      
-      const totalSpentInPeriod = relevantExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-      const averageDailySpend = totalSpentInPeriod / daysInPeriod;
-      const totalForecastAmount = Math.round(averageDailySpend * 30);
-
-      const categoryTotals: { [key: string]: number } = {};
-      relevantExpenses.forEach(exp => {
-        categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
-      });
-
-      const categoryForecasts = Object.entries(categoryTotals)
-        .map(([catKey, total]) => ({
-          categoryName: categoryMap[catKey]?.name || catKey,
-          predictedAmount: Math.round((total / daysInPeriod) * 30),
-        }))
-        .sort((a,b) => b.predictedAmount - a.predictedAmount)
-        .slice(0, 5);
-
-      try {
-        const aiResult = await forecastExpenses({ 
-          totalForecastAmount,
-          categoryForecasts,
-          historicalExpenses: relevantExpenses.slice(0, 20).map(e => ({
+    if (view === 'year') {
+        totalBudgetForPeriod = (userSettings.budget?.totalBudget || 0) * 12;
+        Object.entries(userSettings.categoryBudgets || {}).forEach(([key, value]) => {
+            categoryBudgetsForPeriod[key] = value * 12;
+        });
+    } else {
+        totalBudgetForPeriod = userSettings.budget?.totalBudget || 0;
+        categoryBudgetsForPeriod = userSettings.categoryBudgets || {};
+    }
+    
+    const input: FinancialCoachInput = {
+        totalBudget: totalBudgetForPeriod,
+        zeroSpendDaysTarget: Math.round((userSettings.budget?.zeroSpendDaysTarget || 4) * (Number(daysInPeriod) / 30)),
+        expenses: filteredExpenses.map(e => ({
+            title: e.title,
             amount: e.amount,
             category: categoryMap[e.category]?.name || e.category,
             date: format(new Date(e.date), 'yyyy-MM-dd'),
-          })),
-        });
-        
-        setForecast({
-            totalForecastAmount,
-            categoryForecasts,
-            advice: aiResult.advice,
-        });
-        
+        })),
+        appTone: userSettings.appTone || 'formal',
+    };
+    
+    if (categoryBudgetsForPeriod) {
+        input.categoryBudgets = categoryBudgetsForPeriod;
+    }
+
+    if (userSettings.profile) {
+        input.userProfile = {
+            monthlyIncome: userSettings.profile.monthlyIncome,
+            familyMembers: userSettings.profile.familyMembers?.map(({ id, ...rest }) => rest) || [],
+        };
+    }
+    
+    return input;
+  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth]);
+
+  useEffect(() => {
+    if (!financialCoachInput) {
+      setIsInsightsLoading(false);
+      setInsights(null);
+      return;
+    }
+
+    const getInsights = async () => {
+      setIsInsightsLoading(true);
+      try {
+        const result = await financialCoach(financialCoachInput);
+        setInsights(result.insights);
       } catch (e) {
-        console.error("Failed to get forecast advice", e);
-        setForecast({
-            totalForecastAmount,
-            categoryForecasts,
-            advice: 'نوصي بمراجعة الفئات الأعلى إنفاقاً والنظر في وضع ميزانية لها.',
-        });
+        console.error("Failed to get financial insights for stats page", e);
+        setInsights(null);
       } finally {
-        setIsForecastLoading(false);
+        setIsInsightsLoading(false);
       }
     };
+    getInsights();
+  }, [financialCoachInput]);
 
-    getForecast();
-  }, [expenses, categoryMap]);
-
-  const formatYAxisTick = (tick: any) => {
-    const value = Number(tick);
-    if (isNaN(value)) return tick;
-
-    if (value >= 1000000) {
-      return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
-    }
-    if (value >= 1000) {
-      return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
-    }
-    return value.toLocaleString('en-US');
-  };
 
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-bold mb-2">لا توجد بيانات مصاريف لعرضها</h2>
-        <p className="text-sm text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
+        <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-bold mb-2">لا توجد بيانات لعرضها</h2>
+        <p className="text-xs text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
     );
   }
@@ -479,15 +441,15 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
+          <CardTitle className="flex items-center gap-2 text-xs">
             <PieChartIcon className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
-           {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+           {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
-        <CardContent className="h-[280px] flex justify-center">
+        <CardContent className="h-[250px] flex justify-center">
           {pieChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[220px]">
               <PieChart>
                 <RechartsTooltip
                   cursor={false}
@@ -517,8 +479,8 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  innerRadius={55}
+                  outerRadius={70}
+                  innerRadius={45}
                   labelLine={false}
                   onMouseEnter={(data) => {
                     setActiveDonutSlice(data.payload);
@@ -535,7 +497,7 @@ export default function StatisticsPage() {
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="text-[9px] fill-foreground font-semibold pointer-events-none"
+                          className="text-[8px] fill-foreground font-semibold pointer-events-none"
                           style={{ fill: payload.fill }}
                         >
                           <tspan x={x} dy="-0.5em">{displayName}</tspan>
@@ -550,16 +512,16 @@ export default function StatisticsPage() {
                 </Pie>
                  <foreignObject width="100%" height="100%">
                     <div className="w-full h-full flex flex-col justify-center items-center text-center">
-                      <p className="text-xs text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
-                      <p className="text-lg font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
+                      <p className="text-[10px] text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
+                      <p className="text-base font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
                        {activeDonutSlice && totalForPeriod > 0 && (
-                        <p className="text-xs font-semibold" style={{color: activeDonutSlice.fill}}>
+                        <p className="text-[10px] font-semibold" style={{color: activeDonutSlice.fill}}>
                             {`${((activeDonutSlice.value / totalForPeriod) * 100).toFixed(1)}%`}
                         </p>
                       )}
                     </div>
                  </foreignObject>
-                <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                <ChartLegend content={<ChartLegendContent nameKey="name" className="text-[10px]" />} />
               </PieChart>
             </ChartContainer>
           ) : (<p className="text-muted-foreground self-center text-xs">لا توجد مصاريف لعرضها.</p>)}
@@ -568,11 +530,11 @@ export default function StatisticsPage() {
       
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
+          <CardTitle className="flex items-center gap-2 text-xs">
             <ListOrdered className="h-4 w-4 text-primary" />
             ملخص الفئات
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             {categorySummary.length === 0 ? 'لا توجد مصاريف مسجلة في هذه الفترة.' : 'اضغط على فئة لعرض تفاصيلها.'}
           </CardDescription>
         </CardHeader>
@@ -594,19 +556,19 @@ export default function StatisticsPage() {
                   >
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-lg">
+                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg">
                             {item.icon}
                          </span>
                          <div className="flex-1 min-w-0 text-right">
-                              <p className="font-semibold text-xs truncate">{item.name}</p>
-                              <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
+                              <p className="font-semibold text-[11px] truncate">{item.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                          </div>
                       </div>
                       <div className='text-left ml-2'>
-                        <p className="text-xs font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                        <p className="text-[11px] font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
-                            <div className='w-20 mt-1'>
-                                <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
+                            <div className='w-16 mt-1'>
+                                <Progress value={(item.total / item.budget) * 100} className="h-1" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
                             </div>
                         )}
                       </div>
@@ -620,10 +582,10 @@ export default function StatisticsPage() {
                               .map(expense => (
                                   <li key={expense.id} className="flex justify-between items-center gap-2 text-xs animate-in fade-in duration-300">
                                       <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-foreground/90 truncate">{expense.title}</p>
-                                          <p className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
+                                          <p className="font-medium text-foreground/90 truncate text-[11px]">{expense.title}</p>
+                                          <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
                                       </div>
-                                      <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
+                                      <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
                                   </li>
                               ))}
                       </ul>
@@ -641,21 +603,21 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
+          <CardTitle className="flex items-center gap-2 text-xs">
             <TrendingUpIcon className="h-4 w-4 text-primary" />
             اتجاه المصاريف
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             {view === 'year' ? `شهريًا لعام ${selectedYear}` : trendChartData.length > 0 ? `يوميًا لشهر ${format(parseISO(`${selectedMonth}-01`), 'MMMM yyyy', { locale: arIQ })}` : ''}
           </CardDescription>
-          {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
+          {trendChartData.length === 0 && <CardDescription className="text-xs">لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
-        <CardContent className="h-[250px]">
+        <CardContent className="h-[220px]">
           {trendChartData.length > 0 ? (
             <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={trendChartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+              <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 15, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 10}} />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                 <YAxis hide={true} domain={['dataMin', 'dataMax + 5000']} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
@@ -674,33 +636,33 @@ export default function StatisticsPage() {
 
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
+          <CardTitle className="flex items-center gap-2 text-xs">
             <ActivityIcon className="h-4 w-4 text-primary" />
             تحليل اتجاهات الفئات
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             نظرة على تطور الإنفاق في أعلى 6 فئات لديك خلال الشهور الماضية.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-3">
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
-              <div key={catTrend.categoryId} className="border-t pt-4 first:border-t-0 first:pt-0">
+              <div key={catTrend.categoryId} className="border-t pt-3 first:border-t-0 first:pt-0">
                 <div className="mb-2">
                     <div className="flex items-center gap-2">
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg")}>
                             {catTrend.categoryIcon}
                         </span>
-                        <h3 className="font-semibold text-sm">{catTrend.categoryName}</h3>
+                        <h3 className="font-semibold text-xs">{catTrend.categoryName}</h3>
                     </div>
-                    <p className="text-sm font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
+                    <p className="text-xs font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
                 </div>
-                <div className="h-[180px] w-full">
+                <div className="h-[150px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
                        <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={9} />
                           <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
@@ -733,75 +695,46 @@ export default function StatisticsPage() {
           )}
         </CardContent>
       </Card>
-
+      
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Wand2 className="h-4 w-4 text-primary" />
-            تنبؤات المصاريف
+          <CardTitle className="flex items-center gap-2 text-xs">
+            <Sparkles className="h-4 w-4 text-primary" />
+            نصائح ذكية
           </CardTitle>
-          <CardDescription>توقعات الإنفاق للشهر القادم بناءً على بياناتك التاريخية.</CardDescription>
+          <CardDescription className="text-xs">تحليلات وتوصيات بناءً على إنفاقك في الفترة المحددة.</CardDescription>
         </CardHeader>
         <CardContent>
-          {isForecastLoading ? (
+          {isInsightsLoading ? (
             <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse">
-                  <Skeleton className="h-8 w-1/3" />
-              </div>
-              <div className="flex items-center space-x-4 space-x-reverse">
-                  <Skeleton className="h-12 w-1/2" />
-              </div>
-              <div className="space-y-2 pt-4">
-                <Skeleton className="h-4 w-[150px]" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-               <div className="space-y-2 pt-4">
-                <Skeleton className="h-4 w-[200px]" />
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
-              </div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
             </div>
-          ) : forecast ? (
-             <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">إجمالي المصروف المتوقع للشهر القادم</p>
-                  <p className="text-2xl font-bold text-primary">{forecast.totalForecastAmount.toLocaleString()} د.ع</p>
+          ) : insights && insights.length > 0 ? (
+            <div className="space-y-3">
+              {insights.map((insight, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                   <span className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                    insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+                    insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+                    insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
+                  )}>
+                    <InsightIcon name={insight.icon} className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-xs">{insight.title}</p>
+                    <p className="text-xs text-muted-foreground">{insight.description}</p>
+                  </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <p className="font-semibold text-xs">نصيحة ذكية:</p>
-                  <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg border">{forecast.advice}</p>
-                </div>
-
-                <div className="space-y-3">
-                    <p className="font-semibold text-xs">التوقعات حسب الفئة:</p>
-                    <div className="space-y-3">
-                        {forecast.categoryForecasts.sort((a,b) => b.predictedAmount - a.predictedAmount).map(catForecast => {
-                            const categoryId = Object.keys(categoryMap).find(key => categoryMap[key].name === catForecast.categoryName);
-                            const categoryInfo = categoryId ? categoryMap[categoryId] : null;
-                            const percentage = forecast.totalForecastAmount > 0 ? (catForecast.predictedAmount / forecast.totalForecastAmount) * 100 : 0;
-
-                            return (
-                                <div key={catForecast.categoryName} className="text-xs">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base">{categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}</span>
-                                            <span className="font-medium">{catForecast.categoryName}</span>
-                                        </div>
-                                        <span className="font-semibold">{catForecast.predictedAmount.toLocaleString()} د.ع</span>
-                                    </div>
-                                    <Progress value={percentage} className="h-1.5" indicatorcolor={categoryId ? chartConfig[categoryId]?.color : 'hsl(var(--primary))'} />
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-
-              </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8 text-xs">
-              لا توجد بيانات كافية لإنشاء تنبؤ. أضف المزيد من المصاريف لتبدأ.
+            <p className="text-center text-muted-foreground p-4 text-xs">
+              {filteredExpenses.length > 0 
+                ? "لا توجد نصائح حاليًا لهذه الفترة. قد يساعد تحديد ميزانية في الإعدادات."
+                : "لا توجد مصاريف في هذه الفترة لتقديم نصائح حولها."
+              }
             </p>
           )}
         </CardContent>
