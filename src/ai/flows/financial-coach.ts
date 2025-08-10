@@ -22,7 +22,7 @@ const FinancialCoachInputSchema = z.object({
           date: z.string(),
       })
   ).describe("An array of the user's expenses for the current month."),
-  categoryBudgets: z.record(z.string(), z.number()).optional().describe("A map of category IDs to their specific monthly budget in IQD. The key is the category ID and the value is the budget amount."),
+  categoryBudgets: z.record(z.string(), z.number()).optional().describe("A map of category IDs to their specific monthly budget in IQD. The key is the category ID and a value is the budget amount."),
   userProfile: z.object({
     monthlyIncome: z.number().describe("The user's approximate monthly income in IQD."),
     familyMembers: z.array(z.object({
@@ -55,10 +55,13 @@ export async function financialCoach(input: FinancialCoachInput): Promise<Financ
   return financialCoachFlow(input);
 }
 
+const FinancialCoachPromptInputSchema = FinancialCoachInputSchema.extend({
+    isColloquial: z.boolean(),
+});
 
 const prompt = ai.definePrompt({
     name: 'financialCoachPrompt',
-    input: {schema: FinancialCoachInputSchema},
+    input: {schema: FinancialCoachPromptInputSchema},
     output: {schema: FinancialCoachOutputSchema},
     prompt: `You are a financial coach for an Iraqi user. Your goal is to provide **exactly 3 unique and distinct insights** to help them build healthy spending habits. You must avoid repeating the same type of advice.
 
@@ -105,7 +108,7 @@ Your main task is to generate **exactly three different and non-repetitive insig
 ---
 ### **PERSONA EXAMPLES**
 
-{{#if (eq appTone 'colloquial')}}
+{{#if isColloquial}}
 #### **Persona: "كرومي"**
 - **Personality**: Friendly, witty, and sometimes humorous Iraqi dialect. Like a close friend giving advice.
 - **Tone Guidelines**:
@@ -140,8 +143,12 @@ const financialCoachFlow = ai.defineFlow(
     inputSchema: FinancialCoachInputSchema,
     outputSchema: FinancialCoachOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const promptInput = {
+      ...input,
+      isColloquial: input.appTone === 'colloquial',
+    };
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
