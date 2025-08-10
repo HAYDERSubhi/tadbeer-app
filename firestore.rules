@@ -3,16 +3,14 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write only their own data.
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth.uid == userId;
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Allow any authenticated user to create (add) feedback.
-    // They cannot read, update, or delete any feedback, only create it.
+    // Feedback collection is write-only for authenticated users
     match /feedback/{feedbackId} {
-      allow read, update, delete: if false; // Deny reading, updating, or deleting
-      allow create: if request.auth != null; // Allow creation if user is authenticated
+      allow create: if request.auth != null;
+      allow read, update, delete: if false; // Nobody can read/edit feedback
     }
   }
 }
