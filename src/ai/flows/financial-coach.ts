@@ -39,7 +39,7 @@ const FinancialCoachOutputSchema = z.object({
         z.object({
             title: z.string().describe("A short, catchy title for the insight."),
             description: z.string().describe("A one-sentence, very concise description of the advice or observation."),
-            icon: z.enum(["Trophy", "Salad", "CookingPot", "TrendingUp", "Lightbulb", "PiggyBank", "Baby", "School"]).describe("A suitable Lucide icon name for the insight."),
+            icon: z.enum(["Trophy", "Leaf", "Flame", "TrendingUp", "Lightbulb", "PiggyBank", "Baby", "School"]).describe("A suitable Lucide icon name for the insight."),
             type: z.enum(['praise', 'tip', 'warning']).describe("The type of insight, used for styling."),
         })
     ).describe("An array of the 3 most important and personalized financial insights."),
@@ -72,9 +72,9 @@ const prompt = ai.definePrompt({
     - Be professional, logical, and encouraging.
 - **Example Titles & Descriptions**:
     - **Budget Warning**: Title: "تنبيه بشأن الميزانية", Description: "لقد استهلكت أكثر من 85% من ميزانيتك. يرجى الانتباه لنفقاتك في الأيام المتبقية من الشهر."
-    - **High Spending (Food)**: Title: "نفقات الطعام مرتفعة", Description: "إنفاقك على المطاعم مرتفع. هل فكرت في تجربة الطهي المنزلي لتوفير المال وتناول طعام صحي؟"
-    - **Praise (Good Performance)**: Title: "أداء مالي ممتاز", Description: "أحسنت! أنت تدير ميزانيتك بشكل جيد هذا الشهر. استمر على هذا النهج."
-    - **Encourage Budgeting**: Title: "خطوتك الأولى نحو النجاح", Description: "تحديد ميزانية شهرية هو الأساس. خصص ميزانية من الإعدادات لتبدأ في التحكم بنفقاتك بفعالية."
+    - **High Spending (Food)**: Title: "نفقات الطعام مرتفعة", Description: "يبدو أن إنفاقك على الوجبات السريعة مرتفع هذا الشهر. ما رأيك بتجربة الطهي في المنزل كبديل صحي وأكثر توفيرًا؟"
+    - **Praise (Good Performance)**: Title: "أداء مالي ممتاز", Description: "أداء ممتاز! لقد نجحت في تحقيق هدفك لأيام الإنفاق المنخفض هذا الشهر. استمر بهذا الأداء الجيد."
+    - **Encourage Budgeting**: Title: "خطوتك الأولى نحو النجاح", Description: "إنشاء ميزانية شهرية هو خطوتك الأولى نحو التحكم في أموالك. هل ترغب في تجربتها الآن من الإعدادات؟"
 
 ---
 ### **Persona 2: "كرومي" (appTone: 'colloquial')**
@@ -85,7 +85,7 @@ const prompt = ai.definePrompt({
     - **BE HUMOROUS AND WITTY**: Use light-hearted humor. Use "عشه" not "عشاء". Do not mention family (e.g., "عشه عائلي") unless the user has provided family members in their profile.
 - **Example Titles & Descriptions**:
     - **Budget Warning**: Title: "هوووب يمعود!", Description: "بعدك ما واصل لنهاية الشهر وصارف 85% !! الزم ايدك حبيبي لسه ما خلص الشهر."
-    - **High Spending (Food)**: Title: "فلوسك طايرة!", Description: "عافيات، بس ترى أكل المطاعم مكلف. ليش ما تجرب تسويلك أكلة طيبة بالبيت مثل صينية عروك وطماطه حمس؟"
+    - **High Spending (Food)**: Title: "فلوسك طايرة!", Description: "عافيات، بس تره أكل المطاعم مكلف. ليش ما تجرب تسويلك صينية عروك وطماطه حمس؟"
     - **Praise (Good Performance)**: Title: "عاشت الايادي!", Description: "هيجي كلش زين استمر على هذا معدل الصرف."
     - **Encourage Budgeting**: Title: "ضبط امورك!", Description: "قبل كلشي روح للاعدادات حط شكد تريد تصرف بالشهر حتى الوزلك الامور وما تطب بالحايط نهاية الشهر."
 
@@ -118,7 +118,7 @@ Your main task is to generate **exactly three different and non-repetitive insig
 
 2.  **ACTIONABLE TIPS (Medium Priority):**
     a.  **No Budget Set**: If \`totalBudget\` is 0, your **first and most important tip** must be to encourage setting a budget. Use the "Lightbulb" icon.
-    b.  **High Spending Category**: Identify a category with high spending (e.g., 'food', 'shopping'). Provide a specific, positive alternative. Use icons like "Salad" or "CookingPot".
+    b.  **High Spending Category**: Identify a category with high spending (e.g., 'food', 'shopping'). Provide a specific, positive alternative. Use icons like "Leaf".
     c.  **Family Context**: If the user profile is provided, use family data to give a specific tip (e.g., planning low-cost family activities). Use icons like "Baby" or "School".
 
 3.  **PRAISE AND MOTIVATION (Lowest Priority - pick only ONE if space allows):**
