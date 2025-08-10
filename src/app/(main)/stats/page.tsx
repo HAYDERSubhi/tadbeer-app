@@ -4,8 +4,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChart } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Line } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -143,8 +143,8 @@ export default function StatisticsPage() {
     setActiveIndex(index);
   }, []);
   
-  const { pieChartData, trendChartData, categorySummary, totalForPeriod, filteredExpenses, periodDescription } = useMemo(() => {
-     if (!statsData) return { pieChartData: [], trendChartData: [], categorySummary: [], totalForPeriod: 0, filteredExpenses: [], periodDescription: '' };
+  const { pieChartData, trendChartData, categorySummary, categoryTrends, totalForPeriod, filteredExpenses, periodDescription } = useMemo(() => {
+     if (!statsData) return { pieChartData: [], trendChartData: [], categorySummary: [], categoryTrends: [], totalForPeriod: 0, filteredExpenses: [], periodDescription: '' };
      return statsData;
   }, [statsData]);
 
@@ -226,7 +226,7 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent>
                     {pieChartData.length > 0 ? (
-                       <ChartContainer config={chartConfig} className="w-full h-[250px]">
+                       <ChartContainer config={chartConfig} className="w-full h-[250px] sm:h-[200px]">
                             <ResponsiveContainer>
                                 <PieChart>
                                     <RechartsTooltip
@@ -335,7 +335,7 @@ export default function StatisticsPage() {
                     اتجاه المصاريف
                 </CardTitle>
                 <CardDescription className="text-xs">
-                    {trendChartData.length > 0 ? `اتجاه الإنفاق خلال ${periodDescription}` : 'لا توجد بيانات كافية.'}
+                    {trendChartData.length > 0 ? `اتجاه إجمالي الإنفاق خلال ${periodDescription}` : 'لا توجد بيانات كافية.'}
                 </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[250px]">
@@ -353,30 +353,6 @@ export default function StatisticsPage() {
                                             <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                 <p className="font-bold mb-1">{label}</p>
                                                 <p className="text-primary font-semibold">الإجمالي: {total.toLocaleString()} د.ع</p>
-                                                <div className="mt-1 border-t pt-1 space-y-1">
-                                                {filteredExpenses
-                                                    .filter(e => format(parseISO(e.date), view === 'year' ? 'MMM' : 'd', { locale: arIQ }) === label)
-                                                    .reduce((acc, curr) => {
-                                                        const existing = acc.find(item => item.category === curr.category);
-                                                        if (existing) {
-                                                            existing.amount += curr.amount;
-                                                        } else {
-                                                            acc.push({ category: curr.category, amount: curr.amount });
-                                                        }
-                                                        return acc;
-                                                    }, [] as { category: string, amount: number}[])
-                                                    .sort((a,b) => b.amount - a.amount)
-                                                    .slice(0,3)
-                                                    .map(item => (
-                                                        <div key={item.category} className="flex justify-between items-center gap-2">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="w-2 h-2 rounded-full" style={{backgroundColor: chartConfig[item.category]?.color || '#ccc'}} />
-                                                                <span>{categoryMap[item.category]?.name || item.category}</span>
-                                                            </div>
-                                                            <span>{item.amount.toLocaleString()}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
                                             </div>
                                         );
                                     }
@@ -389,6 +365,51 @@ export default function StatisticsPage() {
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
                 </CardContent>
             </Card>
+
+            {categoryTrends.length > 0 && (
+                <Card>
+                    <CardHeader className="py-3">
+                        <CardTitle className="flex items-center gap-2 text-xs">
+                            <LineChart className="h-4 w-4 text-primary" />
+                            تحليل اتجاهات الفئات
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                            نظرة على تطور الإنفاق في أعلى 5 فئات لديك خلال {view === 'year' ? 'الأشهر الماضية' : 'هذا الشهر'}.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {categoryTrends.map(catTrend => (
+                            <div key={catTrend.categoryId} className="border p-2 rounded-lg">
+                                <div className="flex justify-between items-center mb-2 px-1">
+                                    <div className='flex items-center gap-2'>
+                                        <span style={{ color: `hsl(${catTrend.chartColor})`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
+                                        <div>
+                                            <p className='font-semibold text-xs'>{catTrend.categoryName}</p>
+                                            <p className='text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="h-[100px] w-full">
+                                    <ResponsiveContainer>
+                                        <AreaChart data={catTrend.trendData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                                            <RechartsTooltip 
+                                                content={({ active, payload, label }) => active && payload && payload.length ? (
+                                                     <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
+                                                        <p className="font-bold mb-1">{label}</p>
+                                                        <p style={{color: `hsl(${catTrend.chartColor})`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
+                                                    </div>
+                                                ) : null}
+                                                cursor={{ stroke: '#888', strokeWidth: 1, strokeDasharray: '3 3' }}
+                                            />
+                                            <Area type="monotone" dataKey="expenses" strokeWidth={2} stroke={`hsl(${catTrend.chartColor})`} fill={`hsl(${catTrend.chartColor})`} fillOpacity={0.2} />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
       
             <InsightsCard
                 key={`${view}-${selectedMonth}-${selectedYear}`}

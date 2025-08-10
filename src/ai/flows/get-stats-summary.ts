@@ -28,6 +28,15 @@ const TrendChartDataItemSchema = z.object({
   expenses: z.number(),
 });
 
+const CategoryTrendDataSchema = z.object({
+  categoryId: z.string(),
+  categoryName: z.string(),
+  categoryIcon: z.string(),
+  total: z.number(),
+  chartColor: z.string(),
+  trendData: z.array(TrendChartDataItemSchema),
+});
+
 const CategorySummaryItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -49,6 +58,7 @@ const GetStatsSummaryOutputSchema = z.object({
   pieChartData: z.array(PieChartDataItemSchema),
   trendChartData: z.array(TrendChartDataItemSchema),
   categorySummary: z.array(CategorySummaryItemSchema),
+  categoryTrends: z.array(CategoryTrendDataSchema),
   totalForPeriod: z.number(),
   filteredExpenses: z.array(z.any()), // We can be loose with the expense type here as it's for display only
   periodDescription: z.string(),
@@ -127,41 +137,109 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
     }));
 
     let trendChartData: {name: string, expenses: number}[] = [];
+    const categoryTrends: GetStatsSummaryOutput['categoryTrends'] = [];
+    
+    // Select top 5 categories for trend analysis
+    const topCategoryIds = categorySummary.slice(0, 5).map(c => c.id);
+
     if (view === 'year') {
       const monthlyTotals: { [key: string]: number } = {};
+      const categoryMonthlyTotals: { [catId: string]: { [monthKey: string]: number } } = {};
+
       for (let i = 0; i < 12; i++) {
         const monthKey = format(new Date(parseInt(selectedPeriod), i, 1), 'yyyy-MM');
         monthlyTotals[monthKey] = 0;
+        topCategoryIds.forEach(catId => {
+            if (!categoryMonthlyTotals[catId]) categoryMonthlyTotals[catId] = {};
+            categoryMonthlyTotals[catId][monthKey] = 0;
+        });
       }
+
       filteredExpenses.forEach(exp => {
         const monthKey = format(parseISO(exp.date), 'yyyy-MM');
-        if (monthlyTotals.hasOwnProperty(monthKey)) monthlyTotals[monthKey] += exp.amount;
+        if (monthlyTotals.hasOwnProperty(monthKey)) {
+            monthlyTotals[monthKey] += exp.amount;
+            if (topCategoryIds.includes(exp.category)) {
+                categoryMonthlyTotals[exp.category][monthKey] += exp.amount;
+            }
+        }
       });
+      
       trendChartData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
         name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
         expenses: total,
       }));
-    } else {
+
+      topCategoryIds.forEach(catId => {
+        const categoryDetails = categoryMap[catId];
+        if (categoryDetails) {
+            categoryTrends.push({
+                categoryId: catId,
+                categoryName: categoryDetails.name,
+                categoryIcon: categoryDetails.icon,
+                total: categorySummary.find(c => c.id === catId)?.total || 0,
+                chartColor: `var(--chart-${categoryDetails.color})`,
+                trendData: Object.entries(categoryMonthlyTotals[catId]).map(([monthKey, total]) => ({
+                    name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+                    expenses: total,
+                })),
+            });
+        }
+      });
+
+    } else { // month view
       const dailyTotals: { [date: string]: number } = {};
+      const categoryDailyTotals: { [catId: string]: { [dayKey: string]: number } } = {};
+
       let day = periodStart;
       while (day <= periodEnd) {
-        dailyTotals[format(day, 'd')] = 0;
+        const dayKey = format(day, 'd');
+        dailyTotals[dayKey] = 0;
+        topCategoryIds.forEach(catId => {
+            if (!categoryDailyTotals[catId]) categoryDailyTotals[catId] = {};
+            categoryDailyTotals[catId][dayKey] = 0;
+        });
         day = subDays(day, -1);
       }
+      
       filteredExpenses.forEach(exp => {
-        const formattedDate = format(parseISO(exp.date), 'd');
-        if (dailyTotals.hasOwnProperty(formattedDate)) dailyTotals[formattedDate] += exp.amount;
+        const dayKey = format(parseISO(exp.date), 'd');
+        if (dailyTotals.hasOwnProperty(dayKey)) {
+            dailyTotals[dayKey] += exp.amount;
+            if (topCategoryIds.includes(exp.category)) {
+                categoryDailyTotals[exp.category][dayKey] += exp.amount;
+            }
+        }
       });
+      
       trendChartData = Object.entries(dailyTotals).map(([dateStr, total]) => ({
         name: dateStr,
         expenses: total,
       }));
+
+       topCategoryIds.forEach(catId => {
+        const categoryDetails = categoryMap[catId];
+        if (categoryDetails) {
+            categoryTrends.push({
+                categoryId: catId,
+                categoryName: categoryDetails.name,
+                categoryIcon: categoryDetails.icon,
+                total: categorySummary.find(c => c.id === catId)?.total || 0,
+                chartColor: `var(--chart-${categoryDetails.color})`,
+                trendData: Object.entries(categoryDailyTotals[catId]).map(([dayKey, total]) => ({
+                    name: dayKey,
+                    expenses: total,
+                })),
+            });
+        }
+      });
     }
 
     return {
       pieChartData,
       trendChartData,
       categorySummary,
+      categoryTrends,
       totalForPeriod,
       filteredExpenses,
       periodDescription,
