@@ -5,7 +5,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, Cell } from "lucide-react";
-import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Line as RechartsLine } from 'recharts';
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -228,29 +228,27 @@ export default function StatisticsPage() {
                 <CardContent>
                     {pieChartData.length > 0 ? (
                        <ChartContainer config={chartConfig} className="w-full h-[250px] sm:h-[200px]">
-                            <ResponsiveContainer>
-                                <RechartsPieChart>
-                                    <RechartsTooltip
-                                        cursor={false}
-                                        content={<ChartTooltipContent hideLabel />}
-                                    />
-                                    <Pie
-                                        data={pieChartData}
-                                        activeIndex={activeIndex}
-                                        activeShape={renderActiveShape}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        dataKey="value"
-                                        onMouseEnter={onPieEnter}
-                                    >
-                                        {pieChartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                                        ))}
-                                    </Pie>
-                                </RechartsPieChart>
-                            </ResponsiveContainer>
+                            <RechartsPieChart>
+                                <RechartsTooltip
+                                    cursor={false}
+                                    content={<ChartTooltipContent hideLabel />}
+                                />
+                                <Pie
+                                    data={pieChartData}
+                                    activeIndex={activeIndex}
+                                    activeShape={renderActiveShape}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    dataKey="value"
+                                    onMouseEnter={onPieEnter}
+                                >
+                                    {pieChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                </Pie>
+                            </RechartsPieChart>
                         </ChartContainer>
                     ) : (<p className="text-muted-foreground text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
                 </CardContent>
@@ -356,7 +354,7 @@ export default function StatisticsPage() {
                                             return {
                                                 name: ct.categoryName,
                                                 value: point?.expenses || 0,
-                                                color: `hsl(var(${ct.chartColor}))`,
+                                                color: `hsl(${chartConfig[ct.categoryId]?.color})`,
                                             }
                                         }).filter(cb => cb.value > 0).sort((a, b) => b.value - a.value);
 
@@ -402,7 +400,7 @@ export default function StatisticsPage() {
                         <div key={catTrend.categoryId} className="border p-3 rounded-lg">
                             <div className="flex justify-between items-center mb-1">
                                 <div className='flex items-center gap-2'>
-                                    <span style={{ color: `hsl(var(${catTrend.chartColor}))`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
+                                    <span style={{ color: `hsl(${chartConfig[catTrend.categoryId]?.color})`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
                                     <div>
                                         <p className='font-semibold text-xs'>{catTrend.categoryName}</p>
                                         <p className='text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
@@ -417,23 +415,23 @@ export default function StatisticsPage() {
                                     >
                                       <defs>
                                         <linearGradient id={`fill-${catTrend.categoryId}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor={`hsl(var(${catTrend.chartColor}))`} stopOpacity={0.6}/>
-                                          <stop offset="95%" stopColor={`hsl(var(${catTrend.chartColor}))`} stopOpacity={0}/>
+                                          <stop offset="5%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.6}/>
+                                          <stop offset="95%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0}/>
                                         </linearGradient>
                                       </defs>
                                       <RechartsTooltip
-                                        cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
+                                        cursor={false}
                                         content={({ active, payload, label }) => active && payload && payload.length ? (
                                              <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                 <p className="font-medium mb-1">{label}</p>
-                                                <p style={{color: `hsl(var(${catTrend.chartColor}))`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
+                                                <p style={{color: `hsl(${chartConfig[catTrend.categoryId]?.color})`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
                                             </div>
                                         ) : null}
                                       />
                                       <Area
                                         type="monotone"
                                         dataKey="expenses"
-                                        stroke={`hsl(var(${catTrend.chartColor}))`}
+                                        stroke={`hsl(${chartConfig[catTrend.categoryId]?.color})`}
                                         strokeWidth={2}
                                         fillOpacity={1}
                                         fill={`url(#fill-${catTrend.categoryId})`}
@@ -457,5 +455,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
