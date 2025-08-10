@@ -421,14 +421,12 @@ export default function StatisticsPage() {
                 <CardContent className="space-y-3">
                     {categoryTrends.map(catTrend => (
                         <div key={catTrend.categoryId} className="border p-3 rounded-lg">
-                            <div className="flex justify-between items-center mb-2">
-                                <div className='flex items-center gap-2'>
+                             <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2">
                                     <span style={{ color: chartConfig[catTrend.categoryId]?.color }} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
-                                    <div>
-                                        <p className='font-semibold text-sm'>{catTrend.categoryName}</p>
-                                        <p className='font-bold text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
-                                    </div>
+                                    <p className="font-semibold text-sm">{catTrend.categoryName}</p>
                                 </div>
+                                <p className="font-bold text-sm text-muted-foreground">{catTrend.total.toLocaleString()}&nbsp;د.ع</p>
                             </div>
                             <div className="h-[150px] w-full">
                                 <ChartContainer config={chartConfig}>
@@ -437,7 +435,6 @@ export default function StatisticsPage() {
                                       data={catTrend.trendData}
                                       margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                                     >
-                                      <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3"/>
                                       <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                                       <RechartsTooltip
                                         cursor={false}
@@ -454,7 +451,6 @@ export default function StatisticsPage() {
                                         stroke={chartConfig[catTrend.categoryId]?.color}
                                         strokeWidth={2}
                                         dot={{
-                                            fill: chartConfig[catTrend.categoryId]?.color,
                                             r: 4,
                                             strokeWidth: 2,
                                             stroke: 'hsl(var(--background))'
@@ -462,7 +458,6 @@ export default function StatisticsPage() {
                                         activeDot={{
                                           r: 6,
                                           strokeWidth: 2,
-                                          stroke: 'hsl(var(--background))'
                                         }}
                                         label={<CustomLabel />}
                                       />
