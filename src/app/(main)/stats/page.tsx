@@ -3,16 +3,14 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles, Bot, Loader2 } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, Sector, Text, LabelList } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, AreaChart } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Area } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, lastDayOfMonth } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
 import {
   Accordion,
   AccordionContent,
@@ -21,59 +19,62 @@ import {
 } from "@/components/ui/accordion";
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
-import { InsightsCard } from './InsightsCard'; // Import the new component
-import { useIsMobile } from '@/hooks/use-mobile';
+import { InsightsCard } from './InsightsCard';
 import { getStatsSummaryAction } from '@/app/actions';
 import type { GetStatsSummaryOutput } from '@/ai/flows/get-stats-summary';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
-interface PieChartDataItem {
-  name: string;
-  value: number;
-  key: string; // category id
-  fill: string;
-  percentage: number;
-}
-
 const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
 
   return (
     <g>
+      <text x={cx} y={cy - 12} dy={8} textAnchor="middle" fill={fill} className="text-sm font-bold">
+        {payload.name}
+      </text>
+       <text x={cx} y={cy + 8} textAnchor="middle" fill="hsl(var(--foreground))" className="text-lg font-bold">
+        {value.toLocaleString()}
+      </text>
+       <text x={cx} y={cy + 28} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-xs">
+        ({(percent * 100).toFixed(1)}%)
+      </text>
       <Sector
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 4} // Make active sector slightly larger
+        outerRadius={outerRadius}
         startAngle={startAngle}
         endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
         fill={fill}
       />
     </g>
   );
 };
 
-
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categories, getIconComponent } = useCategories();
-  const isMobile = useIsMobile();
   
-  // Filter state
   const [view, setView] =useState<'month' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   
   const [activeIndex, setActiveIndex] = useState(0);
-  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [statsData, setStatsData] = useState<GetStatsSummaryOutput | null>(null);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
 
-  // Derive available years and months from expenses data.
   const availableYears = useMemo(() => {
     if (!expenses || expenses.length === 0) return [new Date().getFullYear()];
     const dates = expenses.map(e => {
@@ -112,7 +113,7 @@ export default function StatisticsPage() {
         setIsStatsLoading(true);
         try {
             const result = await getStatsSummaryAction({
-                expenses, // Pass the already fetched expenses
+                expenses,
                 view,
                 selectedPeriod: view === 'month' ? selectedMonth : String(selectedYear),
                 userSettings,
@@ -129,7 +130,6 @@ export default function StatisticsPage() {
     fetchStats();
   }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, expenses]);
 
-  // When available years/months change (e.g. after import), ensure a valid one is selected
   useEffect(() => {
     if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
         setSelectedYear(availableYears[0]);
@@ -162,7 +162,7 @@ export default function StatisticsPage() {
   if (expenses.length === 0 && !isAppDataLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+        <BarChart className="h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-lg font-bold mb-2">لا توجد بيانات لعرضها</h2>
         <p className="text-xs text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
@@ -226,104 +226,38 @@ export default function StatisticsPage() {
                         <PieChartIcon className="h-4 w-4 text-primary" />
                         توزيع المصاريف
                     </CardTitle>
-                    {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+                     <CardDescription className="text-xs">
+                        إجمالي الإنفاق في {periodDescription}: {totalForPeriod.toLocaleString()} د.ع
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {pieChartData.length > 0 ? (
-                        <>
-                        {isMobile ? (
-                            <div className="space-y-3">
-                                <div className="text-center">
-                                    <span className="text-xs text-muted-foreground">الإجمالي</span>
-                                    <p className="text-2xl font-bold text-foreground">
-                                        {totalForPeriod.toLocaleString()}&nbsp;
-                                        <span className="text-base font-normal">د.ع</span>
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                {categorySummary.map((item) => (
-                                    <div key={item.id}>
-                                        <div className="flex justify-between items-center text-xs mb-1">
-                                            <span className="font-medium">{item.name}</span>
-                                            <span>{item.total.toLocaleString()}&nbsp;د.ع ({item.percentage.toFixed(1)}%)</span>
-                                        </div>
-                                        <Progress value={item.percentage} className="h-2" style={{ backgroundColor: item.chartColor }} indicatorClassName="hidden" />
-                                    </div>
-                                ))}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                <div className="w-full h-[250px] relative">
-                                    <ChartContainer config={chartConfig} className="w-full h-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <RechartsTooltip
-                                                    content={
-                                                        <ChartTooltipContent
-                                                            formatter={(value, name) => {
-                                                                const item = pieChartData.find(d => d.name === name);
-                                                                return (
-                                                                    <div className="flex flex-col items-end p-1">
-                                                                        <span className="font-bold text-foreground">{name}</span>
-                                                                        <span className="text-muted-foreground">{Number(value).toLocaleString()}&nbsp;د.ع ({item?.percentage.toFixed(1)}%)</span>
-                                                                    </div>
-                                                                );
-                                                            }}
-                                                        />
-                                                    }
-                                                />
-                                                <Pie
-                                                    data={pieChartData}
-                                                    activeIndex={activeIndex}
-                                                    activeShape={renderActiveShape}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    dataKey="value"
-                                                    onMouseEnter={onPieEnter}
-                                                >
-                                                    {pieChartData.map((entry) => (
-                                                        <Cell key={`cell-${entry.key}`} fill={entry.fill} stroke={entry.fill} />
-                                                    ))}
-                                                </Pie>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </ChartContainer>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                        <span className="text-xs text-muted-foreground">الإجمالي</span>
-                                        <span className="text-xl font-bold text-foreground">
-                                            {totalForPeriod.toLocaleString()}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">د.ع</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                                    {categorySummary.map((item, index) => (
-                                        <div 
-                                            key={item.id} 
-                                            className="flex items-center gap-2 p-2 rounded-lg transition-colors cursor-pointer"
-                                            onMouseEnter={() => setActiveIndex(index)}
-                                            style={{ backgroundColor: activeIndex === index ? 'hsl(var(--muted))' : 'transparent' }}
-                                        >
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-medium truncate">{item.name}</p>
-                                                <p className="text-xs text-muted-foreground">{item.total.toLocaleString()}&nbsp;د.ع  ({item.percentage.toFixed(1)}%)</p>
-                                            </div>
-                                            {item.budget && (
-                                                <div className='w-16'>
-                                                    <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        </>
-                    ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
+                       <ChartContainer config={chartConfig} className="w-full h-[250px]">
+                            <ResponsiveContainer>
+                                <PieChart>
+                                    <RechartsTooltip
+                                        cursor={false}
+                                        content={<ChartTooltipContent hideLabel />}
+                                    />
+                                    <Pie
+                                        data={pieChartData}
+                                        activeIndex={activeIndex}
+                                        activeShape={renderActiveShape}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        dataKey="value"
+                                        onMouseEnter={onPieEnter}
+                                    >
+                                        {pieChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
+                    ) : (<p className="text-muted-foreground text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
                 </CardContent>
             </Card>
       
@@ -339,28 +273,31 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                 {categorySummary.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full">
-                    {categorySummary.map((item, index) => (
-                        <AccordionItem value={item.id} key={item.id} className="border-b" ref={(el) => (itemRefs.current[item.id] = el)}>
+                    <Accordion type="single" collapsible className="w-full" onValueChange={(value) => {
+                        const newIndex = categorySummary.findIndex(item => item.id === value);
+                        if (newIndex !== -1) setActiveIndex(newIndex);
+                    }}>
+                    {categorySummary.map((item) => (
+                        <AccordionItem value={item.id} key={item.id} className="border-b">
                         <AccordionTrigger 
                             className="p-3 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50"
-                            onMouseEnter={() => setActiveIndex(index)}
                         >
                             <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg">
-                                    {item.icon}
-                                </span>
+                                <span style={{ color: item.chartColor }} className="font-bold text-lg">{item.icon}</span>
                                 <div className="flex-1 min-w-0 text-right">
-                                    <p className="font-semibold text-[11px] truncate">{item.name}</p>
+                                    <p className="font-semibold text-xs truncate">{item.name}</p>
                                     <p className="text-[10px] text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                                 </div>
                             </div>
                             <div className='text-left ml-2'>
-                                <p className="text-[11px] font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
-                                {item.budget && (
-                                    <div className='w-16 mt-1'>
-                                        <Progress value={(item.total / item.budget) * 100} className="h-1" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
+                                <p className="text-xs font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                                {item.budget && (item.total / item.budget) > 0 && (
+                                    <div className='w-16 mt-1 h-1.5 bg-secondary rounded-full'>
+                                        <div 
+                                          className={`h-1.5 rounded-full ${(item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary'}`}
+                                          style={{ width: `${Math.min((item.total / item.budget) * 100, 100)}%`}}
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -371,6 +308,7 @@ export default function StatisticsPage() {
                                 {filteredExpenses
                                     .filter(exp => exp.category === item.id)
                                     .sort((a,b) => compareDesc(parseISO(a.date), parseISO(b.date)))
+                                    .slice(0, 10) // Show top 10 for brevity
                                     .map(expense => (
                                         <li key={expense.id} className="flex justify-between items-center gap-2 text-xs animate-in fade-in duration-300">
                                             <div className="flex-1 min-w-0">
@@ -380,15 +318,18 @@ export default function StatisticsPage() {
                                             <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
                                         </li>
                                     ))}
+                                {filteredExpenses.filter(exp => exp.category === item.id).length > 10 && (
+                                    <li className="text-center text-xs text-muted-foreground pt-1">... و المزيد</li>
+                                )}
                             </ul>
                         </AccordionContent>
                         </AccordionItem>
                     ))}
                     </Accordion>
                 ) : (
-                        <div className="px-6 py-10 text-center text-muted-foreground text-xs">
-                            <p>لا توجد مصاريف لعرضها.</p>
-                        </div>
+                    <div className="px-6 py-10 text-center text-muted-foreground text-xs">
+                        <p>لا توجد مصاريف لعرضها.</p>
+                    </div>
                 )}
                 </CardContent>
             </Card>
@@ -400,21 +341,56 @@ export default function StatisticsPage() {
                     اتجاه المصاريف
                 </CardTitle>
                 <CardDescription className="text-xs">
-                    {trendChartData.length > 0 ? periodDescription : 'لا توجد بيانات كافية.'}
+                    {trendChartData.length > 0 ? `اتجاه الإنفاق خلال ${periodDescription}` : 'لا توجد بيانات كافية.'}
                 </CardDescription>
                 </CardHeader>
-                <CardContent className="h-[220px]">
+                <CardContent className="h-[250px]">
                 {trendChartData.length > 0 ? (
                     <ChartContainer config={chartConfig} className="w-full h-full">
-                        <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 25, bottom: 5 }}>
+                        <AreaChart data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
+                            <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `${(value as number / 1000)}k`} tick={{fontSize: 9}} />
                             <RechartsTooltip
-                                cursor={false}
-                                content={<ChartTooltipContent indicator="dot" />}
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        const total = payload.reduce((sum, item) => sum + (item.value as number), 0);
+                                        return (
+                                            <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
+                                                <p className="font-bold mb-1">{label}</p>
+                                                <p className="text-primary font-semibold">الإجمالي: {total.toLocaleString()} د.ع</p>
+                                                <div className="mt-1 border-t pt-1 space-y-1">
+                                                {filteredExpenses
+                                                    .filter(e => format(parseISO(e.date), view === 'year' ? 'MMM' : 'd', { locale: arIQ }) === label)
+                                                    .reduce((acc, curr) => {
+                                                        const existing = acc.find(item => item.category === curr.category);
+                                                        if (existing) {
+                                                            existing.amount += curr.amount;
+                                                        } else {
+                                                            acc.push({ category: curr.category, amount: curr.amount });
+                                                        }
+                                                        return acc;
+                                                    }, [] as { category: string, amount: number}[])
+                                                    .sort((a,b) => b.amount - a.amount)
+                                                    .slice(0,3)
+                                                    .map(item => (
+                                                        <div key={item.category} className="flex justify-between items-center gap-2">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="w-2 h-2 rounded-full" style={{backgroundColor: chartConfig[item.category]?.color || '#ccc'}} />
+                                                                <span>{chartConfig[item.category]?.label}</span>
+                                                            </div>
+                                                            <span>{item.amount.toLocaleString()}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
                             />
-                            <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 4 }} name={chartConfig.expenses.label} />
-                        </LineChart>
+                            <Area type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" fill="var(--color-expenses)" fillOpacity={0.1} />
+                        </AreaChart>
                     </ChartContainer>
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
                 </CardContent>
