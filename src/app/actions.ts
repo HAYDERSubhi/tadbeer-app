@@ -11,6 +11,11 @@ import {
   type AnalyzeSpendingPatternsInput,
   type AnalyzeSpendingPatternsOutput,
 } from '@/ai/flows/analyze-spending-patterns';
+import {
+    getStatsSummary,
+    type GetStatsSummaryInput,
+    type GetStatsSummaryOutput,
+} from '@/ai/flows/get-stats-summary';
 
 /**
  * A Server Action to securely call the recordExpenseWithText AI flow from the client.
@@ -48,4 +53,23 @@ export async function analyzeSpendingPatternsAction(
     }
     throw new Error('An unknown error occurred while analyzing spending.');
   }
+}
+
+/**
+ * A Server Action to securely call the getStatsSummary flow from the client.
+ * This performs data aggregation on the server to improve performance.
+ */
+export async function getStatsSummaryAction(
+  input: GetStatsSummaryInput
+): Promise<GetStatsSummaryOutput> {
+    try {
+        const result = await getStatsSummary(input);
+        return result;
+    } catch (error) {
+        console.error('Error in getStatsSummaryAction:', error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to get stats summary: ${error.message}`);
+        }
+        throw new Error('An unknown error occurred while getting stats summary.');
+    }
 }
