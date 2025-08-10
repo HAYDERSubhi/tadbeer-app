@@ -425,7 +425,7 @@ export default function StatisticsPage() {
                 <BarChart
                     data={barChartData}
                     layout="vertical"
-                    margin={{ left: 10, right: 30 }}
+                    margin={{ left: 10, right: 10 }}
                 >
                     <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                     <XAxis 
@@ -449,20 +449,12 @@ export default function StatisticsPage() {
                     <RechartsTooltip 
                         cursor={{ fill: 'hsl(var(--muted))' }} 
                         content={<ChartTooltipContent />}
-                        formatter={(value) => `${Number(value).toLocaleString()} د.ع`}
+                        formatter={(value, name) => [`${Number(value).toLocaleString()} د.ع`, name]}
                     />
                     <Bar dataKey="total" radius={4}>
                          {barChartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
-                        <LabelList
-                            dataKey="total"
-                            position="right"
-                            offset={8}
-                            className="fill-foreground"
-                            fontSize={10}
-                            formatter={(value: number) => value.toLocaleString()}
-                        />
                     </Bar>
                 </BarChart>
             </ChartContainer>
