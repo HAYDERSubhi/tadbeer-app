@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, lastDayOfMonth } from 'date-fns';
@@ -385,7 +385,7 @@ export default function StatisticsPage() {
         </CardHeader>
         <CardContent className="h-[250px] flex justify-center">
           {pieChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[220px]">
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
               <PieChart>
                 <RechartsTooltip
                   cursor={false}
@@ -415,8 +415,8 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={70}
-                  innerRadius={45}
+                  outerRadius={110}
+                  innerRadius={60}
                   labelLine={false}
                   onMouseEnter={(data) => {
                     setActiveDonutSlice(data.payload);
@@ -433,7 +433,7 @@ export default function StatisticsPage() {
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="text-[8px] fill-foreground font-semibold pointer-events-none"
+                          className="text-[10px] fill-foreground font-semibold pointer-events-none"
                           style={{ fill: payload.fill }}
                         >
                           <tspan x={x} dy="-0.5em">{displayName}</tspan>
@@ -457,7 +457,6 @@ export default function StatisticsPage() {
                       )}
                     </div>
                  </foreignObject>
-                <ChartLegend content={<ChartLegendContent nameKey="name" className="text-[10px]" />} />
               </PieChart>
             </ChartContainer>
           ) : (<p className="text-muted-foreground self-center text-xs">لا توجد مصاريف لعرضها.</p>)}
@@ -559,7 +558,6 @@ export default function StatisticsPage() {
                     formatter={(value: number, name: string) => [`${value.toLocaleString('en-US')} د.ع`, chartConfig.expenses.label ]}
                     labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
                   />
-                <ChartLegend content={<ChartLegendContent />} />
                 <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 4 }} name={chartConfig.expenses.label}>
                     <LabelList content={<CustomLabel />} />
                 </Line>
