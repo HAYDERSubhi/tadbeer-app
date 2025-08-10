@@ -1,4 +1,4 @@
-
+// src/app/(main)/stats/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -13,8 +13,6 @@ import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, 
 import { arIQ } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
-import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Accordion,
   AccordionContent,
@@ -23,7 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
-import { InsightIcon } from '@/components/dashboard/insight-icon';
+import { InsightsCard } from './InsightsCard'; // Import the new component
 
 interface PieChartDataItem {
   name: string;
@@ -85,30 +83,25 @@ export default function StatisticsPage() {
   
   const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
 
-  // Insights state
-  const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
-  const [isInsightsLoading, setIsInsightsLoading] = useState(true);
-
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const chartConfig = useMemo(() => {
       const config: ChartConfig = {};
       categories.forEach(cat => {
-          const defaultCat = categoryMap[cat.id] || {};
           config[cat.id] = { 
               label: cat.name, 
-              color: 'hsl(var(--muted))', // This will be overridden by the Cell fill
+              color: 'hsl(var(--muted))',
               icon: () => getIconComponent(cat.icon),
           };
       });
       config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
       return config;
-  }, [categories, categoryMap, getIconComponent]);
+  }, [categories, getIconComponent]);
 
 
   // Derive available years and months from expenses data.
   const availableYears = useMemo(() => {
-    if (expenses.length === 0) return [];
+    if (!expenses || expenses.length === 0) return [new Date().getFullYear()];
     const dates = expenses.map(e => {
         try { return parseISO(e.date); } catch { return null; }
     }).filter(Boolean) as Date[];
@@ -116,7 +109,7 @@ export default function StatisticsPage() {
   }, [expenses]);
 
   const availableMonths = useMemo(() => {
-    if (expenses.length === 0) return [];
+    if (!expenses || expenses.length === 0) return [format(new Date(), 'yyyy-MM')];
     const dates = expenses.map(e => {
         try { return parseISO(e.date); } catch { return null; }
     }).filter(Boolean) as Date[];
@@ -329,83 +322,6 @@ export default function StatisticsPage() {
     };
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent]);
   
-  const financialCoachInput = useMemo(() => {
-    if (isAppDataLoading) {
-      return null;
-    }
-    
-    if (filteredExpenses.length === 0) {
-      return { isEmpty: true };
-    }
-
-    let totalBudgetForPeriod: number;
-    let categoryBudgetsForPeriod: Record<string, number> = {};
-    const daysInPeriod = view === 'year' ? 365 : format(lastDayOfMonth(parseISO(`${selectedMonth}-01`)), 'd');
-
-    if (view === 'year') {
-        totalBudgetForPeriod = (userSettings?.budget?.totalBudget || 0) * 12;
-        Object.entries(userSettings?.categoryBudgets || {}).forEach(([key, value]) => {
-            categoryBudgetsForPeriod[key] = value * 12;
-        });
-    } else {
-        totalBudgetForPeriod = userSettings?.budget?.totalBudget || 0;
-        categoryBudgetsForPeriod = userSettings?.categoryBudgets || {};
-    }
-    
-    const input: FinancialCoachInput = {
-        totalBudget: totalBudgetForPeriod,
-        zeroSpendDaysTarget: Math.round((userSettings?.budget?.zeroSpendDaysTarget || 4) * (Number(daysInPeriod) / 30)),
-        expenses: filteredExpenses.map(e => ({
-            title: e.title,
-            amount: e.amount,
-            category: categoryMap[e.category]?.name || e.category,
-            date: format(new Date(e.date), 'yyyy-MM-dd'),
-        })),
-        appTone: userSettings?.appTone || 'formal',
-    };
-    
-    if (categoryBudgetsForPeriod) {
-        input.categoryBudgets = categoryBudgetsForPeriod;
-    }
-
-    if (userSettings?.profile) {
-        input.userProfile = {
-            monthlyIncome: userSettings.profile.monthlyIncome,
-            familyMembers: userSettings.profile.familyMembers?.map(({ id, ...rest }) => rest) || [],
-        };
-    }
-    
-    return input;
-  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth, selectedYear, isAppDataLoading]);
-
-  useEffect(() => {
-    if (isAppDataLoading || !financialCoachInput) {
-      return;
-    }
-  
-    const getInsights = async () => {
-      if ('isEmpty' in financialCoachInput && financialCoachInput.isEmpty) {
-        setInsights(null);
-        setIsInsightsLoading(false);
-        return;
-      }
-      
-      setIsInsightsLoading(true);
-      try {
-        const result = await financialCoach(financialCoachInput as FinancialCoachInput);
-        setInsights(result.insights);
-      } catch (e) {
-        console.error("Failed to get financial insights for stats page", e);
-        setInsights(null);
-      } finally {
-        setIsInsightsLoading(false);
-      }
-    };
-    
-    getInsights();
-  }, [financialCoachInput, isAppDataLoading]);
-
-
   if (expenses.length === 0 && !isAppDataLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -430,7 +346,7 @@ export default function StatisticsPage() {
                            <div className="overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
                                 <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
                                     <TabsList className="h-8">
-                                        {(availableMonths.length > 0 ? availableMonths : [format(new Date(), 'yyyy-MM')]).map(m => (
+                                        {availableMonths.map(m => (
                                             <TabsTrigger key={m} value={m} className="whitespace-nowrap text-xs px-2 py-1 h-auto">
                                                 {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arIQ})}
                                             </TabsTrigger>
@@ -445,7 +361,7 @@ export default function StatisticsPage() {
                            <div className="overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
                                 <Tabs value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))} className="w-full">
                                     <TabsList className="h-8">
-                                        {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
+                                        {availableYears.map(y => (
                                             <TabsTrigger key={y} value={String(y)} className="text-xs px-2 py-1 h-auto">
                                                 {y}
                                             </TabsTrigger>
@@ -715,49 +631,11 @@ export default function StatisticsPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="flex items-center gap-2 text-xs">
-            <Sparkles className="h-4 w-4 text-primary" />
-            نصائح ذكية
-          </CardTitle>
-          <CardDescription className="text-xs">تحليلات وتوصيات بناءً على إنفاقك في الفترة المحددة.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isInsightsLoading ? (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-            </div>
-          ) : insights && insights.length > 0 ? (
-            <div className="space-y-3">
-              {insights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                   <span className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-                    insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-                    insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-                  )}>
-                    <InsightIcon name={insight.icon} className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-xs">{insight.title}</p>
-                    <p className="text-xs text-muted-foreground">{insight.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground p-4 text-xs">
-              {filteredExpenses.length > 0 
-                ? "لا توجد نصائح حاليًا لهذه الفترة. قد يساعد تحديد ميزانية في الإعدادات."
-                : "لا توجد مصاريف في هذه الفترة لتقديم نصائح حولها."
-              }
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      <InsightsCard
+        key={`${view}-${selectedMonth}-${selectedYear}`}
+        filteredExpenses={filteredExpenses}
+      />
+      
     </div>
   );
 }
