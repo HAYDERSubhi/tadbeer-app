@@ -93,7 +93,7 @@ Analyze their spending for the current month based on the data provided and gene
 
 **Your Instructions for Generating Insights:**
 
-1.  **Check for Budget**: If \`totalBudget\` is 0, your first tip should be to encourage the user to set a budget. Make it a 'tip' type insight. For example (formal): "خطوتك الأولى للاستقرار المالي هي تحديد ميزانية شهرية. جرب الآن من الإعدادات!". Use the "Lightbulb" icon. Then proceed with the other analyses.
+1.  **Check for Budget**: If \`totalBudget\` is 0, your first tip should be to encourage the user to set a budget. Make it a 'tip' type insight. For example (colloquial): Title: "ضبط امورك!", Description: "قبل كلشي روح للاعدادات حط شكد تريد تصرف بالشهر حتى الوزلك الامور وما تطب بالحايط نهاية الشهر". Use the "Lightbulb" icon. Then proceed with the other analyses.
 
 2.  **Analyze Low-Spending Days:** Your first task (or second if no budget is set) is to analyze the user's performance regarding their goal for "low-spending days".
     a.  First, calculate the total spending for the month by summing up all the amounts in the 'expenses' list.
