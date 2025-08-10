@@ -566,14 +566,14 @@ export default function SettingsPage() {
     setDailyReminderEnabled(checked);
   
     if (!checked) {
-      // Logic to disable notifications can be added here if needed
+      // User is disabling notifications, we don't need to do anything special here.
+      // The setting will be saved when they click the save button.
       return;
     }
   
     // 1. Check for browser support
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
-      setDailyReminderEnabled(false);
       return;
     }
   
@@ -582,31 +582,30 @@ export default function SettingsPage() {
       await navigator.serviceWorker.ready;
     } catch (error) {
       toast({ title: 'خطأ في الخدمة', description: 'لم يتمكن من تهيئة خدمة الإشعارات.', variant: 'destructive'});
-      setDailyReminderEnabled(false);
       return;
     }
     
-    // 3. Request permission
+    // 3. Handle Permission
     if (Notification.permission === 'granted') {
-      // Permission already granted
+      // Permission already granted, nothing to do.
     } else if (Notification.permission !== 'denied') {
+      // We haven't asked before, or it was dismissed. Ask again.
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح.'});
-      } else { // permission === 'denied'
-        setDailyReminderEnabled(false);
+        toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح. لا تنس حفظ التغييرات.'});
+      } else {
         toast({
           title: 'تم رفض الإذن',
-          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يمكنك تفعيلها من إعدادات المتصفح.',
+          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك.',
           variant: 'destructive',
         });
       }
     } else { // Permission was previously denied
-      setDailyReminderEnabled(false);
       toast({
         title: 'تم رفض الإذن مسبقًا',
-        description: 'لقد قمت برفض الإذن سابقًا. يرجى تفعيل الإشعارات يدويًا من إعدادات المتصفح لهذا الموقع.',
+        description: 'لقد قمت برفض الإذن سابقًا. يرجى تفعيل الإشعارات يدويًا من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
         variant: 'destructive',
+        duration: 8000
       });
     }
   };

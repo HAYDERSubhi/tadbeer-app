@@ -1,47 +1,38 @@
-
 // public/sw.js
 
-self.addEventListener('push', event => {
-  const data = event.data ? event.data.json() : { title: 'تدبير', body: 'رسالة جديدة من تطبيق تدبير', icon: '/logo.png' };
-  
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon,
-    })
-  );
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
-          }
-        }
-        return client.focus();
-      }
-      return clients.openWindow('/');
-    })
-  );
-});
-
-// Basic service worker to enable PWA installation and offline capabilities
-self.addEventListener('install', event => {
+// Listen for the install event, which is fired when the service worker is installed.
+self.addEventListener('install', (event) => {
+  // The service worker is installed.
   console.log('Service Worker installing.');
-  // You can add pre-caching logic here if needed
 });
 
-self.addEventListener('activate', event => {
+// Listen for the activate event, which is fired when the service worker is activated.
+self.addEventListener('activate', (event) => {
+  // The service worker is activated.
   console.log('Service Worker activating.');
 });
 
-self.addEventListener('fetch', event => {
-  // Basic fetch handler, can be expanded for caching strategies
-  event.respondWith(fetch(event.request));
+// Listen for push events, which are sent by the server.
+self.addEventListener('push', (event) => {
+  console.log('Push event received.');
+  if (event.data) {
+    const data = event.data.json();
+    const title = data.title || 'تطبيق تدبير';
+    const options = {
+      body: data.body || 'لا تنس تسجيل مصروفاتك اليومية.',
+      icon: '/logo.png', // Path to your app icon
+      badge: '/logo.png', // Path to a smaller badge icon
+      dir: 'rtl',
+      lang: 'ar',
+    };
+    event.waitUntil(self.registration.showNotification(title, options));
+  }
+});
+
+// Listen for notification click events.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('/')
+  );
 });
