@@ -4,9 +4,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector, Label } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, lastDayOfMonth } from 'date-fns';
@@ -358,6 +358,15 @@ export default function StatisticsPage() {
       </div>
     );
   }
+  
+  const barChartData = categorySummary
+    .slice(0, 7) // Take top 7 for cleaner chart
+    .map(item => ({
+      name: item.name,
+      total: item.total,
+      fill: item.chartColor,
+    }))
+    .reverse(); // Reverse for correct order in horizontal bar chart
 
   return (
     <div className="space-y-4 pb-24">
@@ -405,72 +414,59 @@ export default function StatisticsPage() {
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="flex items-center gap-2 text-xs">
-            <PieChartIcon className="h-4 w-4 text-primary" />
+            <BarChart3 className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
-           {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+           {barChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
-        <CardContent className="h-[250px] flex justify-center">
-          {pieChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
-              <PieChart>
-                <RechartsTooltip
-                  cursor={false}
-                  content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border bg-background p-2 shadow-sm">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="flex flex-col">
-                                <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                  {payload[0].payload.name}
-                                </span>
-                                <span className="font-bold text-muted-foreground">
-                                  {payload[0].value?.toLocaleString()} د.ع
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      }
-                      return null
-                  }}
-                />
-                <Pie
-                  data={pieChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={50}
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  onMouseEnter={(data) => {
-                    setActiveDonutSlice(data.payload);
-                  }}
-                  onMouseLeave={() => {
-                    setActiveDonutSlice(null);
-                  }}
+        <CardContent>
+          {barChartData.length > 0 ? (
+            <ChartContainer config={chartConfig} className="w-full h-[250px]">
+                <BarChart
+                    data={barChartData}
+                    layout="vertical"
+                    margin={{ left: 10, right: 30 }}
                 >
-                  {pieChartData.map((entry) => (
-                    <Cell key={`cell-${entry.key}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                 <foreignObject width="100%" height="100%">
-                    <div className="w-full h-full flex flex-col justify-center items-center text-center pointer-events-none">
-                      <p className="text-[10px] text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
-                      <p className="text-base font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
-                       {activeDonutSlice && totalForPeriod > 0 && (
-                        <p className="text-[10px] font-semibold" style={{color: activeDonutSlice.fill}}>
-                            {`${((activeDonutSlice.value / totalForPeriod) * 100).toFixed(1)}%`}
-                        </p>
-                      )}
-                    </div>
-                 </foreignObject>
-              </PieChart>
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    <XAxis 
+                        type="number" 
+                        dataKey="total" 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickMargin={8} 
+                        tickFormatter={(value) => formatValueForLabel(value)}
+                        tick={{ fontSize: 10 }}
+                    />
+                    <YAxis
+                        type="category"
+                        dataKey="name"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={5}
+                        width={80}
+                        tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                    />
+                    <RechartsTooltip 
+                        cursor={{ fill: 'hsl(var(--muted))' }} 
+                        content={<ChartTooltipContent />}
+                        formatter={(value) => `${Number(value).toLocaleString()} د.ع`}
+                    />
+                    <Bar dataKey="total" radius={4}>
+                         {barChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                        <LabelList
+                            dataKey="total"
+                            position="right"
+                            offset={8}
+                            className="fill-foreground"
+                            fontSize={10}
+                            formatter={(value: number) => value.toLocaleString()}
+                        />
+                    </Bar>
+                </BarChart>
             </ChartContainer>
-          ) : (<p className="text-muted-foreground self-center text-xs">لا توجد مصاريف لعرضها.</p>)}
+          ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
       
