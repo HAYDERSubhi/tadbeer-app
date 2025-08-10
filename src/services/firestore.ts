@@ -24,7 +24,7 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 export const getExpenses = async (uid: string): Promise<Expense[]> => {
     if (!db) return [];
-    const expensesCol = collection(db, `users/${uid}/expenses`);
+    const expensesCol = collection(db, 'users', uid, 'expenses');
     const expenseSnapshot = await getDocs(expensesCol);
     const expenses: Expense[] = [];
     expenseSnapshot.forEach((doc) => {
@@ -44,7 +44,7 @@ export const getExpenses = async (uid: string): Promise<Expense[]> => {
 
 export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const expensesCol = collection(db, `users/${uid}/expenses`);
+    const expensesCol = collection(db, 'users', uid, 'expenses');
     const docRef = await addDoc(expensesCol, {
         ...expenseData,
         date: new Date(expenseData.date), // Store as Firestore Timestamp
@@ -56,7 +56,7 @@ export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 
 
 export const updateExpense = async (uid: string, expenseId: string, expenseData: Partial<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
+    const expenseDoc = doc(db, 'users', uid, 'expenses', expenseId);
     const dataToUpdate: { [key: string]: any } = { 
         ...expenseData,
         updatedAt: serverTimestamp()
@@ -69,7 +69,7 @@ export const updateExpense = async (uid: string, expenseId: string, expenseData:
 
 export const deleteExpense = async (uid: string, expenseId: string) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const expenseDoc = doc(db, `users/${uid}/expenses`, expenseId);
+    const expenseDoc = doc(db, 'users', uid, 'expenses', expenseId);
     await deleteDoc(expenseDoc);
 };
 
@@ -79,7 +79,7 @@ export const deleteExpense = async (uid: string, expenseId: string) => {
 
 export const getGoals = async (uid: string): Promise<Goal[]> => {
     if (!db) return [];
-    const goalsCol = collection(db, `users/${uid}/goals`);
+    const goalsCol = collection(db, 'users', uid, 'goals');
     const goalSnapshot = await getDocs(goalsCol);
     const goals: Goal[] = [];
     goalSnapshot.forEach((doc) => {
@@ -97,7 +97,7 @@ export const getGoals = async (uid: string): Promise<Goal[]> => {
 
 export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const goalsCol = collection(db, `users/${uid}/goals`);
+    const goalsCol = collection(db, 'users', uid, 'goals');
     const docRef = await addDoc(goalsCol, {
         ...goalData,
         targetDate: new Date(goalData.targetDate),
@@ -108,7 +108,7 @@ export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdA
 
 export const deleteGoal = async (uid: string, goalId: string) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const goalDoc = doc(db, `users/${uid}/goals`, goalId);
+    const goalDoc = doc(db, 'users', uid, 'goals', goalId);
     await deleteDoc(goalDoc);
 };
 
@@ -118,7 +118,7 @@ export const deleteGoal = async (uid: string, goalId: string) => {
 
 export const getIncomes = async (uid: string): Promise<Income[]> => {
     if (!db) return [];
-    const incomesCol = collection(db, `users/${uid}/incomes`);
+    const incomesCol = collection(db, 'users', uid, 'incomes');
     const incomeSnapshot = await getDocs(incomesCol);
     const incomes: Income[] = [];
     incomeSnapshot.forEach((doc) => {
@@ -136,7 +136,7 @@ export const getIncomes = async (uid: string): Promise<Income[]> => {
 
 export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'createdAt' | 'uid'>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomesCol = collection(db, `users/${uid}/incomes`);
+    const incomesCol = collection(db, 'users', uid, 'incomes');
     const docRef = await addDoc(incomesCol, {
         ...incomeData,
         date: new Date(incomeData.date),
@@ -147,7 +147,7 @@ export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'cr
 
 export const updateIncome = async (uid: string, incomeId: string, incomeData: Partial<Omit<Income, 'id' | 'createdAt' | 'uid'>>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
+    const incomeDoc = doc(db, 'users', uid, 'incomes', incomeId);
     const dataToUpdate: { [key: string]: any } = { ...incomeData };
     if (incomeData.date) {
         dataToUpdate.date = new Date(incomeData.date);
@@ -157,7 +157,7 @@ export const updateIncome = async (uid: string, incomeId: string, incomeData: Pa
 
 export const deleteIncome = async (uid: string, incomeId: string) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomeDoc = doc(db, `users/${uid}/incomes`, incomeId);
+    const incomeDoc = doc(db, 'users', uid, 'incomes', incomeId);
     await deleteDoc(incomeDoc);
 };
 
