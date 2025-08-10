@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -565,34 +564,48 @@ export default function SettingsPage() {
   
   const handleDailyReminderChange = async (checked: boolean) => {
     setDailyReminderEnabled(checked);
-    
-    if (!checked) return;
   
-    if (!('Notification' in window)) {
+    if (!checked) {
+      // Logic to disable notifications can be added here if needed
+      return;
+    }
+  
+    // 1. Check for browser support
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
       setDailyReminderEnabled(false);
       return;
     }
+  
+    // 2. Check if Service Worker is ready
+    try {
+      await navigator.serviceWorker.ready;
+    } catch (error) {
+      toast({ title: 'خطأ في الخدمة', description: 'لم يتمكن من تهيئة خدمة الإشعارات.', variant: 'destructive'});
+      setDailyReminderEnabled(false);
+      return;
+    }
     
+    // 3. Request permission
     if (Notification.permission === 'granted') {
       // Permission already granted
     } else if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح.'});
-      } else {
+      } else { // permission === 'denied'
         setDailyReminderEnabled(false);
         toast({
           title: 'تم رفض الإذن',
-          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك.',
+          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يمكنك تفعيلها من إعدادات المتصفح.',
           variant: 'destructive',
         });
       }
-    } else { // Permission was denied
+    } else { // Permission was previously denied
       setDailyReminderEnabled(false);
       toast({
-        title: 'تم رفض الإذن',
-        description: 'لا يمكننا إرسال تذكيرات بدون إذنك. يرجى تفعيلها من إعدادات المتصفح.',
+        title: 'تم رفض الإذن مسبقًا',
+        description: 'لقد قمت برفض الإذن سابقًا. يرجى تفعيل الإشعارات يدويًا من إعدادات المتصفح لهذا الموقع.',
         variant: 'destructive',
       });
     }
