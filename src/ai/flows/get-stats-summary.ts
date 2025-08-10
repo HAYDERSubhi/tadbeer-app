@@ -10,7 +10,6 @@
  */
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getExpenses } from '@/services/firestore';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
@@ -40,7 +39,7 @@ const CategorySummaryItemSchema = z.object({
 });
 
 const GetStatsSummaryInputSchema = z.object({
-  uid: z.string().describe("The user's unique ID."),
+  expenses: z.array(z.any()).describe("The user's expenses, fetched on the client."),
   view: z.enum(['month', 'year']).describe("The time frame view, either 'month' or 'year'."),
   selectedPeriod: z.string().describe("The selected period, e.g., '2024-07' for month view or '2024' for year view."),
   userSettings: z.any().describe("The user's settings object, containing categories and budgets."),
@@ -68,8 +67,7 @@ export const getStatsSummary = ai.defineFlow(
     outputSchema: GetStatsSummaryOutputSchema,
   },
   async (input) => {
-    const { uid, view, selectedPeriod, userSettings } = input;
-    const expenses = await getExpenses(uid); // Fetch expenses on the server
+    const { expenses, view, selectedPeriod, userSettings } = input;
 
     const categories = userSettings.categories || [];
     const categoryMap = categories.reduce((acc: any, cat: any) => {

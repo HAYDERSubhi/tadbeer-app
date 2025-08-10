@@ -112,7 +112,7 @@ export default function StatisticsPage() {
         setIsStatsLoading(true);
         try {
             const result = await getStatsSummaryAction({
-                uid: user.uid,
+                expenses, // Pass the already fetched expenses
                 view,
                 selectedPeriod: view === 'month' ? selectedMonth : String(selectedYear),
                 userSettings,
@@ -127,7 +127,7 @@ export default function StatisticsPage() {
     };
 
     fetchStats();
-  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading]);
+  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, expenses]);
 
   // When available years/months change (e.g. after import), ensure a valid one is selected
   useEffect(() => {
