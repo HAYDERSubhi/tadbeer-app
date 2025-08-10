@@ -174,7 +174,7 @@ const defaultSettings: UserSettings = {
     },
     recurringPayments: [],
     appTone: 'formal',
-    categories: Object.values(DEFAULT_CATEGORIES), // Initialize with default categories
+    categories: Object.values(DEFAULT_CATEGORIES).map(({isDefault, ...rest}) => rest), // Initialize with default categories
     notifications: { dailyReminderEnabled: false },
 };
 

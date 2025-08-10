@@ -408,6 +408,7 @@ export default function StatisticsPage() {
                     <div className="w-full h-[250px] relative">
                          <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
+                                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                                 <Pie
                                     data={pieChartData}
                                     activeIndex={activeIndex}
@@ -419,8 +420,8 @@ export default function StatisticsPage() {
                                     dataKey="value"
                                     onMouseEnter={onPieEnter}
                                 >
-                                    {pieChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} />
+                                    {pieChartData.map((entry) => (
+                                        <Cell key={`cell-${entry.key}`} fill={entry.fill} stroke={entry.fill} />
                                     ))}
                                 </Pie>
                             </PieChart>

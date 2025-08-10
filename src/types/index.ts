@@ -69,7 +69,8 @@ export type AppTone = 'formal' | 'colloquial';
 export type Category = {
     id: string;
     name: string;
-    icon: string; // Emoji
+    icon: string;
+    color: string; // Color index for charts, e.g., "1", "2"
     isDefault?: boolean; // To distinguish default from user-created
 };
 
