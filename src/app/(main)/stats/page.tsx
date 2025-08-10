@@ -406,26 +406,28 @@ export default function StatisticsPage() {
             {pieChartData.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div className="w-full h-[250px] relative">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                                <Pie
-                                    data={pieChartData}
-                                    activeIndex={activeIndex}
-                                    activeShape={renderActiveShape}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    dataKey="value"
-                                    onMouseEnter={onPieEnter}
-                                >
-                                    {pieChartData.map((entry) => (
-                                        <Cell key={`cell-${entry.key}`} fill={entry.fill} stroke={entry.fill} />
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                         </ResponsiveContainer>
+                        <ChartContainer config={chartConfig} className="w-full h-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <Pie
+                                        data={pieChartData}
+                                        activeIndex={activeIndex}
+                                        activeShape={renderActiveShape}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        dataKey="value"
+                                        onMouseEnter={onPieEnter}
+                                    >
+                                        {pieChartData.map((entry) => (
+                                            <Cell key={`cell-${entry.key}`} fill={entry.fill} stroke={entry.fill} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartContainer>
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-xs text-muted-foreground">الإجمالي</span>
                             <span className="text-xl font-bold text-foreground">
@@ -551,10 +553,9 @@ export default function StatisticsPage() {
               <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
-                 <RechartsTooltip
-                    contentStyle={{ direction: 'rtl' }}
-                    formatter={(value: number, name: string) => [`${value.toLocaleString('en-US')} د.ع`, chartConfig.expenses.label ]}
-                    labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
+                 <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
                   />
                 <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 4 }} name={chartConfig.expenses.label}>
                     <LabelList content={<CustomLabel />} />
@@ -590,29 +591,25 @@ export default function StatisticsPage() {
                 </div>
                 <div className="h-[150px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
-                    <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={9} />
-                          <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
-                          <RechartsTooltip
-                              cursor={{ strokeDasharray: '3 3' }}
-                              contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
-                              formatter={(value: number) => [`${value.toLocaleString('en-US')} د.ع`, null]}
-                              labelFormatter={(label: string) => `الشهر: ${label}`}
-                          />
-                          <Line
-                              type="monotone"
-                              dataKey="amount"
-                              stroke={catTrend.color}
-                              strokeWidth={2}
-                              activeDot={{ r: 4 }}
-                              dot={{r: 3, fill: catTrend.color}}
-                          >
-                                <LabelList content={<CustomLabel />} />
-                          </Line>
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={9} />
+                        <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent indicator="dot" hideLabel />}
+                        />
+                        <Line
+                            type="monotone"
+                            dataKey="amount"
+                            stroke={catTrend.color}
+                            strokeWidth={2}
+                            activeDot={{ r: 4 }}
+                            dot={{r: 3, fill: catTrend.color}}
+                        >
+                              <LabelList content={<CustomLabel />} />
+                        </Line>
+                    </LineChart>
                   </ChartContainer>
                 </div>
               </div>
