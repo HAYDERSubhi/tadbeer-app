@@ -416,12 +416,12 @@ export default function StatisticsPage() {
     if (isNaN(value)) return tick;
 
     if (value >= 1000000) {
-      return `${(value / 1000000).toLocaleString('ar-IQ', { maximumFractionDigits: 1 })} مليون`;
+      return `${(value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
     }
     if (value >= 1000) {
-      return `${(value / 1000).toLocaleString('ar-IQ', { maximumFractionDigits: 0 })} ألف`;
+      return `${(value / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
     }
-    return value.toLocaleString('ar-IQ');
+    return value.toLocaleString('en-US');
   };
 
   if (expenses.length === 0) {
@@ -653,17 +653,19 @@ export default function StatisticsPage() {
         <CardContent className="h-[300px]">
           {trendChartData.length > 0 ? (
             <ChartContainer config={chartConfig} className="w-full h-full">
-              <LineChart data={trendChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <LineChart data={trendChartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} width={60} />
+                <YAxis hide={true} domain={['dataMin', 'dataMax + 5000']} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
                     formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
                     labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
                   />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label} />
+                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label}>
+                    <LabelList content={<CustomLabel />} />
+                </Line>
               </LineChart>
             </ChartContainer>
           ) : (<p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
