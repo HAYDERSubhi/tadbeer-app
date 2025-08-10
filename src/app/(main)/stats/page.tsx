@@ -4,8 +4,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, Cell } from "lucide-react";
-import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, AreaChart as AreaChartIcon } from "lucide-react";
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Area } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -67,7 +67,7 @@ const renderActiveShape = (props: any) => {
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
-  const { categories, categoryMap, getIconComponent } = useCategories();
+  const { categories, getIconComponent } = useCategories();
   
   const [view, setView] =useState<'month' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -100,10 +100,10 @@ export default function StatisticsPage() {
           config[cat.id] = { 
               label: cat.name, 
               icon: () => getIconComponent(cat.icon),
-              color: `hsl(var(--chart-${cat.color}))`,
+              color: `var(--chart-${cat.color})`, // Keep CSS variable reference here
           };
       });
-      config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
+      config.expenses = { label: "المصاريف", color: "var(--primary)" };
       return config;
   }, [categories, getIconComponent]);
   
@@ -338,14 +338,14 @@ export default function StatisticsPage() {
                     {trendChartData.length > 0 ? `اتجاه إجمالي الإنفاق خلال ${periodDescription}` : 'لا توجد بيانات كافية.'}
                 </CardDescription>
                 </CardHeader>
-                <CardContent className="h-[250px]">
+                <CardContent>
                 {trendChartData.length > 0 ? (
-                    <ChartContainer config={chartConfig} className="w-full h-full">
+                    <ChartContainer config={chartConfig} className="w-full h-[250px]">
                         <AreaChart data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                             <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `${(value as number / 1000)}k`} tick={{fontSize: 9}} />
-                            <ChartTooltip
+                            <RechartsTooltip
                                 content={({ active, payload, label }) => {
                                     if (active && payload && payload.length) {
                                         const total = payload.reduce((sum, item) => sum + (item.value as number), 0);
@@ -376,7 +376,7 @@ export default function StatisticsPage() {
                                     return null;
                                 }}
                             />
-                            <Area type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" fill="var(--color-expenses)" fillOpacity={0.1} />
+                            <Area type="monotone" dataKey="expenses" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.1} />
                         </AreaChart>
                     </ChartContainer>
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
@@ -386,7 +386,7 @@ export default function StatisticsPage() {
             <Card>
                 <CardHeader className="py-3">
                     <CardTitle className="flex items-center gap-2 text-xs">
-                        <LineChartIcon className="h-4 w-4 text-primary" />
+                        <AreaChartIcon className="h-4 w-4 text-primary" />
                         تحليل اتجاهات الفئات
                     </CardTitle>
                     <CardDescription className="text-xs">
@@ -398,25 +398,25 @@ export default function StatisticsPage() {
                 <CardContent className="space-y-2">
                     {categoryTrends.map(catTrend => (
                         <div key={catTrend.categoryId} className="border p-3 rounded-lg">
-                            <div className="flex justify-between items-center mb-1">
+                            <div className="flex justify-between items-center mb-2">
                                 <div className='flex items-center gap-2'>
                                     <span style={{ color: `hsl(${chartConfig[catTrend.categoryId]?.color})`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
                                     <div>
                                         <p className='font-semibold text-xs'>{catTrend.categoryName}</p>
-                                        <p className='text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
                                     </div>
                                 </div>
+                                <p className='font-semibold text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
                             </div>
                             <div className="h-[100px] w-full">
                                 <ChartContainer config={chartConfig}>
                                     <AreaChart
                                       data={catTrend.trendData}
-                                      margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
                                     >
                                       <defs>
                                         <linearGradient id={`fill-${catTrend.categoryId}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.6}/>
-                                          <stop offset="95%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0}/>
+                                          <stop offset="5%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.8}/>
+                                          <stop offset="95%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.1}/>
                                         </linearGradient>
                                       </defs>
                                       <RechartsTooltip
