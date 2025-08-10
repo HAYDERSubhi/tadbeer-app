@@ -564,28 +564,27 @@ export default function SettingsPage() {
   };
   
   const handleDailyReminderChange = async (checked: boolean) => {
-    if (!checked) {
-      setDailyReminderEnabled(false);
-      return;
-    }
+    setDailyReminderEnabled(checked);
+    
+    if (!checked) return;
   
     if (!('Notification' in window)) {
       toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
+      setDailyReminderEnabled(false);
       return;
     }
     
     if (Notification.permission === 'granted') {
-      setDailyReminderEnabled(true);
+      // Permission already granted
     } else if (Notification.permission !== 'denied') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        setDailyReminderEnabled(true);
         toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح.'});
       } else {
         setDailyReminderEnabled(false);
         toast({
           title: 'تم رفض الإذن',
-          description: 'لا يمكننا إرسال تذكيرات بدون إذنك.',
+          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك.',
           variant: 'destructive',
         });
       }
