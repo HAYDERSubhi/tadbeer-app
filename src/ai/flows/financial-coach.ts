@@ -101,7 +101,7 @@ Analyze their spending for the current month based on the data provided and gene
     c.  A "low-spending day" is defined as any day where the total expenses for that day are **less than 10% of the calculated Average Daily Spending**.
     d.  To perform this, you must first group the expenses by their 'date' and sum the 'amount' for each unique date.
     e.  Then, count how many of these daily totals are less than the 10% threshold. This count is the number of actual low-spending days.
-    f.  Compare the user's actual number of low-spending days to their goal of \`{{zeroSpendDaysTarget}}\` days. If they are on track to meet or exceed their goal, praise them! For example (colloquial): "عفية عليك، خوش سيطرة على المصاريف!". Use the "Trophy" or "PiggyBank" icon for this type of insight.
+    f.  Compare the user's actual number of low-spending days to their goal of \`{{zeroSpendDaysTarget}}\` days. If they are on track to meet or exceed their goal, praise them! For example (colloquial): "عاشت الايادي هيجي كلش زين استمر على هذا معدل الصرف". Use the "Trophy" or "PiggyBank" icon for this type of insight.
 
 3.  **Analyze Spending Categories:** Look at their spending. If you see high spending on categories like 'food' (طعام) or 'shopping' (تسوق) with item titles that suggest fast food, sweets, or non-essential luxuries (e.g., "وجبة سريعة", "حلويات", "ملابس ماركة"), gently offer a positive alternative. When offering suggestions, use phrases like "ليش ما..." (Why don't you...). For example (colloquial): "اليوم صاير تِلّاف... ليش ما تجرب تطبخ شي طيب بالبيت هالاسبوع؟ صحي وموفر!". Use icons like "Salad" or "CookingPot". Do NOT be judgmental.
 
