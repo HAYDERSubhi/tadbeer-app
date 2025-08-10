@@ -94,10 +94,10 @@ export default function StatisticsPage() {
   const chartConfig = useMemo(() => {
       const config: ChartConfig = {};
       categories.forEach(cat => {
-          const defaultCat = Object.values(categoryMap).find(c => c.id === cat.id);
+          const defaultCat = categoryMap[cat.id] || {};
           config[cat.id] = { 
               label: cat.name, 
-              color: defaultCat?.chartColor || 'hsl(var(--muted))',
+              color: 'hsl(var(--muted))', // This will be overridden by the Cell fill
               icon: () => getIconComponent(cat.icon),
           };
       });
@@ -192,16 +192,24 @@ export default function StatisticsPage() {
     currentFilteredExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
+    
+    const colors = [
+        "hsl(var(--chart-1))",
+        "hsl(var(--chart-2))",
+        "hsl(var(--chart-3))",
+        "hsl(var(--chart-4))",
+        "hsl(var(--chart-5))",
+    ];
 
-    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total]) => ({
+    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total], index) => ({
       name: categoryMap[catKey]?.name || catKey,
       value: total,
       key: catKey,
-      fill: chartConfig[catKey]?.color || 'hsl(var(--muted))',
+      fill: colors[index % colors.length],
     }));
 
     const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
-      .map(([catKey, total]) => {
+      .map(([catKey, total], index) => {
         const categoryInfo = categoryMap[catKey];
         const budget = categoryBudgets[catKey];
         
@@ -211,8 +219,8 @@ export default function StatisticsPage() {
           icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
           total,
           percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
-          color: categoryInfo?.color || 'bg-gray-400',
-          chartColor: chartConfig[catKey]?.color || 'hsl(var(--muted))',
+          color: 'bg-gray-400',
+          chartColor: colors[index % colors.length],
           budget,
         };
       })
@@ -291,7 +299,7 @@ export default function StatisticsPage() {
             .slice(0, 6)
             .map(([key]) => key);
             
-        categoriesTrendData = top6CategoryKeys.map(catKey => {
+        categoriesTrendData = top6CategoryKeys.map((catKey, index) => {
             const categoryInfo = categoryMap[catKey];
             if (!categoryInfo) return null;
             
@@ -306,6 +314,7 @@ export default function StatisticsPage() {
                 categoryIcon: getIconComponent(categoryInfo.icon),
                 totalAmount: totalSpendingInTrendPeriod[catKey],
                 monthlyTrend: monthlyTrend,
+                color: colors[index % colors.length]
             };
         }).filter(Boolean);
     }
@@ -318,15 +327,13 @@ export default function StatisticsPage() {
       topCategoriesTrendData: categoriesTrendData,
       filteredExpenses: currentFilteredExpenses,
     };
-  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent, chartConfig]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent]);
   
   const financialCoachInput = useMemo(() => {
-    // Crucially, wait for all app data to be loaded before trying to create the input
-    if (isAppDataLoading || !userSettings) return null;
+    if (isAppDataLoading || !userSettings || filteredExpenses.length === 0) {
+      return null;
+    }
     
-    // Only generate insights if there are expenses to analyze for the period
-    if (filteredExpenses.length === 0) return null;
-
     let totalBudgetForPeriod: number;
     let categoryBudgetsForPeriod: Record<string, number> = {};
     const daysInPeriod = view === 'year' ? 365 : format(lastDayOfMonth(parseISO(`${selectedMonth}-01`)), 'd');
@@ -369,29 +376,28 @@ export default function StatisticsPage() {
 
   useEffect(() => {
     const getInsights = async () => {
-      // If there's no valid input, clear insights and stop loading.
-      if (!financialCoachInput) {
+      // Only proceed if we have valid input. This prevents clearing insights unnecessarily.
+      if (financialCoachInput) {
+        setIsInsightsLoading(true);
+        try {
+          const result = await financialCoach(financialCoachInput);
+          setInsights(result.insights);
+        } catch (e) {
+          console.error("Failed to get financial insights for stats page", e);
+          setInsights(null);
+        } finally {
+          setIsInsightsLoading(false);
+        }
+      } else if (!isAppDataLoading) {
+        // If there's no input and we are not loading initial data, it means there are no expenses.
         setInsights(null);
-        setIsInsightsLoading(false);
-        return;
-      }
-      
-      // Start loading only when we are sure we will make a request.
-      setIsInsightsLoading(true);
-      try {
-        const result = await financialCoach(financialCoachInput);
-        setInsights(result.insights);
-      } catch (e) {
-        console.error("Failed to get financial insights for stats page", e);
-        setInsights(null); // Clear insights on error
-      } finally {
         setIsInsightsLoading(false);
       }
     };
     
     getInsights();
     
-  }, [financialCoachInput]);
+  }, [financialCoachInput, isAppDataLoading]);
 
 
   if (expenses.length === 0 && !isAppDataLoading) {
@@ -681,10 +687,10 @@ export default function StatisticsPage() {
                           <Line
                               type="monotone"
                               dataKey="amount"
-                              stroke={chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}
+                              stroke={catTrend.color}
                               strokeWidth={2}
                               activeDot={{ r: 4 }}
-                              dot={{r: 3, fill: chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}}
+                              dot={{r: 3, fill: catTrend.color}}
                           >
                                 <LabelList content={<CustomLabel />} />
                           </Line>
@@ -750,7 +756,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
-
-    
