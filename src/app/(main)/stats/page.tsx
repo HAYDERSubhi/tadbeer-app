@@ -1,11 +1,10 @@
-
 // src/app/(main)/stats/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, AreaChart as AreaChartIcon } from "lucide-react";
-import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend, Area } from 'recharts';
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -399,7 +398,21 @@ export default function StatisticsPage() {
                                     return null;
                                 }}
                             />
-                            <Area type="monotone" dataKey="expenses" stroke={chartConfig.expenses?.color} fill={chartConfig.expenses?.color} fillOpacity={0.1} />
+                            <defs>
+                                {Object.keys(chartConfig).map((key) => {
+                                    const color = chartConfig[key]?.color;
+                                    if(color) {
+                                        return (
+                                            <linearGradient key={key} id={`color-${key}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor={color} stopOpacity={0.1}/>
+                                            </linearGradient>
+                                        )
+                                    }
+                                    return null;
+                                })}
+                            </defs>
+                            <Area type="monotone" dataKey="expenses" stroke={chartConfig.expenses?.color} fill={`url(#color-expenses)`} strokeWidth={2} />
                         </AreaChart>
                     </ChartContainer>
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
@@ -451,13 +464,14 @@ export default function StatisticsPage() {
                                         stroke={chartConfig[catTrend.categoryId]?.color}
                                         strokeWidth={2}
                                         dot={{
-                                            r: 4,
-                                            strokeWidth: 2,
-                                            fill: chartConfig[catTrend.categoryId]?.color
+                                            r: 2,
+                                            strokeWidth: 1,
+                                            fill: chartConfig[catTrend.categoryId]?.color,
+                                            stroke: chartConfig[catTrend.categoryId]?.color
                                         }}
                                         activeDot={{
-                                          r: 6,
-                                          strokeWidth: 2,
+                                          r: 4,
+                                          strokeWidth: 1,
                                         }}
                                         label={<CustomLabel />}
                                       />
@@ -480,5 +494,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
