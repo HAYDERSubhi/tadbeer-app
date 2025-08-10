@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector, Label, Text } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,13 +70,21 @@ const CustomLabel = (props: any) => {
     );
 };
 
-// Custom Y-Axis tick for wrapping long text
-const CustomizedYAxisTick = (props: any) => {
-  const { x, y, payload } = props;
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+
   return (
-    <Text x={x} y={y} width={100} textAnchor="end" verticalAnchor="middle" fill="hsl(var(--foreground))" fontSize={11}>
-      {payload.value}
-    </Text>
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 4} // Make active sector slightly larger
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+    </g>
   );
 };
 
@@ -92,7 +100,7 @@ export default function StatisticsPage() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   
-  const [activeDonutSlice, setActiveDonutSlice] = useState<PieChartDataItem | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -205,30 +213,30 @@ export default function StatisticsPage() {
         "hsl(var(--chart-5))",
     ];
 
-    const pieData: PieChartDataItem[] = Object.entries(categoryTotals).map(([catKey, total], index) => ({
-      name: categoryMap[catKey]?.name || catKey,
-      value: total,
-      key: catKey,
-      fill: colors[index % colors.length],
+    const pieData: PieChartDataItem[] = Object.entries(categoryTotals)
+      .sort(([, a], [, b]) => b - a)
+      .map(([catKey, total], index) => ({
+        name: categoryMap[catKey]?.name || catKey,
+        value: total,
+        key: catKey,
+        fill: colors[index % colors.length],
     }));
 
-    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
-      .map(([catKey, total], index) => {
-        const categoryInfo = categoryMap[catKey];
-        const budget = categoryBudgets[catKey];
+    const summaryData: CategorySummaryItem[] = pieData.map((item, index) => {
+        const categoryInfo = categoryMap[item.key];
+        const budget = categoryBudgets[item.key];
         
         return {
-          id: catKey,
-          name: categoryInfo?.name || catKey,
+          id: item.key,
+          name: categoryInfo?.name || item.key,
           icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
-          total,
-          percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+          total: item.value,
+          percentage: totalExpensesInPeriod > 0 ? (item.value / totalExpensesInPeriod) * 100 : 0,
           color: 'bg-gray-400',
           chartColor: colors[index % colors.length],
           budget,
         };
-      })
-      .sort((a, b) => b.total - a.total);
+      });
 
     let trendData: TrendChartDataItem[] = [];
     if (view === 'year') {
@@ -343,14 +351,9 @@ export default function StatisticsPage() {
     );
   }
   
-  const barChartData = categorySummary
-    .slice(0, 7) // Take top 7 for cleaner chart
-    .map(item => ({
-      name: item.name,
-      total: item.total,
-      fill: item.chartColor,
-    }))
-    .reverse(); // Reverse for correct order in horizontal bar chart
+  const onPieEnter = useCallback((_: any, index: number) => {
+    setActiveIndex(index);
+  }, []);
 
   return (
     <div className="space-y-4 pb-24">
@@ -398,52 +401,74 @@ export default function StatisticsPage() {
       <Card>
         <CardHeader className="py-3">
           <CardTitle className="flex items-center gap-2 text-xs">
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <PieChartIcon className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
-           {barChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+           {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
         <CardContent>
-          {barChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="w-full h-[250px]">
-                <BarChart
-                    data={barChartData}
-                    layout="vertical"
-                    margin={{ left: 20, right: 10, top: 10, bottom: 10 }}
-                >
-                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                    <XAxis 
-                        type="number" 
-                        dataKey="total" 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickMargin={8} 
-                        tickFormatter={(value) => formatValueForLabel(value)}
-                        tick={{ fontSize: 10 }}
-                    />
-                    <YAxis
-                        type="category"
-                        dataKey="name"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={5}
-                        width={100}
-                        tick={<CustomizedYAxisTick />}
-                        interval={0}
-                    />
-                    <RechartsTooltip 
-                        cursor={{ fill: 'hsl(var(--muted))' }} 
-                        content={<ChartTooltipContent />}
-                        formatter={(value, name) => [`${Number(value).toLocaleString()} د.ع`, name]}
-                    />
-                    <Bar dataKey="total" radius={4}>
-                         {barChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
+            {pieChartData.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div className="w-full h-[250px] relative">
+                         <ChartContainer config={chartConfig} className="w-full h-full">
+                            <PieChart>
+                                <Pie
+                                    activeIndex={activeIndex}
+                                    activeShape={renderActiveShape}
+                                    data={pieChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius="60%"
+                                    outerRadius="80%"
+                                    dataKey="value"
+                                    onMouseEnter={onPieEnter}
+                                >
+                                    {pieChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                </Pie>
+                            </PieChart>
+                        </ChartContainer>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <p className="text-xs text-muted-foreground">الإجمالي</p>
+                            <p className="text-xl font-bold">
+                                {totalForPeriod.toLocaleString()} <span className='text-sm text-muted-foreground'>د.ع</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
+                        {categorySummary.map((item, index) => (
+                            <div
+                                key={item.id}
+                                className={cn(
+                                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all",
+                                    activeIndex === index ? "bg-muted" : "hover:bg-muted/50"
+                                )}
+                                onMouseEnter={() => setActiveIndex(index)}
+                            >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
+                                    <div className="flex items-center text-xs text-muted-foreground">{item.icon}</div>
+                                    <p className="text-xs font-medium truncate">{item.name}</p>
+                                </div>
+                                <div className="text-xs font-semibold text-right">
+                                    <p>{item.total.toLocaleString()} د.ع</p>
+                                    <p className="text-muted-foreground">({item.percentage.toFixed(1)}%)</p>
+                                     {item.budget !== undefined && item.budget > 0 && (
+                                        <div className="w-16 mt-1 ml-auto">
+                                            <Progress 
+                                                value={(item.total / item.budget) * 100} 
+                                                className="h-1" 
+                                                indicatorClassName={cn((item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' )}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         ))}
-                    </Bar>
-                </BarChart>
-            </ChartContainer>
-          ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
+                    </div>
+                </div>
+            ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
       
@@ -487,7 +512,7 @@ export default function StatisticsPage() {
                         <p className="text-[11px] font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
                             <div className='w-16 mt-1'>
-                                <Progress value={(item.total / item.budget) * 100} className="h-1" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
+                                <Progress value={(item.total / item.budget) * 100} className="h-1" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
                             </div>
                         )}
                       </div>
