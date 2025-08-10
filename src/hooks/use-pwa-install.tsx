@@ -1,3 +1,4 @@
+
 // src/hooks/use-pwa-install.tsx
 "use client";
 
@@ -21,7 +22,16 @@ export const usePWAInstall = () => {
     // 1. Register the service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
-        .then((registration) => console.log('Service Worker registered with scope:', registration.scope))
+        .then((registration) => {
+             console.log('Service Worker registered with scope:', registration.scope)
+             // After successful registration, check for notification permission
+             if ('Notification' in window) {
+                if (Notification.permission === 'default') {
+                    // We don't request permission here automatically.
+                    // The user will trigger it from the settings page.
+                }
+             }
+        })
         .catch((error) => console.error('Service Worker registration failed:', error));
     }
 
