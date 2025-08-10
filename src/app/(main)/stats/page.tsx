@@ -22,12 +22,15 @@ import {
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { InsightsCard } from './InsightsCard'; // Import the new component
+import { useIsMobile } from '@/hooks/use-mobile';
+
 
 interface PieChartDataItem {
   name: string;
   value: number;
   key: string; // category id
   fill: string;
+  percentage: number;
 }
 
 interface TrendChartDataItem {
@@ -91,6 +94,7 @@ const renderActiveShape = (props: any) => {
 export default function StatisticsPage() {
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categories, categoryMap, getIconComponent } = useCategories();
+  const isMobile = useIsMobile();
 
   const categoryBudgets = userSettings?.categoryBudgets || {};
 
@@ -218,7 +222,8 @@ export default function StatisticsPage() {
         name: categoryMap[key]?.name || key,
         value: value,
         key: key,
-        fill: chartConfig[key]?.color || `hsl(var(--chart-5))`
+        fill: chartConfig[key]?.color || `hsl(var(--chart-5))`,
+        percentage: totalExpensesInPeriod > 0 ? (value / totalExpensesInPeriod) * 100 : 0
       }))
       .sort((a, b) => b.value - a.value);
       
@@ -231,7 +236,7 @@ export default function StatisticsPage() {
             name: categoryInfo?.name || item.key,
             icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
             total: item.value,
-            percentage: totalExpensesInPeriod > 0 ? (item.value / totalExpensesInPeriod) * 100 : 0,
+            percentage: item.percentage,
             chartColor: item.fill,
             budget,
         };
@@ -404,60 +409,99 @@ export default function StatisticsPage() {
         </CardHeader>
         <CardContent>
             {pieChartData.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                    <div className="w-full h-[250px] relative">
-                        <ChartContainer config={chartConfig} className="w-full h-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                    <Pie
-                                        data={pieChartData}
-                                        activeIndex={activeIndex}
-                                        activeShape={renderActiveShape}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        dataKey="value"
-                                        onMouseEnter={onPieEnter}
-                                    >
-                                        {pieChartData.map((entry, index) => (
-                                            <Cell key={`cell-${entry.key}`} fill={chartConfig[entry.key]?.color || `hsl(var(--chart-${index % 5 + 1}))`} stroke={chartConfig[entry.key]?.color || `hsl(var(--chart-${index % 5 + 1}))`} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <>
+                {isMobile ? (
+                    <div className="space-y-3">
+                        <div className="text-center">
                             <span className="text-xs text-muted-foreground">الإجمالي</span>
-                            <span className="text-xl font-bold text-foreground">
-                                {totalForPeriod.toLocaleString()}
-                            </span>
-                             <span className="text-xs text-muted-foreground">د.ع</span>
+                            <p className="text-2xl font-bold text-foreground">
+                                {totalForPeriod.toLocaleString()}&nbsp;
+                                <span className="text-base font-normal">د.ع</span>
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                           {categorySummary.map((item) => (
+                               <div key={item.id}>
+                                   <div className="flex justify-between items-center text-xs mb-1">
+                                       <span className="font-medium">{item.name}</span>
+                                       <span>{item.total.toLocaleString()}&nbsp;د.ع ({item.percentage.toFixed(1)}%)</span>
+                                   </div>
+                                   <Progress value={item.percentage} className="h-2" indicatorClassName="rounded-full" style={{backgroundColor: item.chartColor}}/>
+                               </div>
+                           ))}
                         </div>
                     </div>
-                    <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                        {categorySummary.map((item, index) => (
-                            <div 
-                                key={item.id} 
-                                className="flex items-center gap-2 p-2 rounded-lg transition-colors cursor-pointer"
-                                onMouseEnter={() => setActiveIndex(index)}
-                                style={{ backgroundColor: activeIndex === index ? 'hsl(var(--muted))' : 'transparent' }}
-                            >
-                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate">{item.name}</p>
-                                    <p className="text-xs text-muted-foreground">{item.total.toLocaleString()}&nbsp;د.ع  ({item.percentage.toFixed(1)}%)</p>
-                                </div>
-                                {item.budget && (
-                                    <div className='w-16'>
-                                        <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
-                                    </div>
-                                )}
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div className="w-full h-[250px] relative">
+                            <ChartContainer config={chartConfig} className="w-full h-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <RechartsTooltip
+                                            content={
+                                                <ChartTooltipContent
+                                                    formatter={(value, name) => {
+                                                        const item = pieChartData.find(d => d.name === name);
+                                                        return (
+                                                            <div className="flex flex-col items-end p-1">
+                                                                <span className="font-bold text-foreground">{name}</span>
+                                                                <span className="text-muted-foreground">{Number(value).toLocaleString()}&nbsp;د.ع ({item?.percentage.toFixed(1)}%)</span>
+                                                            </div>
+                                                        );
+                                                    }}
+                                                />
+                                            }
+                                        />
+                                        <Pie
+                                            data={pieChartData}
+                                            activeIndex={activeIndex}
+                                            activeShape={renderActiveShape}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            dataKey="value"
+                                            onMouseEnter={onPieEnter}
+                                        >
+                                            {pieChartData.map((entry, index) => (
+                                                <Cell key={`cell-${entry.key}`} fill={chartConfig[entry.key]?.color || `hsl(var(--chart-5))`} stroke={chartConfig[entry.key]?.color || `hsl(var(--chart-5))`} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </ChartContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-xs text-muted-foreground">الإجمالي</span>
+                                <span className="text-xl font-bold text-foreground">
+                                    {totalForPeriod.toLocaleString()}
+                                </span>
+                                <span className="text-xs text-muted-foreground">د.ع</span>
                             </div>
-                        ))}
+                        </div>
+                        <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                            {categorySummary.map((item, index) => (
+                                <div 
+                                    key={item.id} 
+                                    className="flex items-center gap-2 p-2 rounded-lg transition-colors cursor-pointer"
+                                    onMouseEnter={() => setActiveIndex(index)}
+                                    style={{ backgroundColor: activeIndex === index ? 'hsl(var(--muted))' : 'transparent' }}
+                                >
+                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium truncate">{item.name}</p>
+                                        <p className="text-xs text-muted-foreground">{item.total.toLocaleString()}&nbsp;د.ع  ({item.percentage.toFixed(1)}%)</p>
+                                    </div>
+                                    {item.budget && (
+                                        <div className='w-16'>
+                                            <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorClassName={ (item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' } />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                )}
+                </>
             ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
