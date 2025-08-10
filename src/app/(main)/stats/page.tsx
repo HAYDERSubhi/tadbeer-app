@@ -330,41 +330,47 @@ export default function StatisticsPage() {
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent]);
   
   const financialCoachInput = useMemo(() => {
-    if (isAppDataLoading || !userSettings || filteredExpenses.length === 0) {
+    // Crucially, only generate input if the app is NOT in its initial loading state.
+    if (isAppDataLoading) {
       return null;
     }
     
+    // If there are no expenses for the period, no need to call the AI.
+    if (filteredExpenses.length === 0) {
+      return { isEmpty: true }; // Use a special flag to indicate no data
+    }
+
     let totalBudgetForPeriod: number;
     let categoryBudgetsForPeriod: Record<string, number> = {};
     const daysInPeriod = view === 'year' ? 365 : format(lastDayOfMonth(parseISO(`${selectedMonth}-01`)), 'd');
 
     if (view === 'year') {
-        totalBudgetForPeriod = (userSettings.budget?.totalBudget || 0) * 12;
-        Object.entries(userSettings.categoryBudgets || {}).forEach(([key, value]) => {
+        totalBudgetForPeriod = (userSettings?.budget?.totalBudget || 0) * 12;
+        Object.entries(userSettings?.categoryBudgets || {}).forEach(([key, value]) => {
             categoryBudgetsForPeriod[key] = value * 12;
         });
     } else {
-        totalBudgetForPeriod = userSettings.budget?.totalBudget || 0;
-        categoryBudgetsForPeriod = userSettings.categoryBudgets || {};
+        totalBudgetForPeriod = userSettings?.budget?.totalBudget || 0;
+        categoryBudgetsForPeriod = userSettings?.categoryBudgets || {};
     }
     
     const input: FinancialCoachInput = {
         totalBudget: totalBudgetForPeriod,
-        zeroSpendDaysTarget: Math.round((userSettings.budget?.zeroSpendDaysTarget || 4) * (Number(daysInPeriod) / 30)),
+        zeroSpendDaysTarget: Math.round((userSettings?.budget?.zeroSpendDaysTarget || 4) * (Number(daysInPeriod) / 30)),
         expenses: filteredExpenses.map(e => ({
             title: e.title,
             amount: e.amount,
             category: categoryMap[e.category]?.name || e.category,
             date: format(new Date(e.date), 'yyyy-MM-dd'),
         })),
-        appTone: userSettings.appTone || 'formal',
+        appTone: userSettings?.appTone || 'formal',
     };
     
     if (categoryBudgetsForPeriod) {
         input.categoryBudgets = categoryBudgetsForPeriod;
     }
 
-    if (userSettings.profile) {
+    if (userSettings?.profile) {
         input.userProfile = {
             monthlyIncome: userSettings.profile.monthlyIncome,
             familyMembers: userSettings.profile.familyMembers?.map(({ id, ...rest }) => rest) || [],
@@ -375,29 +381,41 @@ export default function StatisticsPage() {
   }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth, isAppDataLoading]);
 
   useEffect(() => {
+    // This effect is now solely responsible for fetching and setting insights.
+    // It is triggered whenever the input data changes.
+    
     const getInsights = async () => {
-      // Only proceed if we have valid input. This prevents clearing insights unnecessarily.
-      if (financialCoachInput) {
-        setIsInsightsLoading(true);
-        try {
-          const result = await financialCoach(financialCoachInput);
-          setInsights(result.insights);
-        } catch (e) {
-          console.error("Failed to get financial insights for stats page", e);
-          setInsights(null);
-        } finally {
-          setIsInsightsLoading(false);
-        }
-      } else if (!isAppDataLoading) {
-        // If there's no input and we are not loading initial data, it means there are no expenses.
+      // Case 1: The input is not ready yet (e.g., initial app data is loading). Do nothing.
+      if (financialCoachInput === null) {
+        return; 
+      }
+
+      // Case 2: The input is ready, but it indicates there are no expenses for the period.
+      // Clear any existing insights and stop loading.
+      if ('isEmpty' in financialCoachInput && financialCoachInput.isEmpty) {
         setInsights(null);
+        setIsInsightsLoading(false);
+        return;
+      }
+      
+      // Case 3: We have valid input data to send to the AI.
+      // Set loading state and make the API call.
+      setIsInsightsLoading(true);
+      try {
+        // We can safely cast here because we've handled the other cases.
+        const result = await financialCoach(financialCoachInput as FinancialCoachInput);
+        setInsights(result.insights);
+      } catch (e) {
+        console.error("Failed to get financial insights for stats page", e);
+        setInsights(null); // Clear insights on error
+      } finally {
         setIsInsightsLoading(false);
       }
     };
     
     getInsights();
     
-  }, [financialCoachInput, isAppDataLoading]);
+  }, [financialCoachInput]);
 
 
   if (expenses.length === 0 && !isAppDataLoading) {
@@ -635,7 +653,7 @@ export default function StatisticsPage() {
                 <YAxis hide={true} domain={['dataMin', 'dataMax + 5000']} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
-                    formatter={(value: number, name: string) => [`${value.toLocaleString()} د.ع`, chartConfig.expenses.label ]}
+                    formatter={(value: number, name: string) => [`${value.toLocaleString('en-US')} د.ع`, chartConfig.expenses.label ]}
                     labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
                   />
                 <ChartLegend content={<ChartLegendContent />} />
@@ -669,7 +687,7 @@ export default function StatisticsPage() {
                         </span>
                         <h3 className="font-semibold text-xs">{catTrend.categoryName}</h3>
                     </div>
-                    <p className="text-xs font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
+                    <p className="text-xs font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString('en-US')}&nbsp;د.ع</p>
                 </div>
                 <div className="h-[150px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
@@ -681,7 +699,7 @@ export default function StatisticsPage() {
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
-                              formatter={(value: number) => [`${value.toLocaleString()} د.ع`, null]}
+                              formatter={(value: number) => [`${value.toLocaleString('en-US')} د.ع`, null]}
                               labelFormatter={(label: string) => `الشهر: ${label}`}
                           />
                           <Line
@@ -756,3 +774,4 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
