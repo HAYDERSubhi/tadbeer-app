@@ -113,7 +113,7 @@ export default function StatisticsPage() {
               icon: () => getIconComponent(cat.icon),
           };
       });
-      config.expenses = { label: "المصاريف", color: "hsl(var(--accent))" };
+      config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
       return config;
   }, [categories, categoryMap, getIconComponent]);
 
@@ -435,21 +435,21 @@ export default function StatisticsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-4 pb-24">
        <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3">
                 <Tabs value={view} onValueChange={(v) => setView(v as 'month' | 'year')} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="month">شهري</TabsTrigger>
-                        <TabsTrigger value="year">سنوي</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 h-9">
+                        <TabsTrigger value="month" className="text-xs">شهري</TabsTrigger>
+                        <TabsTrigger value="year" className="text-xs">سنوي</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="month" className="mt-4">
+                    <TabsContent value="month" className="mt-3">
                         <div className="relative">
-                           <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                           <div className="overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
                                 <Tabs value={selectedMonth} onValueChange={setSelectedMonth} className="w-full">
-                                    <TabsList>
+                                    <TabsList className="h-8">
                                         {(availableMonths.length > 0 ? availableMonths : [format(new Date(), 'yyyy-MM')]).map(m => (
-                                            <TabsTrigger key={m} value={m} className="whitespace-nowrap">
+                                            <TabsTrigger key={m} value={m} className="whitespace-nowrap text-xs px-2 py-1 h-auto">
                                                 {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arIQ})}
                                             </TabsTrigger>
                                         ))}
@@ -458,13 +458,13 @@ export default function StatisticsPage() {
                            </div>
                         </div>
                     </TabsContent>
-                    <TabsContent value="year" className="mt-4">
+                    <TabsContent value="year" className="mt-3">
                          <div className="relative">
-                           <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                           <div className="overflow-x-auto pb-2 -mx-3 px-3 scrollbar-hide">
                                 <Tabs value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))} className="w-full">
-                                    <TabsList>
+                                    <TabsList className="h-8">
                                         {(availableYears.length > 0 ? availableYears : [new Date().getFullYear()]).map(y => (
-                                            <TabsTrigger key={y} value={String(y)}>
+                                            <TabsTrigger key={y} value={String(y)} className="text-xs px-2 py-1 h-auto">
                                                 {y}
                                             </TabsTrigger>
                                         ))}
@@ -478,16 +478,16 @@ export default function StatisticsPage() {
         </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PieChartIcon className="h-5 w-5 text-primary" />
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <PieChartIcon className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
            {pieChartData.length === 0 && <CardDescription>لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
-        <CardContent className="h-[350px] flex justify-center">
+        <CardContent className="h-[280px] flex justify-center">
           {pieChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
+            <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[250px]">
               <PieChart>
                 <RechartsTooltip
                   cursor={false}
@@ -517,8 +517,8 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
-                  innerRadius={70}
+                  outerRadius={80}
+                  innerRadius={55}
                   labelLine={false}
                   onMouseEnter={(data) => {
                     setActiveDonutSlice(data.payload);
@@ -535,7 +535,7 @@ export default function StatisticsPage() {
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="text-[10px] fill-foreground font-semibold pointer-events-none"
+                          className="text-[9px] fill-foreground font-semibold pointer-events-none"
                           style={{ fill: payload.fill }}
                         >
                           <tspan x={x} dy="-0.5em">{displayName}</tspan>
@@ -550,10 +550,10 @@ export default function StatisticsPage() {
                 </Pie>
                  <foreignObject width="100%" height="100%">
                     <div className="w-full h-full flex flex-col justify-center items-center text-center">
-                      <p className="text-sm text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
-                      <p className="text-2xl font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
+                      <p className="text-xs text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
+                      <p className="text-lg font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
                        {activeDonutSlice && totalForPeriod > 0 && (
-                        <p className="text-sm font-semibold" style={{color: activeDonutSlice.fill}}>
+                        <p className="text-xs font-semibold" style={{color: activeDonutSlice.fill}}>
                             {`${((activeDonutSlice.value / totalForPeriod) * 100).toFixed(1)}%`}
                         </p>
                       )}
@@ -562,14 +562,14 @@ export default function StatisticsPage() {
                 <ChartLegend content={<ChartLegendContent nameKey="name" />} />
               </PieChart>
             </ChartContainer>
-          ) : (<p className="text-muted-foreground self-center">لا توجد مصاريف لعرضها.</p>)}
+          ) : (<p className="text-muted-foreground self-center text-xs">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListOrdered className="h-5 w-5 text-primary" />
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <ListOrdered className="h-4 w-4 text-primary" />
             ملخص الفئات
           </CardTitle>
           <CardDescription>
@@ -582,7 +582,7 @@ export default function StatisticsPage() {
               {categorySummary.map(item => (
                 <AccordionItem value={item.id} key={item.id} className="border-b" ref={(el) => (itemRefs.current[item.id] = el)}>
                   <AccordionTrigger 
-                    className="p-4 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50"
+                    className="p-3 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50"
                     onClick={() => {
                       setTimeout(() => {
                         const itemEl = itemRefs.current[item.id];
@@ -593,32 +593,32 @@ export default function StatisticsPage() {
                     }}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-lg">
                             {item.icon}
                          </span>
                          <div className="flex-1 min-w-0 text-right">
-                              <p className="font-semibold text-sm truncate">{item.name}</p>
+                              <p className="font-semibold text-xs truncate">{item.name}</p>
                               <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                          </div>
                       </div>
-                      <div className='text-left ml-4'>
-                        <p className="text-sm font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                      <div className='text-left ml-2'>
+                        <p className="text-xs font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                         {item.budget && (
-                            <div className='w-24 mt-1'>
-                                <Progress value={(item.total / item.budget) * 100} className="h-2" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
+                            <div className='w-20 mt-1'>
+                                <Progress value={(item.total / item.budget) * 100} className="h-1.5" indicatorcolor={ (item.total/item.budget) > 1 ? 'hsl(var(--destructive))' : item.chartColor } />
                             </div>
                         )}
                       </div>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 bg-muted/20">
-                      <ul className="space-y-3 pt-3 border-t">
+                  <AccordionContent className="px-3 pb-3 bg-muted/20">
+                      <ul className="space-y-2 pt-2 border-t">
                           {filteredExpenses
                               .filter(exp => exp.category === item.id)
                               .sort((a,b) => compareDesc(parseISO(a.date), parseISO(b.date)))
                               .map(expense => (
-                                  <li key={expense.id} className="flex justify-between items-center gap-4 text-sm animate-in fade-in duration-300">
+                                  <li key={expense.id} className="flex justify-between items-center gap-2 text-xs animate-in fade-in duration-300">
                                       <div className="flex-1 min-w-0">
                                           <p className="font-medium text-foreground/90 truncate">{expense.title}</p>
                                           <p className="text-xs text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
@@ -632,7 +632,7 @@ export default function StatisticsPage() {
               ))}
             </Accordion>
           ) : (
-                <div className="px-6 py-10 text-center text-muted-foreground">
+                <div className="px-6 py-10 text-center text-muted-foreground text-xs">
                     <p>لا توجد مصاريف لعرضها.</p>
                 </div>
           )}
@@ -640,9 +640,9 @@ export default function StatisticsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUpIcon className="h-5 w-5 text-primary" />
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <TrendingUpIcon className="h-4 w-4 text-primary" />
             اتجاه المصاريف
           </CardTitle>
           <CardDescription>
@@ -650,12 +650,12 @@ export default function StatisticsPage() {
           </CardDescription>
           {trendChartData.length === 0 && <CardDescription>لا توجد بيانات كافية لعرض الرسم البياني.</CardDescription>}
         </CardHeader>
-        <CardContent className="h-[300px]">
+        <CardContent className="h-[250px]">
           {trendChartData.length > 0 ? (
             <ChartContainer config={chartConfig} className="w-full h-full">
               <LineChart data={trendChartData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 10}} />
                 <YAxis hide={true} domain={['dataMin', 'dataMax + 5000']} />
                  <RechartsTooltip
                     contentStyle={{ direction: 'rtl' }}
@@ -663,44 +663,44 @@ export default function StatisticsPage() {
                     labelFormatter={(label: string) => view === 'year' ? `الشهر: ${label}` : `اليوم: ${label}`}
                   />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 6 }} name={chartConfig.expenses.label}>
+                <Line type="monotone" dataKey="expenses" strokeWidth={2} stroke="var(--color-expenses)" activeDot={{ r: 4 }} name={chartConfig.expenses.label}>
                     <LabelList content={<CustomLabel />} />
                 </Line>
               </LineChart>
             </ChartContainer>
-          ) : (<p className="text-muted-foreground text-center pt-10">لا توجد مصاريف لعرضها.</p>)}
+          ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ActivityIcon className="h-5 w-5 text-primary" />
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <ActivityIcon className="h-4 w-4 text-primary" />
             تحليل اتجاهات الفئات
           </CardTitle>
           <CardDescription>
             نظرة على تطور الإنفاق في أعلى 6 فئات لديك خلال الشهور الماضية.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-3">
           {topCategoriesTrendData && topCategoriesTrendData.length > 0 ? (
             topCategoriesTrendData.map((catTrend) => (
-              <div key={catTrend.categoryId} className="border-t pt-6 first:border-t-0 first:pt-0">
-                <div className="mb-4">
-                    <div className="flex items-center gap-3">
-                        <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-xl")}>
+              <div key={catTrend.categoryId} className="border-t pt-4 first:border-t-0 first:pt-0">
+                <div className="mb-2">
+                    <div className="flex items-center gap-2">
+                        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-lg")}>
                             {catTrend.categoryIcon}
                         </span>
-                        <h3 className="text-lg font-semibold">{catTrend.categoryName}</h3>
+                        <h3 className="font-semibold text-sm">{catTrend.categoryName}</h3>
                     </div>
-                    <p className="text-lg font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
+                    <p className="text-sm font-bold text-muted-foreground mt-1">{catTrend.totalAmount.toLocaleString()}&nbsp;د.ع</p>
                 </div>
-                <div className="h-[200px] w-full">
+                <div className="h-[180px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
                        <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} />
                           <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
@@ -712,9 +712,9 @@ export default function StatisticsPage() {
                               type="monotone"
                               dataKey="amount"
                               stroke={chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}
-                              strokeWidth={2.5}
-                              activeDot={{ r: 6 }}
-                              dot={{r: 4, fill: chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}}
+                              strokeWidth={2}
+                              activeDot={{ r: 4 }}
+                              dot={{r: 3, fill: chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}}
                           >
                                 <LabelList content={<CustomLabel />} />
                           </Line>
@@ -726,7 +726,7 @@ export default function StatisticsPage() {
             ))
           ) : (
             <div className="flex items-center justify-center h-full py-10">
-              <p className="text-muted-foreground text-center">
+              <p className="text-muted-foreground text-center text-xs">
                 لا توجد بيانات كافية لعرض اتجاهات الفئات (تحتاج لبيانات في شهرين على الأقل).
               </p>
             </div>
@@ -735,9 +735,9 @@ export default function StatisticsPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-primary" />
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Wand2 className="h-4 w-4 text-primary" />
             تنبؤات المصاريف
           </CardTitle>
           <CardDescription>توقعات الإنفاق للشهر القادم بناءً على بياناتك التاريخية.</CardDescription>
@@ -763,35 +763,35 @@ export default function StatisticsPage() {
               </div>
             </div>
           ) : forecast ? (
-             <div className="space-y-6">
+             <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">إجمالي المصروف المتوقع للشهر القادم</p>
-                  <p className="text-3xl font-bold text-primary">{forecast.totalForecastAmount.toLocaleString()} د.ع</p>
+                  <p className="text-xs text-muted-foreground">إجمالي المصروف المتوقع للشهر القادم</p>
+                  <p className="text-2xl font-bold text-primary">{forecast.totalForecastAmount.toLocaleString()} د.ع</p>
                 </div>
                 
                 <div className="space-y-2">
-                  <p className="font-semibold">نصيحة ذكية:</p>
-                  <p className="text-sm text-muted-foreground p-3 bg-muted/50 rounded-lg border">{forecast.advice}</p>
+                  <p className="font-semibold text-xs">نصيحة ذكية:</p>
+                  <p className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg border">{forecast.advice}</p>
                 </div>
 
                 <div className="space-y-3">
-                    <p className="font-semibold">التوقعات حسب الفئة:</p>
-                    <div className="space-y-4">
+                    <p className="font-semibold text-xs">التوقعات حسب الفئة:</p>
+                    <div className="space-y-3">
                         {forecast.categoryForecasts.sort((a,b) => b.predictedAmount - a.predictedAmount).map(catForecast => {
                             const categoryId = Object.keys(categoryMap).find(key => categoryMap[key].name === catForecast.categoryName);
                             const categoryInfo = categoryId ? categoryMap[categoryId] : null;
                             const percentage = forecast.totalForecastAmount > 0 ? (catForecast.predictedAmount / forecast.totalForecastAmount) * 100 : 0;
 
                             return (
-                                <div key={catForecast.categoryName}>
+                                <div key={catForecast.categoryName} className="text-xs">
                                     <div className="flex justify-between items-center mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg">{categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}</span>
-                                            <span className="text-sm font-medium">{catForecast.categoryName}</span>
+                                            <span className="text-base">{categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}</span>
+                                            <span className="font-medium">{catForecast.categoryName}</span>
                                         </div>
-                                        <span className="text-sm font-semibold">{catForecast.predictedAmount.toLocaleString()} د.ع</span>
+                                        <span className="font-semibold">{catForecast.predictedAmount.toLocaleString()} د.ع</span>
                                     </div>
-                                    <Progress value={percentage} className="h-2" indicatorcolor={categoryId ? chartConfig[categoryId]?.color : 'hsl(var(--primary))'} />
+                                    <Progress value={percentage} className="h-1.5" indicatorcolor={categoryId ? chartConfig[categoryId]?.color : 'hsl(var(--primary))'} />
                                 </div>
                             )
                         })}
@@ -800,7 +800,7 @@ export default function StatisticsPage() {
 
               </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-muted-foreground text-center py-8 text-xs">
               لا توجد بيانات كافية لإنشاء تنبؤ. أضف المزيد من المصاريف لتبدأ.
             </p>
           )}
