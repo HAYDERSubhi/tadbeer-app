@@ -1,10 +1,11 @@
+
 // src/app/(main)/stats/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, AreaChart as AreaChartIcon } from "lucide-react";
-import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend, Area } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -484,3 +485,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
