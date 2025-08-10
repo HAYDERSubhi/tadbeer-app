@@ -73,7 +73,7 @@ const CustomLabel = (props: any) => {
 };
 
 export default function StatisticsPage() {
-  const { expenses, userSettings } = useAppData();
+  const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categories, categoryMap, getIconComponent } = useCategories();
 
   const categoryBudgets = userSettings?.categoryBudgets || {};
@@ -321,7 +321,11 @@ export default function StatisticsPage() {
   }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent, chartConfig]);
   
   const financialCoachInput = useMemo(() => {
-    if (!userSettings || filteredExpenses.length === 0) return null;
+    // Crucially, wait for all app data to be loaded before trying to create the input
+    if (isAppDataLoading || !userSettings) return null;
+    
+    // Only generate insights if there are expenses to analyze for the period
+    if (filteredExpenses.length === 0) return null;
 
     let totalBudgetForPeriod: number;
     let categoryBudgetsForPeriod: Record<string, number> = {};
@@ -361,31 +365,36 @@ export default function StatisticsPage() {
     }
     
     return input;
-  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth]);
+  }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth, isAppDataLoading]);
 
   useEffect(() => {
     const getInsights = async () => {
+      // If there's no valid input, clear insights and stop loading.
       if (!financialCoachInput) {
         setInsights(null);
         setIsInsightsLoading(false);
         return;
       }
+      
+      // Start loading only when we are sure we will make a request.
       setIsInsightsLoading(true);
       try {
         const result = await financialCoach(financialCoachInput);
         setInsights(result.insights);
       } catch (e) {
         console.error("Failed to get financial insights for stats page", e);
-        setInsights(null);
+        setInsights(null); // Clear insights on error
       } finally {
         setIsInsightsLoading(false);
       }
     };
+    
     getInsights();
+    
   }, [financialCoachInput]);
 
 
-  if (expenses.length === 0) {
+  if (expenses.length === 0 && !isAppDataLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center">
         <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
@@ -741,5 +750,7 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
 
     
