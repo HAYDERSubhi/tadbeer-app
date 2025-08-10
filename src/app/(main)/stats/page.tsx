@@ -4,8 +4,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChart } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Line } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChart, Cell } from "lucide-react";
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Line as RechartsLine } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -26,6 +26,7 @@ import { getStatsSummaryAction } from '@/app/actions';
 import type { GetStatsSummaryOutput } from '@/ai/flows/get-stats-summary';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
@@ -228,7 +229,7 @@ export default function StatisticsPage() {
                     {pieChartData.length > 0 ? (
                        <ChartContainer config={chartConfig} className="w-full h-[250px] sm:h-[200px]">
                             <ResponsiveContainer>
-                                <PieChart>
+                                <RechartsPieChart>
                                     <RechartsTooltip
                                         cursor={false}
                                         content={<ChartTooltipContent hideLabel />}
@@ -248,7 +249,7 @@ export default function StatisticsPage() {
                                             <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
-                                </PieChart>
+                                </RechartsPieChart>
                             </ResponsiveContainer>
                         </ChartContainer>
                     ) : (<p className="text-muted-foreground text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
@@ -288,9 +289,10 @@ export default function StatisticsPage() {
                                 <p className="text-xs font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
                                 {item.budget && (item.total / item.budget) > 0 && (
                                     <div className='w-16 mt-1 h-1.5 bg-secondary rounded-full'>
-                                        <div 
-                                          className={`h-1.5 rounded-full ${(item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary'}`}
-                                          style={{ width: `${Math.min((item.total / item.budget) * 100, 100)}%`}}
+                                        <Progress
+                                            value={(item.total / item.budget) * 100}
+                                            indicatorClassName={(item.total / item.budget) > 1 ? 'bg-destructive' : 'bg-primary'}
+                                            className="h-1.5"
                                         />
                                     </div>
                                 )}
@@ -370,7 +372,7 @@ export default function StatisticsPage() {
                 <Card>
                     <CardHeader className="py-3">
                         <CardTitle className="flex items-center gap-2 text-xs">
-                            <LineChart className="h-4 w-4 text-primary" />
+                            <RechartsLine className="h-4 w-4 text-primary" />
                             تحليل اتجاهات الفئات
                         </CardTitle>
                         <CardDescription className="text-xs">
@@ -382,7 +384,7 @@ export default function StatisticsPage() {
                             <div key={catTrend.categoryId} className="border p-2 rounded-lg">
                                 <div className="flex justify-between items-center mb-2 px-1">
                                     <div className='flex items-center gap-2'>
-                                        <span style={{ color: `hsl(${catTrend.chartColor})`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
+                                        <span style={{ color: `hsl(var(${catTrend.chartColor}))`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
                                         <div>
                                             <p className='font-semibold text-xs'>{catTrend.categoryName}</p>
                                             <p className='text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
@@ -396,12 +398,12 @@ export default function StatisticsPage() {
                                                 content={({ active, payload, label }) => active && payload && payload.length ? (
                                                      <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                         <p className="font-bold mb-1">{label}</p>
-                                                        <p style={{color: `hsl(${catTrend.chartColor})`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
+                                                        <p style={{color: `hsl(var(${catTrend.chartColor}))`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
                                                     </div>
                                                 ) : null}
                                                 cursor={{ stroke: '#888', strokeWidth: 1, strokeDasharray: '3 3' }}
                                             />
-                                            <Area type="monotone" dataKey="expenses" strokeWidth={2} stroke={`hsl(${catTrend.chartColor})`} fill={`hsl(${catTrend.chartColor})`} fillOpacity={0.2} />
+                                            <Area type="monotone" dataKey="expenses" strokeWidth={2} stroke={`hsl(var(${catTrend.chartColor}))`} fill={`hsl(var(${catTrend.chartColor}))`} fillOpacity={0.2} />
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </div>
