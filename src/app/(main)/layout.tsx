@@ -10,7 +10,6 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
-import NotificationManager from '@/components/notifications/notification-manager';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -60,7 +59,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (user) {
     return (
       <AppDataProvider>
-        <NotificationManager />
         <AppShell>
           <main className="flex-1 p-4 sm:p-6">
             {children}
