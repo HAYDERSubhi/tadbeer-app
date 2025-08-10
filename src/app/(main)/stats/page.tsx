@@ -41,7 +41,6 @@ interface CategorySummaryItem {
   icon: React.ReactNode;
   total: number;
   percentage: number;
-  color: string;
   chartColor: string;
   budget?: number;
 }
@@ -109,7 +108,6 @@ export default function StatisticsPage() {
       categories.forEach(cat => {
           config[cat.id] = { 
               label: cat.name, 
-              color: 'hsl(var(--muted))',
               icon: () => getIconComponent(cat.icon),
           };
       });
@@ -211,6 +209,13 @@ export default function StatisticsPage() {
         "hsl(var(--chart-3))",
         "hsl(var(--chart-4))",
         "hsl(var(--chart-5))",
+        "hsl(var(--chart-1) / 0.7)",
+        "hsl(var(--chart-2) / 0.7)",
+        "hsl(var(--chart-3) / 0.7)",
+        "hsl(var(--chart-4) / 0.7)",
+        "hsl(var(--chart-5) / 0.7)",
+        "hsl(var(--chart-1) / 0.5)",
+        "hsl(var(--chart-2) / 0.5)",
     ];
 
     const pieData: PieChartDataItem[] = Object.entries(categoryTotals)
@@ -232,7 +237,6 @@ export default function StatisticsPage() {
           icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
           total: item.value,
           percentage: totalExpensesInPeriod > 0 ? (item.value / totalExpensesInPeriod) * 100 : 0,
-          color: 'bg-gray-400',
           chartColor: colors[index % colors.length],
           budget,
         };

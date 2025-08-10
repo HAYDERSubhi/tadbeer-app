@@ -37,11 +37,11 @@
     --radius: 0.75rem;
     
     /* Chart Colors */
-    --chart-1: 173 80% 40%;   /* Teal */
-    --chart-2: 217 91% 60%;   /* Blue */
-    --chart-3: 0 84.2% 60.2%; /* Red */
-    --chart-4: 48 96% 51%;    /* Yellow */
-    --chart-5: 262 83% 58%;   /* Purple */
+    --chart-1: 220 90% 60%;  /* Vivid Blue */
+    --chart-2: 350 90% 65%;  /* Coral Red */
+    --chart-3: 45 95% 55%;   /* Golden Yellow */
+    --chart-4: 160 70% 45%;  /* Sea Green */
+    --chart-5: 260 85% 65%;  /* Royal Purple */
   }
 
   .dark {
@@ -74,11 +74,11 @@
     --ring: 173 70% 50%; /* Teal */
     
     /* Chart Colors */
-    --chart-1: 173 70% 50%;   /* Teal */
-    --chart-2: 217 91% 60%;   /* Blue */
-    --chart-3: 0 74% 50%;     /* Red */
-    --chart-4: 48 96% 61%;    /* Yellow */
-    --chart-5: 262 73% 68%;   /* Purple */
+    --chart-1: 220 85% 65%;  /* Vivid Blue */
+    --chart-2: 350 85% 70%;  /* Coral Red */
+    --chart-3: 45 90% 60%;   /* Golden Yellow */
+    --chart-4: 160 65% 50%;  /* Sea Green */
+    --chart-5: 260 80% 70%;  /* Royal Purple */
   }
 }
 
