@@ -61,12 +61,12 @@ const formatValueForLabel = (value: any) => {
     const num = Number(value);
     if (isNaN(num) || num === 0) return '';
     if (num >= 1000000) {
-      return `${(num / 1000000).toLocaleString('ar-IQ', { maximumFractionDigits: 1 })}M`;
+      return `${(num / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
     }
     if (num >= 1000) {
-      return `${(num / 1000).toLocaleString('ar-IQ', { maximumFractionDigits: 0 })}K`;
+      return `${(num / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
     }
-    return num.toLocaleString('ar-IQ');
+    return num.toLocaleString('en-US');
 };
 
 
@@ -696,7 +696,7 @@ export default function StatisticsPage() {
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                           <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
@@ -807,5 +807,3 @@ export default function StatisticsPage() {
     </div>
   );
 }
-
-    
