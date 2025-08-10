@@ -556,33 +556,49 @@ export default function SettingsPage() {
   }
 
   const handleDailyReminderChange = async (checked: boolean) => {
-    setDailyReminderEnabled(checked);
-    if (!checked) return;
+    // This function will now only handle the logic of asking for permission
+    // and updating the state. It won't toggle the switch visually itself.
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
+      return;
+    }
 
-    if (!('Notification' in window)) {
-        toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
-        setDailyReminderEnabled(false);
+    if (Notification.permission === 'granted') {
+      setDailyReminderEnabled(true);
+      toast({ title: 'تم التفعيل', description: 'التذكيرات اليومية مفعلة. لا تنس حفظ التغييرات.'});
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+        toast({
+            title: 'تم رفض الإذن',
+            description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
+            variant: 'destructive',
+            duration: 8000
+        });
         return;
     }
-
+    
+    // If permission is 'default', we request it.
     try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح. لا تنس حفظ التغييرات.'});
-        } else {
-            toast({
-                title: 'تم رفض الإذن',
-                description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
-                variant: 'destructive',
-                duration: 8000
-            });
-            setDailyReminderEnabled(false);
-        }
-    } catch (error) {
-        toast({ title: 'خطأ', description: 'لم يتمكن من طلب إذن الإشعارات.', variant: 'destructive'});
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setDailyReminderEnabled(true);
+        toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح. لا تنس حفظ التغييرات.' });
+      } else {
         setDailyReminderEnabled(false);
+        toast({
+            title: 'تم رفض الإذن',
+            description: 'لقد رفضت الإذن. يمكنك تفعيله لاحقًا من إعدادات المتصفح.',
+            variant: 'destructive',
+        });
+      }
+    } catch (error) {
+       setDailyReminderEnabled(false);
+       toast({ title: 'خطأ', description: 'لم يتمكن من طلب إذن الإشعارات.', variant: 'destructive'});
     }
   };
+
 
   const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
