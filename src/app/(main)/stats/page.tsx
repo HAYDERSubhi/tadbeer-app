@@ -409,7 +409,7 @@ export default function StatisticsPage() {
                         <ChartContainer config={chartConfig} className="w-full h-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
                                     <Pie
                                         data={pieChartData}
                                         activeIndex={activeIndex}
@@ -421,8 +421,8 @@ export default function StatisticsPage() {
                                         dataKey="value"
                                         onMouseEnter={onPieEnter}
                                     >
-                                        {pieChartData.map((entry) => (
-                                            <Cell key={`cell-${entry.key}`} fill={entry.fill} stroke={entry.fill} />
+                                        {pieChartData.map((entry, index) => (
+                                            <Cell key={`cell-${entry.key}`} fill={chartConfig[entry.key]?.color || `hsl(var(--chart-${index % 5 + 1}))`} stroke={chartConfig[entry.key]?.color || `hsl(var(--chart-${index % 5 + 1}))`} />
                                         ))}
                                     </Pie>
                                 </PieChart>
@@ -553,7 +553,7 @@ export default function StatisticsPage() {
               <LineChart data={trendChartData} margin={{ top: 20, right: 15, left: 25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
-                 <ChartTooltip
+                 <RechartsTooltip
                     cursor={false}
                     content={<ChartTooltipContent indicator="dot" />}
                   />
@@ -595,7 +595,7 @@ export default function StatisticsPage() {
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={9} />
                         <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
-                        <ChartTooltip
+                        <RechartsTooltip
                             cursor={false}
                             content={<ChartTooltipContent indicator="dot" hideLabel />}
                         />

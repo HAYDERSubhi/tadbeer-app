@@ -12,7 +12,7 @@ import { useMutation } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
-import { format, compareDesc } from 'date-fns';
+import { format, compareDesc, parseISO } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { useCategories } from '@/hooks/use-categories';
 
@@ -101,7 +101,7 @@ export default function AllExpensesPage() {
                                   {expense.amount.toLocaleString()}&nbsp;د.ع
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                  {format(new Date(expense.date), "d MMM yyyy", { locale: arIQ })}
+                                  {format(parseISO(expense.date), "d MMM yyyy", { locale: arIQ })}
                               </p>
                               </div>
                               <Button
