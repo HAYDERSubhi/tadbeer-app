@@ -180,7 +180,7 @@ const defaultSettings: UserSettings = {
 
 export const getUserSettings = async (uid: string): Promise<UserSettings> => {
     if (!db) return defaultSettings;
-    const settingsDocRef = doc(db, `users/${uid}/settings`, 'main');
+    const settingsDocRef = doc(db, 'users', uid, 'settings', 'main');
     const docSnap = await getDoc(settingsDocRef);
 
     if (docSnap.exists()) {
@@ -215,7 +215,7 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
 
 export const updateUserSettings = async (uid: string, settingsData: Partial<UserSettings>) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const settingsDocRef = doc(db, `users/${uid}/settings`, 'main');
+    const settingsDocRef = doc(db, 'users', uid, 'settings', 'main');
     
     // Create a deep copy to avoid modifying the original object
     const dataToSave = JSON.parse(JSON.stringify(settingsData));
@@ -239,7 +239,7 @@ export const updateUserSettings = async (uid: string, settingsData: Partial<User
 // Generic function to delete all documents in a collection
 export const deleteCollection = async (uid: string, collectionName: string) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const collectionRef = collection(db, `users/${uid}/${collectionName}`);
+    const collectionRef = collection(db, 'users', uid, collectionName);
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
 
