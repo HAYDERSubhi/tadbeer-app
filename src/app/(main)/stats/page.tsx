@@ -3,10 +3,10 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector } from 'recharts';
+import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles, Bot } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, Label, Sector, Text } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subDays, getYear, startOfYear, endOfYear, compareDesc, lastDayOfMonth } from 'date-fns';
@@ -109,6 +109,7 @@ export default function StatisticsPage() {
           config[cat.id] = { 
               label: cat.name, 
               icon: () => getIconComponent(cat.icon),
+              color: cat.color,
           };
       });
       config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
@@ -149,31 +150,39 @@ export default function StatisticsPage() {
     });
   }, [availableYears, availableMonths]);
   
+  const onPieEnter = useCallback((_: any, index: number) => {
+    setActiveIndex(index);
+  }, []);
+
   const {
-    pieChartData,
+    barChartData,
     trendChartData,
     categorySummary,
     totalForPeriod,
     topCategoriesTrendData,
-    filteredExpenses
+    filteredExpenses,
+    periodDescription
   } = useMemo(() => {
     if (!expenses) {
       return {
-        pieChartData: [],
+        barChartData: [],
         trendChartData: [],
         categorySummary: [],
         totalForPeriod: 0,
         topCategoriesTrendData: [],
         filteredExpenses: [],
+        periodDescription: ''
       };
     }
 
     let currentFilteredExpenses: Expense[];
     let periodStart: Date, periodEnd: Date;
+    let periodDesc = '';
 
     if (view === 'year') {
       periodStart = startOfYear(new Date(selectedYear, 0, 1));
       periodEnd = endOfYear(new Date(selectedYear, 0, 1));
+      periodDesc = `عام ${selectedYear}`;
     } else {
       const yearFromMonth = parseInt(selectedMonth.substring(0, 4), 10);
       const monthFromMonth = parseInt(selectedMonth.substring(5, 7), 10) - 1;
@@ -185,6 +194,7 @@ export default function StatisticsPage() {
          periodStart = startOfMonth(new Date(yearFromMonth, monthFromMonth));
          periodEnd = endOfMonth(periodStart);
       }
+      periodDesc = `شهر ${format(periodStart, 'MMMM yyyy', { locale: arIQ })}`;
     }
 
     currentFilteredExpenses = expenses.filter(exp => {
@@ -203,43 +213,29 @@ export default function StatisticsPage() {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
     
-    const colors = [
-        "hsl(var(--chart-1))",
-        "hsl(var(--chart-2))",
-        "hsl(var(--chart-3))",
-        "hsl(var(--chart-4))",
-        "hsl(var(--chart-5))",
-        "hsl(var(--chart-1) / 0.7)",
-        "hsl(var(--chart-2) / 0.7)",
-        "hsl(var(--chart-3) / 0.7)",
-        "hsl(var(--chart-4) / 0.7)",
-        "hsl(var(--chart-5) / 0.7)",
-        "hsl(var(--chart-1) / 0.5)",
-        "hsl(var(--chart-2) / 0.5)",
-    ];
-
-    const pieData: PieChartDataItem[] = Object.entries(categoryTotals)
+    const barData = Object.entries(categoryTotals)
+      .map(([key, value]) => ({
+        category: categoryMap[key]?.name || key,
+        amount: value,
+        fill: `var(--color-${key})`
+      }))
+      .sort((a, b) => b.amount - a.amount);
+      
+    const summaryData: CategorySummaryItem[] = Object.entries(categoryTotals)
       .sort(([, a], [, b]) => b - a)
-      .map(([catKey, total], index) => ({
-        name: categoryMap[catKey]?.name || catKey,
-        value: total,
-        key: catKey,
-        fill: colors[index % colors.length],
-    }));
-
-    const summaryData: CategorySummaryItem[] = pieData.map((item, index) => {
-        const categoryInfo = categoryMap[item.key];
-        const budget = categoryBudgets[item.key];
-        
-        return {
-          id: item.key,
-          name: categoryInfo?.name || item.key,
-          icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
-          total: item.value,
-          percentage: totalExpensesInPeriod > 0 ? (item.value / totalExpensesInPeriod) * 100 : 0,
-          chartColor: colors[index % colors.length],
-          budget,
-        };
+      .map(([catKey, total]) => {
+          const categoryInfo = categoryMap[catKey];
+          const budget = categoryBudgets[catKey];
+          
+          return {
+            id: catKey,
+            name: categoryInfo?.name || catKey,
+            icon: categoryInfo ? getIconComponent(categoryInfo.icon) : '❓',
+            total: total,
+            percentage: totalExpensesInPeriod > 0 ? (total / totalExpensesInPeriod) * 100 : 0,
+            chartColor: `var(--color-${catKey})`,
+            budget,
+          };
       });
 
     let trendData: TrendChartDataItem[] = [];
@@ -315,7 +311,7 @@ export default function StatisticsPage() {
             .slice(0, 6)
             .map(([key]) => key);
             
-        categoriesTrendData = top6CategoryKeys.map((catKey, index) => {
+        categoriesTrendData = top6CategoryKeys.map((catKey) => {
             const categoryInfo = categoryMap[catKey];
             if (!categoryInfo) return null;
             
@@ -330,20 +326,21 @@ export default function StatisticsPage() {
                 categoryIcon: getIconComponent(categoryInfo.icon),
                 totalAmount: totalSpendingInTrendPeriod[catKey],
                 monthlyTrend: monthlyTrend,
-                color: colors[index % colors.length]
+                color: chartConfig[catKey]?.color
             };
         }).filter(Boolean);
     }
 
     return {
-      pieChartData: pieData,
+      barChartData: barData,
       trendChartData: trendData,
       categorySummary: summaryData,
       totalForPeriod: totalExpensesInPeriod,
       topCategoriesTrendData: categoriesTrendData,
       filteredExpenses: currentFilteredExpenses,
+      periodDescription: periodDesc
     };
-  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent]);
+  }, [expenses, view, selectedYear, selectedMonth, categoryBudgets, availableMonths, categoryMap, getIconComponent, chartConfig]);
   
   if (expenses.length === 0 && !isAppDataLoading) {
     return (
@@ -355,10 +352,6 @@ export default function StatisticsPage() {
     );
   }
   
-  const onPieEnter = useCallback((_: any, index: number) => {
-    setActiveIndex(index);
-  }, []);
-
   return (
     <div className="space-y-4 pb-24">
        <Card>
@@ -408,70 +401,44 @@ export default function StatisticsPage() {
             <PieChartIcon className="h-4 w-4 text-primary" />
             توزيع المصاريف
           </CardTitle>
-           {pieChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
+           {barChartData.length === 0 && <CardDescription className="text-xs">لا توجد مصاريف مسجلة في هذه الفترة.</CardDescription>}
         </CardHeader>
         <CardContent>
-            {pieChartData.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                    <div className="w-full h-[250px] relative">
-                         <ChartContainer config={chartConfig} className="w-full h-full">
-                            <PieChart>
-                                <Pie
-                                    activeIndex={activeIndex}
-                                    activeShape={renderActiveShape}
-                                    data={pieChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius="60%"
-                                    outerRadius="80%"
-                                    dataKey="value"
-                                    onMouseEnter={onPieEnter}
-                                >
-                                    {pieChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                                    ))}
-                                </Pie>
-                            </PieChart>
-                        </ChartContainer>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <p className="text-xs text-muted-foreground">الإجمالي</p>
-                            <p className="text-xl font-bold">
-                                {totalForPeriod.toLocaleString()} <span className='text-sm text-muted-foreground'>د.ع</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
-                        {categorySummary.map((item, index) => (
-                            <div
-                                key={item.id}
-                                className={cn(
-                                    "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all",
-                                    activeIndex === index ? "bg-muted" : "hover:bg-muted/50"
-                                )}
-                                onMouseEnter={() => setActiveIndex(index)}
-                            >
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.chartColor }} />
-                                    <div className="flex items-center text-xs text-muted-foreground">{item.icon}</div>
-                                    <p className="text-xs font-medium truncate">{item.name}</p>
-                                </div>
-                                <div className="text-xs font-semibold text-right">
-                                    <p>{item.total.toLocaleString()} د.ع</p>
-                                    <p className="text-muted-foreground">({item.percentage.toFixed(1)}%)</p>
-                                     {item.budget !== undefined && item.budget > 0 && (
-                                        <div className="w-16 mt-1 ml-auto">
-                                            <Progress 
-                                                value={(item.total / item.budget) * 100} 
-                                                className="h-1" 
-                                                indicatorClassName={cn((item.total/item.budget) > 1 ? 'bg-destructive' : 'bg-primary' )}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+            {barChartData.length > 0 ? (
+                <ChartContainer config={chartConfig} className="w-full h-[300px]">
+                    <BarChart
+                        data={barChartData}
+                        layout="vertical"
+                        margin={{ left: 10, right: 30 }}
+                    >
+                        <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                        <XAxis type="number" hide />
+                        <YAxis
+                            dataKey="category"
+                            type="category"
+                            tickLine={false}
+                            axisLine={false}
+                            width={100}
+                            tick={(props) => (
+                                <Text {...props} width={props.width} className="text-xs fill-muted-foreground" style={{ direction: 'rtl' }}>
+                                    {props.payload.value}
+                                </Text>
+                            )}
+                        />
+                        <ChartTooltip 
+                             cursor={{fill: 'hsl(var(--muted))'}}
+                             content={<ChartTooltipContent 
+                                 formatter={(value) => `${Number(value).toLocaleString()} د.ع`}
+                                 labelFormatter={(label) => <div className="font-bold">{label}</div>}
+                             />}
+                         />
+                        <Bar dataKey="amount" radius={4}>
+                             {barChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ChartContainer>
             ) : (<p className="text-muted-foreground self-center text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>)}
         </CardContent>
       </Card>
@@ -645,6 +612,7 @@ export default function StatisticsPage() {
       <InsightsCard
         key={`${view}-${selectedMonth}-${selectedYear}`}
         filteredExpenses={filteredExpenses}
+        periodDescription={periodDescription}
       />
       
     </div>

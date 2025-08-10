@@ -3,128 +3,145 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Bot, PieChart, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
+import { analyzeSpendingPatterns, type AnalyzeSpendingPatternsOutput, type AnalyzeSpendingPatternsInput } from '@/ai/flows/analyze-spending-patterns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
-import { InsightIcon } from '@/components/dashboard/insight-icon';
 import type { Expense } from '@/types';
-import { format } from 'date-fns';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface InsightsCardProps {
   filteredExpenses: Expense[];
+  periodDescription: string;
 }
 
-export function InsightsCard({ filteredExpenses }: InsightsCardProps) {
+const InsightIcon = ({ name, className }: { name: string; className?: string }) => {
+  const icons: { [key: string]: React.ElementType } = {
+    TrendingUp,
+    TrendingDown,
+    Wallet,
+    PieChart,
+  };
+  const LucideIcon = icons[name] || Bot;
+  return <LucideIcon className={className} />;
+};
+
+export function InsightsCard({ filteredExpenses, periodDescription }: InsightsCardProps) {
   const { userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categoryMap } = useCategories();
   
-  const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
-  const [isInsightsLoading, setIsInsightsLoading] = useState(true);
+  const [analysis, setAnalysis] = useState<AnalyzeSpendingPatternsOutput | null>(null);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(true);
 
-  const financialCoachInput = useMemo(() => {
+  const analysisInput = useMemo(() => {
     if (isAppDataLoading) return null;
     
     if (filteredExpenses.length === 0) return { isEmpty: true };
     
-    // Note: Budget calculations for periods are simplified here.
-    // A more complex app might prorate budgets based on the period.
-    const totalBudgetForPeriod = userSettings?.budget?.totalBudget || 0;
-    
-    const input: FinancialCoachInput = {
-        totalBudget: totalBudgetForPeriod,
-        zeroSpendDaysTarget: userSettings?.budget?.zeroSpendDaysTarget || 4,
+    const input: AnalyzeSpendingPatternsInput = {
         expenses: filteredExpenses.map(e => ({
             title: e.title,
             amount: e.amount,
             category: categoryMap[e.category]?.name || e.category,
-            date: format(new Date(e.date), 'yyyy-MM-dd'),
+            date: e.date,
         })),
-        appTone: userSettings?.appTone || 'formal',
-        categoryBudgets: userSettings?.categoryBudgets || {},
+        totalBudget: userSettings?.budget?.totalBudget,
+        periodDescription: periodDescription,
     };
     
-    if (userSettings?.profile) {
-        input.userProfile = {
-            monthlyIncome: userSettings.profile.monthlyIncome,
-            familyMembers: userSettings.profile.familyMembers?.map(({ id, ...rest }) => rest) || [],
-        };
-    }
-    
     return input;
-  }, [filteredExpenses, userSettings, categoryMap, isAppDataLoading]);
+  }, [filteredExpenses, periodDescription, userSettings, categoryMap, isAppDataLoading]);
 
   useEffect(() => {
     if (isAppDataLoading) return;
   
-    const getInsights = async () => {
-      if (!financialCoachInput) {
-          setIsInsightsLoading(true);
+    const getAnalysis = async () => {
+      if (!analysisInput) {
+          setIsAnalysisLoading(true);
           return;
       }
-      if ('isEmpty' in financialCoachInput && financialCoachInput.isEmpty) {
-        setInsights(null);
-        setIsInsightsLoading(false);
+      if ('isEmpty' in analysisInput && analysisInput.isEmpty) {
+        setAnalysis(null);
+        setIsAnalysisLoading(false);
         return;
       }
       
-      setIsInsightsLoading(true);
+      setIsAnalysisLoading(true);
       try {
-        const result = await financialCoach(financialCoachInput as FinancialCoachInput);
-        setInsights(result.insights);
+        const result = await analyzeSpendingPatterns(analysisInput as AnalyzeSpendingPatternsInput);
+        setAnalysis(result);
       } catch (e) {
-        console.error("Failed to get financial insights for stats page", e);
-        setInsights(null);
+        console.error("Failed to get spending analysis", e);
+        setAnalysis(null);
       } finally {
-        setIsInsightsLoading(false);
+        setIsAnalysisLoading(false);
       }
     };
     
-    getInsights();
-  }, [financialCoachInput, isAppDataLoading]);
+    getAnalysis();
+  }, [analysisInput, isAppDataLoading]);
 
   return (
     <Card>
       <CardHeader className="py-3">
         <CardTitle className="flex items-center gap-2 text-xs">
-          <Sparkles className="h-4 w-4 text-primary" />
-          نصائح ذكية
+          <Bot className="h-4 w-4 text-primary" />
+          التحليل الذكي
         </CardTitle>
-        <CardDescription className="text-xs">تحليلات وتوصيات بناءً على إنفاقك في الفترة المحددة.</CardDescription>
+        <CardDescription className="text-xs">تحليل رقمي لنمط إنفاقك في الفترة المحددة.</CardDescription>
       </CardHeader>
       <CardContent>
-        {isInsightsLoading ? (
+        {isAnalysisLoading ? (
           <div className="space-y-4">
-            <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-            <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
+             <Skeleton className="h-8 w-full" />
+             <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+             </div>
+             <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+             </div>
           </div>
-        ) : insights && insights.length > 0 ? (
-          <div className="space-y-3">
-            {insights.map((insight, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                 <span className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                  insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-                  insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-                  insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-                )}>
-                  <InsightIcon name={insight.icon} className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="font-semibold text-xs">{insight.title}</p>
-                  <p className="text-xs text-muted-foreground">{insight.description}</p>
+        ) : analysis ? (
+          <div className="space-y-4">
+             <Alert className="bg-muted/50 p-3">
+                <AlertDescription className="text-xs text-foreground">
+                  {analysis.performanceSummary}
+                </AlertDescription>
+             </Alert>
+
+             <div className="p-3 rounded-lg border">
+                <p className='text-xs text-muted-foreground'>أكبر بند للإنفاق</p>
+                <div className="flex items-center justify-between">
+                    <p className="font-bold text-sm">{analysis.highestSpendingCategory.category}</p>
+                    <p className="font-bold text-sm text-primary">{analysis.highestSpendingCategory.amount.toLocaleString()}&nbsp;د.ع</p>
                 </div>
-              </div>
-            ))}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-full bg-secondary rounded-full h-1.5">
+                        <div className="bg-primary h-1.5 rounded-full" style={{width: `${analysis.highestSpendingCategory.percentage}%`}}></div>
+                    </div>
+                    <span>{analysis.highestSpendingCategory.percentage.toFixed(0)}%</span>
+                </div>
+             </div>
+
+             <div>
+                <h4 className="text-xs font-semibold mb-2">ملاحظات رئيسية:</h4>
+                <div className="space-y-2">
+                    {analysis.keyObservations.map((obs, index) => (
+                        <div key={index} className="flex items-start gap-3 text-xs">
+                           <InsightIcon name={obs.icon} className="h-4 w-4 text-muted-foreground mt-0.5" />
+                           <p>{obs.text}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
           </div>
         ) : (
           <p className="text-center text-muted-foreground p-4 text-xs">
-            {filteredExpenses.length > 0 
-              ? "لا توجد نصائح حاليًا لهذه الفترة. قد يساعد تحديد ميزانية في الإعدادات."
-              : "لا توجد مصاريف في هذه الفترة لتقديم نصائح حولها."
-            }
+            لا توجد مصاريف في هذه الفترة لتقديم تحليل حولها.
           </p>
         )}
       </CardContent>
