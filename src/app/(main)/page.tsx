@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const isMobile = useIsMobile();
   const { categories, categoryMap, getIconComponent } = useCategories();
 
-  const { expenses, userSettings } = useAppData();
+  const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
 
   const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
   const [isInsightsLoading, setIsInsightsLoading] = useState(true);
@@ -234,7 +234,8 @@ export default function DashboardPage() {
   }, [expenses]);
   
   const financialCoachInput = useMemo(() => {
-    if (!userSettings) return null; // Ensure userSettings is available
+    // Crucially, wait for userSettings to be loaded before creating the input
+    if (isAppDataLoading || !userSettings) return null;
 
     const userBudget = userSettings.budget;
     const monthlyExpenses = expenses.filter(exp => {
@@ -246,7 +247,6 @@ export default function DashboardPage() {
         } catch { return false; }
     });
     
-    // Do not call the coach if there are no expenses for the period
     if (monthlyExpenses.length === 0) {
         return null;
     }
@@ -278,14 +278,20 @@ export default function DashboardPage() {
     }
     
     return input;
-  }, [expenses, userSettings, categoryMap]);
+  }, [expenses, userSettings, categoryMap, isAppDataLoading]);
 
   useEffect(() => {
+    if (isAppDataLoading) {
+      setIsInsightsLoading(true);
+      return;
+    }
+
     if (!user || !financialCoachInput) {
       setInsights([]);
       setIsInsightsLoading(false);
       return;
     }
+
     const getInsights = async () => {
       setIsInsightsLoading(true);
       try {
@@ -299,7 +305,7 @@ export default function DashboardPage() {
       }
     };
     getInsights();
-  }, [user, financialCoachInput]);
+  }, [user, financialCoachInput, isAppDataLoading]);
   
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
@@ -660,3 +666,4 @@ export default function DashboardPage() {
     
 
     
+
