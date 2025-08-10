@@ -364,13 +364,12 @@ export default function StatisticsPage() {
   }, [filteredExpenses, userSettings, categoryMap, view, selectedMonth]);
 
   useEffect(() => {
-    if (!financialCoachInput) {
-      setIsInsightsLoading(false);
-      setInsights(null);
-      return;
-    }
-
     const getInsights = async () => {
+      if (!financialCoachInput) {
+        setInsights(null);
+        setIsInsightsLoading(false);
+        return;
+      }
       setIsInsightsLoading(true);
       try {
         const result = await financialCoach(financialCoachInput);
@@ -742,3 +741,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
