@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, ActivityIcon, ListOrdered, Sparkles } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector, Label } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList, Sector, Label, Text } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,30 +70,14 @@ const CustomLabel = (props: any) => {
     );
 };
 
-const renderCustomizedLabel = (props: any) => {
-    const RADIAN = Math.PI / 180;
-    const { cx, cy, midAngle, outerRadius, fill, payload, percent } = props;
-    const sin = Math.sin(-RADIAN * midAngle);
-    const cos = Math.cos(-RADIAN * midAngle);
-    const sx = cx + (outerRadius + 10) * cos;
-    const sy = cy + (outerRadius + 10) * sin;
-    const mx = cx + (outerRadius + 30) * cos;
-    const my = cy + (outerRadius + 30) * sin;
-    const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-    const ey = my;
-    const textAnchor = cos >= 0 ? 'start' : 'end';
-
-    if (percent * 100 < 3) return null;
-
-    return (
-        <g>
-            <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-            <circle cx={sx} cy={sy} r={3} fill={fill} stroke="none" />
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill={fill} className="text-xs font-bold" dominantBaseline="central">
-                {`${payload.name} ${(percent * 100).toFixed(0)}%`}
-            </text>
-        </g>
-    );
+// Custom Y-Axis tick for wrapping long text
+const CustomizedYAxisTick = (props: any) => {
+  const { x, y, payload } = props;
+  return (
+    <Text x={x} y={y} width={100} textAnchor="end" verticalAnchor="middle" fill="hsl(var(--foreground))" fontSize={11}>
+      {payload.value}
+    </Text>
+  );
 };
 
 
@@ -425,7 +409,7 @@ export default function StatisticsPage() {
                 <BarChart
                     data={barChartData}
                     layout="vertical"
-                    margin={{ left: 10, right: 10 }}
+                    margin={{ left: 20, right: 10, top: 10, bottom: 10 }}
                 >
                     <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                     <XAxis 
@@ -443,8 +427,9 @@ export default function StatisticsPage() {
                         tickLine={false}
                         axisLine={false}
                         tickMargin={5}
-                        width={80}
-                        tick={{ fontSize: 11, fill: 'hsl(var(--foreground))' }}
+                        width={100}
+                        tick={<CustomizedYAxisTick />}
+                        interval={0}
                     />
                     <RechartsTooltip 
                         cursor={{ fill: 'hsl(var(--muted))' }} 
