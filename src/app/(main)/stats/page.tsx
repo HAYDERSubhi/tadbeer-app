@@ -1,11 +1,10 @@
-
 // src/app/(main)/stats/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, AreaChart as AreaChartIcon } from "lucide-react";
-import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Area } from 'recharts';
+import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend } from 'recharts';
 
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -64,6 +63,29 @@ const renderActiveShape = (props: any) => {
   );
 };
 
+const formatNumberShort = (num: number) => {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+    if (num >= 1000) {
+        return (num / 1000).toFixed(0) + 'K';
+    }
+    return num.toString();
+};
+
+const CustomLabel = (props: any) => {
+    const { x, y, stroke, value } = props;
+    if (value > 0) {
+        return (
+            <text x={x} y={y} dy={-8} fill={stroke} fontSize={10} textAnchor="middle">
+                {formatNumberShort(value)}
+            </text>
+        );
+    }
+    return null;
+};
+
+
 export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
@@ -100,10 +122,10 @@ export default function StatisticsPage() {
           config[cat.id] = { 
               label: cat.name, 
               icon: () => getIconComponent(cat.icon),
-              color: `var(--chart-${cat.color})`, // Keep CSS variable reference here
+              color: `hsl(var(--chart-${cat.color}))`,
           };
       });
-      config.expenses = { label: "المصاريف", color: "var(--primary)" };
+      config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
       return config;
   }, [categories, getIconComponent]);
   
@@ -341,7 +363,7 @@ export default function StatisticsPage() {
                 <CardContent>
                 {trendChartData.length > 0 ? (
                     <ChartContainer config={chartConfig} className="w-full h-[250px]">
-                        <AreaChart data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                        <AreaChart accessibilityLayer data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                             <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `${(value as number / 1000)}k`} tick={{fontSize: 9}} />
@@ -354,7 +376,7 @@ export default function StatisticsPage() {
                                             return {
                                                 name: ct.categoryName,
                                                 value: point?.expenses || 0,
-                                                color: `hsl(${chartConfig[ct.categoryId]?.color})`,
+                                                color: chartConfig[ct.categoryId]?.color,
                                             }
                                         }).filter(cb => cb.value > 0).sort((a, b) => b.value - a.value);
 
@@ -376,7 +398,7 @@ export default function StatisticsPage() {
                                     return null;
                                 }}
                             />
-                            <Area type="monotone" dataKey="expenses" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.1} />
+                            <Area type="monotone" dataKey="expenses" stroke={chartConfig.expenses?.color} fill={chartConfig.expenses?.color} fillOpacity={0.1} />
                         </AreaChart>
                     </ChartContainer>
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
@@ -386,7 +408,7 @@ export default function StatisticsPage() {
             <Card>
                 <CardHeader className="py-3">
                     <CardTitle className="flex items-center gap-2 text-xs">
-                        <AreaChartIcon className="h-4 w-4 text-primary" />
+                        <LineChartIcon className="h-4 w-4 text-primary" />
                         تحليل اتجاهات الفئات
                     </CardTitle>
                     <CardDescription className="text-xs">
@@ -395,48 +417,55 @@ export default function StatisticsPage() {
                             : 'لا توجد بيانات كافية لعرض اتجاهات الفئات.'}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-3">
                     {categoryTrends.map(catTrend => (
                         <div key={catTrend.categoryId} className="border p-3 rounded-lg">
                             <div className="flex justify-between items-center mb-2">
                                 <div className='flex items-center gap-2'>
-                                    <span style={{ color: `hsl(${chartConfig[catTrend.categoryId]?.color})`}} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
+                                    <span style={{ color: chartConfig[catTrend.categoryId]?.color }} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
                                     <div>
-                                        <p className='font-semibold text-xs'>{catTrend.categoryName}</p>
+                                        <p className='font-semibold text-sm'>{catTrend.categoryName}</p>
+                                        <p className='font-bold text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
                                     </div>
                                 </div>
-                                <p className='font-semibold text-xs text-muted-foreground'>{catTrend.total.toLocaleString()} د.ع</p>
                             </div>
-                            <div className="h-[100px] w-full">
+                            <div className="h-[150px] w-full">
                                 <ChartContainer config={chartConfig}>
-                                    <AreaChart
+                                    <LineChart
+                                      accessibilityLayer
                                       data={catTrend.trendData}
-                                      margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
+                                      margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
                                     >
-                                      <defs>
-                                        <linearGradient id={`fill-${catTrend.categoryId}`} x1="0" y1="0" x2="0" y2="1">
-                                          <stop offset="5%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.8}/>
-                                          <stop offset="95%" stopColor={`hsl(${chartConfig[catTrend.categoryId]?.color})`} stopOpacity={0.1}/>
-                                        </linearGradient>
-                                      </defs>
+                                      <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3"/>
+                                      <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                                       <RechartsTooltip
                                         cursor={false}
                                         content={({ active, payload, label }) => active && payload && payload.length ? (
                                              <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                 <p className="font-medium mb-1">{label}</p>
-                                                <p style={{color: `hsl(${chartConfig[catTrend.categoryId]?.color})`}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
+                                                <p style={{color: chartConfig[catTrend.categoryId]?.color}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
                                             </div>
                                         ) : null}
                                       />
-                                      <Area
+                                      <Line
                                         type="monotone"
                                         dataKey="expenses"
-                                        stroke={`hsl(${chartConfig[catTrend.categoryId]?.color})`}
+                                        stroke={chartConfig[catTrend.categoryId]?.color}
                                         strokeWidth={2}
-                                        fillOpacity={1}
-                                        fill={`url(#fill-${catTrend.categoryId})`}
+                                        dot={{
+                                            fill: chartConfig[catTrend.categoryId]?.color,
+                                            r: 4,
+                                            strokeWidth: 2,
+                                            stroke: 'hsl(var(--background))'
+                                        }}
+                                        activeDot={{
+                                          r: 6,
+                                          strokeWidth: 2,
+                                          stroke: 'hsl(var(--background))'
+                                        }}
+                                        label={<CustomLabel />}
                                       />
-                                    </AreaChart>
+                                    </LineChart>
                                 </ChartContainer>
                             </div>
                         </div>
