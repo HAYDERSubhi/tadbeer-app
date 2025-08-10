@@ -1,11 +1,10 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, BarChart3, DollarSign, Wand2, ActivityIcon, ListOrdered } from "lucide-react";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, BarChart, Bar, LabelList } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
 import { ChartContainer, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +56,31 @@ interface ForecastData {
   }[];
   advice: string;
 }
+
+const formatValueForLabel = (value: any) => {
+    const num = Number(value);
+    if (isNaN(num) || num === 0) return '';
+    if (num >= 1000000) {
+      return `${(num / 1000000).toLocaleString('ar-IQ', { maximumFractionDigits: 1 })}M`;
+    }
+    if (num >= 1000) {
+      return `${(num / 1000).toLocaleString('ar-IQ', { maximumFractionDigits: 0 })}K`;
+    }
+    return num.toLocaleString('ar-IQ');
+};
+
+
+const CustomLabel = (props: any) => {
+    const { x, y, value } = props;
+    const formattedValue = formatValueForLabel(value);
+    if (!formattedValue) return null;
+  
+    return (
+      <text x={x} y={y} dy={-8} fill="hsl(var(--foreground))" fontSize={10} textAnchor="middle">
+        {formattedValue}
+      </text>
+    );
+};
 
 export default function StatisticsPage() {
   const { user } = useAuth();
@@ -672,10 +696,10 @@ export default function StatisticsPage() {
                 <div className="h-[200px] w-full">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <ResponsiveContainer>
-                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                       <LineChart data={catTrend.monthlyTrend} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} />
                           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-                          <YAxis tickFormatter={formatYAxisTick} tickLine={false} axisLine={false} tickMargin={8} fontSize={12} width={80} allowDataOverflow={true} />
+                          <YAxis hide={true} domain={['dataMin', 'dataMax + 1000']} />
                           <RechartsTooltip
                               cursor={{ strokeDasharray: '3 3' }}
                               contentStyle={{ direction: 'rtl', borderRadius: 'var(--radius)' }}
@@ -688,7 +712,10 @@ export default function StatisticsPage() {
                               stroke={chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}
                               strokeWidth={2.5}
                               activeDot={{ r: 6 }}
-                          />
+                              dot={{r: 4, fill: chartConfig[catTrend.categoryId]?.color || 'hsl(var(--primary))'}}
+                          >
+                                <LabelList content={<CustomLabel />} />
+                          </Line>
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -780,3 +807,5 @@ export default function StatisticsPage() {
     </div>
   );
 }
+
+    
