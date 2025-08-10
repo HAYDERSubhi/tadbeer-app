@@ -433,7 +433,7 @@ export default function StatisticsPage() {
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="text-[10px] fill-white font-semibold pointer-events-none drop-shadow-sm"
+                          className="text-[11px] fill-foreground font-semibold pointer-events-none drop-shadow-sm"
                         >
                           <tspan x={x} dy="-0.5em">{displayName}</tspan>
                           <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
