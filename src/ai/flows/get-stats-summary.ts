@@ -15,6 +15,7 @@ import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 
+// Define schemas inside the flow or locally, but do not export them.
 const PieChartDataItemSchema = z.object({
   name: z.string(),
   value: z.number(),
@@ -38,14 +39,14 @@ const CategorySummaryItemSchema = z.object({
   budget: z.number().optional(),
 });
 
-export const GetStatsSummaryInputSchema = z.object({
+const GetStatsSummaryInputSchema = z.object({
   uid: z.string().describe("The user's unique ID."),
   view: z.enum(['month', 'year']).describe("The time frame view, either 'month' or 'year'."),
   selectedPeriod: z.string().describe("The selected period, e.g., '2024-07' for month view or '2024' for year view."),
   userSettings: z.any().describe("The user's settings object, containing categories and budgets."),
 });
 
-export const GetStatsSummaryOutputSchema = z.object({
+const GetStatsSummaryOutputSchema = z.object({
   pieChartData: z.array(PieChartDataItemSchema),
   trendChartData: z.array(TrendChartDataItemSchema),
   categorySummary: z.array(CategorySummaryItemSchema),
@@ -54,6 +55,7 @@ export const GetStatsSummaryOutputSchema = z.object({
   periodDescription: z.string(),
 });
 
+// Export types only, not schemas.
 export type GetStatsSummaryInput = z.infer<typeof GetStatsSummaryInputSchema>;
 export type GetStatsSummaryOutput = z.infer<typeof GetStatsSummaryOutputSchema>;
 
