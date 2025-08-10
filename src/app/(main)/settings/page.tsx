@@ -555,6 +555,35 @@ export default function SettingsPage() {
     });
   }
 
+  const handleDailyReminderChange = async (checked: boolean) => {
+    setDailyReminderEnabled(checked);
+    if (!checked) return;
+
+    if (!('Notification' in window)) {
+        toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
+        setDailyReminderEnabled(false);
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح. لا تنس حفظ التغييرات.'});
+        } else {
+            toast({
+                title: 'تم رفض الإذن',
+                description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
+                variant: 'destructive',
+                duration: 8000
+            });
+            setDailyReminderEnabled(false);
+        }
+    } catch (error) {
+        toast({ title: 'خطأ', description: 'لم يتمكن من طلب إذن الإشعارات.', variant: 'destructive'});
+        setDailyReminderEnabled(false);
+    }
+  };
+
   const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
       appTone,
@@ -562,39 +591,7 @@ export default function SettingsPage() {
     });
   };
   
-  const handleDailyReminderChange = async (checked: boolean) => {
-    setDailyReminderEnabled(checked);
   
-    if (!checked) return;
-  
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      toast({ title: 'غير مدعوم', description: 'متصفحك لا يدعم الإشعارات.', variant: 'destructive'});
-      setDailyReminderEnabled(false);
-      return;
-    }
-  
-    try {
-      await navigator.serviceWorker.ready;
-      const permission = await Notification.requestPermission();
-  
-      if (permission === 'granted') {
-        toast({ title: 'تم التفعيل', description: 'تم تفعيل التذكيرات اليومية بنجاح. لا تنس حفظ التغييرات.'});
-      } else {
-        toast({
-          title: 'تم رفض الإذن',
-          description: 'لا يمكننا إرسال تذكيرات بدون موافقتك. يرجى تفعيل الإذن من إعدادات المتصفح ثم إعادة تحميل الصفحة.',
-          variant: 'destructive',
-          duration: 8000
-        });
-        setDailyReminderEnabled(false);
-      }
-    } catch (error) {
-      toast({ title: 'خطأ', description: 'لم يتمكن من تهيئة خدمة الإشعارات.', variant: 'destructive'});
-      setDailyReminderEnabled(false);
-    }
-  };
-
-
   // --- Category Management ---
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
