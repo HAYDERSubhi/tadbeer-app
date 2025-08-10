@@ -415,7 +415,7 @@ export default function StatisticsPage() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={110}
+                  outerRadius={100}
                   innerRadius={60}
                   labelLine={false}
                   onMouseEnter={(data) => {
@@ -424,17 +424,16 @@ export default function StatisticsPage() {
                   onMouseLeave={() => {
                     setActiveDonutSlice(null);
                   }}
-                  label={({ name, percent, x, y, payload }) => {
+                  label={({ name, percent, x, y }) => {
                     if (percent * 100 < 5) return null;
-                     const displayName = name.length > 10 ? `${name.substring(0, 8)}...` : name;
+                    const displayName = name.length > 8 ? `${name.substring(0, 7)}...` : name;
                     return (
                         <text
                           x={x}
                           y={y}
                           textAnchor="middle"
                           dominantBaseline="central"
-                          className="text-[10px] fill-foreground font-semibold pointer-events-none"
-                          style={{ fill: payload.fill }}
+                          className="text-[10px] fill-white font-semibold pointer-events-none drop-shadow-sm"
                         >
                           <tspan x={x} dy="-0.5em">{displayName}</tspan>
                           <tspan x={x} dy="1.2em">{`${(percent * 100).toFixed(0)}%`}</tspan>
@@ -447,7 +446,7 @@ export default function StatisticsPage() {
                   ))}
                 </Pie>
                  <foreignObject width="100%" height="100%">
-                    <div className="w-full h-full flex flex-col justify-center items-center text-center">
+                    <div className="w-full h-full flex flex-col justify-center items-center text-center pointer-events-none">
                       <p className="text-[10px] text-muted-foreground">{activeDonutSlice ? activeDonutSlice.name : 'الإجمالي'}</p>
                       <p className="text-base font-bold">{activeDonutSlice ? activeDonutSlice.value.toLocaleString() : totalForPeriod.toLocaleString()}&nbsp;د.ع</p>
                        {activeDonutSlice && totalForPeriod > 0 && (
