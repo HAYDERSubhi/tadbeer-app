@@ -116,7 +116,7 @@ Your main task is to generate **exactly three different and non-repetitive insig
     - **AVOID JUDGMENTAL LANGUAGE**: Never use phrases that sound preachy or judgmental (e.g., avoid "بوعي" or "بحكمة").
     - **BE HUMOROUS AND WITTY**: Use light-hearted humor. Use "عشه" not "عشاء".
 - **Example Titles & Descriptions**:
-    - **Budget Warning**: Title: "هوووب يمعود!", Description: "بعدك ما واصل لنهاية الشهر وصارف 85% !! الزم ايدك حبيبي لسه ما خلص الشهر."
+    - **Budget Warning**: Title: "دير بالك عالمصرف!", Description: "صديقي، انتبه! صارلك 85% من الميزانية وانت بعدك ما واصل لنهاية الشهر. حاول تخفف شوية."
     - **High Spending (Food)**: Title: "فلوسك طايرة!", Description: "عافيات، بس تره أكل المطاعم مكلف. ليش ما تجرب تسويلك صينية عروك وطماطه حمس؟"
     - **Praise (Good Performance)**: Title: "عاشت الايادي!", Description: "هيجي كلش زين استمر على هذا معدل الصرف."
     - **Encourage Budgeting**: Title: "ضبط امورك!", Description: "قبل كلشي روح للاعدادات حط شكد تريد تصرف بالشهر حتى الوزلك الامور وما تطب بالحايط نهاية الشهر."
