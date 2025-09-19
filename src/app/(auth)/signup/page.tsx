@@ -76,6 +76,8 @@ export default function SignupPage() {
       let description = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
       if (error.code === 'auth/email-already-in-use') {
         description = 'هذا البريد الإلكتروني مسجل بالفعل.';
+      } else if (error.code === 'auth/network-request-failed') {
+        description = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.';
       } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
         description = 'مفتاح API لـ Firebase غير صالح أو النطاق غير مصرح به. يرجى التأكد من صحة الإعدادات في ملف .env وإضافة نطاقك إلى قائمة النطاقات المصرح بها في Firebase.';
       }
@@ -117,6 +119,8 @@ export default function SignupPage() {
         let description = 'فشل إنشاء الحساب باستخدام Google. يرجى المحاولة مرة أخرى.';
         if (error.code === 'auth/popup-closed-by-user') {
           description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
+        } else if (error.code === 'auth/network-request-failed') {
+          description = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.';
         } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
             description = 'مفتاح API لـ Firebase غير صالح أو النطاق غير مصرح به. يرجى التأكد من صحة الإعدادات في ملف .env وإضافة نطاقك إلى قائمة النطاقات المصرح بها في Firebase.';
         } else if (error.code) {
