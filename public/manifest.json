@@ -1,40 +1,23 @@
 {
+  "theme_color": "#14A39A",
+  "background_color": "#F8FAFC",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
   "name": "تدبير",
   "short_name": "تدبير",
-  "description": "تطبيقك المالي الذكي لإدارة مصاريفك وتحقيق أهدافك.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#F8FAFC",
-  "theme_color": "#14A39A",
+  "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
+  "id": "/?source=pwa",
+  "orientation": "portrait",
   "icons": [
-    {
-      "src": "/icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png"
-    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-256x256.png",
+      "sizes": "256x256",
       "type": "image/png"
     },
     {
@@ -45,8 +28,30 @@
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot1.png",
+      "sizes": "1080x2340",
       "type": "image/png",
-      "purpose": "any maskable"
+      "form_factor": "narrow",
+      "label": "الواجهة الرئيسية"
+    },
+    {
+      "src": "/screenshots/screenshot2.png",
+      "sizes": "1080x2340",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "إحصائيات الإنفاق"
+    },
+    {
+      "src": "/screenshots/screenshot3.png",
+      "sizes": "1080x2340",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "مخطط الأهداف الذكي"
     }
   ]
 }
