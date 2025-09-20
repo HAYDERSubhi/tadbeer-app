@@ -1,7 +1,11 @@
 {
   "name": "تدبير",
   "short_name": "تدبير",
-  "description": "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير. ابدأ الآن!",
+  "description": "تطبيقك المالي الذكي لإدارة مصاريفك وتحقيق أهدافك.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#14A39A",
   "icons": [
     {
       "src": "/icons/icon-72x72.png",
@@ -31,8 +35,7 @@
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
       "src": "/icons/icon-384x384.png",
@@ -42,11 +45,8 @@
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#121C1C",
-  "theme_color": "#1AB2A7"
+  ]
 }
