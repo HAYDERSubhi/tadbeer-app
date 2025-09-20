@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: '%s | تدبير',
   },
   description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير. ابدأ الآن!',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest', // Default name from next-pwa
   openGraph: {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
