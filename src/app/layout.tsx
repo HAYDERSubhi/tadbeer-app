@@ -1,4 +1,3 @@
-
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
@@ -36,19 +35,21 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'تدبير',
-    startupImage: '/logo.png',
+    startupImage: [
+        { url: '/icons/icon-512x512.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
+    ],
   },
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: '/icons/icon-192x192.png',
+    shortcut: '/icons/icon-192x192.png',
+    apple: '/icons/icon-192x192.png',
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#111827' },
+    { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
+    { media: '(prefers-color-scheme: dark)', color: '#121C1C' },
   ],
   width: 'device-width',
   initialScale: 1,

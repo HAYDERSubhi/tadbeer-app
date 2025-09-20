@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 220 20% 98%; /* Light Grayish Blue */
+    --background: 220 20% 98%; /* Light Grayish Blue - F8FAFC */
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 173 80% 40%; /* Teal */
+    --primary: 173 80% 40%; /* Teal - #14A39A */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -45,7 +45,7 @@
   }
 
   .dark {
-    --background: 173 10% 10%; /* Dark Desaturated Teal */
+    --background: 173 10% 10%; /* Dark Desaturated Teal - #121C1C */
     --foreground: 210 40% 98%;
 
     --card: 173 10% 12%; /* Darker Teal for cards */
@@ -54,7 +54,7 @@
     --popover: 173 10% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 173 70% 50%; /* Teal */
+    --primary: 173 70% 50%; /* Teal - #1AB2A7 */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
