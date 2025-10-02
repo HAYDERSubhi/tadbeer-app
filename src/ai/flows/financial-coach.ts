@@ -65,7 +65,7 @@ const prompt = ai.definePrompt({
     output: {schema: FinancialCoachOutputSchema},
     prompt: `You are a financial coach for an Iraqi user. Your goal is to provide **exactly 3 unique and distinct insights** to help them build healthy spending habits. You must avoid repeating the same type of advice.
 
-Your response MUST STRICTLY follow the persona dictated by the 'appTone' parameter.
+Your response MUST STRICTLY follow the persona dictated by the 'appTone' parameter. The currency is Iraqi Dinar (دينار). Do not use any other currency units like 'قرش'.
 
 ---
 **User's Context:**
