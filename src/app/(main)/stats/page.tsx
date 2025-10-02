@@ -364,7 +364,7 @@ export default function StatisticsPage() {
                 <CardContent>
                 {trendChartData.length > 0 ? (
                     <ChartContainer config={chartConfig} className="w-full h-[250px]">
-                        <AreaChart accessibilityLayer data={trendChartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                        <LineChart accessibilityLayer data={trendChartData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
                             <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `${(value as number / 1000)}k`} tick={{fontSize: 9}} />
@@ -399,22 +399,24 @@ export default function StatisticsPage() {
                                     return null;
                                 }}
                             />
-                            <defs>
-                                {Object.keys(chartConfig).map((key) => {
-                                    const color = chartConfig[key]?.color;
-                                    if(color) {
-                                        return (
-                                            <linearGradient key={key} id={`color-${key}`} x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor={color} stopOpacity={0.1}/>
-                                            </linearGradient>
-                                        )
-                                    }
-                                    return null;
-                                })}
-                            </defs>
-                            <Area type="monotone" dataKey="expenses" stroke={chartConfig.expenses?.color} fill={`url(#color-expenses)`} strokeWidth={2} />
-                        </AreaChart>
+                            <Line
+                                type="monotone"
+                                dataKey="expenses"
+                                stroke={chartConfig.expenses?.color}
+                                strokeWidth={2}
+                                dot={{
+                                    r: 3,
+                                    strokeWidth: 1,
+                                    fill: chartConfig.expenses?.color,
+                                    stroke: chartConfig.expenses?.color,
+                                }}
+                                activeDot={{
+                                    r: 5,
+                                    strokeWidth: 2,
+                                }}
+                                label={<CustomLabel />}
+                            />
+                        </LineChart>
                     </ChartContainer>
                 ) : (<p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>)}
                 </CardContent>
