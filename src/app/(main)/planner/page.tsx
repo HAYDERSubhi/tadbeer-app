@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot } from 'lucide-react';
-import { format, differenceInCalendarMonths, isFuture } from 'date-fns';
+import { format, differenceInCalendarMonths, isFuture, parseISO } from 'date-fns';
 import { arIQ } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useForm, Controller } from 'react-hook-form';
@@ -82,6 +82,8 @@ function PlannerContent() {
   const [plan, setPlan] = useState<FinancialPlannerOutput | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const userProfile: UserProfile | undefined = userSettings?.profile;
   
@@ -178,7 +180,7 @@ function PlannerContent() {
   };
 
   const calculateMonthsLeft = (targetDate: string) => {
-    const months = differenceInCalendarMonths(new Date(targetDate), new Date());
+    const months = differenceInCalendarMonths(parseISO(targetDate), new Date());
     return months <= 0 ? 1 : months;
   };
   
@@ -279,8 +281,13 @@ function PlannerContent() {
                                     }
                                 }}
                                 onFocus={(e) => {
-                                    if (e.target.value === '0') {
-                                        onChange(0); // This will clear the input via the value prop
+                                    if (parseFormattedNumber(e.target.value) === '0') {
+                                        onChange(undefined);
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    if (parseFormattedNumber(e.target.value) === '') {
+                                        onChange(0);
                                     }
                                 }}
                             />
@@ -288,7 +295,38 @@ function PlannerContent() {
                     />
                     {form.formState.errors.targetAmount && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}
                   </div>
-                  <div className="space-y-1"><Label className="text-xs">متى تريد تحقيقه؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 text-xs", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-3 w-3" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">متى تريد تحقيقه؟</Label>
+                    <Controller 
+                      name="targetDate" 
+                      control={form.control} 
+                      render={({ field }) => (
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                            <PopoverTrigger asChild>
+                                <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 text-xs", !field.value && "text-muted-foreground")}>
+                                    <CalendarIconLucide className="mr-2 h-3 w-3" />
+                                    {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar 
+                                    mode="single" 
+                                    selected={field.value} 
+                                    onSelect={(date) => {
+                                        field.onChange(date);
+                                        setIsCalendarOpen(false);
+                                    }} 
+                                    initialFocus 
+                                    dir="rtl" 
+                                    locale={arIQ} 
+                                    disabled={(date) => date < new Date() || date < new Date("1900-01-01")} 
+                                />
+                            </PopoverContent>
+                        </Popover>
+                      )} 
+                    />
+                    {form.formState.errors.targetDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}
+                  </div>
                   <Button type="submit" className="w-full text-xs h-9" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
                 </form>
               </CardContent>
