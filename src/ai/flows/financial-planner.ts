@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { differenceInCalendarMonths } from 'date-fns';
+import { differenceInCalendarMonths, format } from 'date-fns';
 
 const UserProfileSchema = z.object({
     monthlyIncome: z.number().describe("The user's approximate monthly income in IQD."),
