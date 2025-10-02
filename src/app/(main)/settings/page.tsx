@@ -1388,7 +1388,9 @@ export default function SettingsPage() {
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-expenses" checked={deleteOptions.expenses} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, expenses: !!checked}))} /><Label htmlFor="delete-expenses" className="font-normal text-xs">حذف جميع المصاريف</Label></div>
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-goals" checked={deleteOptions.goals} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, goals: !!checked}))} /><Label htmlFor="delete-goals" className="font-normal text-xs">حذف جميع الأهداف المالية</Label></div>
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-incomes" checked={deleteOptions.incomes} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, incomes: !!checked}))} /><Label htmlFor="delete-incomes" className="font-normal text-xs">حذف جميع مصادر الدخل</Label></div>
-                            <Separator />
+                            
+                            <div className="my-1 h-px w-full bg-border/50" />
+
                             <div className="font-semibold text-foreground">بيانات الإعدادات:</div>
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal text-xs">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal text-xs">تصفير الملف الشخصي</Label></div>
