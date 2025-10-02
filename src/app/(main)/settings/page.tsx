@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1072,8 +1072,8 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-2 gap-4">
                 
                 <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#FFE0B2"/><path d="M43.6,35.1c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8c0.5,0.5,1.3,0.5,1.8,0c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2C44.2,36.1,44.1,35.4,43.6,35.1z" fill="#795548"/><path d="M25.5,37.8c1.5-1.5,3.6-2.5,5.7-2.5c1.8,0,3.5,0.6,4.9,1.8c0.4,0.3,1,0.2,1.3-0.2c0.3-0.4,0.2-1-0.2-1.3c-1.8-1.4-3.9-2.2-6.1-2.2c-2.9,0-5.6,1.2-7.5,3.2c-0.5,0.5-0.5,1.3,0,1.8C24.2,38.3,25,38.3,25.5,37.8z" fill="#795548" opacity="0"/><g><ellipse cx="24.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/><ellipse cx="39.5" cy="28.5" rx="2.5" ry="3.5" fill="#422817"/></g><path d="M50,26c-2.4,0-4.6,1-6.2,2.6c-1.2-3.1-4.1-5.3-7.5-5.3s-6.3,2.2-7.5,5.3C17.6,27,15.4,26,13,26c-4.4,0-8,3.6-8,8s3.6,8,8,8h2c2.2,0,4-1.8,4-4v-2h18v2c0,2.2,1.8,4,4,4h2c4.4,0,8-3.6,8-8S54.4,26,50,26z" fill="#6D4C41"/></svg>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
+                      <Handshake className="w-6 h-6" />
                     </div>
                     <div>
                     <h4 className="font-semibold text-sm">كرومي</h4>
@@ -1082,8 +1082,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full object-cover"><circle cx="32" cy="32" r="32" fill="#C5CAE9"/><path d="M32,44c-4.4,0-8-3.6-8-8v-6h16v6C40,40.4,36.4,44,32,44z" fill="#7986CB"/><path d="M37,25h-2v-4h-2v-2h-2v2h-2v4h-2l-3,10h14L37,25z" fill="#424242"/><path d="M29,29L29,29c-1.1,0-2-0.9-2-2v-4c0-1.1,0.9-2,2-2h0c1.1,0,2,0.9,2,2v4C31,28.1,30.1,29,29,29z" fill="#90A4AE"/><path d="M35,29L35,29c1.1,0,2-0.9,2-2v-4c0-1.1-0.9-2-2-2h0c-1.1,0-2,0.9,2,2v4C33,28.1,33.9,29,35,29z" fill="#90A4AE"/><path d="M32,32c-3,0-5.5,2.5-5.5,5.5S29,43,32,43s5.5-2.5,5.5-5.5S35,32,32,32z" fill="#5C6BC0"/><path d="M33,31l-3,3l2,4h-4l2-4l-3-3l4-2L33,31z" fill="#FFFFFF"/></svg>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
+                      <CircleDollarSign className="w-6 h-6" />
                     </div>
                     <div>
                     <h4 className="font-semibold text-sm">أستاذ حريص</h4>
@@ -1430,3 +1430,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+
