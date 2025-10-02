@@ -1242,7 +1242,11 @@ export default function SettingsPage() {
             <div className="space-y-4">
                  <h3 className='text-sm font-medium'>الميزانية والأهداف</h3>
                 <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
-                <div className="space-y-2"><Label htmlFor="zeroSpendDaysTarget" className="text-xs">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label><Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" /></div>
+                <div className="space-y-2">
+                    <Label htmlFor="zeroSpendDaysTarget" className="text-xs">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
+                    <p className="text-[11px] text-muted-foreground -mt-1">يوم الإنفاق المنخفض هو يوم يقل فيه إجمالي مصاريفك عن 10% من متوسط إنفاقك اليومي.</p>
+                    <Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" />
+                </div>
             </div>
             
             <Separator />
