@@ -1413,7 +1413,7 @@ export default function SettingsPage() {
                 setIsOpen={setIsFeedbackOpen}
                 isMobile={isMobile}
               />
-            <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لشركة تدبير © {new Date().getFullYear()}</p>
+            <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
       </Accordion>
