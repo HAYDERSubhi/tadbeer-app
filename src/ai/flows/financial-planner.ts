@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { differenceInCalendarMonths } from 'date-fns';
 
 const UserProfileSchema = z.object({
     monthlyIncome: z.number().describe("The user's approximate monthly income in IQD."),
@@ -62,9 +63,13 @@ export async function financialPlanner(input: FinancialPlannerInput): Promise<Fi
 
 const prompt = ai.definePrompt({
     name: 'financialPlannerPrompt',
-    input: {schema: FinancialPlannerInputSchema},
+    input: {schema: FinancialPlannerInputSchema.extend({
+        currentDate: z.string().describe("Today's date in YYYY-MM-DD format, to be used as the starting point for all calculations.")
+    })},
     output: {schema: FinancialPlannerOutputSchema},
     prompt: `You are a highly skilled, logical, and encouraging financial planner for an Iraqi user. Your primary goal is to create a realistic, actionable, and personalized financial plan to help the user achieve a specific goal. All responses must be in Arabic.
+
+    **Today's Date:** {{currentDate}}
 
     **User's Financial Context:**
     - **Profile:**
@@ -90,7 +95,7 @@ const prompt = ai.definePrompt({
     **Your Task:**
     Based on all the provided information, generate a comprehensive financial plan. Follow these steps precisely:
 
-    1.  **Calculate Required Savings:** First, calculate the number of months between today and the \`targetDate\`. Then, divide the \`targetAmount\` by the number of months to determine the \`savingsRequiredPerMonth\`.
+    1.  **Calculate Required Savings:** First, calculate the number of full calendar months between **today** ({{currentDate}}) and the \`targetDate\`. If the number of months is zero or less, treat it as 1. Then, divide the \`targetAmount\` by this number of months to determine the \`savingsRequiredPerMonth\`. This is the most critical calculation.
 
     2.  **Write Initial Assessment:** Start with a professional and encouraging \`initialAssessment\`. Acknowledge their goal and briefly state their current financial standing in relation to it.
 
@@ -115,7 +120,23 @@ const financialPlannerFlow = ai.defineFlow(
     outputSchema: FinancialPlannerOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const promptInput = {
+        ...input,
+        currentDate: format(new Date(), 'yyyy-MM-dd')
+    };
+    const {output} = await prompt(promptInput);
+    
+    // Server-side validation and correction of the monthly savings calculation
+    if (output) {
+        const monthsLeft = differenceInCalendarMonths(new Date(input.goal.targetDate), new Date());
+        const correctedSavings = input.goal.targetAmount / (monthsLeft <= 0 ? 1 : monthsLeft);
+        
+        // If the AI's calculation is off by more than 1%, correct it.
+        if (Math.abs(output.savingsRequiredPerMonth - correctedSavings) / correctedSavings > 0.01) {
+            output.savingsRequiredPerMonth = correctedSavings;
+        }
+    }
+    
     return output!;
   }
 );
