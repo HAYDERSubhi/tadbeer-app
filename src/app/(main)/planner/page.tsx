@@ -52,6 +52,20 @@ const goalSchema = z.object({
 });
 type GoalFormData = z.infer<typeof goalSchema>;
 
+const formatNumberWithCommas = (value: string | number | undefined) => {
+    if (value === null || value === undefined || value === '') return '';
+    const numericString = String(value).replace(/,/g, '');
+    const number = Number(numericString);
+    if (isNaN(number)) return '';
+    return new Intl.NumberFormat('en-US').format(number);
+};
+
+const parseFormattedNumber = (value: string | undefined) => {
+    if (!value) return '';
+    return value.replace(/,/g, '');
+};
+
+
 function PlannerContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -244,7 +258,36 @@ function PlannerContent() {
               <CardContent className="pt-0">
                 <form onSubmit={form.handleSubmit(handleAddGoal)} className="space-y-3">
                   <div className="space-y-1"><Label htmlFor="name" className="text-xs">ما هو هدفك؟</Label><Input id="name" {...form.register('name')} placeholder="مثال: شراء سيارة" className="h-9 text-xs" />{form.formState.errors.name && <p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>}</div>
-                  <div className="space-y-1"><Label htmlFor="targetAmount" className="text-xs">المبلغ المطلوب (د.ع)</Label><Input id="targetAmount" type="number" {...form.register('targetAmount')} placeholder="15,000,000" className="h-9 text-xs" />{form.formState.errors.targetAmount && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}</div>
+                  <div className="space-y-1">
+                    <Label htmlFor="targetAmount" className="text-xs">المبلغ المطلوب (د.ع)</Label>
+                     <Controller
+                        name="targetAmount"
+                        control={form.control}
+                        render={({ field: { onChange, value, ...restField } }) => (
+                            <Input
+                                {...restField}
+                                id="targetAmount"
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="15,000,000"
+                                className="h-9 text-xs"
+                                value={value === 0 ? '' : formatNumberWithCommas(value)}
+                                onChange={(e) => {
+                                    const parsed = parseFormattedNumber(e.target.value);
+                                    if (parsed === '' || !isNaN(Number(parsed))) {
+                                        onChange(parsed === '' ? 0 : Number(parsed));
+                                    }
+                                }}
+                                onFocus={(e) => {
+                                    if (e.target.value === '0') {
+                                        onChange(0); // This will clear the input via the value prop
+                                    }
+                                }}
+                            />
+                        )}
+                    />
+                    {form.formState.errors.targetAmount && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetAmount.message}</p>}
+                  </div>
                   <div className="space-y-1"><Label className="text-xs">متى تريد تحقيقه؟</Label><Controller name="targetDate" control={form.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 text-xs", !field.value && "text-muted-foreground")}><CalendarIconLucide className="mr-2 h-3 w-3" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date < new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{form.formState.errors.targetDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.targetDate.message}</p>}</div>
                   <Button type="submit" className="w-full h-9 text-xs" disabled={addGoalMutation.isPending}>{addGoalMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإضافة...</> : 'أضف الهدف'}</Button>
                 </form>
