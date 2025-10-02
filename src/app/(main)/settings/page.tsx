@@ -378,6 +378,7 @@ export default function SettingsPage() {
   const { userSettings, expenses, incomes } = useAppData();
   const { categories, getIconComponent } = useCategories();
 
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
@@ -489,12 +490,16 @@ export default function SettingsPage() {
 
   const updateSettingsMutation = useMutation({
       mutationFn: (newSettings: Partial<UserSettings>) => updateUserSettings(user!.uid, newSettings),
-      onSuccess: () => {
+      onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
           toast({
               title: "تم الحفظ",
               description: "تم تحديث إعداداتك بنجاح.",
           });
+          // Close the accordion item after successful save
+          if (variables.appTone || variables.notifications) setOpenAccordionItems(items => items.filter(i => i !== 'item-1'));
+          if (variables.profile) setOpenAccordionItems(items => items.filter(i => i !== 'item-2'));
+          if (variables.budget || variables.categoryBudgets || variables.recurringPayments) setOpenAccordionItems(items => items.filter(i => i !== 'item-3'));
       },
       onError: () => {
           toast({
@@ -1060,7 +1065,7 @@ export default function SettingsPage() {
         )}
       </Card>
       
-      <Accordion type="multiple" className="w-full space-y-2">
+      <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -1430,4 +1435,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
