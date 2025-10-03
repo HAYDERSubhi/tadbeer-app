@@ -53,8 +53,7 @@ export default function BudgetSummaryCard({
         return 'bg-destructive';
     })();
 
-    // The visual width of the bar should not exceed the time progress.
-    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, timeProgress) : 0;
+    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
 
 
     return (
@@ -91,6 +90,7 @@ export default function BudgetSummaryCard({
                             <div className="absolute inset-0 flex items-end pointer-events-none">
                                 <div className="absolute bottom-0 bg-foreground/30" style={{ right: '25%', width: '1px', height: '20%' }} />
                                 <div className="absolute bottom-0 bg-foreground/50" style={{ right: '50%', width: '1.5px', height: '20%' }} />
+                                <div className="absolute bottom-0 bg-foreground/30" style={{ right: '75%', width: '1px', height: '20%' }} />
                             </div>
 
                         </div>
