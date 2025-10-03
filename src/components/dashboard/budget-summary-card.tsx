@@ -56,49 +56,48 @@ export default function BudgetSummaryCard({
                 
                  <div className="px-2 space-y-3">
                     {isBudgetSet && (
-                         <div className="relative w-full h-8 flex items-center"> {/* Increased height */}
+                         <div className="relative w-full h-8 flex items-center">
                             {/* Main Progress Bar Container */}
-                            <div className="relative h-4 w-full rounded-full bg-muted overflow-hidden"> {/* Increased height */}
-                                {/* The actual progress bar */}
+                            <div className="relative h-4 w-full rounded-full bg-muted overflow-hidden">
+                                {/* The actual progress bar - WIDTH IS BASED ON TIME, COLOR ON SPENDING */}
                                 <div 
                                     className={cn(
-                                        "h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2", // Flex properties for text
+                                        "h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2",
                                         isOverspendingTime ? "bg-destructive" : "bg-primary"
                                     )}
-                                    style={{ width: `${spentPercentage}%`}}
+                                    style={{ width: `${timeProgress}%`}}
                                 >
-                                     {/* Spending Percentage Label inside the bar */}
-                                     {spentPercentage > 10 && ( // Only show if there's enough space
-                                        <span className="text-xs font-bold text-primary-foreground">
-                                            {isVisible ? `${spentPercentage.toFixed(0)}%` : ''}
-                                        </span>
-                                     )}
+                                </div>
+                                
+                                {/* Current Spend Marker */}
+                                <div
+                                    className="absolute top-0 h-full w-px bg-foreground/50"
+                                    style={{
+                                        left: `${spentPercentage}%`,
+                                    }}
+                                >
+                                     <div className='absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
+                                     <div className='absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
                                 </div>
                                 
                                 {/* Weekly Markers */}
                                 {[25, 50, 75].map(pos => (
                                     <div
                                         key={pos}
-                                        className="absolute top-1/2 -translate-y-1/2 h-3 w-px bg-background/80" // Centered vertically
-                                        style={{ right: `${pos}%`, transform: 'translateX(50%)' }}
+                                        className="absolute top-1/2 -translate-y-1/2 h-3 w-px bg-background/80"
+                                        style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
                                     ></div>
                                 ))}
-
-                                 {/* Current Spend Marker */}
-                                <div
-                                    className="absolute top-1/2 -translate-y-1/2 h-full w-px bg-foreground/30"
-                                    style={{
-                                        right: `${spentPercentage}%`,
-                                        transform: 'translateX(50%)',
-                                    }}
-                                ></div>
                             </div>
                         </div>
                     )}
-                    <div className="flex justify-between items-center text-xs pt-1">
+                     <div className="flex justify-between items-center text-xs pt-1">
                         <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" />
                         {isBudgetSet && (
-                            <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
+                            <div className="flex items-center gap-2">
+                                 <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
+                                 <div className="h-2 w-2 rounded-full" style={{backgroundColor: isOverspendingTime ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}} />
+                            </div>
                         )}
                     </div>
                 </div>
