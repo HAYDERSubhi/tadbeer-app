@@ -64,20 +64,23 @@ export default function BudgetSummaryCard({
                                     )}
                                     style={{ width: `${Math.min(spentPercentage, 100)}%`}}
                                 />
-                                {/* Time progress marker */}
-                                <div 
-                                    className="absolute top-0 bottom-0 w-px bg-foreground/30" 
-                                    style={{ left: `${timeProgress}%` }}
-                                >
-                                    <div className="relative">
-                                         <div className="absolute -top-1 -translate-x-1/2 h-4 w-0.5 bg-foreground/30"></div>
+                                {/* Time progress markers container */}
+                                <div className="absolute inset-0">
+                                    {/* Mid-month marker */}
+                                    <div 
+                                        className="absolute top-0 bottom-0 w-px bg-foreground/20" 
+                                        style={{ left: '50%' }}
+                                    />
+                                    {/* Current day marker */}
+                                    <div 
+                                        className="absolute top-0 bottom-0 w-px bg-foreground/30" 
+                                        style={{ left: `${timeProgress}%` }}
+                                    >
+                                        <div className="relative h-full">
+                                            <div className="absolute -top-1 -translate-x-1/2 h-4 w-0.5 bg-foreground/30"></div>
+                                        </div>
                                     </div>
                                 </div>
-                                {/* Mid-month marker */}
-                                <div 
-                                    className="absolute top-0 bottom-0 w-px bg-foreground/20" 
-                                    style={{ left: '50%' }}
-                                />
                             </div>
                         </TooltipTrigger>
                          <TooltipContent>
