@@ -10,6 +10,7 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
+import Logo from '@/components/ui/logo';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -27,7 +28,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2Icon className="h-12 w-12 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+            <Logo className="h-20 w-20" />
+            <h1 className="text-3xl font-bold text-primary">تدبير</h1>
+        </div>
       </div>
     );
   }
@@ -73,7 +77,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   // Or for when the redirect is happening. It prevents a flash of unstyled content.
   return (
       <div className="flex h-screen w-full items-center justify-center">
-        <Loader2Icon className="h-12 w-12 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+            <Logo className="h-20 w-20" />
+            <h1 className="text-3xl font-bold text-primary">تدبير</h1>
+        </div>
       </div>
   );
 }
