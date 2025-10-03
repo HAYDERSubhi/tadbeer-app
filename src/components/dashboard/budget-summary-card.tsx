@@ -1,3 +1,4 @@
+
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
@@ -41,19 +42,18 @@ export default function BudgetSummaryCard({
 
     const isOverspending = spentPercentage > timeProgress;
     
-    // Determine the color of the progress bar
     const progressBarColor = (() => {
         if (!isBudgetSet) {
             return 'bg-primary/50';
         }
         if (spentPercentage <= timeProgress) {
-            return 'bg-primary'; // Green/Blue for on-track
+            return 'bg-primary';
         }
         const overspendRatio = timeProgress > 0 ? (spentPercentage - timeProgress) / timeProgress : 1;
         if (overspendRatio < 0.25) {
-            return 'bg-yellow-500'; // Yellow for moderate overspending
+            return 'bg-yellow-500';
         }
-        return 'bg-destructive'; // Red for significant overspending
+        return 'bg-destructive';
     })();
 
     return (
@@ -85,25 +85,39 @@ export default function BudgetSummaryCard({
                                 />
 
                                 {/* Time progress indicator */}
-                                <div
-                                    className="absolute top-0 h-full w-px bg-foreground/50"
-                                    style={{
-                                        left: `${timeProgress}%`,
-                                    }}
-                                >
-                                     <div className='absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
-                                     <div className='absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
-                                </div>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div
+                                                className="absolute top-0 h-full w-px bg-foreground/50"
+                                                style={{
+                                                    left: `${timeProgress}%`,
+                                                }}
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>اليوم الحالي من الشهر</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 
                                 {/* Mid-month indicator */}
-                                <div
-                                    className="absolute bottom-0 h-1/2 w-0.5 bg-background/50"
-                                    style={{
-                                      left: '50%',
-                                      transform: 'translateX(-50%)',
-                                    }}
-                                ></div>
-
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <div
+                                                className="absolute bottom-0 h-1/2 w-[1.5px] bg-background/60"
+                                                style={{
+                                                  left: '50%',
+                                                  transform: 'translateX(-50%)',
+                                                }}
+                                            />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>منتصف الشهر</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
                         </div>
                     )}
