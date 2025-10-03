@@ -53,7 +53,7 @@ export default function BudgetSummaryCard({
         return 'bg-destructive';
     })();
 
-    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
+    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, timeProgress) : 0;
 
 
     return (
