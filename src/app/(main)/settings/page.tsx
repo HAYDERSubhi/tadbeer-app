@@ -999,7 +999,7 @@ export default function SettingsPage() {
   const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode }) => (
     <AccordionItem value={value} className="border-b-0">
       <Card>
-        <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium">
+        <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium" onClick={() => setOpenAccordionItems(prev => prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value])}>
           <CardHeader className="w-full py-3">
               <div className="flex items-center justify-between gap-2 w-full">
                   <div className="flex items-center gap-2">
@@ -1372,7 +1372,7 @@ export default function SettingsPage() {
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
              
-             <Separator />
+             <div className="my-1 h-px w-full bg-border/50" />
 
              <div>
                  <h4 className='font-medium text-sm'>حذف وتصفير البيانات</h4>
@@ -1441,3 +1441,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
