@@ -332,6 +332,7 @@ export default function DashboardPage() {
 
   const budgetData = useMemo(() => {
     const totalBudget = userSettings?.budget?.totalBudget || 0;
+    const isBudgetSet = totalBudget > 0;
     
     const inBudgetExpenses = monthlyExpenses.filter(e => !e.isOutOfBudget);
     const outOfBudgetExpenses = monthlyExpenses.filter(e => e.isOutOfBudget);
@@ -345,15 +346,16 @@ export default function DashboardPage() {
     const daysInMonth = getDaysInMonth(today);
     const currentDay = getDate(today);
     const timeProgress = (currentDay / daysInMonth) * 100;
-    const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+    const spentPercentage = isBudgetSet ? (totalSpent / totalBudget) * 100 : 0;
     
     return {
+      isBudgetSet,
       totalBudget,
       totalSpent,
       remaining,
       spentOutOfBudget,
-      timeProgress,
       spentPercentage,
+      timeProgress,
     };
   }, [monthlyExpenses, userSettings]);
   
@@ -415,7 +417,6 @@ export default function DashboardPage() {
     );
   }
 
-  const userBudget = userSettings?.budget || { totalBudget: 0 };
   const hasExpenses = expenses.length > 0;
   
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
@@ -438,7 +439,7 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {userBudget.totalBudget > 0 ? (
+      {budgetData.isBudgetSet ? (
         <BudgetSummaryCard
             totalBudget={budgetData.totalBudget}
             totalSpent={budgetData.totalSpent}
