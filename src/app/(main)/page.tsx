@@ -1,5 +1,3 @@
-
-
 // src/app/(main)/page.tsx
 
 "use client";
@@ -33,6 +31,7 @@ import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
 import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
+import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 
 
 const tourSteps = [
@@ -43,9 +42,15 @@ const tourSteps = [
     placement: 'center',
   },
   {
-    selector: '#budget-and-input-card',
-    title: 'لوحة التحكم الرئيسية',
-    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك، وإضافة مصروفاتك بسهولة.',
+    selector: '#budget-summary-card',
+    title: 'ملخص الميزانية',
+    content: 'هنا يمكنك رؤية ملخص سريع لميزانيتك. اضغط على أيقونة العين لإخفاء الأرقام.',
+    placement: 'bottom',
+  },
+  {
+    selector: '#expense-input-card',
+    title: 'إضافة المصروفات',
+    content: 'استخدم هذه الأزرار لإضافة مصروفاتك بسهولة عبر الكتابة، الصوت، أو مسح الفواتير.',
     placement: 'bottom',
   },
    {
@@ -232,20 +237,22 @@ export default function DashboardPage() {
     if (!expenses) return [];
     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
+
+  const monthlyExpenses = useMemo(() => {
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    return expenses.filter(exp => {
+        try {
+            return isWithinInterval(parseISO(exp.date), { start, end });
+        } catch { return false; }
+    });
+  }, [expenses]);
   
   const financialCoachInput = useMemo(() => {
     // Crucially, wait for userSettings to be loaded before creating the input
     if (isAppDataLoading || !userSettings) return null;
 
     const userBudget = userSettings.budget;
-    const monthlyExpenses = expenses.filter(exp => {
-        try {
-            const expDate = new Date(exp.date);
-            const start = startOfMonth(new Date());
-            const end = endOfMonth(new Date());
-            return isWithinInterval(expDate, { start, end });
-        } catch { return false; }
-    });
     
     if (monthlyExpenses.length === 0) {
         return null;
@@ -278,7 +285,7 @@ export default function DashboardPage() {
     }
     
     return input;
-  }, [expenses, userSettings, categoryMap, isAppDataLoading]);
+  }, [monthlyExpenses, userSettings, categoryMap, isAppDataLoading]);
 
   useEffect(() => {
     if (isAppDataLoading) {
@@ -324,76 +331,23 @@ export default function DashboardPage() {
   };
 
   const budgetData = useMemo(() => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const dayOfMonth = getDate(today);
-
     const totalBudget = userSettings?.budget?.totalBudget || 0;
     
-    if (totalBudget === 0) {
-        return { totalBudget: 0, totalSpent: 0, spentPercentage: 0, weeklySummaries: [] };
-    }
+    const inBudgetExpenses = monthlyExpenses.filter(e => !e.isOutOfBudget);
+    const outOfBudgetExpenses = monthlyExpenses.filter(e => e.isOutOfBudget);
 
-    const weeklyBudget = totalBudget / 4;
-
-    const monthlyExpenses = expenses.filter(exp => {
-      try {
-        const expDate = parseISO(exp.date);
-        return isWithinInterval(expDate, { start: monthStart, end: endOfMonth(today) });
-      } catch {
-        return false;
-      }
-    });
-
-    const totalSpent = monthlyExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-
-    let currentWeekIndex = 0;
-    if (dayOfMonth >= 8 && dayOfMonth <= 14) currentWeekIndex = 1;
-    else if (dayOfMonth >= 15 && dayOfMonth <= 21) currentWeekIndex = 2;
-    else if (dayOfMonth >= 22) currentWeekIndex = 3;
-
-    const weeklySummaries = Array.from({ length: 4 }).map((_, index) => {
-        const weekStartDay = (index * 7) + 1;
-        const weekEndDay = (index < 3) ? (index + 1) * 7 : getDaysInMonth(today);
-        
-        const weekStart = new Date(today.getFullYear(), today.getMonth(), weekStartDay);
-        const weekEnd = new Date(today.getFullYear(), today.getMonth(), weekEndDay, 23, 59, 59, 999);
-
-        const weekExpenses = monthlyExpenses.filter(exp => {
-            const expDate = parseISO(exp.date);
-            return isWithinInterval(expDate, { start: weekStart, end: weekEnd });
-        });
-        
-        const spent = weekExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-        
-        let colorClass = 'bg-transparent';
-        if (isPast(weekStart)) {
-            const overspendRatio = spent / weeklyBudget;
-            if (overspendRatio > 1.25) colorClass = 'bg-destructive';
-            else if (overspendRatio > 1) colorClass = 'bg-orange-400';
-            else colorClass = 'bg-primary';
-        }
-
-        let progressPercentage = 0;
-        if (index < currentWeekIndex) {
-            progressPercentage = 100; // Past weeks are fully colored
-        } else if (index === currentWeekIndex) {
-            const daysInThisWeek = weekEndDay - weekStartDay + 1;
-            const daysPassedInWeek = Math.max(0, dayOfMonth - weekStartDay + 1);
-            progressPercentage = (daysPassedInWeek / daysInThisWeek) * 100;
-        }
-
-        return { spent, colorClass, progressPercentage };
-    });
+    const totalSpent = inBudgetExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const spentOutOfBudget = outOfBudgetExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    
+    const remaining = totalBudget - totalSpent;
     
     return {
       totalBudget,
       totalSpent,
-      spentPercentage,
-      weeklySummaries
+      remaining,
+      spentOutOfBudget,
     };
-  }, [expenses, userSettings]);
+  }, [monthlyExpenses, userSettings]);
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -461,7 +415,7 @@ export default function DashboardPage() {
   
   return (
     <div className="space-y-3 pb-24">
-      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v1" />
+      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
       
       {upcomingPayments.length > 0 && (
         <Alert variant="destructive" className="animate-in fade-in">
@@ -476,39 +430,28 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* --- Combined Budget and Input Card --- */}
-      <Card id="budget-and-input-card" className="overflow-hidden">
-        <CardContent className="py-2 px-4 space-y-3">
-          {userBudget.totalBudget > 0 ? (
-             <div className="relative h-6 w-full rounded-full bg-secondary overflow-hidden">
-                {/* Layer 1: The colored segments. */}
-                <div className="absolute inset-0 z-0 flex">
-                  {budgetData.weeklySummaries.map((week, index) => (
-                    <div key={index} className="h-full w-1/4 relative">
-                        <div className={cn("h-full", week.colorClass)} style={{width: `${week.progressPercentage}%`}}/>
-                    </div>
-                  ))}
-                </div>
-                {/* Layer 2: The dividers. */}
-                <div className="absolute bottom-0 inset-x-0 z-10 pointer-events-none flex items-end h-full">
-                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70 bottom-0" style={{ right: '25%' }} />
-                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70 bottom-0" style={{ right: '50%' }} />
-                  <div className="absolute h-1/4 w-0.5 rounded-t-full bg-black/70 bottom-0" style={{ right: '75%' }} />
-                </div>
-                {/* Layer 3: Percentage Text Overlay. */}
-                <div className="absolute inset-0 z-20 flex items-center justify-center">
-                  <span className="text-xs font-bold text-black/70 drop-shadow-sm">
-                    {budgetData.spentPercentage.toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-          ) : (
-            <div className="text-center p-2 rounded-lg bg-muted/50">
+      {userBudget.totalBudget > 0 ? (
+        <BudgetSummaryCard
+            totalBudget={budgetData.totalBudget}
+            totalSpent={budgetData.totalSpent}
+            remaining={budgetData.remaining}
+            outOfBudget={budgetData.spentOutOfBudget}
+        />
+      ) : (
+        <Card>
+            <CardContent className="p-4 text-center">
                <h3 className='font-semibold text-sm'>أهلاً بك في تدبير</h3>
                <p className='text-xs text-muted-foreground'>ابدأ بتحديد ميزانية شهرية من الإعدادات لإطلاق العنان لقوة التطبيق.</p>
-            </div>
-          )}
-
+               <Button asChild size="sm" className='mt-3'>
+                    <Link href="/settings">الذهاب إلى الإعدادات</Link>
+               </Button>
+            </CardContent>
+        </Card>
+      )}
+      
+      {/* --- Combined Budget and Input Card --- */}
+      <Card id="expense-input-card" className="overflow-hidden">
+        <CardContent className="py-2 px-4 space-y-3">
           {/* --- Expense Input Methods --- */}
           <div className="grid grid-cols-4 gap-2 text-center">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
@@ -660,10 +603,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
