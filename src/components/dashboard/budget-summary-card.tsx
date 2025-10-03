@@ -54,7 +54,7 @@ export default function BudgetSummaryCard({
     })();
 
     // The visual width of the bar should not exceed the time progress.
-    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
+    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, timeProgress) : 0;
 
 
     return (
@@ -75,10 +75,10 @@ export default function BudgetSummaryCard({
                          <div className="relative w-full h-8">
                             {/* Main progress bar container */}
                             <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
-                                {/* The colored bar representing spend progress */}
+                                {/* The colored bar representing spend progress (RTL corrected) */}
                                 <div 
-                                    className={cn("h-full transition-all duration-500", progressBarColor)}
-                                    style={{ width: `${barDisplayWidth}%`}}
+                                    className={cn("absolute top-0 bottom-0 left-0 transition-all duration-500", progressBarColor)}
+                                    style={{ right: `${100 - barDisplayWidth}%`}}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
@@ -91,7 +91,6 @@ export default function BudgetSummaryCard({
                             <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
                                 <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '25%', height: '20%' }} />
                                 <div className="absolute bottom-0 w-[1.5px] bg-foreground/50" style={{ right: '50%', height: '20%' }} />
-                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '75%', height: '20%' }} />
                             </div>
 
                         </div>
@@ -101,7 +100,6 @@ export default function BudgetSummaryCard({
                         {isBudgetSet && (
                             <div className="flex items-center gap-2">
                                  <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
-                                 <div className="h-2 w-2 rounded-full border border-foreground/70" />
                             </div>
                         )}
                     </div>
