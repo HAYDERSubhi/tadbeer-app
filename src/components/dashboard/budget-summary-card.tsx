@@ -90,14 +90,6 @@ export default function BudgetSummaryCard({
                                 <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '75%', height: '20%' }} />
                             </div>
 
-                            {/* Current Day Marker */}
-                            <div 
-                                className="absolute top-0 bottom-0 w-0.5 bg-foreground/70 pointer-events-none"
-                                style={{ 
-                                    right: `${100 - timeProgress}%`,
-                                    transition: 'right 0.5s ease-out'
-                                }} 
-                            />
                         </div>
                     )}
                      <div className="flex justify-between items-center text-xs pt-1">
