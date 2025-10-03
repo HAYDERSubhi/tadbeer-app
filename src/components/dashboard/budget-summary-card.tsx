@@ -77,8 +77,8 @@ export default function BudgetSummaryCard({
                             <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
                                 {/* The colored bar representing spend progress (RTL corrected) */}
                                 <div 
-                                    className={cn("absolute top-0 bottom-0 left-0 transition-all duration-500", progressBarColor)}
-                                    style={{ right: `${100 - barDisplayWidth}%`}}
+                                    className={cn("absolute top-0 bottom-0 transition-all duration-500", progressBarColor)}
+                                    style={{ right: '0', width: `${barDisplayWidth}%` }}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
@@ -88,9 +88,9 @@ export default function BudgetSummaryCard({
                             </div>
                             
                             {/* Week markers */}
-                            <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
-                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '25%', height: '20%' }} />
-                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50" style={{ right: '50%', height: '20%' }} />
+                            <div className="absolute inset-0 flex items-end pointer-events-none">
+                                <div className="absolute bottom-0 bg-foreground/30" style={{ right: '25%', width: '1px', height: '20%' }} />
+                                <div className="absolute bottom-0 bg-foreground/50" style={{ right: '50%', width: '1.5px', height: '20%' }} />
                             </div>
 
                         </div>
