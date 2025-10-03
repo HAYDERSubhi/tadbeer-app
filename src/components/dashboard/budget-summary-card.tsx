@@ -71,10 +71,10 @@ export default function BudgetSummaryCard({
                          <div className="relative w-full h-8">
                             {/* Main progress bar container */}
                             <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
-                                {/* The colored bar representing time progress */}
+                                {/* The colored bar representing spend progress */}
                                 <div 
                                     className={cn("h-full transition-all duration-500", progressBarColor)}
-                                    style={{ width: `${timeProgress}%`}}
+                                    style={{ width: `${spentPercentage}%`}}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
@@ -87,7 +87,6 @@ export default function BudgetSummaryCard({
                             <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
                                 <div className="absolute bottom-0 w-px bg-foreground/30 h-[20%]" style={{ left: '25%' }} />
                                 <div className="absolute bottom-0 w-[1.5px] bg-foreground/50 h-[20%]" style={{ left: '50%' }} />
-                                <div className="absolute bottom-0 w-px bg-foreground/30 h-[20%]" style={{ left: '75%' }} />
                             </div>
 
                             {/* Current Day Marker */}
