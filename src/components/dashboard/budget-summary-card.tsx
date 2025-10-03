@@ -48,40 +48,58 @@ export default function BudgetSummaryCard({
                     {isVisible ? <EyeOff /> : <Eye />}
                 </Button>
                 
-                <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                <div className="grid grid-cols-3 gap-2 text-center mb-4">
                     <StatItem label="الميزانية" value={totalBudget} isVisible={isVisible} />
                     <StatItem label="المصروف" value={totalSpent} isVisible={isVisible} className="text-destructive" />
                     <StatItem label="المتبقي" value={remaining} isVisible={isVisible} className={cn(remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")} />
                 </div>
                 
-                <div className="px-2 space-y-2">
+                 <div className="px-2 space-y-3">
                     {isBudgetSet && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
-                                    <div 
-                                        className={cn(
-                                            "absolute h-full rounded-full transition-all duration-500",
-                                            isOverspendingTime ? "bg-destructive" : "bg-primary"
-                                        )}
-                                        style={{ width: `${timeProgress}%`}}
-                                    />
-                                </div>
-                            </TooltipTrigger>
-                             <TooltipContent>
-                              <p className="text-xs">
-                                {isOverspendingTime 
-                                    ? `إنفاقك أسرع من الوقت. لقد أنفقت ${spentPercentage.toFixed(0)}% من ميزانيتك، بينما مر ${timeProgress.toFixed(0)}% من الشهر.`
-                                    : `أداؤك جيد. لقد أنفقت ${spentPercentage.toFixed(0)}% من ميزانيتك، وقد مر ${timeProgress.toFixed(0)}% من الشهر.`
-                                }
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                    )}
+                        <div className="relative w-full">
+                            {/* Spending Percentage Label */}
+                            <div
+                                className="absolute bottom-full mb-1 text-xs font-semibold text-muted-foreground"
+                                style={{
+                                    right: `clamp(2%, ${spentPercentage}%, 98%)`,
+                                    transform: 'translateX(50%)',
+                                }}
+                            >
+                                {spentPercentage.toFixed(0)}%
+                            </div>
 
-                     <div className="flex justify-between items-center text-xs">
+                            {/* Main Progress Bar Container */}
+                            <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                                {/* The actual progress bar */}
+                                <div 
+                                    className={cn(
+                                        "h-full rounded-full transition-all duration-500",
+                                        isOverspendingTime ? "bg-destructive" : "bg-primary"
+                                    )}
+                                    style={{ width: `${spentPercentage}%`}}
+                                />
+                                
+                                {/* Weekly Markers */}
+                                {[25, 50, 75].map(pos => (
+                                    <div
+                                        key={pos}
+                                        className="absolute top-0 h-full w-px bg-background/70"
+                                        style={{ right: `${pos}%`, transform: 'translateX(50%)' }}
+                                    ></div>
+                                ))}
+
+                                 {/* Current Spend Marker */}
+                                <div
+                                    className="absolute top-0 h-full w-px bg-foreground/50"
+                                    style={{
+                                        right: `${spentPercentage}%`,
+                                        transform: 'translateX(50%)',
+                                    }}
+                                ></div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex justify-between items-center text-xs pt-1">
                         <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" />
                         {isBudgetSet && (
                             <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
