@@ -64,12 +64,16 @@ export default function BudgetSummaryCard({
                                     )}
                                     style={{ width: `${Math.min(spentPercentage, 100)}%`}}
                                 />
+                                {/* Time progress marker */}
                                 <div 
-                                    className="absolute top-0 bottom-0 w-0.5 bg-foreground/30" 
+                                    className="absolute top-0 bottom-0 w-px bg-foreground/30" 
                                     style={{ left: `${timeProgress}%` }}
                                 >
-                                    <div className="absolute -top-1 -translate-x-1/2 h-4 w-0.5 bg-foreground/30"></div>
+                                    <div className="relative">
+                                         <div className="absolute -top-1 -translate-x-1/2 h-4 w-0.5 bg-foreground/30"></div>
+                                    </div>
                                 </div>
+                                {/* Mid-month marker */}
                                 <div 
                                     className="absolute top-0 bottom-0 w-px bg-foreground/20" 
                                     style={{ left: '50%' }}
@@ -89,7 +93,7 @@ export default function BudgetSummaryCard({
 
                      <div className="flex justify-between items-center text-xs">
                         <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" />
-                        <p className="text-muted-foreground">{Math.floor(timeProgress)}% من الشهر</p>
+                        <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
                     </div>
                 </div>
             </CardContent>
