@@ -1,6 +1,4 @@
-
 // src/app/layout.tsx
-"use client"; // Add this directive
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProviders } from '@/components/providers';
