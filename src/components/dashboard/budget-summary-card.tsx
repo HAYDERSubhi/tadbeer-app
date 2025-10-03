@@ -1,4 +1,3 @@
-
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
@@ -39,8 +38,6 @@ export default function BudgetSummaryCard({
     isBudgetSet,
 }: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
-
-    const isOverspending = spentPercentage > timeProgress;
     
     const progressBarColor = (() => {
         if (!isBudgetSet) {
@@ -71,53 +68,25 @@ export default function BudgetSummaryCard({
                 
                  <div className="px-2 space-y-3">
                     {isBudgetSet && (
-                         <div className="relative w-full h-8 flex items-center">
-                            {/* Main Progress Bar Container */}
-                            <div className="relative h-8 w-full rounded-full bg-muted overflow-hidden">
-                                
-                                {/* The colored bar representing spending */}
+                         <div className="relative w-full h-8">
+                            <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
+                                {/* The colored bar representing time progress */}
                                 <div 
-                                    className={cn(
-                                        "h-full rounded-full transition-all duration-500",
-                                        progressBarColor
-                                    )}
-                                    style={{ width: `${spentPercentage}%`}}
-                                />
+                                    className={cn("h-full transition-all duration-500", progressBarColor)}
+                                    style={{ width: `${timeProgress}%`}}
+                                >
+                                    {/* Percentage text inside the bar */}
+                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-bold text-xs mix-blend-difference">
+                                        {spentPercentage.toFixed(0)}%
+                                    </div>
+                                </div>
 
-                                {/* Time progress indicator */}
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <div
-                                                className="absolute top-0 h-full w-px bg-foreground/50"
-                                                style={{
-                                                    left: `${timeProgress}%`,
-                                                }}
-                                            />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>اليوم الحالي من الشهر</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                                
-                                {/* Mid-month indicator */}
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                             <div
-                                                className="absolute bottom-0 h-1/2 w-[1.5px] bg-background/60"
-                                                style={{
-                                                  left: '50%',
-                                                  transform: 'translateX(-50%)',
-                                                }}
-                                            />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>منتصف الشهر</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                {/* Week markers */}
+                                <div className="absolute inset-0 flex justify-around items-end">
+                                    <div className="w-[1.5px] h-1/4 bg-foreground/30" style={{ left: '25%' }} />
+                                    <div className="w-[2px] h-1/4 bg-foreground/50" style={{ left: '50%' }} />
+                                    <div className="w-[1.5px] h-1/4 bg-foreground/30" style={{ left: '75%' }} />
+                                </div>
                             </div>
                         </div>
                     )}
