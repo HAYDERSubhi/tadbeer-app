@@ -341,11 +341,19 @@ export default function DashboardPage() {
     
     const remaining = totalBudget - totalSpent;
     
+    const today = new Date();
+    const daysInMonth = getDaysInMonth(today);
+    const currentDay = getDate(today);
+    const timeProgress = (currentDay / daysInMonth) * 100;
+    const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+    
     return {
       totalBudget,
       totalSpent,
       remaining,
       spentOutOfBudget,
+      timeProgress,
+      spentPercentage,
     };
   }, [monthlyExpenses, userSettings]);
   
@@ -436,6 +444,8 @@ export default function DashboardPage() {
             totalSpent={budgetData.totalSpent}
             remaining={budgetData.remaining}
             outOfBudget={budgetData.spentOutOfBudget}
+            spentPercentage={budgetData.spentPercentage}
+            timeProgress={budgetData.timeProgress}
         />
       ) : (
         <Card>

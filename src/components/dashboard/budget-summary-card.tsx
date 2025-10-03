@@ -6,13 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 interface BudgetSummaryCardProps {
     totalBudget: number;
     totalSpent: number;
     remaining: number;
     outOfBudget: number;
+    spentPercentage: number;
+    timeProgress: number;
 }
 
 const StatItem = ({ label, value, isVisible, className, isCurrency = true }: { label: string; value: number; isVisible: boolean; className?: string; isCurrency?: boolean; }) => (
@@ -24,9 +27,17 @@ const StatItem = ({ label, value, isVisible, className, isCurrency = true }: { l
     </div>
 );
 
-export default function BudgetSummaryCard({ totalBudget, totalSpent, remaining, outOfBudget }: BudgetSummaryCardProps) {
+export default function BudgetSummaryCard({ 
+    totalBudget, 
+    totalSpent, 
+    remaining, 
+    outOfBudget,
+    spentPercentage,
+    timeProgress,
+}: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
-    const spentPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+    const isOverspendingTime = spentPercentage > timeProgress;
     
     return (
         <Card id="budget-summary-card" className="w-full">
@@ -41,20 +52,44 @@ export default function BudgetSummaryCard({ totalBudget, totalSpent, remaining, 
                     <StatItem label="المتبقي" value={remaining} isVisible={isVisible} className={cn(remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")} />
                 </div>
                 
-                <div className="px-2">
-                     <Progress
-                        value={spentPercentage}
-                        indicatorClassName={cn(
-                            spentPercentage > 100 && "bg-destructive",
-                            spentPercentage > 85 && spentPercentage <= 100 && "bg-orange-500",
-                        )}
-                        className="h-2"
-                     />
-                     <div className="flex justify-between items-center mt-1">
+                <div className="px-2 space-y-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                                <div 
+                                    className={cn(
+                                        "absolute h-full rounded-full transition-all duration-500",
+                                        isOverspendingTime ? "bg-destructive" : "bg-primary"
+                                    )}
+                                    style={{ width: `${Math.min(spentPercentage, 100)}%`}}
+                                />
+                                <div 
+                                    className="absolute top-0 bottom-0 w-0.5 bg-foreground/30" 
+                                    style={{ left: `${timeProgress}%` }}
+                                >
+                                    <div className="absolute -top-1 -translate-x-1/2 h-4 w-0.5 bg-foreground/30"></div>
+                                </div>
+                                <div 
+                                    className="absolute top-0 bottom-0 w-px bg-foreground/20" 
+                                    style={{ left: '50%' }}
+                                />
+                            </div>
+                        </TooltipTrigger>
+                         <TooltipContent>
+                          <p className="text-xs">
+                            {isOverspendingTime 
+                                ? `لقد أنفقت ${spentPercentage.toFixed(0)}% من ميزانيتك، بينما مر ${timeProgress.toFixed(0)}% من الشهر.`
+                                : `لقد أنفقت ${spentPercentage.toFixed(0)}% من ميزانيتك، وقد مر ${timeProgress.toFixed(0)}% من الشهر.`
+                            }
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                     <div className="flex justify-between items-center text-xs">
                         <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" />
-                        <p className="text-xs font-semibold text-muted-foreground">
-                            {spentPercentage.toFixed(0)}%
-                        </p>
+                        <p className="text-muted-foreground">{Math.floor(timeProgress)}% من الشهر</p>
                     </div>
                 </div>
             </CardContent>
