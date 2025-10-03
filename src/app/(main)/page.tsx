@@ -441,6 +441,7 @@ export default function DashboardPage() {
 
       {budgetData.isBudgetSet ? (
         <BudgetSummaryCard
+            isBudgetSet={budgetData.isBudgetSet}
             totalBudget={budgetData.totalBudget}
             totalSpent={budgetData.totalSpent}
             remaining={budgetData.remaining}
