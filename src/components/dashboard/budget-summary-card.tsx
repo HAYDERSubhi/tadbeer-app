@@ -66,28 +66,38 @@ export default function BudgetSummaryCard({
                     <StatItem label="المتبقي" value={remaining} isVisible={isVisible} className={cn(remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")} />
                 </div>
                 
-                 <div className="px-2 space-y-3">
+                 <div className="px-2 space-y-2">
                     {isBudgetSet && (
                          <div className="relative w-full h-8">
+                            {/* Main progress bar container */}
                             <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
                                 {/* The colored bar representing time progress */}
                                 <div 
                                     className={cn("h-full transition-all duration-500", progressBarColor)}
                                     style={{ width: `${timeProgress}%`}}
                                 >
-                                    {/* Percentage text inside the bar */}
-                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-bold text-xs mix-blend-difference">
-                                        {spentPercentage.toFixed(0)}%
-                                    </div>
                                 </div>
-
-                                {/* Week markers */}
-                                <div className="absolute inset-0 flex justify-around items-end">
-                                    <div className="w-[1.5px] h-1/4 bg-foreground/30" style={{ left: '25%' }} />
-                                    <div className="w-[2px] h-1/4 bg-foreground/50" style={{ left: '50%' }} />
-                                    <div className="w-[1.5px] h-1/4 bg-foreground/30" style={{ left: '75%' }} />
+                                {/* Percentage text inside the bar */}
+                                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-xs mix-blend-difference pointer-events-none">
+                                    {spentPercentage.toFixed(0)}%
                                 </div>
                             </div>
+                            
+                            {/* Week markers */}
+                            <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
+                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ left: '25%', height: '20%' }} />
+                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50" style={{ left: '50%', height: '20%' }} />
+                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ left: '75%', height: '20%' }} />
+                            </div>
+
+                            {/* Current Day Marker */}
+                            <div 
+                                className="absolute top-0 bottom-0 w-0.5 bg-foreground/70 pointer-events-none"
+                                style={{ 
+                                    left: `${timeProgress}%`,
+                                    transition: 'left 0.5s ease-out'
+                                }} 
+                            />
                         </div>
                     )}
                      <div className="flex justify-between items-center text-xs pt-1">
@@ -95,7 +105,7 @@ export default function BudgetSummaryCard({
                         {isBudgetSet && (
                             <div className="flex items-center gap-2">
                                  <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
-                                 <div className={cn("h-2 w-2 rounded-full", progressBarColor)} />
+                                 <div className="h-2 w-2 rounded-full border border-foreground/70" />
                             </div>
                         )}
                     </div>
