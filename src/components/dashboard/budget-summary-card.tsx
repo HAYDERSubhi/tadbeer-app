@@ -39,7 +39,7 @@ export default function BudgetSummaryCard({
 }: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
 
-    const isOverspendingTime = spentPercentage > timeProgress;
+    const isOverspending = spentPercentage > timeProgress;
     
     return (
         <Card id="budget-summary-card" className="w-full">
@@ -58,22 +58,22 @@ export default function BudgetSummaryCard({
                     {isBudgetSet && (
                          <div className="relative w-full h-8 flex items-center">
                             {/* Main Progress Bar Container */}
-                            <div className="relative h-4 w-full rounded-full bg-muted overflow-hidden">
+                            <div className="relative h-8 w-full rounded-full bg-muted overflow-hidden">
                                 {/* The actual progress bar - WIDTH IS BASED ON TIME, COLOR ON SPENDING */}
                                 <div 
                                     className={cn(
                                         "h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2",
-                                        isOverspendingTime ? "bg-destructive" : "bg-primary"
+                                        isOverspending ? "bg-destructive/80" : "bg-primary/80"
                                     )}
-                                    style={{ width: `${timeProgress}%`}}
+                                    style={{ width: `${spentPercentage}%`}}
                                 >
                                 </div>
                                 
-                                {/* Current Spend Marker */}
+                                {/* Time progress indicator */}
                                 <div
                                     className="absolute top-0 h-full w-px bg-foreground/50"
                                     style={{
-                                        left: `${spentPercentage}%`,
+                                        left: `${timeProgress}%`,
                                     }}
                                 >
                                      <div className='absolute -top-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
@@ -96,7 +96,7 @@ export default function BudgetSummaryCard({
                         {isBudgetSet && (
                             <div className="flex items-center gap-2">
                                  <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
-                                 <div className="h-2 w-2 rounded-full" style={{backgroundColor: isOverspendingTime ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}} />
+                                 <div className={cn("h-2 w-2 rounded-full", isOverspending ? 'bg-destructive' : 'bg-primary')} />
                             </div>
                         )}
                     </div>
