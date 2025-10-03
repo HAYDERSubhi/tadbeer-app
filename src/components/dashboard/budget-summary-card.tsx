@@ -56,41 +56,37 @@ export default function BudgetSummaryCard({
                 
                  <div className="px-2 space-y-3">
                     {isBudgetSet && (
-                        <div className="relative w-full">
-                            {/* Spending Percentage Label */}
-                            <div
-                                className="absolute bottom-full mb-1 text-xs font-semibold text-muted-foreground"
-                                style={{
-                                    right: `clamp(2%, ${spentPercentage}%, 98%)`,
-                                    transform: 'translateX(50%)',
-                                }}
-                            >
-                                {spentPercentage.toFixed(0)}%
-                            </div>
-
+                         <div className="relative w-full h-8 flex items-center"> {/* Increased height */}
                             {/* Main Progress Bar Container */}
-                            <div className="relative h-2 w-full rounded-full bg-muted overflow-hidden">
+                            <div className="relative h-4 w-full rounded-full bg-muted overflow-hidden"> {/* Increased height */}
                                 {/* The actual progress bar */}
                                 <div 
                                     className={cn(
-                                        "h-full rounded-full transition-all duration-500",
+                                        "h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2", // Flex properties for text
                                         isOverspendingTime ? "bg-destructive" : "bg-primary"
                                     )}
                                     style={{ width: `${spentPercentage}%`}}
-                                />
+                                >
+                                     {/* Spending Percentage Label inside the bar */}
+                                     {spentPercentage > 10 && ( // Only show if there's enough space
+                                        <span className="text-xs font-bold text-primary-foreground">
+                                            {isVisible ? `${spentPercentage.toFixed(0)}%` : ''}
+                                        </span>
+                                     )}
+                                </div>
                                 
                                 {/* Weekly Markers */}
                                 {[25, 50, 75].map(pos => (
                                     <div
                                         key={pos}
-                                        className="absolute top-0 h-full w-px bg-background/70"
+                                        className="absolute top-1/2 -translate-y-1/2 h-3 w-px bg-background/80" // Centered vertically
                                         style={{ right: `${pos}%`, transform: 'translateX(50%)' }}
                                     ></div>
                                 ))}
 
                                  {/* Current Spend Marker */}
                                 <div
-                                    className="absolute top-0 h-full w-px bg-foreground/50"
+                                    className="absolute top-1/2 -translate-y-1/2 h-full w-px bg-foreground/30"
                                     style={{
                                         right: `${spentPercentage}%`,
                                         transform: 'translateX(50%)',
