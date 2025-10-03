@@ -53,7 +53,7 @@ export default function BudgetSummaryCard({
         return 'bg-destructive';
     })();
 
-    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, timeProgress) : 0;
+    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
 
 
     return (
@@ -77,7 +77,7 @@ export default function BudgetSummaryCard({
                                 {/* The colored bar representing spend progress (RTL corrected) */}
                                 <div 
                                     className={cn("absolute top-0 bottom-0 transition-all duration-500", progressBarColor)}
-                                    style={{ right: '0', width: `${barDisplayWidth}%` }}
+                                    style={{ right: '0', width: `${Math.min(barDisplayWidth, timeProgress)}%` }}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
