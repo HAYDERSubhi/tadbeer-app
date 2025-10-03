@@ -53,6 +53,10 @@ export default function BudgetSummaryCard({
         return 'bg-destructive';
     })();
 
+    // The visual width of the bar should not exceed the time progress.
+    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
+
+
     return (
         <Card id="budget-summary-card" className="w-full">
             <CardContent className="p-3 relative">
@@ -74,7 +78,7 @@ export default function BudgetSummaryCard({
                                 {/* The colored bar representing spend progress */}
                                 <div 
                                     className={cn("h-full transition-all duration-500", progressBarColor)}
-                                    style={{ width: `${spentPercentage > 100 ? 100 : spentPercentage}%`}}
+                                    style={{ width: `${barDisplayWidth}%`}}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
