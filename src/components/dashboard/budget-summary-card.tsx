@@ -85,9 +85,9 @@ export default function BudgetSummaryCard({
                             
                             {/* Week markers */}
                             <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
-                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ left: '25%', height: '20%' }} />
-                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50" style={{ left: '50%', height: '20%' }} />
-                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ left: '75%', height: '20%' }} />
+                                <div className="absolute bottom-0 w-px bg-foreground/30 h-[20%]" style={{ left: '25%' }} />
+                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50 h-[20%]" style={{ left: '50%' }} />
+                                <div className="absolute bottom-0 w-px bg-foreground/30 h-[20%]" style={{ left: '75%' }} />
                             </div>
 
                             {/* Current Day Marker */}
