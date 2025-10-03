@@ -74,7 +74,7 @@ export default function BudgetSummaryCard({
                                 {/* The colored bar representing spend progress */}
                                 <div 
                                     className={cn("h-full transition-all duration-500", progressBarColor)}
-                                    style={{ width: `${spentPercentage}%`}}
+                                    style={{ width: `${spentPercentage > 100 ? 100 : spentPercentage}%`}}
                                 >
                                 </div>
                                 {/* Percentage text inside the bar */}
@@ -85,16 +85,17 @@ export default function BudgetSummaryCard({
                             
                             {/* Week markers */}
                             <div className="absolute inset-0 flex justify-around items-end pointer-events-none">
-                                <div className="absolute bottom-0 w-px bg-foreground/30 h-[20%]" style={{ left: '25%' }} />
-                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50 h-[20%]" style={{ left: '50%' }} />
+                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '25%', height: '20%' }} />
+                                <div className="absolute bottom-0 w-[1.5px] bg-foreground/50" style={{ right: '50%', height: '20%' }} />
+                                <div className="absolute bottom-0 w-px bg-foreground/30" style={{ right: '75%', height: '20%' }} />
                             </div>
 
                             {/* Current Day Marker */}
                             <div 
                                 className="absolute top-0 bottom-0 w-0.5 bg-foreground/70 pointer-events-none"
                                 style={{ 
-                                    left: `${timeProgress}%`,
-                                    transition: 'left 0.5s ease-out'
+                                    right: `${100 - timeProgress}%`,
+                                    transition: 'right 0.5s ease-out'
                                 }} 
                             />
                         </div>
