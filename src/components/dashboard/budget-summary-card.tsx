@@ -41,6 +41,18 @@ export default function BudgetSummaryCard({
 
     const isOverspending = spentPercentage > timeProgress;
     
+    // Determine the color of the progress bar
+    const progressBarColor = (() => {
+        if (!isBudgetSet || spentPercentage <= timeProgress) {
+            return 'bg-primary'; // Green/Blue for on-track or no budget
+        }
+        const overspendRatio = (spentPercentage - timeProgress) / (100 - timeProgress);
+        if (overspendRatio < 0.5) {
+            return 'bg-yellow-500'; // Yellow for moderate overspending
+        }
+        return 'bg-destructive'; // Red for significant overspending
+    })();
+
     return (
         <Card id="budget-summary-card" className="w-full">
             <CardContent className="p-3 relative">
@@ -63,9 +75,9 @@ export default function BudgetSummaryCard({
                                 <div 
                                     className={cn(
                                         "h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2",
-                                        isOverspending ? "bg-destructive/80" : "bg-primary/80"
+                                        progressBarColor
                                     )}
-                                    style={{ width: `${spentPercentage}%`}}
+                                    style={{ width: `${timeProgress}%`}}
                                 >
                                 </div>
                                 
@@ -80,11 +92,16 @@ export default function BudgetSummaryCard({
                                      <div className='absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-px bg-foreground/50' />
                                 </div>
                                 
+                                {/* Mid-month indicator */}
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 h-[40%] w-px bg-foreground/30"
+                                ></div>
+
                                 {/* Weekly Markers */}
-                                {[25, 50, 75].map(pos => (
+                                {[25, 75].map(pos => (
                                     <div
                                         key={pos}
-                                        className="absolute top-1/2 -translate-y-1/2 h-3 w-px bg-background/80"
+                                        className="absolute top-1/2 -translate-y-1/2 h-1/5 w-px bg-background/80"
                                         style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
                                     ></div>
                                 ))}
@@ -96,7 +113,7 @@ export default function BudgetSummaryCard({
                         {isBudgetSet && (
                             <div className="flex items-center gap-2">
                                  <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
-                                 <div className={cn("h-2 w-2 rounded-full", isOverspending ? 'bg-destructive' : 'bg-primary')} />
+                                 <div className={cn("h-2 w-2 rounded-full", progressBarColor)} />
                             </div>
                         )}
                     </div>
