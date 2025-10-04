@@ -1,9 +1,8 @@
-
 // src/hooks/use-app-data.tsx
 "use client";
 
 import { createContext, useContext, ReactNode } from 'react';
-import { useQuery, QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Expense, Goal, UserSettings, Income } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { getExpenses, getGoals, getIncomes, getUserSettings } from '@/services/firestore';
@@ -19,7 +18,7 @@ interface AppDataContextType {
     isLoading: boolean;
     isError: boolean;
     error: Error | null;
-    queryClient: QueryClient; // Expose queryClient
+    queryClient: ReturnType<typeof useQueryClient>; // Expose queryClient
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -36,7 +35,7 @@ const defaultSettings: UserSettings = {
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
-    const queryClient = new QueryClient(); // This should be ideally provided from a higher-level provider
+    const queryClient = useQueryClient();
 
     const { data: expenses = [], isLoading: expensesLoading, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
         queryKey: ['expenses', user?.uid],
