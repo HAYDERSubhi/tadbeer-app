@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot } from 'lucide-react';
 import { format, differenceInCalendarMonths, isFuture, parseISO } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -305,7 +305,7 @@ function PlannerContent() {
                             <PopoverTrigger asChild>
                                 <Button id="date" variant={"outline"} className={cn("w-full justify-start text-left font-normal h-9 text-xs", !field.value && "text-muted-foreground")}>
                                     <CalendarIconLucide className="mr-2 h-3 w-3" />
-                                    {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                                    {field.value ? format(field.value, "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
@@ -318,7 +318,7 @@ function PlannerContent() {
                                     }} 
                                     initialFocus 
                                     dir="rtl" 
-                                    locale={arIQ} 
+                                    locale={ar} 
                                     disabled={(date) => date < new Date() || date < new Date("1900-01-01")} 
                                 />
                             </PopoverContent>
@@ -357,7 +357,7 @@ function PlannerContent() {
                           <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle><AlertDialogDescription>سيتم حذف هذا الهدف بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>إلغاء</AlertDialogCancel><AlertDialogAction onClick={() => handleDeleteGoal(goal.id)}>نعم، قم بالحذف</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
                         </AlertDialog>
                       </CardTitle>
-                      <CardDescription className="text-xs">تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: arIQ })}</CardDescription>
+                      <CardDescription className="text-xs">تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: ar })}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-1">
                         <p className="text-lg font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>

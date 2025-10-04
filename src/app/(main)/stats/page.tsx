@@ -12,7 +12,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import {
   Accordion,
   AccordionContent,
@@ -203,7 +203,7 @@ export default function StatisticsPage() {
                                     <TabsList className="h-8">
                                         {availableMonths.map(m => (
                                             <TabsTrigger key={m} value={m} className="whitespace-nowrap text-xs px-2 py-1 h-auto">
-                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: arIQ})}
+                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: ar})}
                                             </TabsTrigger>
                                         ))}
                                     </TabsList>
@@ -330,7 +330,7 @@ export default function StatisticsPage() {
                                         <li key={expense.id} className="flex justify-between items-center gap-2 text-xs animate-in fade-in duration-300">
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-foreground/90 truncate text-[11px]">{expense.title}</p>
-                                                <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
+                                                <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: ar })}</p>
                                             </div>
                                             <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
                                         </li>

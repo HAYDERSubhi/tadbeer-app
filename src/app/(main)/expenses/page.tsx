@@ -13,7 +13,7 @@ import { deleteExpense } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format, compareDesc, parseISO } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { useCategories } from '@/hooks/use-categories';
 
 export default function AllExpensesPage() {
@@ -101,7 +101,7 @@ export default function AllExpensesPage() {
                                   {expense.amount.toLocaleString()}&nbsp;د.ع
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                  {format(parseISO(expense.date), "d MMM yyyy", { locale: arIQ })}
+                                  {format(parseISO(expense.date), "d MMM yyyy", { locale: ar })}
                               </p>
                               </div>
                               <Button

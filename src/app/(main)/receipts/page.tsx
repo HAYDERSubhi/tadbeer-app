@@ -25,7 +25,7 @@ import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/use-categories';
 
@@ -439,7 +439,7 @@ export default function DetailedReceiptPage() {
                                         className={cn("w-full justify-start text-left font-normal bg-background", !storeInfo.date && "text-muted-foreground")}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {storeInfo.date ? format(new Date(storeInfo.date), "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                                            {storeInfo.date ? format(new Date(storeInfo.date), "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0">
@@ -449,7 +449,7 @@ export default function DetailedReceiptPage() {
                                             onSelect={(date) => setStoreInfo(prev => ({...prev, date: date ? format(date, 'yyyy-MM-dd') : null}))}
                                             initialFocus
                                             dir="rtl"
-                                            locale={arIQ}
+                                            locale={ar}
                                             disabled={(date) => date > new Date() || date < new Date("2000-01-01")}
                                         />
                                     </PopoverContent>

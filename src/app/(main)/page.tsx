@@ -16,7 +16,7 @@ import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
 import { recordExpenseAction } from '@/app/actions';
 import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';

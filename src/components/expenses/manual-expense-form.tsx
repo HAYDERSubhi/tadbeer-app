@@ -19,7 +19,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Loader2Icon, Save } from 'lucide-react';
 import { format } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
@@ -184,7 +184,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}
+                    {field.value ? format(field.value, "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -194,7 +194,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                     onSelect={field.onChange}
                     initialFocus
                     dir="rtl"
-                    locale={arIQ}
+                    locale={ar}
                     disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                   />
                 </PopoverContent>

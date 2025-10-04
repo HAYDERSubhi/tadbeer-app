@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Save, CalendarIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
@@ -184,7 +184,7 @@ export default function AddExpensePage() {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} />
+                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={ar} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} />
                                 </PopoverContent>
                             </Popover>
                         )}

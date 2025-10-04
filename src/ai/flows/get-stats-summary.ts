@@ -13,7 +13,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
-import { arIQ } from 'date-fns/locale';
+import { ar } from 'date-fns/locale';
 
 const PieChartDataItemSchema = z.object({
   name: z.string(),
@@ -94,7 +94,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
       const monthFromMonth = parseInt(selectedPeriod.substring(5, 7), 10) - 1;
       periodStart = startOfMonth(new Date(yearFromMonth, monthFromMonth));
       periodEnd = endOfMonth(periodStart);
-      periodDescription = `شهر ${format(periodStart, 'MMMM yyyy', { locale: arIQ })}`;
+      periodDescription = `شهر ${format(periodStart, 'MMMM yyyy', { locale: ar })}`;
     }
 
     filteredExpenses = expenses.filter(exp => {
@@ -166,7 +166,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
       });
       
       trendChartData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
-        name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+        name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: ar }),
         expenses: total,
       }));
 
@@ -180,7 +180,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
                 chartColor: `var(--chart-${categoryDetails.color})`,
                 trendData: Object.entries(categoryMonthlyTotals[catId]).map(([monthKey, total]) => ({
-                    name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: arIQ }),
+                    name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: ar }),
                     expenses: total,
                 })),
             });
