@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getExpenses, getGoals, getIncomes, getUserSettings } from '@/services/firestore';
 import { Loader2Icon } from 'lucide-react';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
+import Logo from '@/components/ui/logo';
 
 interface AppDataContextType {
     expenses: Expense[];
@@ -75,7 +76,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <Loader2Icon className="h-12 w-12 animate-spin text-primary" />
+                <div className="flex flex-col items-center gap-4 animate-pulse">
+                    <Logo className="h-20 w-20" />
+                    <h1 className="text-3xl font-bold text-primary">تدبير</h1>
+                </div>
             </div>
         );
     }
