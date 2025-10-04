@@ -3,7 +3,10 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProviders } from '@/components/providers';
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tadbeer.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: {
     default: 'تدبير | تطبيقك المالي الذكي',
     template: '%s | تدبير',
@@ -13,6 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
+    url: APP_URL,
     images: [
       {
         url: '/og-image.png',
