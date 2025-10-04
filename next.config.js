@@ -16,8 +16,11 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   start_url: "/",
   display: "standalone",
   orientation: "portrait",
+  // Ensure a light background for the splash screen in both light and dark modes
+  background_color_dark: "#F8FAFC",
   background_color: "#F8FAFC",
-  theme_color: "#F8FAFC",
+  theme_color_dark: "#121C1C", // Keep dark theme for browser chrome
+  theme_color: "#F8FAFC",      // Keep light theme for browser chrome
   short_name: "تدبير",
   description: "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
   screenshots: [
