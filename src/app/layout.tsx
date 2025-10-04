@@ -43,6 +43,17 @@ export const metadata: Metadata = {
     icon: '/icons/icon-192x192.png',
     shortcut: '/icons/icon-192x192.png',
     apple: '/icons/icon-192x192.png',
+    other: [
+      {
+        rel: 'mask-icon',
+        url: '/icons/maskable-icon.png',
+        color: '#1AB2A7',
+      },
+       {
+        rel: 'apple-touch-icon',
+        url: '/icons/apple-touch-icon.png',
+      },
+    ],
   },
 };
 

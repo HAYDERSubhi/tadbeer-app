@@ -16,8 +16,8 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   start_url: "/",
   display: "standalone",
   orientation: "portrait",
-  background_color: "#121C1C",
-  theme_color: "#1AB2A7",
+  background_color: "#F8FAFC",
+  theme_color: "#F8FAFC",
   short_name: "تدبير",
   description: "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
   screenshots: [
