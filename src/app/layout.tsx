@@ -40,22 +40,18 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'تدبير',
     startupImage: [
-        { url: '/icons/icon-512x512.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
+        { url: '/logo.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
     ],
   },
   icons: {
-    icon: '/icons/icon-192x192.png',
-    shortcut: '/icons/icon-192x192.png',
-    apple: '/icons/icon-192x192.png',
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
     other: [
       {
         rel: 'mask-icon',
         url: '/icons/maskable-icon.png',
         color: '#1AB2A7',
-      },
-       {
-        rel: 'apple-touch-icon',
-        url: '/icons/apple-touch-icon.png',
       },
     ],
   },
