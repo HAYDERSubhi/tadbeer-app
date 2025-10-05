@@ -23,7 +23,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 alt="شعار تطبيق تدبير" 
                 width={36}
                 height={36}
-                priority 
             />
             <span className="text-foreground">تدبير</span>
           </Link>
