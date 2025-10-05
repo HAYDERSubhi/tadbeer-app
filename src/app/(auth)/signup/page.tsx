@@ -161,7 +161,7 @@ export default function SignupPage() {
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
             <Image 
-                src="/logo.png" 
+                src="/1722428588052-logo.png" 
                 alt="شعار تطبيق تدبير" 
                 width={36}
                 height={36}
@@ -238,3 +238,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
