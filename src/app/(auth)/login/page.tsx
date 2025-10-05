@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { Loader2Icon, AlertTriangle, User } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
-import Logo from '@/components/ui/logo';
+import Image from 'next/image';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -127,7 +127,13 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
-            <Logo />
+            <Image 
+                src="/logo.png" 
+                alt="شعار تطبيق تدبير" 
+                width={36}
+                height={36}
+                priority 
+            />
             <span className="text-foreground">تدبير</span>
         </Link>
         <Card className="w-full max-w-md">

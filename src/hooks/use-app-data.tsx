@@ -1,3 +1,4 @@
+
 // src/hooks/use-app-data.tsx
 "use client";
 
@@ -8,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getExpenses, getGoals, getIncomes, getUserSettings } from '@/services/firestore';
 import { Loader2Icon } from 'lucide-react';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
-import Logo from '@/components/ui/logo';
+import Image from 'next/image';
 
 interface AppDataContextType {
     expenses: Expense[];
@@ -76,7 +77,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <div className="flex flex-col items-center gap-4 animate-pulse">
-                    <Logo className="h-20 w-20" />
+                    <Image 
+                        src="/logo.png" 
+                        alt="شعار تطبيق تدبير" 
+                        width={80}
+                        height={80}
+                        priority 
+                    />
                     <h1 className="text-3xl font-bold text-primary">تدبير</h1>
                 </div>
             </div>

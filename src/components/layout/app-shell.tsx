@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
-import Logo from '@/components/ui/logo';
+import Image from 'next/image';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -18,7 +18,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <Logo />
+            <Image 
+                src="/logo.png" 
+                alt="شعار تطبيق تدبير" 
+                width={36}
+                height={36}
+                priority 
+            />
             <span className="text-foreground">تدبير</span>
           </Link>
           <div className="flex items-center gap-2">

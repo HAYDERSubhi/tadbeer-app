@@ -10,7 +10,7 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Loader2Icon, Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data'; // Import the provider
-import Logo from '@/components/ui/logo';
+import Image from 'next/image';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -29,7 +29,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-            <Logo className="h-20 w-20" />
+            <Image 
+                src="/logo.png" 
+                alt="شعار تطبيق تدبير" 
+                width={80}
+                height={80}
+                priority 
+            />
             <h1 className="text-3xl font-bold text-primary">تدبير</h1>
         </div>
       </div>
@@ -78,7 +84,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-            <Logo className="h-20 w-20" />
+            <Image 
+                src="/logo.png" 
+                alt="شعار تطبيق تدبير" 
+                width={80}
+                height={80}
+                priority 
+            />
             <h1 className="text-3xl font-bold text-primary">تدبير</h1>
         </div>
       </div>
