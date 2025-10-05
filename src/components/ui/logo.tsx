@@ -11,8 +11,8 @@ const Logo = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
     <Image 
         src="/logo.png" 
         alt="شعار تطبيق تدبير" 
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        width={36}
+        height={36}
         priority // The logo is important, so we prioritize its loading
     />
   </div>
