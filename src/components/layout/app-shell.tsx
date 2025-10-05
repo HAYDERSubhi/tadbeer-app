@@ -19,7 +19,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
             <Image 
-                src="/1722428588052-logo.png" 
+                src="/logo.png" 
                 alt="شعار تطبيق تدبير" 
                 width={36}
                 height={36}
@@ -47,5 +47,3 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-    

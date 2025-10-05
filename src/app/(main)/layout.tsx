@@ -30,7 +30,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
             <Image 
-                src="/1722428588052-logo.png" 
+                src="/logo.png" 
                 alt="شعار تطبيق تدبير" 
                 width={80}
                 height={80}
@@ -85,7 +85,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
             <Image 
-                src="/1722428588052-logo.png" 
+                src="/logo.png" 
                 alt="شعار تطبيق تدبير" 
                 width={80}
                 height={80}
@@ -96,5 +96,3 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </div>
   );
 }
-
-    

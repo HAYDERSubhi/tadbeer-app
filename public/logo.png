@@ -1,1 +1,118 @@
-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
+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u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u-7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u/u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u/u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u'e-mail' : 'فشل تسجيل الدخول باستخدام Google. يرجى المحاولة مرة أخرى.';
+        if (error.code === 'auth/popup-closed-by-user') {
+          description = 'تم إلغاء تسجيل الدخول. لقد قمت بإغلاق نافذة Google المنبثقة.';
+        } else if (error.code === 'auth/network-request-failed') {
+          description = 'فشل الاتصال بالشبكة. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.';
+        } else if (error.code === 'auth/api-key-not-valid' || error.message.includes('api-key')) {
+            description = 'مفتاح API لـ Firebase غير صالح أو النطاق غير مصرح به. يرجى التأكد من صحة الإعدادات في ملف .env وإضافة نطاقك إلى قائمة النطاقات المصرح بها في Firebase.';
+        } else if (error.code) {
+          description = `حدث خطأ (${error.code}). يرجى المحاولة مرة أخرى.`;
+        }
+        toast({
+          title: 'خطأ في تسجيل الدخول',
+          description,
+          variant: 'destructive',
+        });
+      }
+    } finally {
+        setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    setIsGuestLoading(true);
+    setUnauthorizedDomain(null);
+    try {
+      await signInAsGuest();
+      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك ستكون مؤقتة على هذا الجهاز فقط.' });
+      router.push('/');
+    } catch (error: any) {
+       toast({
+          title: 'خطأ في الدخول كزائر',
+          description: error.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.',
+          variant: 'destructive',
+        });
+    } finally {
+        setIsGuestLoading(false);
+    }
+  };
+
+  const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+        <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
+            <Image 
+                src="/logo.png" 
+                alt="شعار تطبيق تدبير" 
+                width={36}
+                height={36}
+                priority 
+            />
+            <span className="text-foreground">تدبير</span>
+        </Link>
+        <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+                <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
+                <CardDescription>أدخل بريدك الإلكتروني وكلمة المرور للوصول إلى حسابك</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                    <Input id="email" type="email" placeholder="email@example.com" {...form.register('email')} />
+                    {form.formState.errors.email && <p className="text-sm text-destructive mt-1">{form.formState.errors.email.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">كلمة المرور</Label>
+                    <Input id="password" type="password" {...form.register('password')} />
+                    {form.formState.errors.password && <p className="text-sm text-destructive mt-1">{form.formState.errors.password.message}</p>}
+                </div>
+                <Button type="submit" className="w-full" disabled={anyLoading}>
+                    {isLoading ? <><Loader2Icon className="animate-spin ml-2" /> جاري الدخول...</> : 'تسجيل الدخول'}
+                </Button>
+                </form>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">أو استمر باستخدام</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={handleGoogleSignIn} disabled={anyLoading}>
+                      {isGoogleLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5 mr-2" />}
+                      Google
+                    </Button>
+                     <Button variant="secondary" onClick={handleGuestSignIn} disabled={anyLoading}>
+                      {isGuestLoading ? <Loader2Icon className="mr-2 h-4 w-4 animate-spin" /> : <User className="h-5 w-5 mr-2" />}
+                      الدخول كزائر
+                    </Button>
+                </div>
+
+
+                {unauthorizedDomain && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitleComponent>خطأ في الإعدادات</AlertTitleComponent>
+                    <AlertDescription>
+                      <p className="mb-2">هذا النطاق غير مصرح له. لإصلاح هذا، اذهب إلى <a href={`https://console.firebase.google.com/project/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/authentication/settings`} target="_blank" rel="noopener noreferrer" className="font-bold underline">صفحة إعدادات المصادقة في Firebase</a> وأضف النطاق التالي إلى قائمة 'Authorized domains':</p>
+                      <code className="block bg-muted text-foreground p-2 rounded-md my-2 text-center font-mono select-all">{unauthorizedDomain}</code>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="mt-4 text-center text-sm">
+                ليس لديك حساب؟{' '}
+                <Link href="/signup" className="underline font-semibold text-primary">
+                    أنشئ حسابًا جديدًا
+                </Link>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+  );
+}
