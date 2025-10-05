@@ -13,7 +13,7 @@ const Logo = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => 
         alt="شعار تطبيق تدبير" 
         width={36}
         height={36}
-        priority // The logo is important, so we prioritize its loading
+        priority 
     />
   </div>
 );
