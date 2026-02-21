@@ -109,3 +109,43 @@
     scrollbar-width: none;  /* Firefox */
   }
 }
+
+/* Print Styles */
+@media print {
+  header, nav, footer#main-navigation, .print\:hidden {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  .print\:border-none {
+    border: none !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:bg-white {
+    background-color: white !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}
