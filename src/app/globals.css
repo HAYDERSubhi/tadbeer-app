@@ -109,14 +109,21 @@
   }
 }
 
-/* Print Styles */
+/* --- الشفرة الحاسمة لإصلاح الطباعة --- */
 @media print {
-  /* Hide UI elements */
-  header, nav, footer#main-navigation, .print\:hidden, button, .toaster, [role="alert"] {
+  /* 1. إخفاء كل عناصر الواجهة التي لا تنتمي للمستند */
+  header, 
+  nav, 
+  footer, 
+  #main-navigation, 
+  .print\:hidden, 
+  button, 
+  .toaster, 
+  [role="alert"] {
     display: none !important;
   }
   
-  /* Reset layout for full width */
+  /* 2. تصفير الجسم والحاويات الرئيسية لضمان عدم وجود هوامش خارجية */
   html, body {
     width: 100% !important;
     height: auto !important;
@@ -127,7 +134,7 @@
     overflow: visible !important;
   }
 
-  /* Ensure the main container expands to fill the page without offset */
+  /* 3. إجبار الحاوية الرئيسية في Layout على التمدد وإلغاء Padding */
   main {
     width: 100% !important;
     max-width: none !important;
@@ -136,7 +143,7 @@
     display: block !important;
   }
 
-  /* Target the specific container in proposal page */
+  /* 4. إجبار حاوية المقترح على أخذ كامل العرض */
   .print-container {
     max-width: none !important;
     width: 100% !important;
@@ -146,12 +153,13 @@
     border: none !important;
   }
 
-  .print\:p-0 { padding: 0 !important; }
-  .print\:m-0 { margin: 0 !important; }
-  .print\:border-none { border: none !important; }
-  .print\:shadow-none { box-shadow: none !important; }
-  .print\:bg-white { background-color: white !important; }
+  /* 5. إلغاء ظلال الكروت لجعلها تبدو نظيفة في الطباعة */
+  .card, .border {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
 
+  /* 6. إعدادات الورق */
   @page {
     margin: 1.5cm;
     size: A4;
