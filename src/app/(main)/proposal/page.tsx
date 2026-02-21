@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,14 +13,18 @@ import {
     CreditCard,
     ArrowLeft,
     CheckCircle2,
-    FileText,
     Download,
-    Loader2
+    Loader2,
+    LayoutDashboard,
+    Mic,
+    FileScan,
+    Target
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useCallback } from "react";
+import placeholderImages from "@/app/lib/placeholder-images.json";
 
 export default function ProposalPage() {
     const { toast } = useToast();
@@ -35,15 +40,16 @@ export default function ProposalPage() {
             description: "ستفتح نافذة الطباعة الآن. اختر 'حفظ بتنسيق PDF'.",
         });
 
-        // تنفيذ الطباعة بشكل مباشر لضمان استجابة المتصفح
         setTimeout(() => {
             window.print();
             setIsPreparing(false);
-        }, 300);
+        }, 500);
     }, [toast]);
 
+    const screenshots = placeholderImages.screenshots;
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700 print-container print:m-0 print:p-0 print:max-w-none">
+        <div className="max-w-5xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700 print-container print:m-0 print:p-0 print:max-w-none">
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-4 py-8 border-b print:border-none print:py-4">
                 <div className="relative w-24 h-24 mb-2">
@@ -56,13 +62,14 @@ export default function ProposalPage() {
                         priority
                     />
                 </div>
-                <h1 className="text-4xl font-black tracking-tight text-foreground">مقترح الاستحواذ: تطبيق تدبير</h1>
-                <p className="text-xl text-muted-foreground max-w-2xl">
-                    الجيل القادم من الإدارة المالية الشخصية المدعومة بالذكاء الاصطناعي للسوق العراقي.
+                <h1 className="text-4xl font-black tracking-tight text-foreground">مقترح الاستحواذ الاستراتيجي</h1>
+                <p className="text-2xl font-bold text-primary">تطبيق "تدبير" & Qi Card</p>
+                <p className="text-lg text-muted-foreground max-w-2xl">
+                    رؤية تقنية لتحويل تجربة المستخدم المالي في العراق عبر الذكاء الاصطناعي.
                 </p>
                 <div className="flex gap-3 mt-4 print:hidden">
                     <Button asChild variant="outline">
-                        <Link href="/settings"><ArrowLeft className="ml-2 h-4 w-4" /> العودة للإعدادات</Link>
+                        <Link href="/settings"><ArrowLeft className="ml-2 h-4 w-4" /> العودة</Link>
                     </Button>
                     <Button 
                         onClick={handleDownloadPDF} 
@@ -74,7 +81,7 @@ export default function ProposalPage() {
                         ) : (
                             <Download className="ml-2 h-4 w-4" />
                         )}
-                        تحميل المستند (PDF)
+                        تحميل ملف العرض (PDF)
                     </Button>
                 </div>
             </div>
@@ -95,70 +102,163 @@ export default function ProposalPage() {
                 ))}
             </div>
 
-            {/* Main Sections */}
+            {/* Section: Why Qi Card? */}
             <section className="space-y-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <Rocket className="text-primary h-6 w-6" /> القيمة الاستراتيجية لـ Qi Card
+                <h2 className="text-2xl font-bold flex items-center gap-2 border-r-4 border-primary pr-3">
+                    القيمة الاستراتيجية لـ Qi Card
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none print:border">
+                    <Card className="border-none bg-muted/30 print:bg-white print:border">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <CreditCard className="h-5 w-5 text-primary" /> التكامل مع البطاقة
+                                <CreditCard className="h-5 w-5 text-primary" /> نظام بيئي متكامل
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm leading-relaxed text-muted-foreground">
-                            يتيح التطبيق لشركة Qi Card ربط مصاريف البطاقة الإلكترونية مع المصاريف النقدية للمستخدم، مما يجعل تطبيق Qi Card المرجع الأول والوحيد للمواطن العراقي في كل معاملاته المالية.
+                            "تدبير" يردم الفجوة بين المصاريف النقدية (Cash) ومصاريف البطاقة. بدمجه مع Qi Card، سيحصل المستخدم على رؤية 360 درجة لحياته المالية، مما يزيد من ولاء المستخدم للتطبيق ليصبح شريكه اليومي.
                         </CardContent>
                     </Card>
-                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none print:border">
+                    <Card className="border-none bg-muted/30 print:bg-white print:border">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <BarChart3 className="h-5 w-5 text-primary" /> بيانات استهلاكية دقيقة
+                                <BarChart3 className="h-5 w-5 text-primary" /> البيانات الضخمة (Big Data)
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="text-sm leading-relaxed text-muted-foreground">
-                            الذكاء الاصطناعي في "تدبير" يحلل سلوك الإنفاق بدقة (طعام، وقود، تسوق). هذه البيانات هي كنز لشركة Qi Card لتقديم قروض شخصية أو عروض كاش باك مخصصة لكل مستخدم.
+                            فهم أنماط استهلاك المجتمع العراقي (أين يذهب الراتب؟). هذه البيانات تمكن Qi Card من تقديم منتجات مالية مخصصة، مثل قروض استهلاكية مستهدفة أو عروض كاش باك في الوقت المناسب.
                         </CardContent>
                     </Card>
                 </div>
             </section>
 
-            {/* Features List */}
-            <section className="space-y-4">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <CheckCircle2 className="text-primary h-6 w-6" /> الحلول التقنية المبتكرة
+            {/* NEW SECTION: UI Showcase */}
+            <section className="space-y-8 pt-4">
+                <h2 className="text-2xl font-bold flex items-center gap-2 border-r-4 border-primary pr-3">
+                    معرض واجهات التطبيق والميزات
                 </h2>
-                <div className="grid gap-3">
+                
+                <div className="space-y-12">
+                    {/* Main Dashboard */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center">
+                        <div className="space-y-4">
+                            <div className="bg-primary/10 w-fit p-3 rounded-2xl text-primary">
+                                <LayoutDashboard className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-xl font-bold">لوحة التحكم الذكية</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                واجهة عصرية تركز على "سهولة القراءة". تظهر للمستخدم فوراً حالة ميزانيته، المبالغ المتبقية، والإنفاق خارج الميزانية، مع رسوم بيانية توضح التقدم الزمني خلال الشهر.
+                            </p>
+                        </div>
+                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl">
+                            <Image 
+                                src={screenshots[0].url} 
+                                alt={screenshots[0].description} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint={screenshots[0].hint}
+                            />
+                        </div>
+                    </div>
+
+                    {/* AI Features */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center md:flex-row-reverse">
+                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl md:order-2">
+                            <Image 
+                                src={screenshots[1].url} 
+                                alt={screenshots[1].description} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint={screenshots[1].hint}
+                            />
+                        </div>
+                        <div className="space-y-4 md:order-1">
+                            <div className="bg-primary/10 w-fit p-3 rounded-2xl text-primary">
+                                <Mic className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-xl font-bold">محرك الصوت العراقي (AI Voice)</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                الميزة الأكثر ابتكاراً؛ حيث يمكن للمستخدم قول "سجلت 25 ألف بانزين" باللهجة الدارجة، ليقوم الذكاء الاصطناعي باستخراج المبلغ، التصنيف، والتاريخ تلقائياً دون أي إدخال يدوي.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Receipt Scanner */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center">
+                        <div className="space-y-4">
+                            <div className="bg-primary/10 w-fit p-3 rounded-2xl text-primary">
+                                <FileScan className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-xl font-bold">ماسح الفواتير الذكي</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                باستخدام رؤية الحاسوب (Computer Vision)، يحلل التطبيق الفواتير الورقية المعقدة، ويقوم بتفكيكها إلى عناصر فردية مع أسعارها وتصنيفها، مما يجعل أتمتة المصاريف أمراً بسيطاً.
+                            </p>
+                        </div>
+                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl">
+                            <Image 
+                                src={screenshots[2].url} 
+                                alt={screenshots[2].description} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint={screenshots[2].hint}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Goal Planner */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center md:flex-row-reverse">
+                        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl md:order-2">
+                            <Image 
+                                src={screenshots[4].url} 
+                                alt={screenshots[4].description} 
+                                fill 
+                                className="object-cover"
+                                data-ai-hint={screenshots[4].hint}
+                            />
+                        </div>
+                        <div className="space-y-4 md:order-1">
+                            <div className="bg-primary/10 w-fit p-3 rounded-2xl text-primary">
+                                <Target className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-xl font-bold">المخطط المالي للأهداف</h3>
+                            <p className="text-muted-foreground leading-relaxed">
+                                يساعد المستخدمين على التخطيط للمشتريات الكبرى (سيارة، عقار). الذكاء الاصطناعي يحلل الدخل الحالي ويقترح خطة توفير واقعية مع خطوات عملية لتقليل الإنفاق في فئات محددة.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Tech Stack List */}
+            <section className="space-y-4">
+                <h2 className="text-2xl font-bold flex items-center gap-2 border-r-4 border-primary pr-3">
+                    التكدس التقني (Modern Stack)
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {[
-                        { t: "محرك الصوت العراقي", d: "تسجيل المصاريف بالصوت باللهجة الدارجة بدقة عالية." },
-                        { t: "ماسح الفواتير الذكي", d: "تحويل الصور الورقية إلى بيانات رقمية مهيكلة فوراً." },
-                        { t: "المدرب المالي (كرومي)", d: "نظام نصائح ذكي بلهجة ودودة لزيادة الثقافة المالية." },
-                        { t: "مخطط الأهداف الذكي", d: "رسم خارطة طريق لتحقيق الأهداف الكبرى بناءً على الدخل." },
-                        { t: "دعم الـ PWA", d: "يعمل كتطبيق موبايل دون الحاجة للتحميل من المتجر." },
-                    ].map((feature, i) => (
-                        <div key={i} className="flex items-start gap-4 bg-muted/30 p-4 rounded-xl border hover:border-primary/30 transition-colors print:bg-white print:border">
-                            <div className="bg-primary/10 p-2 rounded-lg text-primary print:border print:bg-white">
-                                <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-sm">{feature.t}</h3>
-                                <p className="text-xs text-muted-foreground">{feature.d}</p>
-                            </div>
+                        "Next.js 15 (App Router)",
+                        "Firebase Cloud Backend",
+                        "Google Gemini 2.0 Flash",
+                        "Tailwind CSS & ShadCN UI",
+                        "Progressive Web App (PWA)",
+                        "Genkit AI Orchestration"
+                    ].map((tech, i) => (
+                        <div key={i} className="flex items-center gap-2 bg-muted/20 p-3 rounded-lg border">
+                            <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                            <span className="text-xs font-semibold">{tech}</span>
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* Tech Footer */}
-            <footer className="pt-10 text-center border-t print:border-t-2">
-                <p className="text-muted-foreground text-sm">تم تطوير هذا المشروع ليكون جاهزاً للربط الفوري مع أنظمة Qi Card البرمجية عبر (APIs).</p>
-                <div className="flex justify-center gap-6 mt-6 opacity-40 grayscale hover:opacity-100 transition-all cursor-default print:opacity-100 print:grayscale-0">
-                    <p className="text-[10px] font-mono font-bold tracking-widest">NEXT.JS 15</p>
-                    <p className="text-[10px] font-mono font-bold tracking-widest">FIREBASE CLOUD</p>
-                    <p className="text-[10px] font-mono font-bold tracking-widest">GOOGLE GEMINI AI</p>
-                    <p className="text-[10px] font-mono font-bold tracking-widest">GENKIT FLOWS</p>
+            {/* Footer */}
+            <footer className="pt-10 text-center border-t border-dashed">
+                <p className="text-muted-foreground text-sm">هذا المشروع مصمم ليكون جاهزاً للاندماج الفوري مع البنية التحتية لشركة Qi Card.</p>
+                <div className="flex justify-center gap-8 mt-8 opacity-50 grayscale print:opacity-100 print:grayscale-0">
+                    <p className="text-[10px] font-mono font-bold tracking-widest">FIREBASE</p>
+                    <p className="text-[10px] font-mono font-bold tracking-widest">NEXT.JS</p>
+                    <p className="text-[10px] font-mono font-bold tracking-widest">GOOGLE AI</p>
                 </div>
+                <p className="text-[10px] text-muted-foreground mt-6">حقوق الملكية الفكرية © {new Date().getFullYear()} فريق تطوير تدبير</p>
             </footer>
         </div>
     );

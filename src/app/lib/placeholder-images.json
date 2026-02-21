@@ -1,0 +1,35 @@
+
+{
+  "screenshots": [
+    {
+      "id": "dashboard-preview",
+      "url": "https://picsum.photos/seed/dashboard123/800/600",
+      "description": "لوحة التحكم الذكية التي توفر نظرة شاملة على الميزانية والمصاريف.",
+      "hint": "financial dashboard"
+    },
+    {
+      "id": "voice-input-preview",
+      "url": "https://picsum.photos/seed/voice456/800/600",
+      "description": "واجهة التسجيل الصوتي باللهجة العراقية التي تحلل النص فورياً.",
+      "hint": "voice recognition"
+    },
+    {
+      "id": "receipt-scanner-preview",
+      "url": "https://picsum.photos/seed/receipt789/800/600",
+      "description": "تقنية مسح الفواتير التي تستخرج العناصر والأسعار بدقة متناهية.",
+      "hint": "receipt scanning"
+    },
+    {
+      "id": "stats-analytics-preview",
+      "url": "https://picsum.photos/seed/stats321/800/600",
+      "description": "الرسوم البيانية التفاعلية وتحليلات الذكاء الاصطناعي لأنماط الإنفاق.",
+      "hint": "data charts"
+    },
+    {
+      "id": "goal-planner-preview",
+      "url": "https://picsum.photos/seed/goals654/800/600",
+      "description": "مخطط الأهداف الذكي الذي يرسم خارطة طريق مالية لتحقيق الأحلام.",
+      "hint": "financial goals"
+    }
+  ]
+}
