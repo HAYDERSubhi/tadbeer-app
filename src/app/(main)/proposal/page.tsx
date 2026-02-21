@@ -20,40 +20,42 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export default function ProposalPage() {
     const { toast } = useToast();
     const [isPreparing, setIsPreparing] = useState(false);
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = useCallback(() => {
+        if (typeof window === 'undefined') return;
+        
         setIsPreparing(true);
         
-        // إعطاء انطباع بالتحميل قبل فتح نافذة الطباعة
         toast({
             title: "جاري تحضير المستند...",
-            description: "سيتم فتح نافذة الطباعة الآن. اختر 'حفظ بتنسيق PDF'.",
+            description: "ستفتح نافذة الطباعة الآن. اختر 'حفظ بتنسيق PDF'.",
         });
 
+        // تقليل التأخير لضمان استجابة أسرع
         setTimeout(() => {
-            if (typeof window !== 'undefined') {
-                window.print();
-            }
+            window.print();
             setIsPreparing(false);
-        }, 1000);
-    };
+        }, 500);
+    }, [toast]);
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700 print:p-0 print:pb-0">
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-4 py-8 border-b print:border-none print:py-4">
-                <Image 
-                    src="/logo.png" 
-                    alt="Tadbeer Logo" 
-                    width={100} 
-                    height={100} 
-                    className="rounded-2xl shadow-xl border-4 border-primary/20 print:shadow-none print:border-none" 
-                />
+                <div className="relative w-24 h-24 mb-2">
+                    <Image 
+                        src="/logo.png" 
+                        alt="Tadbeer Logo" 
+                        fill
+                        className="rounded-2xl shadow-xl border-4 border-primary/20 object-contain print:shadow-none print:border-none" 
+                        priority
+                    />
+                </div>
                 <h1 className="text-4xl font-black tracking-tight text-foreground">مقترح الاستحواذ: تطبيق تدبير</h1>
                 <p className="text-xl text-muted-foreground max-w-2xl">
                     الجيل القادم من الإدارة المالية الشخصية المدعومة بالذكاء الاصطناعي للسوق العراقي.
