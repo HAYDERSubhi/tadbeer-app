@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Target, Settings, BarChart3, WalletCards } from 'lucide-react';
+import { Home, Target, Settings, BarChart3, WalletCards, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -39,6 +39,14 @@ export default function PageNavigation() {
           );
         })}
       </div>
+      {/* Hidden link for the proposal during the pitch */}
+      {pathname === '/proposal' && (
+          <div className="absolute -top-12 right-4">
+              <Link href="/proposal" className="bg-primary text-white p-2 rounded-full shadow-lg flex items-center gap-2 text-xs">
+                  <FileText className="h-4 w-4" /> عرض المقترح
+              </Link>
+          </div>
+      )}
     </nav>
   );
 }
