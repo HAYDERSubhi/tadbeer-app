@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
-    LayoutRocket, 
+    Rocket, 
     Cpu, 
     Bot, 
     ShieldCheck, 
@@ -64,7 +64,7 @@ export default function ProposalPage() {
             {/* Main Sections */}
             <section className="space-y-6">
                 <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <LayoutRocket className="text-primary h-6 w-6" /> القيمة الاستراتيجية لـ Qi Card
+                    <Rocket className="text-primary h-6 w-6" /> القيمة الاستراتيجية لـ Qi Card
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
                     <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all">
