@@ -14,16 +14,33 @@ import {
     ArrowLeft,
     CheckCircle2,
     FileText,
-    Download
+    Download,
+    Loader2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function ProposalPage() {
+    const { toast } = useToast();
+    const [isPreparing, setIsPreparing] = useState(false);
+
     const handleDownloadPDF = () => {
-        if (typeof window !== 'undefined') {
-            window.print();
-        }
+        setIsPreparing(true);
+        
+        // إعطاء انطباع بالتحميل قبل فتح نافذة الطباعة
+        toast({
+            title: "جاري تحضير المستند...",
+            description: "سيتم فتح نافذة الطباعة الآن. اختر 'حفظ بتنسيق PDF'.",
+        });
+
+        setTimeout(() => {
+            if (typeof window !== 'undefined') {
+                window.print();
+            }
+            setIsPreparing(false);
+        }, 1000);
     };
 
     return (
@@ -45,8 +62,17 @@ export default function ProposalPage() {
                     <Button asChild variant="outline">
                         <Link href="/settings"><ArrowLeft className="ml-2 h-4 w-4" /> العودة للإعدادات</Link>
                     </Button>
-                    <Button onClick={handleDownloadPDF} className="bg-primary hover:bg-primary/90">
-                        <Download className="ml-2 h-4 w-4" /> تحميل المستند (PDF)
+                    <Button 
+                        onClick={handleDownloadPDF} 
+                        disabled={isPreparing}
+                        className="bg-primary hover:bg-primary/90"
+                    >
+                        {isPreparing ? (
+                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Download className="ml-2 h-4 w-4" />
+                        )}
+                        تحميل المستند (PDF)
                     </Button>
                 </div>
             </div>

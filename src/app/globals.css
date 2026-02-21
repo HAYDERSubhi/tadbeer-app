@@ -112,7 +112,7 @@
 
 /* Print Styles */
 @media print {
-  header, nav, footer#main-navigation, .print\:hidden {
+  header, nav, footer#main-navigation, .print\:hidden, button, .toaster {
     display: none !important;
   }
   
@@ -126,6 +126,7 @@
   main {
     padding: 0 !important;
     margin: 0 !important;
+    display: block !important;
   }
 
   .print\:p-0 {
