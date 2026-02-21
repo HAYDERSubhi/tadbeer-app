@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, FileText, ExternalLink } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -71,6 +71,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -1409,13 +1410,33 @@ export default function SettingsPage() {
             icon={Info}
             title={`حول التطبيق - إصدار ${version}`}
         >
-          <div className="p-4 text-center space-y-4">
+          <div className="p-4 space-y-4">
+              <Card className="bg-primary/5 border-primary/20">
+                  <CardHeader className="py-3">
+                      <CardTitle className="text-xs flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          عرض الاستحواذ (Qi Card)
+                      </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                      <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+                          هذا المستند مخصص لعرضه على شركة Qi Card، ويحتوي على تفاصيل الرؤية التقنية، خطة التكامل، والقيمة المضافة للشركة.
+                      </p>
+                      <Button asChild variant="default" className="w-full h-9 text-xs">
+                          <Link href="/proposal">
+                              عرض مقترح الاستحواذ
+                              <ExternalLink className="mr-2 h-3 w-3" />
+                          </Link>
+                      </Button>
+                  </CardContent>
+              </Card>
+
               <FeedbackDialog 
                 isOpen={isFeedbackOpen}
                 setIsOpen={setIsFeedbackOpen}
                 isMobile={isMobile}
               />
-            <p className="text-sm text-muted-foreground">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
+            <p className="text-[10px] text-muted-foreground text-center pt-2">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
       </Accordion>
@@ -1441,5 +1462,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
