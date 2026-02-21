@@ -131,13 +131,13 @@ export default function ProposalPage() {
                 </div>
             </section>
 
-            {/* NEW SECTION: UI Showcase */}
+            {/* UI Showcase - Updated with high-quality descriptions and logical order */}
             <section className="space-y-8 pt-4">
                 <h2 className="text-2xl font-bold flex items-center gap-2 border-r-4 border-primary pr-3">
                     معرض واجهات التطبيق والميزات
                 </h2>
                 
-                <div className="space-y-12">
+                <div className="space-y-16">
                     {/* Main Dashboard */}
                     <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div className="space-y-4">
@@ -146,7 +146,7 @@ export default function ProposalPage() {
                             </div>
                             <h3 className="text-xl font-bold">لوحة التحكم الذكية</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                واجهة عصرية تركز على "سهولة القراءة". تظهر للمستخدم فوراً حالة ميزانيته، المبالغ المتبقية، والإنفاق خارج الميزانية، مع رسوم بيانية توضح التقدم الزمني خلال الشهر.
+                                {screenshots[0].description} تركز الواجهة على البساطة والوضوح، مع توفير رؤية فورية لحالة السيولة المالية والإنفاق مقابل الميزانية المحددة.
                             </p>
                         </div>
                         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl">
@@ -160,8 +160,8 @@ export default function ProposalPage() {
                         </div>
                     </div>
 
-                    {/* AI Features */}
-                    <div className="grid md:grid-cols-2 gap-8 items-center md:flex-row-reverse">
+                    {/* AI Voice */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl md:order-2">
                             <Image 
                                 src={screenshots[1].url} 
@@ -177,7 +177,7 @@ export default function ProposalPage() {
                             </div>
                             <h3 className="text-xl font-bold">محرك الصوت العراقي (AI Voice)</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                الميزة الأكثر ابتكاراً؛ حيث يمكن للمستخدم قول "سجلت 25 ألف بانزين" باللهجة الدارجة، ليقوم الذكاء الاصطناعي باستخراج المبلغ، التصنيف، والتاريخ تلقائياً دون أي إدخال يدوي.
+                                {screenshots[1].description} ميزة فريدة تسمح للمستخدم بتسجيل مصروفاته بمجرد الحديث مع التطبيق، مما يلغي حاجة الإدخال اليدوي الممل.
                             </p>
                         </div>
                     </div>
@@ -190,7 +190,7 @@ export default function ProposalPage() {
                             </div>
                             <h3 className="text-xl font-bold">ماسح الفواتير الذكي</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                باستخدام رؤية الحاسوب (Computer Vision)، يحلل التطبيق الفواتير الورقية المعقدة، ويقوم بتفكيكها إلى عناصر فردية مع أسعارها وتصنيفها، مما يجعل أتمتة المصاريف أمراً بسيطاً.
+                                {screenshots[2].description} يقوم النظام بتحليل الفواتير الورقية الطويلة بدقة 100%، واستخراج كل بند على حدة مع سعره وتصنيفه تلقائياً.
                             </p>
                         </div>
                         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl">
@@ -204,24 +204,24 @@ export default function ProposalPage() {
                         </div>
                     </div>
 
-                    {/* Goal Planner */}
-                    <div className="grid md:grid-cols-2 gap-8 items-center md:flex-row-reverse">
+                    {/* Stats */}
+                    <div className="grid md:grid-cols-2 gap-8 items-center">
                         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border-8 border-muted shadow-2xl md:order-2">
                             <Image 
-                                src={screenshots[4].url} 
-                                alt={screenshots[4].description} 
+                                src={screenshots[3].url} 
+                                alt={screenshots[3].description} 
                                 fill 
                                 className="object-cover"
-                                data-ai-hint={screenshots[4].hint}
+                                data-ai-hint={screenshots[3].hint}
                             />
                         </div>
                         <div className="space-y-4 md:order-1">
                             <div className="bg-primary/10 w-fit p-3 rounded-2xl text-primary">
-                                <Target className="h-8 w-8" />
+                                <BarChart3 className="h-8 w-8" />
                             </div>
-                            <h3 className="text-xl font-bold">المخطط المالي للأهداف</h3>
+                            <h3 className="text-xl font-bold">التحليلات المالية المتقدمة</h3>
                             <p className="text-muted-foreground leading-relaxed">
-                                يساعد المستخدمين على التخطيط للمشتريات الكبرى (سيارة، عقار). الذكاء الاصطناعي يحلل الدخل الحالي ويقترح خطة توفير واقعية مع خطوات عملية لتقليل الإنفاق في فئات محددة.
+                                {screenshots[3].description} يوفر التطبيق تقارير ذكية تساعد المستخدم على معرفة أين تذهب أمواله فعلياً، وكيف يمكنه تحسين سلوكه الشرائي.
                             </p>
                         </div>
                     </div>

@@ -3,33 +3,33 @@
   "screenshots": [
     {
       "id": "dashboard-preview",
-      "url": "https://picsum.photos/seed/dashboard123/800/600",
-      "description": "لوحة التحكم الذكية التي توفر نظرة شاملة على الميزانية والمصاريف.",
-      "hint": "financial dashboard"
+      "url": "https://picsum.photos/seed/tadbeer-dash/800/600",
+      "description": "لوحة التحكم الذكية: تعرض ملخص الميزانية، المصاريف اليومية، وحالة التقدم الزمني خلال الشهر.",
+      "hint": "app dashboard"
     },
     {
       "id": "voice-input-preview",
-      "url": "https://picsum.photos/seed/voice456/800/600",
-      "description": "واجهة التسجيل الصوتي باللهجة العراقية التي تحلل النص فورياً.",
-      "hint": "voice recognition"
+      "url": "https://picsum.photos/seed/tadbeer-voice/800/600",
+      "description": "محرك الصوت العراقي: واجهة تسجيل وتحليل الكلام باللهجة الدارجة لتحويله إلى بيانات مهيكلة.",
+      "hint": "voice interface"
     },
     {
       "id": "receipt-scanner-preview",
-      "url": "https://picsum.photos/seed/receipt789/800/600",
-      "description": "تقنية مسح الفواتير التي تستخرج العناصر والأسعار بدقة متناهية.",
-      "hint": "receipt scanning"
+      "url": "https://picsum.photos/seed/tadbeer-scan/800/600",
+      "description": "ماسح الفواتير الذكي: تقنية رؤية الحاسوب لاستخراج العناصر والأسعار من الفواتير الورقية المعقدة.",
+      "hint": "document scanner"
     },
     {
       "id": "stats-analytics-preview",
-      "url": "https://picsum.photos/seed/stats321/800/600",
-      "description": "الرسوم البيانية التفاعلية وتحليلات الذكاء الاصطناعي لأنماط الإنفاق.",
-      "hint": "data charts"
+      "url": "https://picsum.photos/seed/tadbeer-stats/800/600",
+      "description": "تحليلات الإنفاق: رسوم بيانية تفاعلية (Pie & Line Charts) توضح أنماط الاستهلاك وتوزيع الفئات.",
+      "hint": "business analytics"
     },
     {
       "id": "goal-planner-preview",
-      "url": "https://picsum.photos/seed/goals654/800/600",
-      "description": "مخطط الأهداف الذكي الذي يرسم خارطة طريق مالية لتحقيق الأحلام.",
-      "hint": "financial goals"
+      "url": "https://picsum.photos/seed/tadbeer-goals/800/600",
+      "description": "مخطط الأهداف: خارطة طريق ذكية لتحقيق الأهداف المالية الكبرى مثل شراء سيارة أو منزل.",
+      "hint": "finance goals"
     }
   ]
 }
