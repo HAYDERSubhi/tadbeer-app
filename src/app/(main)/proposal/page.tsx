@@ -131,7 +131,7 @@ export default function ProposalPage() {
                 </div>
             </section>
 
-            {/* UI Showcase - Updated with high-quality descriptions and logical order */}
+            {/* UI Showcase */}
             <section className="space-y-8 pt-4">
                 <h2 className="text-2xl font-bold flex items-center gap-2 border-r-4 border-primary pr-3">
                     معرض واجهات التطبيق والميزات
