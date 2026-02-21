@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,22 +35,23 @@ export default function ProposalPage() {
             description: "ستفتح نافذة الطباعة الآن. اختر 'حفظ بتنسيق PDF'.",
         });
 
-        // تقليل التأخير لضمان استجابة أسرع
+        // تنفيذ الطباعة بشكل مباشر لضمان استجابة المتصفح
         setTimeout(() => {
             window.print();
             setIsPreparing(false);
-        }, 500);
+        }, 300);
     }, [toast]);
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700 print:p-0 print:pb-0">
+        <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700 print-container print:m-0 print:p-0 print:max-w-none">
             {/* Header */}
             <div className="flex flex-col items-center text-center space-y-4 py-8 border-b print:border-none print:py-4">
                 <div className="relative w-24 h-24 mb-2">
                     <Image 
                         src="/logo.png" 
                         alt="Tadbeer Logo" 
-                        fill
+                        width={96}
+                        height={96}
                         className="rounded-2xl shadow-xl border-4 border-primary/20 object-contain print:shadow-none print:border-none" 
                         priority
                     />
@@ -101,7 +101,7 @@ export default function ProposalPage() {
                     <Rocket className="text-primary h-6 w-6" /> القيمة الاستراتيجية لـ Qi Card
                 </h2>
                 <div className="grid md:grid-cols-2 gap-6">
-                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none">
+                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none print:border">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <CreditCard className="h-5 w-5 text-primary" /> التكامل مع البطاقة
@@ -111,7 +111,7 @@ export default function ProposalPage() {
                             يتيح التطبيق لشركة Qi Card ربط مصاريف البطاقة الإلكترونية مع المصاريف النقدية للمستخدم، مما يجعل تطبيق Qi Card المرجع الأول والوحيد للمواطن العراقي في كل معاملاته المالية.
                         </CardContent>
                     </Card>
-                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none">
+                    <Card className="border-primary/20 bg-primary/5 hover:shadow-md transition-all print:bg-white print:shadow-none print:border">
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <BarChart3 className="h-5 w-5 text-primary" /> بيانات استهلاكية دقيقة
@@ -137,8 +137,8 @@ export default function ProposalPage() {
                         { t: "مخطط الأهداف الذكي", d: "رسم خارطة طريق لتحقيق الأهداف الكبرى بناءً على الدخل." },
                         { t: "دعم الـ PWA", d: "يعمل كتطبيق موبايل دون الحاجة للتحميل من المتجر." },
                     ].map((feature, i) => (
-                        <div key={i} className="flex items-start gap-4 bg-muted/30 p-4 rounded-xl border hover:border-primary/30 transition-colors print:bg-white">
-                            <div className="bg-primary/10 p-2 rounded-lg text-primary print:border">
+                        <div key={i} className="flex items-start gap-4 bg-muted/30 p-4 rounded-xl border hover:border-primary/30 transition-colors print:bg-white print:border">
+                            <div className="bg-primary/10 p-2 rounded-lg text-primary print:border print:bg-white">
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                             <div>
@@ -151,7 +151,7 @@ export default function ProposalPage() {
             </section>
 
             {/* Tech Footer */}
-            <footer className="pt-10 text-center border-t">
+            <footer className="pt-10 text-center border-t print:border-t-2">
                 <p className="text-muted-foreground text-sm">تم تطوير هذا المشروع ليكون جاهزاً للربط الفوري مع أنظمة Qi Card البرمجية عبر (APIs).</p>
                 <div className="flex justify-center gap-6 mt-6 opacity-40 grayscale hover:opacity-100 transition-all cursor-default print:opacity-100 print:grayscale-0">
                     <p className="text-[10px] font-mono font-bold tracking-widest">NEXT.JS 15</p>
