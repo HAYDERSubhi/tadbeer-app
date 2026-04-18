@@ -1,4 +1,3 @@
-
 // src/hooks/use-app-data.tsx
 "use client";
 
@@ -7,9 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Expense, Goal, UserSettings, Income } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { getExpenses, getGoals, getIncomes, getUserSettings } from '@/services/firestore';
-import { Loader2Icon } from 'lucide-react';
-import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
-import Image from 'next/image';
 
 interface AppDataContextType {
     expenses: Expense[];
@@ -19,7 +15,7 @@ interface AppDataContextType {
     isLoading: boolean;
     isError: boolean;
     error: Error | null;
-    queryClient: ReturnType<typeof useQueryClient>; // Expose queryClient
+    queryClient: ReturnType<typeof useQueryClient>;
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -42,7 +38,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         queryKey: ['expenses', user?.uid],
         queryFn: () => getExpenses(user!.uid),
         enabled: !!user,
-        staleTime: 1000 * 60, // 1 minute
+        staleTime: 1000 * 60,
     });
 
     const { data: goals = [], isLoading: goalsLoading, isError: goalsIsError, error: goalsError } = useQuery<Goal[], Error>({
@@ -67,44 +63,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         staleTime: 1000 * 60,
     });
 
+    // We no longer block the entire UI here. 
+    // Sub-components will use these flags to show local skeletons.
     const isLoading = expensesLoading || goalsLoading || incomesLoading || settingsLoading;
     const isError = expensesIsError || goalsIsError || incomesIsError || settingsIsError;
-    
-    // Combine errors, preferring the first one that occurred.
     const error = expensesError || goalsError || incomesError || settingsError;
-
-    if (isLoading) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <div className="flex flex-col items-center gap-4 animate-pulse">
-                    <Image 
-                        src="/logo.png" 
-                        alt="شعار تطبيق تدبير" 
-                        width={80}
-                        height={80}
-                        priority 
-                    />
-                    <h1 className="text-3xl font-bold text-primary">تدبير</h1>
-                </div>
-            </div>
-        );
-    }
-    
-    if (isError && error) {
-        // You can decide which context to show, or create a more generic one.
-        const errorContext = 
-            expensesError ? "المصاريف" : 
-            goalsError ? "الأهداف" :
-            incomesError ? "الدخل" :
-            "الإعدادات";
-        return <FirestoreErrorAlert error={error} context={errorContext} />;
-    }
 
     const value: AppDataContextType = {
         expenses,
         goals,
         incomes,
-        userSettings, 
+        userSettings: userSettings || defaultSettings, 
         isLoading,
         isError,
         error,

@@ -143,7 +143,7 @@ export default function DashboardPage() {
   }, [userSettings]);
 
 
-  // --- Reliable Voice Recording Logic (MediaRecorder API) ---
+  // --- Reliable Voice Recording Logic ---
   const handleToggleVoiceRecording = async () => {
     if (isVoiceRecording) {
       mediaRecorderRef.current?.stop();
@@ -165,7 +165,7 @@ export default function DashboardPage() {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        stream.getTracks().forEach(track => track.stop()); // Close microphone
+        stream.getTracks().forEach(track => track.stop());
         
         setIsVoiceLoading(true);
         try {
@@ -396,7 +396,6 @@ export default function DashboardPage() {
   }
 
   const hasExpenses = expenses.length > 0;
-  
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
   const CardComponent = isMobile ? Sheet : Dialog;
   
@@ -417,7 +416,9 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {budgetData.isBudgetSet ? (
+      {isAppDataLoading ? (
+        <Skeleton className="h-40 w-full rounded-lg" />
+      ) : budgetData.isBudgetSet ? (
         <BudgetSummaryCard
             isBudgetSet={budgetData.isBudgetSet}
             totalBudget={budgetData.totalBudget}
@@ -519,22 +520,28 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 pt-1">
-          {allSortedExpenses.length > 0 ? (
+          {isAppDataLoading ? (
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : allSortedExpenses.length > 0 ? (
             <ul className="divide-y divide-border">
               {allSortedExpenses.slice(0, 5).map((expense) => (
                 <ExpenseListItem key={expense.id} expense={expense} />
               ))}
             </ul>
           ) : (
-            <p className="text-center text-muted-foreground py-10">لا توجد مصاريف مسجلة بعد.</p>
+            <p className="text-center text-muted-foreground py-10 text-xs">لا توجد مصاريف مسجلة بعد.</p>
           )}
         </CardContent>
-        {allSortedExpenses.length > 5 && (
+        {!isAppDataLoading && allSortedExpenses.length > 5 && (
             <CardFooter className="p-2">
-                 <Button variant="ghost" asChild className="w-full">
+                 <Button variant="ghost" asChild className="w-full h-8 text-xs">
                      <Link href="/expenses">
                         عرض كل المصاريف
-                        <ArrowRight className="mr-2 h-4 w-4" />
+                        <ArrowRight className="mr-2 h-3 w-3" />
                      </Link>
                 </Button>
             </CardFooter>
@@ -576,7 +583,7 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-muted-foreground p-4">
+            <p className="text-center text-muted-foreground p-4 text-xs">
               {hasExpenses 
                 ? "حدد ميزانية شهرية في الإعدادات لتفعيل نصائح المدرب المالي."
                 : "لا توجد نصائح حالياً. أضف بعض المصاريف للحصول على تحليلات."

@@ -12,7 +12,24 @@ export const metadata: Metadata = {
     template: '%s | تدبير',
   },
   description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير. ابدأ الآن!',
-  manifest: '/manifest.webmanifest', // Default name from next-pwa
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/logo.png', sizes: '32x32' },
+      { url: '/logo.png', sizes: '16x16' },
+    ],
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+    other: [
+      {
+        rel: 'mask-icon',
+        url: '/logo.png',
+        color: '#14A39A',
+      },
+    ],
+  },
   openGraph: {
     title: 'تدبير | تطبيقك المالي الذكي',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي!',
@@ -41,18 +58,6 @@ export const metadata: Metadata = {
     title: 'تدبير',
     startupImage: [
         { url: '/logo.png', media: '(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)' },
-    ],
-  },
-  icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
-    other: [
-      {
-        rel: 'mask-icon',
-        url: '/icons/maskable-icon.png',
-        color: '#1AB2A7',
-      },
     ],
   },
 };
