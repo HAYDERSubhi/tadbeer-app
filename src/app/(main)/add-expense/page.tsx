@@ -108,21 +108,52 @@ export default function AddExpensePage() {
     
     const addExpenseMutation = useMutation({
         mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
-        onSuccess: (_, variables) => {
+        onMutate: async (newExpenseData) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
+
+            // Snapshot the previous value
+            const previousExpenses = queryClient.getQueryData<Expense[]>(['expenses', user?.uid]);
+
+            // Optimistically update to the cache
+            if (previousExpenses) {
+                queryClient.setQueryData<Expense[]>(['expenses', user?.uid], [
+                    {
+                        ...newExpenseData,
+                        id: `temp-${Date.now()}`,
+                        uid: user!.uid,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    },
+                    ...previousExpenses,
+                ]);
+            }
+
+            // Return a context object with the snapshotted value
+            return { previousExpenses };
+        },
+        onError: (err, newExpense, context) => {
+            // If the mutation fails, use the context returned from onMutate to roll back
+            if (context?.previousExpenses) {
+                queryClient.setQueryData(['expenses', user?.uid], context.previousExpenses);
+            }
+            toast({
+                title: "خطأ في الحفظ",
+                description: "عذراً، تعذر حفظ المصروف. يرجى التحقق من الاتصال.",
+                variant: "destructive",
+            });
+        },
+        onSettled: () => {
+            // Always refetch after error or success to keep server sync
             queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+        },
+        onSuccess: (_, variables) => {
             toast({
               title: "تمت الإضافة بنجاح!",
               description: `تم إضافة مصروف "${variables.title}".`,
             });
             form.reset();
             router.push('/');
-        },
-        onError: () => {
-            toast({
-              title: "خطأ في الحفظ",
-              description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
-              variant: "destructive",
-            });
         }
     });
 

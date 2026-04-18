@@ -118,21 +118,55 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
 
   const addExpenseMutation = useMutation({
     mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
-    onSuccess: (_, variables) => {
+    onMutate: async (newExpenseData) => {
+        // Cancel any outgoing refetches
+        await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
+
+        // Snapshot the previous value
+        const previousExpenses = queryClient.getQueryData<Expense[]>(['expenses', user?.uid]);
+
+        // Optimistically update to the cache
+        if (previousExpenses) {
+            queryClient.setQueryData<Expense[]>(['expenses', user?.uid], [
+                {
+                    ...newExpenseData,
+                    id: `temp-${Date.now()}`,
+                    uid: user!.uid,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                },
+                ...previousExpenses,
+            ]);
+        }
+
+        // Close the dialog immediately for an "instant" feel
+        setOpen(false);
+
+        return { previousExpenses };
+    },
+    onError: (err, newExpense, context) => {
+        // Roll back if error
+        if (context?.previousExpenses) {
+            queryClient.setQueryData(['expenses', user?.uid], context.previousExpenses);
+        }
+        // Re-open if failed so user can try again? Actually, better to just show toast
+        // and let them re-trigger from dashboard if it was voice.
+        toast({
+            title: "خطأ في الحفظ",
+            description: "عذراً، تعذر حفظ المصروف. يرجى التحقق من الاتصال.",
+            variant: "destructive",
+        });
+    },
+    onSettled: () => {
+        // Always refetch to sync
         queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+    },
+    onSuccess: (_, variables) => {
         toast({
           title: "تمت الإضافة بنجاح!",
           description: `تم إضافة مصروف "${variables.title}" بمبلغ ${variables.amount.toLocaleString()} د.ع.`,
         });
         form.reset();
-        setOpen(false);
-    },
-    onError: () => {
-        toast({
-          title: "خطأ في الحفظ",
-          description: "لم يتم حفظ المصروف. الرجاء المحاولة مرة أخرى.",
-          variant: "destructive",
-        });
     }
   });
 
