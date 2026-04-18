@@ -17,6 +17,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
+import { uploadReceiptImage } from '@/services/storage';
 import Cropper from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import type { Point, Area } from 'react-easy-crop';
@@ -33,6 +34,20 @@ import { useCategories } from '@/hooks/use-categories';
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
 
 type ViewState = 'initial' | 'camera' | 'cropping';
+
+/**
+ * Converts a data URI to a Blob object.
+ */
+const dataURItoBlob = (dataURI: string) => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+};
 
 export default function DetailedReceiptPage() {
     const { user } = useAuth();
@@ -177,18 +192,31 @@ export default function DetailedReceiptPage() {
     };
 
     const handleAnalyze = async () => {
+        if (!user) return;
         if (images.length === 0) {
             toast({ title: "لا توجد صور", description: "الرجاء إضافة صورة واحدة على الأقل.", variant: "destructive" });
             return;
         }
+
         setIsLoading(true);
         setError(null);
         setAnalyzedItems([]);
+
         try {
+            // Step 1: Upload images to Firebase Storage first to avoid Base64 payload bloat
+            const uploadPromises = images.map(async (img) => {
+                const blob = dataURItoBlob(img.src);
+                return uploadReceiptImage(user.uid, blob);
+            });
+            
+            const imageUrls = await Promise.all(uploadPromises);
+
+            // Step 2: Pass only the public URLs to the AI flow
             const result = await analyzeDetailedReceipt({
-                receiptImages: images.map(img => img.src),
+                receiptImages: imageUrls,
                 categories: categoryMapForAI,
             });
+
             const transactionDate = result.transactionDate ? format(new Date(result.transactionDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
             setStoreInfo({ name: result.storeName || '', date: transactionDate });
             setAnalyzedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID() })));
@@ -366,7 +394,15 @@ export default function DetailedReceiptPage() {
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4 mt-2">
                                 {images.map((img) => (
                                     <div key={img.id} className="relative group aspect-[3/4]">
-                                        <Image src={img.src} alt="معاينة الفاتورة" layout="fill" objectFit="cover" className="rounded-md border" data-ai-hint="receipt paper" />
+                                        <div className="relative w-full h-full">
+                                            <Image 
+                                                src={img.src} 
+                                                alt="معاينة الفاتورة" 
+                                                fill 
+                                                className="rounded-md border object-cover" 
+                                                data-ai-hint="receipt paper" 
+                                            />
+                                        </div>
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end items-center p-1 gap-1">
                                              <Button
                                                 variant="secondary"
@@ -402,7 +438,7 @@ export default function DetailedReceiptPage() {
                  <Card className="text-center py-12">
                     <CardContent className="flex flex-col items-center gap-4">
                         <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                        <p className="text-muted-foreground">جاري تحليل الفاتورة... قد يستغرق هذا بعض الوقت.</p>
+                        <p className="text-muted-foreground">جاري رفع الصور وتحليل الفاتورة... قد يستغرق هذا بعض الوقت.</p>
                     </CardContent>
                 </Card>
             )}

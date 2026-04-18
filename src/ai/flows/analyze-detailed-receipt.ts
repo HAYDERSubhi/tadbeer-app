@@ -1,3 +1,4 @@
+
 // src/ai/flows/analyze-detailed-receipt.ts
 'use server';
 /**
@@ -17,10 +18,10 @@ const AnalyzeDetailedReceiptInputSchema = z.object({
       z
         .string()
         .describe(
-          "A photo of a receipt, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+          "A photo of a receipt, as a public URL or a data URI that includes a MIME type and Base64 encoding."
         )
     )
-    .describe('An array of receipt images to be analyzed as a single, continuous document.'),
+    .describe('An array of receipt images (URLs or data URIs) to be analyzed as a single, continuous document.'),
   categories: z
     .record(z.string(), z.string())
     .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),

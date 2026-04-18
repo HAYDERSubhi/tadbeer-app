@@ -4,9 +4,9 @@ import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics, type Analytics } from "firebase/analytics";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
-// It's recommended to store these values in environment variables.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`,
@@ -19,10 +19,10 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 let auth: Auth | null = null;
+let storage: FirebaseStorage | null = null;
 let analytics: Analytics | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
 
-// Only initialize Firebase if all required config values are provided
 if (
   firebaseConfig.apiKey &&
   firebaseConfig.authDomain &&
@@ -33,9 +33,9 @@ if (
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
+    storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();
     
-    // Initialize Analytics only in the browser
     if (typeof window !== "undefined") {
         analytics = getAnalytics(app);
     }
@@ -47,4 +47,4 @@ if (
     console.warn("Firebase configuration is incomplete. Firebase services will be disabled.");
 }
 
-export { db, auth, googleProvider, analytics };
+export { db, auth, googleProvider, analytics, storage };
