@@ -29,11 +29,14 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/use-categories';
+import { Progress } from '@/components/ui/progress';
 
 
 type EditableItem = AnalyzeDetailedReceiptOutput['items'][0] & { id: string };
 
 type ViewState = 'initial' | 'camera' | 'cropping';
+
+type ProcessingStep = 'uploading' | 'analyzing' | 'extracting' | null;
 
 /**
  * Converts a data URI to a Blob object.
@@ -66,6 +69,7 @@ export default function DetailedReceiptPage() {
     const [analyzedItems, setAnalyzedItems] = useState<EditableItem[]>([]);
     const [storeInfo, setStoreInfo] = useState<{ name: string; date: string | null }>({ name: '', date: null });
     const [isLoading, setIsLoading] = useState(false);
+    const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
     const [error, setError] = useState<string | null>(null);
     
     // Refs
@@ -199,11 +203,12 @@ export default function DetailedReceiptPage() {
         }
 
         setIsLoading(true);
+        setProcessingStep('uploading');
         setError(null);
         setAnalyzedItems([]);
 
         try {
-            // Step 1: Upload images to Firebase Storage first to avoid Base64 payload bloat
+            // Step 1: Upload images
             const uploadPromises = images.map(async (img) => {
                 const blob = dataURItoBlob(img.src);
                 return uploadReceiptImage(user.uid, blob);
@@ -211,18 +216,25 @@ export default function DetailedReceiptPage() {
             
             const imageUrls = await Promise.all(uploadPromises);
 
-            // Step 2: Pass only the public URLs to the AI flow
+            // Step 2: AI Analysis
+            setProcessingStep('analyzing');
             const result = await analyzeDetailedReceipt({
                 receiptImages: imageUrls,
                 categories: categoryMapForAI,
             });
 
+            // Step 3: Finalizing
+            setProcessingStep('extracting');
             const transactionDate = result.transactionDate ? format(new Date(result.transactionDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+            
             setStoreInfo({ name: result.storeName || '', date: transactionDate });
             setAnalyzedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID() })));
+            
+            setProcessingStep(null);
         } catch (e: any) {
             console.error("Error during detailed analysis:", e);
             setError("حدث خطأ أثناء تحليل الفاتورة. الرجاء التأكد من أن الصور واضحة وحاول مرة أخرى.");
+            setProcessingStep(null);
         } finally {
             setIsLoading(false);
         }
@@ -360,6 +372,9 @@ export default function DetailedReceiptPage() {
         );
     }
 
+    const progressValue = processingStep === 'uploading' ? 33 : processingStep === 'analyzing' ? 66 : processingStep === 'extracting' ? 95 : 0;
+    const progressLabel = processingStep === 'uploading' ? 'جاري رفع الصورة...' : processingStep === 'analyzing' ? 'جاري تحليل الفاتورة بالذكاء الاصطناعي...' : processingStep === 'extracting' ? 'جاري استخراج البيانات المالية...' : '';
+
     return (
         <div className="space-y-6 pb-24">
             <Card>
@@ -435,10 +450,28 @@ export default function DetailedReceiptPage() {
             </Card>
 
             {isLoading && (
-                 <Card className="text-center py-12">
-                    <CardContent className="flex flex-col items-center gap-4">
-                        <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                        <p className="text-muted-foreground">جاري رفع الصور وتحليل الفاتورة... قد يستغرق هذا بعض الوقت.</p>
+                 <Card className="text-center py-10 animate-in fade-in zoom-in-95">
+                    <CardContent className="flex flex-col items-center gap-6">
+                        <div className="relative flex items-center justify-center">
+                            <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                            <FileScan className="absolute h-8 w-8 text-primary" />
+                        </div>
+                        
+                        <div className="w-full max-w-xs space-y-3">
+                            <div className="flex justify-between text-xs font-medium">
+                                <span className="text-primary font-bold">
+                                    {processingStep === 'uploading' && "المرحلة 1 من 3"}
+                                    {processingStep === 'analyzing' && "المرحلة 2 من 3"}
+                                    {processingStep === 'extracting' && "المرحلة 3 من 3"}
+                                </span>
+                                <span className="text-muted-foreground">{progressValue}%</span>
+                            </div>
+                            <Progress value={progressValue} className="h-2" />
+                            <p className="text-sm font-bold text-foreground">
+                                {progressLabel}
+                            </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground">يرجى الانتظار، هذه العملية قد تستغرق بضع ثوانٍ...</p>
                     </CardContent>
                 </Card>
             )}
