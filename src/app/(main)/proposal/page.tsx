@@ -12,7 +12,6 @@ import {
     Zap, 
     CreditCard,
     ArrowLeft,
-    CheckCircle2,
     Presentation,
     Loader2,
     LayoutDashboard,
@@ -25,7 +24,6 @@ import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useCallback } from "react";
 import placeholderImages from "@/app/lib/placeholder-images.json";
-import pptxgen from "pptxgenjs";
 
 export default function ProposalPage() {
     const { toast } = useToast();
@@ -39,6 +37,8 @@ export default function ProposalPage() {
         });
 
         try {
+            // Dynamic import for pptxgenjs
+            const pptxgen = (await import("pptxgenjs")).default;
             const pptx = new pptxgen();
             pptx.layout = 'LAYOUT_WIDE';
             

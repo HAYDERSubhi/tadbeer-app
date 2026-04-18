@@ -46,7 +46,6 @@ import {
 } from '@/components/ui/sheet';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
-import * as XLSX from 'xlsx';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -783,12 +782,15 @@ export default function SettingsPage() {
     }
   });
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!expenses || expenses.length === 0) {
       toast({ title: "لا توجد بيانات", description: "ليس لديك أي مصاريف مسجلة لتصديرها.", variant: "destructive" });
       return;
     }
     
+    // Dynamic import for XLSX
+    const XLSX = await import('xlsx');
+
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
@@ -808,11 +810,15 @@ export default function SettingsPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsFileProcessing(true);
+    
+    // Dynamic import for XLSX
+    const XLSX = await import('xlsx');
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -1342,7 +1348,7 @@ export default function SettingsPage() {
                                 <div className="space-y-2"><Label htmlFor="rp-title" className="text-xs">اسم الدفعة</Label><Input id="rp-title" className="text-xs h-9" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
                                 <div className="space-y-2"><Label htmlFor="rp-amount" className="text-xs">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" className="text-xs h-9" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2"><Label htmlFor="rp-frequency" className="text-xs">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency" className="text-xs h-9"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
+                                    <div className="space-y-2"><Label htmlFor="rp-frequency" className="text-xs">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
                                     <div className="space-y-2"><Label className="text-xs">تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={ar} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
                                 </div>
                                 <div className="space-y-2"><Label htmlFor="rp-category" className="text-xs">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category" className="text-xs h-9"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
