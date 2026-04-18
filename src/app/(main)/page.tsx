@@ -18,8 +18,7 @@ import Link from 'next/link';
 import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
-import { recordExpenseAction } from '@/app/actions';
-import type { RecordExpenseWithTextInput, RecordExpenseWithTextOutput } from '@/ai/flows/record-expense-text';
+import { recordExpenseWithVoiceAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -67,7 +66,6 @@ const tourSteps = [
   }
 ];
 
-// Main Dashboard Component
 export default function DashboardPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -84,10 +82,11 @@ export default function DashboardPage() {
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
   
-  const recognitionRef = useRef<any | null>(null);
+  // --- Universally Supported Voice Recording State ---
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const categoryMapForAI = useMemo(() => {
     return categories.reduce((acc, cat) => {
@@ -144,91 +143,71 @@ export default function DashboardPage() {
   }, [userSettings]);
 
 
-  // --- Voice Recording Logic ---
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'ar-IQ';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        handleVoiceTranscript(transcript);
-      };
-
-      recognition.onerror = (event) => {
-        if (event.error !== 'aborted') {
-          console.error('Speech recognition error', event.error);
-          setVoiceError(`خطأ في التعرف على الصوت: \${event.error}`);
-        }
-        setIsVoiceRecording(false);
-        setIsVoiceLoading(false);
-      };
-      
-      recognition.onend = () => {
-        setIsVoiceRecording(false);
-        if(!isVoiceLoading) {
-            setIsVoiceLoading(false); 
-        }
-      };
-
-      recognitionRef.current = recognition;
-    } else {
-      setVoiceError("متصفحك لا يدعم ميزة التعرف على الصوت.");
-    }
-  }, [isVoiceLoading]);
-
-  const handleToggleVoiceRecording = () => {
-    if (!recognitionRef.current) {
-        toast({ title: "الميزة غير مدعومة", description: voiceError, variant: "destructive" });
-        return;
-    }
+  // --- Reliable Voice Recording Logic (MediaRecorder API) ---
+  const handleToggleVoiceRecording = async () => {
     if (isVoiceRecording) {
-      recognitionRef.current.stop(); 
-    } else {
-      setVoiceError(null);
-      setIsVoiceRecording(true);
-      setIsVoiceLoading(false); 
-      recognitionRef.current.start();
+      mediaRecorderRef.current?.stop();
+      setIsVoiceRecording(false);
+      return;
     }
-  };
-  
-  const handleVoiceTranscript = async (transcript: string) => {
-    setIsVoiceLoading(true);
-    if (!transcript.trim()) {
-        toast({ title: "لم يتم تسجيل أي صوت", variant: "destructive" });
-        setIsVoiceLoading(false);
-        return;
-    }
-    
-    try {
-        const input: RecordExpenseWithTextInput = {
-            expenseText: transcript,
-            categories: categoryMapForAI
-        };
-        const result: RecordExpenseWithTextOutput = await recordExpenseAction(input);
-        
-        setVoiceExpenseData({
-            title: result.description, 
-            amount: result.amount,
-            category: result.category,
-            date: result.date // Pass date string directly
-        });
-        setIsVoiceReviewOpen(true);
 
-    } catch (e: any) {
-        console.error("Error processing voice transcript:", e);
-        toast({
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        stream.getTracks().forEach(track => track.stop()); // Close microphone
+        
+        setIsVoiceLoading(true);
+        try {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            
+            const result = await recordExpenseWithVoiceAction({
+              voiceRecordingDataUri: base64Audio,
+              categories: categoryMapForAI
+            });
+
+            setVoiceExpenseData({
+              title: result.description,
+              amount: result.amount,
+              category: result.category,
+              date: result.date
+            });
+            setIsVoiceReviewOpen(true);
+            setIsVoiceLoading(false);
+          };
+        } catch (e) {
+          console.error("Error processing voice recording:", e);
+          toast({
             title: "خطأ في تحليل الصوت",
-            description: "لم نتمكن من فهم طلبك. حاول التحدث بوضوح أكثر.",
+            description: "لم نتمكن من تحليل تسجيلك. حاول مرة أخرى.",
             variant: "destructive",
-        });
-    } finally {
-        setIsVoiceLoading(false);
-        setIsVoiceRecording(false);
+          });
+          setIsVoiceLoading(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsVoiceRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      toast({
+        title: "خطأ في الميكروفون",
+        description: "يرجى منح الإذن للوصول إلى الميكروفون لاستخدام هذه الميزة.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -249,7 +228,6 @@ export default function DashboardPage() {
   }, [expenses]);
   
   const financialCoachInput = useMemo(() => {
-    // Crucially, wait for userSettings to be loaded before creating the input
     if (isAppDataLoading || !userSettings) return null;
 
     const userBudget = userSettings.budget;
@@ -461,10 +439,8 @@ export default function DashboardPage() {
         </Card>
       )}
       
-      {/* --- Combined Budget and Input Card --- */}
       <Card id="expense-input-card" className="overflow-hidden">
         <CardContent className="py-2 px-4 space-y-3">
-          {/* --- Expense Input Methods --- */}
           <div className="grid grid-cols-4 gap-2 text-center">
             <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
                 <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
@@ -519,7 +495,7 @@ export default function DashboardPage() {
                   <SheetHeader>
                     <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                     <SheetDescription>
-                      هذه الميزة قيد التطوير. حاليًا يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                      هذه الميزة قيد التطوير. حالياً يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
                     </SheetDescription>
                   </SheetHeader>
                   <div className="p-4 sm:p-6">
@@ -533,7 +509,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Expenses List */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
@@ -566,7 +541,6 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      {/* Smart Insights Card */}
       <Card id="smart-insights-card">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">
@@ -605,7 +579,7 @@ export default function DashboardPage() {
             <p className="text-center text-muted-foreground p-4">
               {hasExpenses 
                 ? "حدد ميزانية شهرية في الإعدادات لتفعيل نصائح المدرب المالي."
-                : "لا توجد نصائح حاليًا. أضف بعض المصاريف للحصول على تحليلات."
+                : "لا توجد نصائح حالياً. أضف بعض المصاريف للحصول على تحليلات."
               }
             </p>
           )}

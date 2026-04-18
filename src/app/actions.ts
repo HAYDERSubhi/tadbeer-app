@@ -1,4 +1,3 @@
-
 // src/app/actions.ts
 'use server';
 
@@ -17,10 +16,14 @@ import {
     type GetStatsSummaryInput,
     type GetStatsSummaryOutput,
 } from '@/ai/flows/get-stats-summary';
+import {
+  recordExpenseWithVoice,
+  type RecordExpenseWithVoiceInput,
+  type RecordExpenseWithVoiceOutput,
+} from '@/ai/flows/record-expense-voice';
 
 /**
  * A Server Action to securely call the recordExpenseWithText AI flow from the client.
- * This acts as a safe bridge between the client component and the server-side AI logic.
  */
 export async function recordExpenseAction(
   input: RecordExpenseWithTextInput
@@ -30,11 +33,28 @@ export async function recordExpenseAction(
     return result;
   } catch (error) {
     console.error('Error in recordExpenseAction:', error);
-    // Re-throw the error to be caught by the client's try-catch block
     if (error instanceof Error) {
       throw new Error(`Failed to process expense: ${error.message}`);
     }
     throw new Error('An unknown error occurred while processing the expense.');
+  }
+}
+
+/**
+ * A Server Action to call the voice-to-expense AI flow.
+ */
+export async function recordExpenseWithVoiceAction(
+  input: RecordExpenseWithVoiceInput
+): Promise<RecordExpenseWithVoiceOutput> {
+  try {
+    const result = await recordExpenseWithVoice(input);
+    return result;
+  } catch (error) {
+    console.error('Error in recordExpenseWithVoiceAction:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to process voice expense: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while processing the voice command.');
   }
 }
 
@@ -58,13 +78,11 @@ export async function analyzeSpendingPatternsAction(
 
 /**
  * A Server Action to securely call the getStatsSummary flow from the client.
- * This performs data aggregation on the server to improve performance.
  */
 export async function getStatsSummaryAction(
   input: GetStatsSummaryInput
 ): Promise<GetStatsSummaryOutput> {
     try {
-        // We now call the async function directly.
         const result = await getStatsSummary(input);
         return result;
     } catch (error) {
