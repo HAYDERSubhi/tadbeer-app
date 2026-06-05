@@ -416,6 +416,33 @@ export default function DashboardPage() {
         </Alert>
       )}
 
+      {/* Budget Alert */}
+      {!isAppDataLoading && budgetData.isBudgetSet && budgetData.spentPercentage >= 80 && (
+        <Alert
+          variant={budgetData.spentPercentage >= 100 ? "destructive" : "default"}
+          className={cn(
+            "animate-in fade-in border-2",
+            budgetData.spentPercentage >= 100
+              ? "border-destructive"
+              : "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
+          )}
+        >
+          <AlertTitle className="flex items-center gap-2 text-sm font-bold">
+            {budgetData.spentPercentage >= 100 ? (
+              <><DollarSign className="h-4 w-4" /> تجاوزت الميزانية الشهرية!</>
+            ) : (
+              <><DollarSign className="h-4 w-4" /> تحذير: اقتربت من حد الميزانية</>
+            )}
+          </AlertTitle>
+          <AlertDescription className="text-xs mt-1">
+            {budgetData.spentPercentage >= 100
+              ? `أنفقت ${budgetData.totalSpent.toLocaleString()} د.ع من أصل ${budgetData.totalBudget.toLocaleString()} د.ع — تجاوزت الميزانية بـ ${Math.abs(budgetData.remaining).toLocaleString()} د.ع.`
+              : `أنفقت ${budgetData.spentPercentage.toFixed(0)}% من ميزانيتك — تبقى ${budgetData.remaining.toLocaleString()} د.ع فقط.`
+            }
+          </AlertDescription>
+        </Alert>
+      )}
+
       {isAppDataLoading ? (
         <Skeleton className="h-40 w-full rounded-lg" />
       ) : budgetData.isBudgetSet ? (
