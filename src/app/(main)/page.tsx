@@ -32,6 +32,7 @@ import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
+import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 
 
 const tourSteps = [
@@ -488,6 +489,8 @@ export default function DashboardPage() {
         </Card>
       )}
       
+      <IncomeVsExpensesCard />
+
       <Card id="expense-input-card" className="overflow-hidden">
         <CardContent className="py-2 px-4 space-y-3">
           <div className="grid grid-cols-4 gap-2 text-center">
