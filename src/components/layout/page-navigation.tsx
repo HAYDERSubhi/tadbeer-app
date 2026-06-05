@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Home, Target, Settings, BarChart3, WalletCards, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// RTL order: right to left = الرئيسية | إحصائيات | + | مصاريف | إعدادات
 const navItems = [
-  { href: '/', label: 'الرئيسية', icon: Home },
-  { href: '/stats', label: 'إحصائيات', icon: BarChart3 },
-  null, // placeholder for center FAB
-  { href: '/expenses', label: 'مصاريف', icon: WalletCards },
   { href: '/settings', label: 'إعدادات', icon: Settings },
+  { href: '/expenses', label: 'مصاريف', icon: WalletCards },
+  null, // center FAB
+  { href: '/stats', label: 'إحصائيات', icon: BarChart3 },
+  { href: '/', label: 'الرئيسية', icon: Home },
 ];
 
 export default function PageNavigation() {

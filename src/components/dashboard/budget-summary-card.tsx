@@ -27,8 +27,8 @@ const StatItem = ({ label, value, isVisible, className, formatFn }: {
 }) => (
     <div className="flex flex-col items-center">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("text-lg font-bold tracking-tighter", className)}>
-            {isVisible ? formatFn(value) : "••••••"}
+        <p className={cn("text-base font-bold tracking-tighter whitespace-nowrap", className)}>
+            {isVisible ? formatFn(value) : "••••"}
         </p>
     </div>
 );
