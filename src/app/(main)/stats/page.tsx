@@ -231,8 +231,8 @@ export default function StatisticsPage() {
             </CardContent>
         </Card>
       
-      {/* Monthly Comparison — shows only when viewing monthly tab */}
-      {view === 'month' && <MonthlyComparisonCard />}
+      {/* Monthly Comparison — always visible */}
+      <MonthlyComparisonCard />
 
       {isStatsLoading ? (
         <div className="space-y-4">

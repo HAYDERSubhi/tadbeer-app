@@ -59,7 +59,7 @@ export function MonthlyComparisonCard() {
   }, [expenses, categoryMap]);
 
   if (isLoading) return null;
-  if (current === 0 && previous === 0) return null;
+  if (expenses.length === 0) return null;
 
   const isUp = diff > 0;
   const isDown = diff < 0;

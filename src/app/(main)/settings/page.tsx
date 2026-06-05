@@ -1444,43 +1444,38 @@ export default function SettingsPage() {
             icon={DatabaseZap}
             title="إدارة البيانات"
         >
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button className="w-full text-xs h-9" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير البيانات (Excel)</Button>
-                <Button className="w-full text-xs h-9" variant="outline" onClick={handleImportClick} disabled={isFileProcessing}>
-                  {isFileProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                  استيراد البيانات (Excel)
-                </Button>
-                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
+             <div>
+               <h4 className="font-medium text-sm mb-1">تصدير / استيراد مصاريف</h4>
+               <p className="text-xs text-muted-foreground mb-2">تصدير المصاريف فقط بصيغة Excel أو استيرادها من ملف.</p>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 <Button className="w-full text-xs h-9" variant="outline" onClick={handleExport} disabled={!expenses || expenses.length === 0}>تصدير (Excel)</Button>
+                 <Button className="w-full text-xs h-9" variant="outline" onClick={handleImportClick} disabled={isFileProcessing}>
+                   {isFileProcessing && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                   استيراد (Excel)
+                 </Button>
+               </div>
+               <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
 
              <div className="my-1 h-px w-full bg-border/50" />
 
-             {/* Backup & Restore */}
              <div>
-               <h4 className="font-medium text-sm mb-1">نسخة احتياطية كاملة</h4>
-               <p className="text-xs text-muted-foreground mb-3">صدّر جميع بياناتك (مصاريف، أهداف، دخل، إعدادات) كملف JSON واستعدها لاحقاً.</p>
+               <h4 className="font-medium text-sm mb-1">نسخة احتياطية شاملة</h4>
+               <p className="text-xs text-muted-foreground mb-2">تصدير جميع البيانات (مصاريف + أهداف + دخل + إعدادات) كملف JSON.</p>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                 <Button
-                   className="w-full text-xs h-9"
-                   variant="outline"
-                   onClick={handleBackupExport}
-                   disabled={isBackupLoading}
-                 >
+                 <Button className="w-full text-xs h-9" variant="outline" onClick={handleBackupExport} disabled={isBackupLoading}>
                    {isBackupLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
-                   تنزيل نسخة احتياطية
+                   تنزيل احتياطي (JSON)
                  </Button>
-                 <Button
-                   className="w-full text-xs h-9"
-                   variant="outline"
-                   onClick={() => backupInputRef.current?.click()}
-                   disabled={isRestoreLoading}
-                 >
+                 <Button className="w-full text-xs h-9" variant="outline" onClick={() => backupInputRef.current?.click()} disabled={isRestoreLoading}>
                    {isRestoreLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <DatabaseZap className="ml-2 h-4 w-4" />}
-                   استعادة من نسخة احتياطية
+                   استعادة (JSON)
                  </Button>
                  <Input type="file" className="hidden" ref={backupInputRef} onChange={handleBackupRestore} accept=".json" />
                </div>
              </div>
+
+             <div className="my-1 h-px w-full bg-border/50" />
 
              <div className="my-1 h-px w-full bg-border/50" />
 
