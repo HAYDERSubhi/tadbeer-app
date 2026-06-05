@@ -22,7 +22,7 @@ import { recordExpenseWithVoiceAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
 import { useAppData } from '@/hooks/use-app-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -75,8 +75,13 @@ export default function DashboardPage() {
 
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
 
-  const [insights, setInsights] = useState<FinancialCoachOutput['insights'] | null>(null);
-  const [isInsightsLoading, setIsInsightsLoading] = useState(true);
+  // Stable cache key — only changes when actual expense data or budget changes
+  const insightsCacheKey = useMemo(() => {
+    if (!financialCoachInput) return null;
+    const expensesHash = monthlyExpenses.map(e => `${e.id}:${e.amount}`).join('|');
+    const budgetHash = userSettings?.budget?.totalBudget ?? 0;
+    return `coach-${expensesHash}-${budgetHash}`;
+  }, [monthlyExpenses, userSettings?.budget?.totalBudget, financialCoachInput]);
   
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
@@ -265,32 +270,21 @@ export default function DashboardPage() {
     return input;
   }, [monthlyExpenses, userSettings, categoryMap, isAppDataLoading]);
 
-  useEffect(() => {
-    if (isAppDataLoading) {
-      setIsInsightsLoading(true);
-      return;
-    }
+  // Use React Query for AI insights — cached for 10 minutes, won't re-fetch unless data changes
+  const { data: insightsData, isLoading: isInsightsLoading } = useQuery({
+    queryKey: ['financial-coach', insightsCacheKey],
+    queryFn: async () => {
+      if (!financialCoachInput) return { insights: [] };
+      const result = await financialCoach(financialCoachInput);
+      return result;
+    },
+    enabled: !!user && !!financialCoachInput && !isAppDataLoading,
+    staleTime: 1000 * 60 * 10,   // 10 minutes — don't re-fetch if data unchanged
+    gcTime: 1000 * 60 * 30,      // Keep in cache 30 minutes
+    retry: 1,
+  });
 
-    if (!user || !financialCoachInput) {
-      setInsights([]);
-      setIsInsightsLoading(false);
-      return;
-    }
-
-    const getInsights = async () => {
-      setIsInsightsLoading(true);
-      try {
-        const result = await financialCoach(financialCoachInput);
-        setInsights(result.insights);
-      } catch (e) {
-        console.error("Failed to get financial insights", e);
-        setInsights(null);
-      } finally {
-        setIsInsightsLoading(false);
-      }
-    };
-    getInsights();
-  }, [user, financialCoachInput, isAppDataLoading]);
+  const insights = insightsData?.insights ?? null;
   
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
