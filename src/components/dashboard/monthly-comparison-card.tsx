@@ -6,6 +6,7 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
+import { useCurrency } from '@/hooks/use-currency';
 import {
   startOfMonth, endOfMonth, subMonths,
   isWithinInterval, parseISO, format
@@ -15,6 +16,7 @@ import { ar } from 'date-fns/locale';
 export function MonthlyComparisonCard() {
   const { expenses, isLoading } = useAppData();
   const { categoryMap } = useCategories();
+  const { format: formatCurrency } = useCurrency();
 
   const { current, previous, diff, pct, topCategories } = useMemo(() => {
     const now = new Date();
@@ -86,11 +88,11 @@ export function MonthlyComparisonCard() {
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
             <p className="text-[10px] text-muted-foreground mb-1">{currentMonthName} (الحالي)</p>
-            <p className="font-bold text-sm text-primary">{current.toLocaleString()} د.ع</p>
+            <p className="font-bold text-sm text-primary">{formatCurrency(current)}</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/50 border">
             <p className="text-[10px] text-muted-foreground mb-1">{prevMonthName} (الماضي)</p>
-            <p className="font-bold text-sm">{previous.toLocaleString()} د.ع</p>
+            <p className="font-bold text-sm">{formatCurrency(previous)}</p>
           </div>
         </div>
 
@@ -102,8 +104,8 @@ export function MonthlyComparisonCard() {
           isEqual && "bg-muted text-muted-foreground"
         )}>
           <span>
-            {isUp && `أنفقت أكثر بـ ${Math.abs(diff).toLocaleString()} د.ع`}
-            {isDown && `وفّرت ${Math.abs(diff).toLocaleString()} د.ع مقارنة بالشهر الماضي 🎉`}
+            {isUp && `أنفقت أكثر بـ ${formatCurrency(Math.abs(diff))}`}
+            {isDown && `وفّرت ${formatCurrency(Math.abs(diff))} مقارنة بالشهر الماضي 🎉`}
             {isEqual && 'نفس الإنفاق كالشهر الماضي'}
           </span>
           {pct !== null && (
@@ -123,7 +125,7 @@ export function MonthlyComparisonCard() {
                   <div className="w-full">
                     <div className="flex justify-between text-xs mb-0.5">
                       <span className="font-medium">{cat.name}</span>
-                      <span className="text-muted-foreground">{cat.amount.toLocaleString()} د.ع</span>
+                      <span className="text-muted-foreground">{cat.amount.toLocaleString()}</span>
                     </div>
                     <div className="w-full bg-secondary rounded-full h-1.5">
                       <div

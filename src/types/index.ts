@@ -78,6 +78,8 @@ export type NotificationSettings = {
   dailyReminderEnabled?: boolean;
 }
 
+export type CurrencyCode = 'IQD' | 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED' | 'KWD' | 'EGP' | 'TRY';
+
 export type UserSettings = {
   budget: UserBudgetSettings;
   categoryBudgets: Record<string, number>;
@@ -87,4 +89,5 @@ export type UserSettings = {
   appTone?: AppTone;
   categories?: Category[];
   notifications?: NotificationSettings;
+  currency?: CurrencyCode;
 };

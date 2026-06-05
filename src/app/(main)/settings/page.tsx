@@ -392,6 +392,7 @@ export default function SettingsPage() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [appTone, setAppTone] = useState<AppTone>('formal');
   const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
+  const [currency, setCurrency] = useState<import('@/types').CurrencyCode>('IQD');
   
   // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
@@ -451,6 +452,7 @@ export default function SettingsPage() {
       setZeroSpendDaysTargetInput(userSettings.budget?.zeroSpendDaysTarget?.toString() || '4');
       setAppTone(userSettings.appTone || 'formal');
       setDailyReminderEnabled(userSettings.notifications?.dailyReminderEnabled ?? false);
+      setCurrency(userSettings.currency || 'IQD');
       
       const stringBudgets = Object.entries(userSettings.categoryBudgets || {}).reduce((acc, [key, value]) => {
           acc[key] = formatNumberWithCommas(value as number);
@@ -571,6 +573,7 @@ export default function SettingsPage() {
   const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
       appTone,
+      currency,
       notifications: { dailyReminderEnabled },
     });
   };
@@ -1080,6 +1083,30 @@ export default function SettingsPage() {
           title="المظهر والإشعارات"
         >
           <div className="space-y-6">
+
+            {/* Currency Selector */}
+            <div>
+              <h3 className="font-medium mb-3 text-sm">العملة</h3>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as import('@/types').CurrencyCode)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر العملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IQD">🇮🇶 دينار عراقي (د.ع)</SelectItem>
+                  <SelectItem value="SAR">🇸🇦 ريال سعودي (ر.س)</SelectItem>
+                  <SelectItem value="KWD">🇰🇼 دينار كويتي (د.ك)</SelectItem>
+                  <SelectItem value="AED">🇦🇪 درهم إماراتي (د.إ)</SelectItem>
+                  <SelectItem value="EGP">🇪🇬 جنيه مصري (ج.م)</SelectItem>
+                  <SelectItem value="USD">🇺🇸 دولار أمريكي ($)</SelectItem>
+                  <SelectItem value="EUR">🇪🇺 يورو (€)</SelectItem>
+                  <SelectItem value="GBP">🇬🇧 جنيه إسترليني (£)</SelectItem>
+                  <SelectItem value="TRY">🇹🇷 ليرة تركية (₺)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
              <div>
                 <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
                 <div className="grid grid-cols-2 gap-4">

@@ -24,6 +24,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
@@ -31,6 +32,7 @@ export default function AllExpensesPage() {
   const { expenses, isLoading, isError, error, queryClient } = useAppData();
   const { categories, categoryMap, getIconComponent } = useCategories();
   const isMobile = useIsMobile();
+  const { format: formatCurrency } = useCurrency();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -245,7 +247,7 @@ export default function AllExpensesPage() {
             </CardTitle>
             {filteredExpenses.length > 0 && (
               <Badge variant="secondary" className="text-xs">
-                {totalFiltered.toLocaleString()} د.ع
+                {formatCurrency(totalFiltered)}
               </Badge>
             )}
           </div>
@@ -310,7 +312,7 @@ export default function AllExpensesPage() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">
-                        <p className="font-bold text-xs ml-2">{expense.amount.toLocaleString()} د.ع</p>
+                        <p className="font-bold text-xs ml-2">{formatCurrency(expense.amount)}</p>
                         {!isSelectionMode && (
                           <EditComponent
                             open={editingExpense?.id === expense.id}

@@ -31,6 +31,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
+import { useCurrency } from '@/hooks/use-currency';
 
 
 const tourSteps = [
@@ -72,6 +73,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { categories, categoryMap, getIconComponent } = useCategories();
+  const { format: formatCurrency } = useCurrency();
 
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
 
@@ -350,7 +352,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <div className="text-end">
-              <p className="font-bold text-foreground text-sm">{expense.amount.toLocaleString()}&nbsp;د.ع</p>
+              <p className="font-bold text-foreground text-sm">{formatCurrency(expense.amount)}</p>
             </div>
             <EditComponent open={isEditOpen} onOpenChange={setIsEditOpen}>
               <DropdownMenu>
@@ -403,7 +405,7 @@ export default function DashboardPage() {
           <AlertDescription>
             <ul>
               {upcomingPayments.map(p => (
-                <li key={p.id}>- {p.title} بمبلغ {p.amount.toLocaleString()} د.ع</li>
+                <li key={p.id}>- {p.title} بمبلغ {formatCurrency(p.amount)}</li>
               ))}
             </ul>
           </AlertDescription>
