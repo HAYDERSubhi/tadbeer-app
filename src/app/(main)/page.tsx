@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc } from 'date-fns';
+import { format, isToday, isYesterday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
 import { recordExpenseWithVoiceAction } from '@/app/actions';
@@ -215,6 +215,30 @@ export default function DashboardPage() {
     if (!expenses) return [];
     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
+
+  // Group expenses by date label
+  const groupedExpenses = useMemo(() => {
+    const recent = allSortedExpenses.slice(0, 15);
+    const groups: { label: string; expenses: typeof recent }[] = [];
+    const seen = new Set<string>();
+
+    recent.forEach(exp => {
+      const date = parseISO(exp.date);
+      let label: string;
+      if (isToday(date)) label = 'اليوم';
+      else if (isYesterday(date)) label = 'أمس';
+      else if (isThisWeek(date, { weekStartsOn: 6 })) label = 'هذا الأسبوع';
+      else label = format(date, 'MMMM yyyy', { locale: ar });
+
+      if (!seen.has(label)) {
+        seen.add(label);
+        groups.push({ label, expenses: [] });
+      }
+      groups.find(g => g.label === label)!.expenses.push(exp);
+    });
+
+    return groups;
+  }, [allSortedExpenses]);
 
   const monthlyExpenses = useMemo(() => {
     const start = startOfMonth(new Date());
@@ -561,40 +585,69 @@ export default function DashboardPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              <span>أحدث المصاريف</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                <span>أحدث المصاريف</span>
+              </div>
+              {!isAppDataLoading && allSortedExpenses.length > 0 && (
+                <span className="text-xs text-muted-foreground font-normal">
+                  {allSortedExpenses.length} مصروف
+                </span>
+              )}
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 pt-1">
+        <CardContent className="p-0">
           {isAppDataLoading ? (
             <div className="p-4 space-y-3">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : allSortedExpenses.length > 0 ? (
-            <ul className="divide-y divide-border">
-              {allSortedExpenses.slice(0, 5).map((expense) => (
-                <ExpenseListItem key={expense.id} expense={expense} />
+          ) : groupedExpenses.length > 0 ? (
+            <div>
+              {groupedExpenses.map(group => (
+                <div key={group.label}>
+                  <div className="px-4 py-1.5 bg-muted/40 border-y border-border/50">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      {group.label}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-border/50">
+                    {group.expenses.map(expense => (
+                      <ExpenseListItem key={expense.id} expense={expense} />
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p className="text-center text-muted-foreground py-10 text-xs">لا توجد مصاريف مسجلة بعد.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Receipt className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="font-semibold text-sm text-muted-foreground">لا توجد مصاريف بعد</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">ابدأ بإضافة أول مصروف لك</p>
+              <Button asChild size="sm" className="mt-4">
+                <Link href="/add-expense">
+                  <Plus className="h-4 w-4 ml-1" /> إضافة مصروف
+                </Link>
+              </Button>
+            </div>
           )}
         </CardContent>
-        {!isAppDataLoading && allSortedExpenses.length > 5 && (
-            <CardFooter className="p-2">
-                 <Button variant="ghost" asChild className="w-full h-8 text-xs">
-                     <Link href="/expenses">
-                        عرض كل المصاريف
-                        <ArrowRight className="mr-2 h-3 w-3" />
-                     </Link>
-                </Button>
-            </CardFooter>
+        {!isAppDataLoading && allSortedExpenses.length > 15 && (
+          <CardFooter className="p-2">
+            <Button variant="ghost" asChild className="w-full h-8 text-xs">
+              <Link href="/expenses">
+                عرض كل المصاريف ({allSortedExpenses.length})
+                <ArrowRight className="mr-2 h-3 w-3" />
+              </Link>
+            </Button>
+          </CardFooter>
         )}
       </Card>
 
