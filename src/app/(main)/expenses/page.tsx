@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
@@ -22,6 +23,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
@@ -33,6 +35,9 @@ export default function AllExpensesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const EditComponent = isMobile ? Sheet : Dialog;
 
@@ -74,6 +79,41 @@ export default function AllExpensesPage() {
     setSelectedCategory('all');
   };
 
+  const toggleSelectMode = () => {
+    setIsSelectionMode(prev => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filteredExpenses.map(e => e.id)));
+  };
+
+  const deselectAll = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    if (!user || selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map(id => deleteExpense(user.uid, id)));
+      queryClient.invalidateQueries({ queryKey: ['expenses', user.uid] });
+      toast({ title: "تم الحذف", description: `تم حذف ${selectedIds.size} مصروف بنجاح.` });
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+    } catch {
+      toast({ title: "خطأ", description: "لم نتمكن من حذف بعض المصاريف.", variant: "destructive" });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   if (isError) return <FirestoreErrorAlert error={error} context="المصاريف" />;
   if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
@@ -95,15 +135,13 @@ export default function AllExpensesPage() {
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs flex-1">
                 <SelectValue placeholder="كل الفئات" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل الفئات</SelectItem>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -112,7 +150,59 @@ export default function AllExpensesPage() {
                 <X className="h-3 w-3 ml-1" /> مسح
               </Button>
             )}
+            <Button
+              variant={isSelectionMode ? "default" : "outline"}
+              size="sm"
+              className="h-8 px-3 text-xs shrink-0"
+              onClick={toggleSelectMode}
+            >
+              {isSelectionMode ? <X className="h-3 w-3 ml-1" /> : <CheckSquare className="h-3 w-3 ml-1" />}
+              {isSelectionMode ? 'إلغاء' : 'تحديد'}
+            </Button>
           </div>
+
+          {/* Bulk Actions Bar */}
+          {isSelectionMode && (
+            <div className="flex items-center justify-between p-2 bg-muted/60 rounded-lg border animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAll}>
+                  تحديد الكل ({filteredExpenses.length})
+                </Button>
+                {selectedIds.size > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={deselectAll}>
+                    إلغاء الكل
+                  </Button>
+                )}
+              </div>
+              {selectedIds.size > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="h-7 text-xs" disabled={isBulkDeleting}>
+                      {isBulkDeleting
+                        ? <Loader2Icon className="h-3 w-3 animate-spin ml-1" />
+                        : <Trash2 className="h-3 w-3 ml-1" />
+                      }
+                      حذف ({selectedIds.size})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        هل أنت متأكد من حذف {selectedIds.size} مصروف؟ لا يمكن التراجع عن هذا الإجراء.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        نعم، احذف
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -130,11 +220,6 @@ export default function AllExpensesPage() {
               </Badge>
             )}
           </div>
-          {hasFilters && (
-            <CardDescription className="text-xs">
-              إجمالي النتائج: {totalFiltered.toLocaleString()} د.ع
-            </CardDescription>
-          )}
         </CardHeader>
         <CardContent className="p-0">
           {filteredExpenses.length === 0 ? (
@@ -144,9 +229,7 @@ export default function AllExpensesPage() {
                 <>
                   <h3 className="text-base font-semibold">لا توجد نتائج</h3>
                   <p className="text-sm mt-1">جرب تغيير معايير البحث</p>
-                  <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>
-                    مسح الفلاتر
-                  </Button>
+                  <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>مسح الفلاتر</Button>
                 </>
               ) : (
                 <>
@@ -159,9 +242,27 @@ export default function AllExpensesPage() {
             <ul className="divide-y divide-border">
               {filteredExpenses.map((expense) => {
                 const categoryInfo = categoryMap[expense.category];
+                const isSelected = selectedIds.has(expense.id);
                 return (
                   <Fragment key={expense.id}>
-                    <li className="flex items-center justify-between p-3 transition-colors hover:bg-muted/50">
+                    <li
+                      className={cn(
+                        "flex items-center justify-between p-3 transition-colors",
+                        isSelectionMode ? "cursor-pointer hover:bg-muted/50" : "hover:bg-muted/50",
+                        isSelected && "bg-primary/5 border-r-2 border-primary"
+                      )}
+                      onClick={isSelectionMode ? () => toggleSelect(expense.id) : undefined}
+                    >
+                      {/* Checkbox in selection mode */}
+                      {isSelectionMode && (
+                        <div className="ml-2 shrink-0">
+                          {isSelected
+                            ? <CheckSquare className="h-5 w-5 text-primary" />
+                            : <Square className="h-5 w-5 text-muted-foreground" />
+                          }
+                        </div>
+                      )}
+
                       <div className="flex flex-1 items-center gap-3 min-w-0">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted text-lg">
                           {categoryInfo ? getIconComponent(categoryInfo.icon) : '💸'}
@@ -173,47 +274,50 @@ export default function AllExpensesPage() {
                           </p>
                         </div>
                       </div>
+
                       <div className="flex items-center gap-1 shrink-0">
                         <p className="font-bold text-xs ml-2">{expense.amount.toLocaleString()} د.ع</p>
-                        <EditComponent
-                          open={editingExpense?.id === expense.id}
-                          onOpenChange={(open) => { if (!open) setEditingExpense(null); }}
-                        >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onSelect={() => setEditingExpense(expense)}>
-                                <Pencil className="ml-2 h-4 w-4" /> تعديل
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => { if (user) deleteMutation.mutate(expense.id); }}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2Icon className="ml-2 h-4 w-4" /> حذف
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          {isMobile ? (
-                            <SheetContent side="bottom" className="flex flex-col">
-                              <SheetHeader><SheetTitle>تعديل المصروف</SheetTitle></SheetHeader>
-                              <div className="overflow-y-auto px-2 pb-6">
+                        {!isSelectionMode && (
+                          <EditComponent
+                            open={editingExpense?.id === expense.id}
+                            onOpenChange={(open) => { if (!open) setEditingExpense(null); }}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={() => setEditingExpense(expense)}>
+                                  <Pencil className="ml-2 h-4 w-4" /> تعديل
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => { if (user) deleteMutation.mutate(expense.id); }}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2Icon className="ml-2 h-4 w-4" /> حذف
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            {isMobile ? (
+                              <SheetContent side="bottom" className="flex flex-col">
+                                <SheetHeader><SheetTitle>تعديل المصروف</SheetTitle></SheetHeader>
+                                <div className="overflow-y-auto px-2 pb-6">
+                                  {editingExpense?.id === expense.id && (
+                                    <EditExpenseForm expense={expense} setOpen={(open) => { if (!open) setEditingExpense(null); }} />
+                                  )}
+                                </div>
+                              </SheetContent>
+                            ) : (
+                              <DialogContent>
                                 {editingExpense?.id === expense.id && (
                                   <EditExpenseForm expense={expense} setOpen={(open) => { if (!open) setEditingExpense(null); }} />
                                 )}
-                              </div>
-                            </SheetContent>
-                          ) : (
-                            <DialogContent>
-                              {editingExpense?.id === expense.id && (
-                                <EditExpenseForm expense={expense} setOpen={(open) => { if (!open) setEditingExpense(null); }} />
-                              )}
-                            </DialogContent>
-                          )}
-                        </EditComponent>
+                              </DialogContent>
+                            )}
+                          </EditComponent>
+                        )}
                       </div>
                     </li>
                   </Fragment>
