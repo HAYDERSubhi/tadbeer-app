@@ -33,10 +33,9 @@ export const getExpenses = async (uid: string): Promise<Expense[]> => {
             id: doc.id,
             uid,
             ...data,
-            // Convert Firestore Timestamp to ISO string for client-side date handling
-            date: (data.date as Timestamp).toDate().toISOString(),
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
-            updatedAt: (data.updatedAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+            date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
         } as Expense);
     });
     return expenses;
@@ -88,8 +87,8 @@ export const getGoals = async (uid: string): Promise<Goal[]> => {
             id: doc.id,
             uid,
             ...data,
-            targetDate: (data.targetDate as Timestamp).toDate().toISOString(),
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+            targetDate: data.targetDate instanceof Timestamp ? data.targetDate.toDate().toISOString() : (data.targetDate ? String(data.targetDate) : new Date().toISOString()),
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
         } as Goal);
     });
     return goals;
@@ -127,8 +126,8 @@ export const getIncomes = async (uid: string): Promise<Income[]> => {
             id: doc.id,
             uid,
             ...data,
-            date: (data.date as Timestamp).toDate().toISOString(),
-            createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+            date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
         } as Income);
     });
     return incomes;

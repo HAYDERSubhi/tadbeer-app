@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import type { Category } from '@/types';
-import { Briefcase, ShoppingCart, Bus, UtensilsCrossed, GraduationCap, Gamepad2, HeartPulse, Car, Tv, Gift, Gem, Puzzle } from 'lucide-react';
+import { Briefcase, ShoppingCart, Bus, UtensilsCrossed, GraduationCap, Gamepad2, HeartPulse, Car, Tv, Gift, Gem, Puzzle, type LucideIcon } from 'lucide-react';
 import React from 'react';
 
 // A map to get the component from the string name

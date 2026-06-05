@@ -450,7 +450,7 @@ export default function DashboardPage() {
                 <p className="font-semibold text-xs">يدوي</p>
             </Link>
             
-            <div onClick={handleToggleVoiceRecording} aria-disabled={isVoiceLoading} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+            <div onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording} className={cn("flex flex-col items-center justify-center gap-2 p-2 rounded-lg group hover:bg-muted/50 transition-colors", isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
                 <span className={cn(
                     "flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors", 
                     isVoiceRecording && "bg-destructive/20 animate-pulse"
@@ -465,17 +465,27 @@ export default function DashboardPage() {
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                 <SheetHeader className="sr-only">
+              {isMobile ? (
+                <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+                  <SheetHeader className="sr-only">
                     <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                     <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
-                 </SheetHeader>
-                 <ManualExpenseForm 
+                  </SheetHeader>
+                  <ManualExpenseForm
                     key={JSON.stringify(voiceExpenseData)}
-                    setOpen={setIsVoiceReviewOpen} 
-                    initialData={voiceExpenseData} 
-                 />
-              </SheetContent>
+                    setOpen={setIsVoiceReviewOpen}
+                    initialData={voiceExpenseData}
+                  />
+                </SheetContent>
+              ) : (
+                <DialogContent>
+                  <ManualExpenseForm
+                    key={JSON.stringify(voiceExpenseData)}
+                    setOpen={setIsVoiceReviewOpen}
+                    initialData={voiceExpenseData}
+                  />
+                </DialogContent>
+              )}
             </VoiceReviewComponent>
 
             <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
@@ -492,7 +502,8 @@ export default function DashboardPage() {
                   </span>
                   <p className="font-semibold text-xs">بطاقة</p>
               </div>
-              <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
+              {isMobile ? (
+                <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <SheetHeader>
                     <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
                     <SheetDescription>
@@ -504,7 +515,22 @@ export default function DashboardPage() {
                         <Link href="/settings">الذهاب إلى الإعدادات</Link>
                     </Button>
                   </div>
-              </SheetContent>
+                </SheetContent>
+              ) : (
+                <DialogContent>
+                  <SheetHeader>
+                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
+                    <SheetDescription>
+                      هذه الميزة قيد التطوير. حالياً يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="p-4 sm:p-6">
+                    <Button asChild className="w-full mt-4">
+                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                    </Button>
+                  </div>
+                </DialogContent>
+              )}
             </CardComponent>
           </div>
         </CardContent>

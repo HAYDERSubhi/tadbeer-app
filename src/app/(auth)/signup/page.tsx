@@ -165,7 +165,8 @@ export default function SignupPage() {
                 alt="شعار تطبيق تدبير" 
                 width={36}
                 height={36}
-                priority 
+                priority
+                unoptimized 
             />
             <span className="text-foreground">تدبير</span>
         </Link>

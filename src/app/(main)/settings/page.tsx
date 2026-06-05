@@ -606,6 +606,7 @@ export default function SettingsPage() {
         id: categoryData.name.toLowerCase().replace(/\s+/g, '_') + '_' + crypto.randomUUID().slice(0,4),
         name: categoryData.name,
         icon: categoryData.icon,
+        color: '1',
         isDefault: false
       };
       updatedCategories = [...categories, newCategory];
@@ -1029,7 +1030,7 @@ export default function SettingsPage() {
     </AccordionItem>
   );
 
-  const FormDialog = isMobile ? Sheet : Dialog;
+  const FormDialog = Sheet;
 
   return (
     <div className="space-y-4 pb-20">
