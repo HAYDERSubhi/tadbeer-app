@@ -250,6 +250,70 @@ export const deleteCollection = async (uid: string, collectionName: string) => {
     await batch.commit();
 };
 
+// =================================
+// Backup & Restore Service
+// =================================
+
+export const exportUserData = async (uid: string) => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const [expenses, goals, incomes, settings] = await Promise.all([
+        getDocs(collection(db, 'users', uid, 'expenses')),
+        getDocs(collection(db, 'users', uid, 'goals')),
+        getDocs(collection(db, 'users', uid, 'incomes')),
+        getDoc(doc(db, 'users', uid, 'settings', 'main')),
+    ]);
+
+    return {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        uid,
+        expenses: expenses.docs.map(d => ({ id: d.id, ...d.data() })),
+        goals: goals.docs.map(d => ({ id: d.id, ...d.data() })),
+        incomes: incomes.docs.map(d => ({ id: d.id, ...d.data() })),
+        settings: settings.exists() ? settings.data() : {},
+    };
+};
+
+export const importUserData = async (
+    uid: string,
+    data: { expenses: any[]; goals: any[]; incomes: any[]; settings: any }
+) => {
+    if (!db) throw new Error("Firestore is not initialized");
+
+    const BATCH_SIZE = 400;
+
+    const allWrites: (() => Promise<void>)[] = [];
+
+    // Restore settings
+    if (data.settings) {
+        allWrites.push(() =>
+            setDoc(doc(db!, 'users', uid, 'settings', 'main'), data.settings, { merge: true })
+        );
+    }
+
+    // Helper to batch-write a collection
+    const batchWrite = async (items: any[], colName: string) => {
+        for (let i = 0; i < items.length; i += BATCH_SIZE) {
+            const batch = writeBatch(db!);
+            items.slice(i, i + BATCH_SIZE).forEach(item => {
+                const { id, ...rest } = item;
+                const ref = id
+                    ? doc(db!, 'users', uid, colName, id)
+                    : doc(collection(db!, 'users', uid, colName));
+                batch.set(ref, rest, { merge: true });
+            });
+            await batch.commit();
+        }
+    };
+
+    await Promise.all([
+        batchWrite(data.expenses || [], 'expenses'),
+        batchWrite(data.goals || [], 'goals'),
+        batchWrite(data.incomes || [], 'incomes'),
+        ...allWrites.map(fn => fn()),
+    ]);
+};
+
 export const addFeedback = async (uid: string, feedback: { subject: string; details: string; email?: string }) => {
     if (!db) throw new Error("Firestore is not initialized");
     // Feedback is stored in a top-level collection, but we still link it to the user

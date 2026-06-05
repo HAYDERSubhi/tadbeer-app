@@ -49,7 +49,7 @@ import type { Expense, UserProfile, FamilyMember, UserSettings, Income, Recurrin
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback } from '@/services/firestore';
+import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback, exportUserData, importUserData } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -393,6 +393,9 @@ export default function SettingsPage() {
   const [appTone, setAppTone] = useState<AppTone>('formal');
   const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
   const [currency, setCurrency] = useState<import('@/types').CurrencyCode>('IQD');
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
+  const [isRestoreLoading, setIsRestoreLoading] = useState(false);
+  const backupInputRef = useRef<HTMLInputElement>(null);
   
   // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
@@ -569,6 +572,49 @@ export default function SettingsPage() {
     updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked } });
   };
 
+
+  // --- Backup & Restore ---
+  const handleBackupExport = async () => {
+    if (!user) return;
+    setIsBackupLoading(true);
+    try {
+      const data = await exportUserData(user.uid);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tadbeer-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: 'تم التنزيل ✅', description: 'تم حفظ النسخة الاحتياطية بنجاح.' });
+    } catch (e) {
+      toast({ title: 'خطأ', description: 'لم نتمكن من تصدير البيانات.', variant: 'destructive' });
+    } finally {
+      setIsBackupLoading(false);
+    }
+  };
+
+  const handleBackupRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setIsRestoreLoading(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.version || !data.expenses) throw new Error('ملف غير صالح');
+      await importUserData(user.uid, data);
+      queryClient.invalidateQueries({ queryKey: ['expenses', user.uid] });
+      queryClient.invalidateQueries({ queryKey: ['goals', user.uid] });
+      queryClient.invalidateQueries({ queryKey: ['incomes', user.uid] });
+      queryClient.invalidateQueries({ queryKey: ['userSettings', user.uid] });
+      toast({ title: 'تمت الاستعادة ✅', description: `تم استعادة ${data.expenses.length} مصروف بنجاح.` });
+    } catch (e) {
+      toast({ title: 'خطأ في الاستعادة', description: 'تأكد أن الملف نسخة احتياطية صحيحة من تدبير.', variant: 'destructive' });
+    } finally {
+      setIsRestoreLoading(false);
+      if (backupInputRef.current) backupInputRef.current.value = '';
+    }
+  };
 
   const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
@@ -1406,7 +1452,36 @@ export default function SettingsPage() {
                 </Button>
                 <Input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls, .csv" />
              </div>
-             
+
+             <div className="my-1 h-px w-full bg-border/50" />
+
+             {/* Backup & Restore */}
+             <div>
+               <h4 className="font-medium text-sm mb-1">نسخة احتياطية كاملة</h4>
+               <p className="text-xs text-muted-foreground mb-3">صدّر جميع بياناتك (مصاريف، أهداف، دخل، إعدادات) كملف JSON واستعدها لاحقاً.</p>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 <Button
+                   className="w-full text-xs h-9"
+                   variant="outline"
+                   onClick={handleBackupExport}
+                   disabled={isBackupLoading}
+                 >
+                   {isBackupLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
+                   تنزيل نسخة احتياطية
+                 </Button>
+                 <Button
+                   className="w-full text-xs h-9"
+                   variant="outline"
+                   onClick={() => backupInputRef.current?.click()}
+                   disabled={isRestoreLoading}
+                 >
+                   {isRestoreLoading ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <DatabaseZap className="ml-2 h-4 w-4" />}
+                   استعادة من نسخة احتياطية
+                 </Button>
+                 <Input type="file" className="hidden" ref={backupInputRef} onChange={handleBackupRestore} accept=".json" />
+               </div>
+             </div>
+
              <div className="my-1 h-px w-full bg-border/50" />
 
              <div>
