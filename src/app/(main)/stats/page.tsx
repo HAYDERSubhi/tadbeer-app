@@ -27,6 +27,7 @@ import type { GetStatsSummaryOutput } from '@/ai/flows/get-stats-summary';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
 
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
@@ -230,6 +231,9 @@ export default function StatisticsPage() {
             </CardContent>
         </Card>
       
+      {/* Monthly Comparison — shows only when viewing monthly tab */}
+      {view === 'month' && <MonthlyComparisonCard />}
+
       {isStatsLoading ? (
         <div className="space-y-4">
             <Skeleton className="h-48 w-full" />
