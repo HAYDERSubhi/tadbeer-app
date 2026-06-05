@@ -77,14 +77,6 @@ export default function DashboardPage() {
 
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
 
-  // Stable cache key — only changes when actual expense data or budget changes
-  const insightsCacheKey = useMemo(() => {
-    if (!financialCoachInput) return null;
-    const expensesHash = monthlyExpenses.map(e => `${e.id}:${e.amount}`).join('|');
-    const budgetHash = userSettings?.budget?.totalBudget ?? 0;
-    return `coach-${expensesHash}-${budgetHash}`;
-  }, [monthlyExpenses, userSettings?.budget?.totalBudget, financialCoachInput]);
-  
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
@@ -271,6 +263,15 @@ export default function DashboardPage() {
     
     return input;
   }, [monthlyExpenses, userSettings, categoryMap, isAppDataLoading]);
+
+  // Stable cache key — only changes when actual expense data or budget changes
+  // MUST be declared AFTER monthlyExpenses and financialCoachInput
+  const insightsCacheKey = useMemo(() => {
+    if (!financialCoachInput) return null;
+    const expensesHash = monthlyExpenses.map(e => `${e.id}:${e.amount}`).join('|');
+    const budgetHash = userSettings?.budget?.totalBudget ?? 0;
+    return `coach-${expensesHash}-${budgetHash}`;
+  }, [monthlyExpenses, userSettings?.budget?.totalBudget, financialCoachInput]);
 
   // Use React Query for AI insights — cached for 10 minutes, won't re-fetch unless data changes
   const { data: insightsData, isLoading: isInsightsLoading } = useQuery({
