@@ -236,6 +236,14 @@ export default function AddExpensePage() {
                             <Textarea {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" className="min-h-[60px]" />
                         </div>
                     )}
+
+                    <div className="relative">
+                        <Textarea
+                            {...form.register('description')}
+                            placeholder="ملاحظة (اختياري) — مثال: غداء مع العمل"
+                            className="min-h-[60px] text-sm"
+                        />
+                    </div>
                 </div>
 
                 <div className="space-y-3">

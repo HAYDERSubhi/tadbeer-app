@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2 } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,6 +38,8 @@ export default function AllExpensesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'category'>('date');
+  const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
 
   const EditComponent = isMobile ? Sheet : Dialog;
 
@@ -54,8 +56,15 @@ export default function AllExpensesPage() {
 
   const allSortedExpenses = useMemo(() => {
     if (!expenses) return [];
-    return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
-  }, [expenses]);
+    const sorted = [...expenses].sort((a, b) => {
+      let result = 0;
+      if (sortBy === 'date') result = compareDesc(new Date(a.date), new Date(b.date));
+      else if (sortBy === 'amount') result = b.amount - a.amount;
+      else if (sortBy === 'category') result = (a.category || '').localeCompare(b.category || '', 'ar');
+      return sortDir === 'asc' ? -result : result;
+    });
+    return sorted;
+  }, [expenses, sortBy, sortDir]);
 
   const filteredExpenses = useMemo(() => {
     return allSortedExpenses.filter(expense => {
@@ -145,19 +154,39 @@ export default function AllExpensesPage() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+              <SelectTrigger className="h-8 text-xs w-[90px]">
+                <SortAsc className="h-3 w-3 ml-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">التاريخ</SelectItem>
+                <SelectItem value="amount">المبلغ</SelectItem>
+                <SelectItem value="category">الفئة</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline" size="sm" className="h-8 w-8 p-0 shrink-0"
+              onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+              title={sortDir === 'desc' ? 'تنازلي' : 'تصاعدي'}
+            >
+              <ArrowUpDown className={cn("h-3 w-3 transition-transform", sortDir === 'asc' && "rotate-180")} />
+            </Button>
             {hasFilters && (
               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={clearFilters}>
                 <X className="h-3 w-3 ml-1" /> مسح
               </Button>
             )}
+          </div>
+          <div className="flex justify-end">
             <Button
               variant={isSelectionMode ? "default" : "outline"}
               size="sm"
-              className="h-8 px-3 text-xs shrink-0"
+              className="h-8 px-3 text-xs"
               onClick={toggleSelectMode}
             >
               {isSelectionMode ? <X className="h-3 w-3 ml-1" /> : <CheckSquare className="h-3 w-3 ml-1" />}
-              {isSelectionMode ? 'إلغاء' : 'تحديد'}
+              {isSelectionMode ? 'إلغاء التحديد' : 'تحديد متعدد'}
             </Button>
           </div>
 
@@ -272,6 +301,11 @@ export default function AllExpensesPage() {
                           <p className="text-xs text-muted-foreground">
                             {categoryInfo?.name || 'غير معروفة'} · {format(parseISO(expense.date), "d MMM", { locale: ar })}
                           </p>
+                          {expense.description && (
+                            <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5 italic">
+                              {expense.description}
+                            </p>
+                          )}
                         </div>
                       </div>
 
