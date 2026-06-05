@@ -160,14 +160,9 @@ export default function SignupPage() {
   return (
     <div className="flex flex-col items-center gap-6">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold">
-            <Image 
-                src="/logo.png" 
-                alt="شعار تطبيق تدبير" 
-                width={36}
-                height={36}
-                priority
-                unoptimized 
-            />
+            <div style={{ width:48, height:48, backgroundColor:'#ffffff', borderRadius:'10px', padding:'4px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <img src="/logo.png" alt="شعار تطبيق تدبير" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
+            </div>
             <span className="text-foreground">تدبير</span>
         </Link>
         <Card className="w-full max-w-md">
