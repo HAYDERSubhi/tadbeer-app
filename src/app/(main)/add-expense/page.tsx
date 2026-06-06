@@ -58,7 +58,7 @@ export default function AddExpensePage() {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { categories, getIconComponent } = useCategories();
-    const { expenses } = useAppData();
+    const { expenses, householdId } = useAppData();
     const { format: formatCurrency } = useCurrency();
 
     const [isCategorizing, setIsCategorizing] = useState(false);
@@ -125,7 +125,8 @@ export default function AddExpensePage() {
     }, [debouncedTitle, categoryMapForAI, form]);
     
     const addExpenseMutation = useMutation({
-        mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
+        mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
+            addExpense(user!.uid, newExpense, householdId),
         onMutate: async (newExpenseData) => {
             // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
@@ -170,6 +171,32 @@ export default function AddExpensePage() {
               title: "تمت الإضافة بنجاح!",
               description: `تم إضافة مصروف "${variables.title}".`,
             });
+
+            // ── Duplicate detection (household only) ──────────────────────
+            if (householdId) {
+                const now = new Date();
+                const limit24h = 24 * 60 * 60 * 1000; // 24 hours in ms
+                const duplicate = expenses.find(e => {
+                    if (e.uid === user!.uid) return false; // same user — skip
+                    if (e.amount !== variables.amount) return false;
+                    if (e.category !== variables.category) return false;
+                    try {
+                        const diff = Math.abs(now.getTime() - new Date(e.date).getTime());
+                        return diff <= limit24h;
+                    } catch { return false; }
+                });
+                if (duplicate) {
+                    setTimeout(() => {
+                        toast({
+                            title: '⚠️ مصروف مكرر محتمل!',
+                            description: `تم تسجيل نفس المبلغ والفئة من عضو آخر في العائلة خلال آخر 24 ساعة. هل هذا مصروف مختلف؟`,
+                            variant: 'destructive',
+                        });
+                    }, 600);
+                }
+            }
+            // ──────────────────────────────────────────────────────────────
+
             form.reset();
             router.push('/');
         }
