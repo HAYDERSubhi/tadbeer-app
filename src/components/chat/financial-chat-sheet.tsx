@@ -1,7 +1,7 @@
 // src/components/chat/financial-chat-sheet.tsx
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -69,6 +69,29 @@ export function FinancialChatSheet() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const sheetContentRef = useRef<HTMLDivElement>(null);
+
+  /* ── Respond to keyboard open/close via visualViewport ── */
+  const updateSheetHeight = useCallback(() => {
+    const vh = window.visualViewport?.height ?? window.innerHeight;
+    if (sheetContentRef.current) {
+      // Leave a small gap at the top so the user sees they can dismiss
+      const height = Math.max(vh - 16, 200);
+      sheetContentRef.current.style.height = `${height}px`;
+      sheetContentRef.current.style.maxHeight = `${height}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    updateSheetHeight();
+    window.visualViewport?.addEventListener('resize', updateSheetHeight);
+    window.visualViewport?.addEventListener('scroll', updateSheetHeight);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateSheetHeight);
+      window.visualViewport?.removeEventListener('scroll', updateSheetHeight);
+    };
+  }, [open, updateSheetHeight]);
 
   /* ── Auto-scroll to bottom on new message ── */
   useEffect(() => {
@@ -310,8 +333,10 @@ export function FinancialChatSheet() {
       {/* ── Chat Sheet ── */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
+          ref={sheetContentRef}
           side="bottom"
-          className="h-[82vh] rounded-t-2xl p-0 flex flex-col gap-0"
+          className="rounded-t-2xl p-0 flex flex-col gap-0 transition-[height] duration-75"
+          style={{ height: '82vh', maxHeight: '82vh' }}
         >
           {/* Header */}
           <SheetHeader className="flex-row items-center justify-between px-4 py-3 border-b shrink-0">
