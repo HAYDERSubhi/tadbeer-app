@@ -29,6 +29,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
 import { useCurrency } from '@/hooks/use-currency';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { FileBarChart } from 'lucide-react';
 
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
@@ -192,6 +195,14 @@ export default function StatisticsPage() {
   
   return (
     <div className="space-y-4 pb-24">
+      {/* Monthly report shortcut */}
+      <Link href="/report">
+        <Button variant="outline" className="w-full gap-2 h-10">
+          <FileBarChart className="h-4 w-4 text-primary" />
+          عرض التقرير الشهري القابل للمشاركة
+        </Button>
+      </Link>
+
        <Card>
             <CardContent className="p-3">
                 <Tabs value={view} onValueChange={(v) => setView(v as 'month' | 'year')} className="w-full">

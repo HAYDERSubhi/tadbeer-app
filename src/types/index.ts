@@ -91,4 +91,22 @@ export type UserSettings = {
   categories?: Category[];
   notifications?: NotificationSettings;
   currency?: CurrencyCode;
+  householdId?: string | null;
+};
+
+export type HouseholdMember = {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: 'owner' | 'member';
+  joinedAt: string;
+};
+
+export type Household = {
+  id: string;
+  name: string;
+  ownerId: string;
+  inviteCode: string;
+  members: HouseholdMember[];
+  createdAt: string;
 };

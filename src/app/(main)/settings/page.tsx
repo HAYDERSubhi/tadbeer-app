@@ -72,6 +72,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { useCurrency } from '@/hooks/use-currency';
+import { HouseholdManager } from '@/components/family/household-manager';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -1120,6 +1121,9 @@ export default function SettingsPage() {
         )}
       </Card>
       
+      {/* Family / Household Management */}
+      <HouseholdManager />
+
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
         <AccordionItemWrapper
           value="item-1"
