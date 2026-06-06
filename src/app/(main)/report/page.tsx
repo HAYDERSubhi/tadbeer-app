@@ -1,7 +1,7 @@
 // src/app/(main)/report/page.tsx
 "use client";
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
@@ -146,6 +146,11 @@ export default function ReportPage() {
     const { categories } = useCategories();
     const { format: formatCurrency } = useCurrency();
     const { toast } = useToast();
+
+    // Badge: mark report as viewed
+    useEffect(() => {
+        localStorage.setItem('tadbeer-report-viewed', '1');
+    }, []);
     const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
 
     const selectedMonth = useMemo(() => {

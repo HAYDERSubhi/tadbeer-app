@@ -14,10 +14,17 @@ import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { useSmartNotifications } from '@/hooks/use-smart-notifications';
+import { useBadges } from '@/hooks/use-badges';
 
 // Inner component so useSmartNotifications can access AppDataProvider context
 function NotificationsRunner() {
   useSmartNotifications();
+  return null;
+}
+
+// Badge checker runs silently inside AppDataProvider
+function BadgeChecker() {
+  useBadges();
   return null;
 }
 
@@ -66,6 +73,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
       <AppDataProvider>
         <NotificationsRunner />
+        <BadgeChecker />
         <PwaUpdateBanner />
         <OfflineIndicator />
         <AppShell>

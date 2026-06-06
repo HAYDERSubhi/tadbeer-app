@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1121,6 +1121,24 @@ export default function SettingsPage() {
         )}
       </Card>
       
+      {/* Achievements shortcut */}
+      <Link href="/achievements">
+        <Card className="active:scale-[0.98] transition-transform">
+          <CardContent className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-amber-500/10 rounded-lg text-amber-500">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">الإنجازات والشارات</p>
+                <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك</p>
+              </div>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* Family / Household Management */}
       <HouseholdManager />
 

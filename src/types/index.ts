@@ -110,3 +110,8 @@ export type Household = {
   members: HouseholdMember[];
   createdAt: string;
 };
+
+export type EarnedBadge = {
+  id: string;
+  earnedAt: string; // ISO string
+};

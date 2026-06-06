@@ -10,10 +10,11 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, User, CheckCircle2 } from 'lucide-react';
-import { addExpense } from '@/services/firestore';
+import { addExpense, recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
+import { useSearchParams } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
 
@@ -51,8 +52,15 @@ const sampleExpenses = [
 export default function SignupPage() {
   const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading]             = useState(false);
+
+  // Persist referral code from URL into sessionStorage
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) sessionStorage.setItem('tadbeer-ref', ref);
+  }, [searchParams]);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
@@ -65,8 +73,12 @@ export default function SignupPage() {
     setUnauthorizedDomain(null);
     try {
       const userCredential = await signUpWithEmailPassword(data.email, data.password);
-      if (userCredential.user)
+      if (userCredential.user) {
         await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
+        // Record referral if came via invite link
+        const refUid = sessionStorage.getItem('tadbeer-ref');
+        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
+      }
       toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'أضفنا لك مصاريف تجريبية للبداية.' });
       router.push('/');
     } catch (error: any) {
@@ -85,6 +97,8 @@ export default function SignupPage() {
       const additionalInfo = getAdditionalUserInfo(userCredential);
       if (additionalInfo?.isNewUser && userCredential.user) {
         await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
+        const refUid = sessionStorage.getItem('tadbeer-ref');
+        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
         toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'أضفنا لك مصاريف تجريبية للبداية.' });
       } else {
         toast({ title: 'أهلاً بعودتك!' });

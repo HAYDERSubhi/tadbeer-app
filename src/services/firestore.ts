@@ -555,6 +555,54 @@ export const removeMemberFromHousehold = async (
     await setDoc(doc(db, 'users', memberUid, 'settings', 'main'), { householdId: null }, { merge: true });
 };
 
+// =================================
+// Badges Service
+// =================================
+
+export const getUserBadges = async (uid: string): Promise<import('@/types').EarnedBadge[]> => {
+    if (!db) return [];
+    const snap = await getDoc(doc(db, 'users', uid, 'badges', 'earned'));
+    if (!snap.exists()) return [];
+    const data = snap.data();
+    return Object.entries(data).map(([id, val]: [string, any]) => ({
+        id,
+        earnedAt: val instanceof Timestamp ? val.toDate().toISOString() : String(val),
+    }));
+};
+
+export const saveBadge = async (uid: string, badgeId: string): Promise<void> => {
+    if (!db) return;
+    await setDoc(
+        doc(db, 'users', uid, 'badges', 'earned'),
+        { [badgeId]: serverTimestamp() },
+        { merge: true }
+    );
+};
+
+// =================================
+// Referral Service
+// =================================
+
+export const recordReferral = async (referrerUid: string, referredUid: string): Promise<void> => {
+    if (!db) return;
+    // Guard: don't self-refer
+    if (referrerUid === referredUid) return;
+    await addDoc(collection(db, 'referrals'), {
+        referrerUid,
+        referredUid,
+        createdAt: serverTimestamp(),
+    });
+    // Mark on new user's settings so we don't double-count
+    await setDoc(doc(db, 'users', referredUid, 'settings', 'main'), { referredBy: referrerUid }, { merge: true });
+};
+
+export const getReferralCount = async (uid: string): Promise<number> => {
+    if (!db) return 0;
+    const q = query(collection(db, 'referrals'), where('referrerUid', '==', uid));
+    const snap = await getDocs(q);
+    return snap.size;
+};
+
 export const addFeedback = async (uid: string, feedback: { subject: string; details: string; email?: string }) => {
     if (!db) throw new Error("Firestore is not initialized");
     // Feedback is stored in a top-level collection, but we still link it to the user
