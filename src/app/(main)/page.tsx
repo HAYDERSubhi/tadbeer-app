@@ -97,7 +97,6 @@ export default function DashboardPage() {
 
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
-  const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
   
   // --- Voice Recording State & Refs ---
   const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
@@ -517,8 +516,7 @@ export default function DashboardPage() {
 
   const hasExpenses = expenses.length > 0;
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
-  const CardComponent = isMobile ? Sheet : Dialog;
-  
+
   return (
     <div className="space-y-3 pb-24">
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
@@ -656,59 +654,12 @@ export default function DashboardPage() {
                 <p className="font-semibold text-xs">فاتورة</p>
             </Link>
             
-            <CardComponent open={isCardSheetOpen} onOpenChange={setIsCardSheetOpen}>
-              <div onClick={() => setIsCardSheetOpen(true)} className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                  <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                      <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
-                  </span>
-                  <p className="font-semibold text-xs">بطاقة</p>
-              </div>
-              {isMobile ? (
-                <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      ربط البطاقة المصرفية
-                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-normal">قريباً</span>
-                    </SheetTitle>
-                    <SheetDescription className="text-right leading-relaxed">
-                      نعمل حالياً على تطوير هذه الميزة لتعتمد على <span className="font-semibold text-foreground">رسائل SMS البنكية</span> — حيث سيتعرف التطبيق تلقائياً على رسائل بنكك ويضيف المعاملات دون أي إدخال يدوي.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="p-4 space-y-3">
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3">
-                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                        📱 المخطط: عند وصول رسالة مثل <span className="font-mono bg-white/50 px-1 rounded">"تمت عملية شراء 25,000 د.ع"</span> سيضيفها تدبير تلقائياً بإذنك.
-                      </p>
-                    </div>
-                    <Button asChild variant="outline" className="w-full">
-                        <Link href="/settings">استعراض المحاكاة الحالية</Link>
-                    </Button>
-                  </div>
-                </SheetContent>
-              ) : (
-                <DialogContent>
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      ربط البطاقة المصرفية
-                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-normal">قريباً</span>
-                    </SheetTitle>
-                    <SheetDescription className="text-right leading-relaxed">
-                      نعمل على تطوير هذه الميزة لتعتمد على <span className="font-semibold text-foreground">رسائل SMS البنكية</span> لإضافة معاملاتك تلقائياً.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="p-4 space-y-3">
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3">
-                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                        📱 المخطط: التعرف التلقائي على رسائل البنك وإضافة المعاملات بإذنك.
-                      </p>
-                    </div>
-                    <Button asChild variant="outline" className="w-full">
-                        <Link href="/settings">استعراض المحاكاة الحالية</Link>
-                    </Button>
-                  </div>
-                </DialogContent>
-              )}
-            </CardComponent>
+            <Link href="/import" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
+                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
+                </span>
+                <p className="font-semibold text-xs">بطاقة</p>
+            </Link>
           </div>
 
           {/* Recording status indicator */}
