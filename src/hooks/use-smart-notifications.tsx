@@ -11,6 +11,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
+import { useZeroStreak } from '@/hooks/use-zero-streak';
 import { isThisMonth, parseISO, differenceInHours, format } from 'date-fns';
 
 const LAST_REMINDER_KEY = 'tadbeer-last-reminder';
@@ -40,6 +41,7 @@ function sendNotification(title: string, body: string, icon = '/icon-192x192.png
 
 export function useSmartNotifications() {
   const { expenses, userSettings } = useAppData();
+  const { streak, spentToday } = useZeroStreak();
 
   /* ── Request permission once on mount ── */
   useEffect(() => {
@@ -152,4 +154,29 @@ export function useSmartNotifications() {
   useEffect(() => {
     checkBudgetAlert();
   }, [checkBudgetAlert]);
+
+  /* ── Zero-spend streak: evening encouragement ── */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (spentToday || streak === 0) return;
+
+    // Only fire between 6 PM and 11 PM
+    const hour = new Date().getHours();
+    if (hour < 18 || hour >= 23) return;
+
+    const streakKey = `tadbeer-streak-notif-${format(new Date(), 'yyyy-MM-dd')}`;
+    if (localStorage.getItem(streakKey)) return;
+
+    requestPermission().then(granted => {
+      if (!granted) return;
+      const msgs: Record<number, string> = {
+        1: 'يوم صفري أول! 🎯 أتمم اليوم بدون مصاريف.',
+        3: '3 أيام صفرية متتالية! 🔥 أنت رائع!',
+        7: 'أسبوع كامل بدون إنفاق! 🏆 إنجاز استثنائي!',
+      };
+      const body = msgs[streak] ?? `🔥 ${streak} أيام صفرية — أتمم اليوم وحافظ على streak!`;
+      sendNotification('تدبير — اليوم الصفري', body);
+      localStorage.setItem(streakKey, '1');
+    });
+  }, [streak, spentToday]);
 }

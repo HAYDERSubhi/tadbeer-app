@@ -34,6 +34,7 @@ import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
 import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
+import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -605,6 +606,8 @@ export default function DashboardPage() {
       )}
       
       <IncomeVsExpensesCard />
+
+      <ZeroStreakCard />
 
       <Card id="expense-input-card" className="overflow-hidden">
         <CardContent className="py-2 px-4 space-y-3">
