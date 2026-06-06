@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Save, CalendarIcon, Loader2 } from 'lucide-react';
+import { Save, CalendarIcon, Loader2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,8 @@ import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
 import { Textarea } from '@/components/ui/textarea';
+import { useAppData } from '@/hooks/use-app-data';
+import { useCurrency } from '@/hooks/use-currency';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -56,8 +58,24 @@ export default function AddExpensePage() {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const { categories, getIconComponent } = useCategories();
+    const { expenses } = useAppData();
+    const { format: formatCurrency } = useCurrency();
 
     const [isCategorizing, setIsCategorizing] = useState(false);
+    const [showFrequent, setShowFrequent] = useState(false);
+
+    // Build frequent expenses from history (top 6 most used)
+    const frequentExpenses = useMemo(() => {
+        const freq: Record<string, { title: string; amount: number; category: string; count: number }> = {};
+        expenses.forEach(e => {
+            const key = e.title.toLowerCase().trim();
+            if (!freq[key]) freq[key] = { title: e.title, amount: e.amount, category: e.category, count: 0 };
+            freq[key].count++;
+        });
+        return Object.values(freq)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 6);
+    }, [expenses]);
     
     const form = useForm<ExpenseFormData>({
         resolver: zodResolver(expenseSchema),
@@ -172,6 +190,44 @@ export default function AddExpensePage() {
     return (
         <div className="flex flex-col h-full">
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
+
+                {/* Frequent Expenses Suggestions */}
+                {frequentExpenses.length > 0 && (
+                    <div className="space-y-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowFrequent(v => !v)}
+                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+                        >
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>مصاريف متكررة</span>
+                            {showFrequent ? <ChevronUp className="h-3 w-3 mr-auto" /> : <ChevronDown className="h-3 w-3 mr-auto" />}
+                        </button>
+                        {showFrequent && (
+                            <div className="grid grid-cols-2 gap-2 animate-in fade-in">
+                                {frequentExpenses.map((exp, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => {
+                                            form.setValue('title', exp.title, { shouldValidate: true });
+                                            form.setValue('amount', exp.amount, { shouldValidate: true });
+                                            form.setValue('category', exp.category, { shouldValidate: true });
+                                            setShowFrequent(false);
+                                        }}
+                                        className="flex items-center justify-between p-2 rounded-lg border bg-muted/40 hover:bg-muted/80 transition-colors text-right"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-medium truncate">{exp.title}</p>
+                                            <p className="text-[10px] text-muted-foreground">{formatCurrency(exp.amount)}</p>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground/60 mr-1 shrink-0">{exp.count}×</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="space-y-4">
                      <div className="relative">

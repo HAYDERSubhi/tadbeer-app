@@ -556,28 +556,44 @@ export default function DashboardPage() {
               {isMobile ? (
                 <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <SheetHeader>
-                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                    <SheetDescription>
-                      هذه الميزة قيد التطوير. حالياً يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                    <SheetTitle className="flex items-center gap-2">
+                      ربط البطاقة المصرفية
+                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-normal">قريباً</span>
+                    </SheetTitle>
+                    <SheetDescription className="text-right leading-relaxed">
+                      نعمل حالياً على تطوير هذه الميزة لتعتمد على <span className="font-semibold text-foreground">رسائل SMS البنكية</span> — حيث سيتعرف التطبيق تلقائياً على رسائل بنكك ويضيف المعاملات دون أي إدخال يدوي.
                     </SheetDescription>
                   </SheetHeader>
-                  <div className="p-4 sm:p-6">
-                    <Button asChild className="w-full mt-4">
-                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                  <div className="p-4 space-y-3">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-3">
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        📱 المخطط: عند وصول رسالة مثل <span className="font-mono bg-white/50 px-1 rounded">"تمت عملية شراء 25,000 د.ع"</span> سيضيفها تدبير تلقائياً بإذنك.
+                      </p>
+                    </div>
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href="/settings">استعراض المحاكاة الحالية</Link>
                     </Button>
                   </div>
                 </SheetContent>
               ) : (
                 <DialogContent>
                   <SheetHeader>
-                    <SheetTitle>ربط بطاقة إلكترونية</SheetTitle>
-                    <SheetDescription>
-                      هذه الميزة قيد التطوير. حالياً يمكنك تجربة محاكاة ربط البطاقة ومزامنة معاملاتها من صفحة الإعدادات.
+                    <SheetTitle className="flex items-center gap-2">
+                      ربط البطاقة المصرفية
+                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-2 py-0.5 rounded-full font-normal">قريباً</span>
+                    </SheetTitle>
+                    <SheetDescription className="text-right leading-relaxed">
+                      نعمل على تطوير هذه الميزة لتعتمد على <span className="font-semibold text-foreground">رسائل SMS البنكية</span> لإضافة معاملاتك تلقائياً.
                     </SheetDescription>
                   </SheetHeader>
-                  <div className="p-4 sm:p-6">
-                    <Button asChild className="w-full mt-4">
-                        <Link href="/settings">الذهاب إلى الإعدادات</Link>
+                  <div className="p-4 space-y-3">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-3">
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        📱 المخطط: التعرف التلقائي على رسائل البنك وإضافة المعاملات بإذنك.
+                      </p>
+                    </div>
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href="/settings">استعراض المحاكاة الحالية</Link>
                     </Button>
                   </div>
                 </DialogContent>

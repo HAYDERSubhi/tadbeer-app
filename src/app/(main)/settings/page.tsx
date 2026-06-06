@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, FileText, ExternalLink } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, FileText, ExternalLink, CreditCard, Smartphone, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1437,6 +1437,76 @@ export default function SettingsPage() {
                 {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                 حفظ تغييرات الميزانية
             </Button>
+        </AccordionItemWrapper>
+
+        {/* ===== Bank Card Section ===== */}
+        <AccordionItemWrapper
+            value="item-bank"
+            icon={CreditCard}
+            title="ربط البطاقة المصرفية"
+        >
+          <div className="space-y-4">
+
+            {/* Coming Soon Badge */}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <Sparkles className="h-3 w-3" />
+                قريباً
+              </span>
+              <span className="text-xs text-muted-foreground">هذه الميزة قيد التطوير</span>
+            </div>
+
+            {/* Explanation Card */}
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <Smartphone className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">كيف ستعمل الميزة؟</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    نعمل حالياً على تطوير هذه الميزة لتعتمد على رسائل SMS البنكية — حيث سيتعرف التطبيق تلقائياً على رسائل بنكك ويضيف المعاملات دون أي إدخال يدوي.
+                  </p>
+                </div>
+              </div>
+
+              {/* Example SMS */}
+              <div className="mt-2 rounded-md bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800 p-2">
+                <p className="text-[10px] text-muted-foreground mb-1">مثال على رسالة SMS بنكية:</p>
+                <p className="text-xs font-mono text-foreground leading-relaxed">
+                  📩 تمت عملية شراء بمبلغ <span className="font-bold text-amber-700 dark:text-amber-400">25,000 د.ع</span> من متجر ABC<br/>
+                  الرصيد المتبقي: 975,000 د.ع
+                </p>
+                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-primary">
+                  <Sparkles className="h-3 w-3" />
+                  <span>سيضيفها تدبير تلقائياً كمصروف في الفئة الصحيحة</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Steps Preview */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium">خطوات الربط المخططة:</p>
+              <ol className="space-y-1.5 text-xs text-muted-foreground">
+                {[
+                  'اختيار بنكك من قائمة البنوك المدعومة',
+                  'منح التطبيق إذن قراءة رسائل SMS',
+                  'تحديد تنسيق رسائل بنكك (مرة واحدة)',
+                  'استيراد تلقائي لجميع المعاملات القادمة',
+                ].map((step, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-[9px] font-bold shrink-0">{i + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {/* Notify me button (visual only) */}
+            <Button variant="outline" className="w-full h-9 text-xs border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" disabled>
+              <MessageSquare className="ml-2 h-4 w-4" />
+              سيتم إشعارك عند الإطلاق
+            </Button>
+
+          </div>
         </AccordionItemWrapper>
 
          <AccordionItemWrapper
