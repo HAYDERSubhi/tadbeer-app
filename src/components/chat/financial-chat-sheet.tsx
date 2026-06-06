@@ -17,11 +17,11 @@ import {
   Send,
   Loader2,
   X,
-  Sparkles,
   AlertTriangle,
   Info,
   TrendingDown,
   MessageCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
@@ -270,6 +270,11 @@ export function FinancialChatSheet() {
 
   const isEmpty = messages.length === 0;
 
+  const handleBackToSuggestions = () => {
+    setMessages([]);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
   return (
     <>
       {/* ── Floating Action Button ── */}
@@ -319,14 +324,29 @@ export function FinancialChatSheet() {
                 <p className="text-[10px] text-muted-foreground mt-0.5">اسألني عن مصروفاتك</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground"
-              onClick={() => setOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {/* Back to suggestions — only visible when there's an active conversation */}
+              {!isEmpty && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                  onClick={handleBackToSuggestions}
+                  disabled={isSending}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                  اسئلة أخرى
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground"
+                onClick={() => setOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </SheetHeader>
 
           {/* Messages area */}
