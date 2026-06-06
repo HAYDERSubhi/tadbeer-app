@@ -1,43 +1,52 @@
 
 // src/ai/flows/analyze-detailed-receipt.ts
 'use server';
-/**
- * @fileOverview An AI flow for analyzing one or more receipt images and extracting a categorized list of items.
- *
- * - analyzeDetailedReceipt - A function that handles the detailed receipt analysis process.
- * - AnalyzeDetailedReceiptInput - The input type for the analyzeDetailedReceipt function.
- * - AnalyzeDetailedReceiptOutput - The return type for the analyzeDetailedReceipt function.
- */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnalyzeDetailedReceiptInputSchema = z.object({
   receiptImages: z
-    .array(
-      z
-        .string()
-        .describe(
-          "A photo of a receipt, as a public URL or a data URI that includes a MIME type and Base64 encoding."
-        )
-    )
-    .describe('An array of receipt images (URLs or data URIs) to be analyzed as a single, continuous document.'),
+    .array(z.string().describe('A receipt photo as a public URL or base64 data URI.'))
+    .describe('Receipt images treated as a single document.'),
   categories: z
     .record(z.string(), z.string())
-    .describe('A map of available category IDs to their descriptive names, to be used for categorization.'),
+    .describe('Map of category IDs to Arabic names for classification.'),
 });
 export type AnalyzeDetailedReceiptInput = z.infer<typeof AnalyzeDetailedReceiptInputSchema>;
 
 const CategorizedItemSchema = z.object({
-  name: z.string().describe('The name of the individual item purchased.'),
-  price: z.number().describe('The price of the individual item.'),
-  suggestedCategory: z.string().describe('The most appropriate category ID for this item from the provided categories list.'),
+  name: z.string().describe('Item name exactly as it appears on the receipt (keep original language).'),
+  price: z.number().describe('Item price as a number (no currency symbol, no commas).'),
+  suggestedCategory: z.string().describe('Best matching category ID from the provided list.'),
+  confidence: z
+    .enum(['high', 'medium', 'low'])
+    .describe(
+      'high = text is clear and price is unambiguous. ' +
+      'medium = text is readable but price may be approximate. ' +
+      'low = text is blurry, partially cut off, or price is uncertain.'
+    ),
 });
 
 const AnalyzeDetailedReceiptOutputSchema = z.object({
-  storeName: z.string().optional().describe('The name of the store, if identifiable.'),
-  transactionDate: z.string().optional().describe('The date of the transaction in YYYY-MM-DD format, if identifiable.'),
-  items: z.array(CategorizedItemSchema).describe('A comprehensive list of all items found on the receipt(s), with their prices and suggested categories.'),
+  storeName: z.string().optional().describe('Store or merchant name if visible.'),
+  transactionDate: z.string().optional().describe('Transaction date in YYYY-MM-DD format if visible.'),
+  totalAmount: z
+    .number()
+    .optional()
+    .describe('The grand total printed on the receipt (المجموع الكلي / الإجمالي). Extract as a plain number.'),
+  receiptType: z
+    .enum(['itemized', 'simple'])
+    .describe(
+      'itemized = receipt lists individual products with prices. ' +
+      'simple = receipt shows only a total amount with no product breakdown.'
+    ),
+  overallConfidence: z
+    .enum(['high', 'medium', 'low'])
+    .describe('Overall quality of the extraction based on image clarity.'),
+  items: z
+    .array(CategorizedItemSchema)
+    .describe('All extracted items. For a simple receipt, return one item with the total amount.'),
 });
 export type AnalyzeDetailedReceiptOutput = z.infer<typeof AnalyzeDetailedReceiptOutputSchema>;
 
@@ -51,26 +60,54 @@ const analyzeDetailedReceiptPrompt = ai.definePrompt({
   name: 'analyzeDetailedReceiptPrompt',
   input: {schema: AnalyzeDetailedReceiptInputSchema},
   output: {schema: AnalyzeDetailedReceiptOutputSchema},
-  prompt: `You are an expert financial assistant specializing in extracting and categorizing individual items from long, multi-page receipts for an Iraqi user.
+  prompt: `You are an expert OCR and financial data extraction assistant specialized in Iraqi and Arabic receipts.
 
-Your task is to analyze the provided receipt images, which should be treated as a single document. You must identify every single item, its price, and then assign the most logical spending category to it from the provided list.
+## Your Task
+Analyze the provided receipt image(s) and extract all financial data accurately.
 
-**Available Categories (ID: Name):**
+## Receipt Types You Will Encounter
+- **Thermal printer receipts** (most common in Iraq): faded ink, small text, sometimes blurry
+- **Arabic receipts**: items written right-to-left, amounts may use Arabic-Indic numerals (٠١٢٣٤٥٦٧٨٩)
+- **Mixed language**: Arabic item names with English/Latin prices
+- **Simple receipts**: only show a grand total with no itemized list
+- **Supermarket receipts**: long itemized list with multiple products
+
+## Number Handling Rules
+- Arabic-Indic numerals (٢٥٠٠٠) = treat as regular numbers (25000)
+- Prices may appear as: 25000 / 25,000 / 25.000 / IQD 25000 / ٢٥٠٠٠ د.ع
+- Always return prices as plain numbers without commas or currency symbols
+- Iraqi Dinar amounts are typically large (5000–500000 range)
+
+## Available Categories (ID: Arabic Name)
 {{#each categories}}
 - {{ @key }}: {{ this }}
 {{/each}}
 
-**Receipt Images:**
+## Receipt Images
 {{#each receiptImages}}
 {{media url=this}}
 {{/each}}
 
-**Instructions:**
-1.  Carefully scan all images to find the list of purchased items.
-2.  For each item, extract its name and price accurately.
-3.  For each item, choose the most appropriate category ID from the 'Available Categories' list above. For example, an item named "تفاح" should be categorized under "food". An item "صابون" should be "home_supplies".
-4.  If possible, identify the store name and the date of the transaction and include them.
-5.  Return the data as a single JSON object containing the store name, date, and a complete array of all categorized items. Do not miss any items, even if the receipt is very long.
+## Extraction Instructions
+1. First determine if this is an **itemized** or **simple** receipt
+2. For **itemized**: extract EVERY item with its individual price
+3. For **simple**: extract the single total amount as one item named after the store
+4. Always extract the **grand total** (المجموع / الإجمالي / Total) if visible — this is critical for verification
+5. Extract store name and date if readable
+6. Assign confidence level per item:
+   - **high**: text is sharp and price is unambiguous
+   - **medium**: text readable but some uncertainty exists
+   - **low**: blurry, cut off, or price is a guess
+7. Set overallConfidence based on image quality:
+   - **high**: most items are clear
+   - **medium**: image has some blur but main data is readable
+   - **low**: image is very blurry, dark, or heavily obscured
+
+## Important
+- Do NOT skip items even if partially readable — mark them as low confidence instead
+- Do NOT hallucinate items that are not visible
+- For each item, pick the BEST category from the provided list
+- If the receipt is completely unreadable, return an empty items array with overallConfidence: "low"
 `,
 });
 
