@@ -2,8 +2,8 @@
 'use server';
 /**
  * @fileOverview Multi-turn financial chat AI flow.
- * Accepts conversation history + a compact financial context string,
- * and returns a single assistant reply.
+ * Builds the prompt programmatically (no Handlebars) to avoid HTML-escaping
+ * issues with JSON context and Arabic message content.
  */
 
 import { ai } from '@/ai/genkit';
@@ -15,19 +15,18 @@ const MessageSchema = z.object({
 });
 
 const FinancialChatInputSchema = z.object({
-  messages: z.array(MessageSchema).describe('Full conversation history so far.'),
+  messages: z.array(MessageSchema).describe('Full conversation history.'),
   financialContext: z
     .string()
-    .describe("A compact JSON string summarising the user's current financial data."),
+    .describe("Compact JSON string of the user's financial data."),
   appTone: z
     .enum(['formal', 'colloquial'])
-    .optional()
-    .describe("'formal' = MSA, 'colloquial' = friendly Iraqi dialect."),
+    .optional(),
 });
 export type FinancialChatInput = z.infer<typeof FinancialChatInputSchema>;
 
 const FinancialChatOutputSchema = z.object({
-  reply: z.string().describe('The assistant reply in Arabic.'),
+  reply: z.string(),
 });
 export type FinancialChatOutput = z.infer<typeof FinancialChatOutputSchema>;
 
@@ -37,43 +36,6 @@ export async function financialChat(
   return financialChatFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'financialChatPrompt',
-  input: { schema: FinancialChatInputSchema },
-  output: { schema: FinancialChatOutputSchema },
-  prompt: `أنت "مستشار الجيب" — مساعد مالي ذكي مدمج في تطبيق تدبير لإدارة المصاريف.
-لديك معرفة كاملة بالبيانات المالية للمستخدم المُدرجة أدناه.
-
-{{#if appTone}}
-{{#if (eq appTone "colloquial")}}
-**الأسلوب:** استخدم لهجة عراقية دافئة وودية. تكلم بطبيعية مثل صديق يفهم بالمال.
-{{else}}
-**الأسلوب:** استخدم اللغة العربية الفصحى بأسلوب مهني ومشجع.
-{{/if}}
-{{/if}}
-
-**قواعد مهمة:**
-- أجب فقط على الأسئلة المتعلقة بالمال والإنفاق والميزانية والأهداف.
-- إذا سُئلت عن شيء خارج نطاق الأمور المالية، أعد المستخدم بلطف للموضوع.
-- اجعل إجاباتك موجزة وعملية — لا تطل بلا داعٍ.
-- عند ذكر مبالغ، استخدم تنسيق الأرقام مع الفواصل (مثل: 1,250,000 د.ع).
-- إذا كانت البيانات غير كافية للإجابة، قل ذلك بوضوح.
-
-**البيانات المالية الحالية للمستخدم:**
-\`\`\`json
-{{financialContext}}
-\`\`\`
-
-**سجل المحادثة:**
-{{#each messages}}
-{{#if (eq this.role "user")}}[المستخدم]: {{this.content}}
-{{else}}[المستشار]: {{this.content}}
-{{/if}}
-{{/each}}
-
-الآن أجب على آخر رسالة من المستخدم فقط. لا تعيد كتابة السؤال.`,
-});
-
 const financialChatFlow = ai.defineFlow(
   {
     name: 'financialChatFlow',
@@ -81,9 +43,45 @@ const financialChatFlow = ai.defineFlow(
     outputSchema: FinancialChatOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input, {
+    const toneInstruction =
+      input.appTone === 'colloquial'
+        ? 'استخدم لهجة عراقية دافئة وودية. تكلم بطبيعية مثل صديق يفهم بالمال.'
+        : 'استخدم اللغة العربية الفصحى بأسلوب مهني ومشجع.';
+
+    // Build conversation history as plain text
+    const history = input.messages
+      .map((m) =>
+        m.role === 'user'
+          ? `[المستخدم]: ${m.content}`
+          : `[مستشار الجيب]: ${m.content}`
+      )
+      .join('\n\n');
+
+    const fullPrompt = `أنت "مستشار الجيب" — مساعد مالي ذكي مدمج في تطبيق تدبير لإدارة المصاريف.
+لديك معرفة كاملة بالبيانات المالية للمستخدم المُدرجة أدناه.
+
+الأسلوب: ${toneInstruction}
+
+قواعد مهمة:
+- أجب فقط على الأسئلة المتعلقة بالمال والإنفاق والميزانية والأهداف.
+- إذا سُئلت عن شيء خارج نطاق الأمور المالية، أعد المستخدم بلطف للموضوع.
+- اجعل إجاباتك موجزة وعملية.
+- عند ذكر مبالغ استخدم تنسيق الأرقام مع الفواصل (مثل: 1,250,000 د.ع).
+
+البيانات المالية الحالية للمستخدم:
+${input.financialContext}
+
+سجل المحادثة:
+${history}
+
+أجب على آخر رسالة من المستخدم فقط. لا تعيد كتابة السؤال. لا تضف أي مقدمة.`;
+
+    const response = await ai.generate({
+      model: 'googleai/gemini-2.5-flash',
+      prompt: fullPrompt,
       config: { thinkingConfig: { thinkingBudget: 0 } },
     });
-    return output!;
+
+    return { reply: response.text.trim() };
   }
 );
