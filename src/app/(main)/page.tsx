@@ -33,6 +33,7 @@ import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
 import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
+import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -519,6 +520,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-3 pb-24">
+      <OnboardingSheet />
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
       
       {upcomingPayments.length > 0 && (
