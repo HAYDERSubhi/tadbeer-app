@@ -41,10 +41,23 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
       .map(([id, name]) => `- ${id}: ${name}`)
       .join('\n');
 
+    // Real "today" in Baghdad timezone so the model never guesses an old date.
+    const todayISO = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Baghdad',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date()); // → YYYY-MM-DD
+
     const promptText = `أنت مساعد ذكي متخصص في تسجيل المصاريف من التسجيلات الصوتية باللهجة العراقية.
 
 ## مهمتك
 استمع للتسجيل الصوتي واستخرج بيانات المصروف.
+
+## تاريخ اليوم
+تاريخ اليوم الفعلي هو: ${todayISO}
+إذا لم يذكر المستخدم تاريخاً صراحةً، استخدم تاريخ اليوم هذا بالضبط (${todayISO}).
+"اليوم" = ${todayISO}. "أمس" = اليوم ناقص يوم واحد. لا تخمّن تاريخاً من معلوماتك القديمة.
 
 ## أمثلة على الأرقام العراقية
 - "خمسين ألف" = 50000
@@ -55,7 +68,7 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
 
 ## التعليمات
 1. استمع بعناية للتسجيل
-2. استخرج: المبلغ، وصف المصروف، والتاريخ (إذا لم يُذكر تاريخ استخدم اليوم)
+2. استخرج: المبلغ، وصف المصروف، والتاريخ
 3. اختر أنسب فئة من القائمة أدناه
 4. أعد إجابة JSON صحيحة دائماً
 
@@ -65,7 +78,7 @@ ${categoriesList}
 ## مهم
 - amount يجب أن يكون رقم صحيح (مثال: 50000 وليس "خمسين ألف")
 - category يجب أن يكون أحد الـ IDs بالضبط
-- date بصيغة YYYY-MM-DD
+- date بصيغة YYYY-MM-DD، والافتراضي هو ${todayISO}
 - description وصف قصير بالعربية`;
 
     // Extract MIME type from data URI
@@ -74,6 +87,9 @@ ${categoriesList}
 
     const { output } = await ai.generate({
       output: { schema: RecordExpenseWithVoiceOutputSchema },
+      // Disable "thinking" — this is a simple extraction task, and thinking
+      // adds significant latency on gemini-2.5-flash. Speeds up analysis a lot.
+      config: { thinkingConfig: { thinkingBudget: 0 } },
       prompt: [
         {
           media: {
