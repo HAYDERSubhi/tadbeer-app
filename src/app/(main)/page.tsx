@@ -281,10 +281,12 @@ export default function DashboardPage() {
         setIsVoiceReviewOpen(true);
       } catch (err) {
         console.error('Voice analysis error:', err);
+        const rawMsg = err instanceof Error ? err.message : String(err);
         toast({
           title: 'خطأ في تحليل الصوت',
-          description: 'لم يتمكن التطبيق من فهم التسجيل. تأكد من الاتصال وحاول مرة أخرى.',
+          description: `التفاصيل: ${rawMsg}`,
           variant: 'destructive',
+          duration: 20000,
         });
       } finally {
         setIsVoiceLoading(false);
