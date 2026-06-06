@@ -2,6 +2,11 @@
 'use server';
 
 import {
+  financialChat,
+  type FinancialChatInput,
+  type FinancialChatOutput,
+} from '@/ai/flows/financial-chat';
+import {
   recordExpenseWithText,
   type RecordExpenseWithTextInput,
   type RecordExpenseWithTextOutput,
@@ -110,6 +115,27 @@ export async function analyzeSpendingPatternsAction(
       throw new Error(`Failed to analyze spending: ${error.message}`);
     }
     throw new Error('An unknown error occurred while analyzing spending.');
+  }
+}
+
+/**
+ * A Server Action for the multi-turn financial chat assistant.
+ */
+export type FinancialChatActionResult =
+  | { ok: true; data: FinancialChatOutput }
+  | { ok: false; error: string };
+
+export async function financialChatAction(
+  input: FinancialChatInput
+): Promise<FinancialChatActionResult> {
+  try {
+    const data = await financialChat(input);
+    return { ok: true, data };
+  } catch (error) {
+    console.error('Error in financialChatAction:', error);
+    const message =
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    return { ok: false, error: message };
   }
 }
 

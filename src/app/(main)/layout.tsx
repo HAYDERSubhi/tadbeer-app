@@ -10,6 +10,7 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data';
+import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -60,6 +61,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <PageNavigation />
+          <FinancialChatSheet />
         </AppShell>
       </AppDataProvider>
     );
