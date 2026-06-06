@@ -100,32 +100,26 @@ export default function DashboardPage() {
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
   
   // --- Voice Recording State & Refs ---
-  const mediaRecorderRef      = useRef<MediaRecorder | null>(null);
-  const audioChunksRef        = useRef<Blob[]>([]);
-  const audioContextRef       = useRef<AudioContext | null>(null);
-  const analyserRef           = useRef<AnalyserNode | null>(null);
-  const rafRef                = useRef<number | null>(null);
-  const recognitionRef        = useRef<any>(null);
-  const voiceTranscriptRef    = useRef('');
-  const isVoiceRecordingRef   = useRef(false); // mirror of state for use inside callbacks
+  const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
+  const audioChunksRef      = useRef<Blob[]>([]);
+  const audioContextRef     = useRef<AudioContext | null>(null);
+  const analyserRef         = useRef<AnalyserNode | null>(null);
+  const rafRef              = useRef<number | null>(null);
+  const isVoiceRecordingRef = useRef(false);
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
   const [audioLevel,       setAudioLevel]        = useState(0);
-  const [voiceTranscript,  setVoiceTranscript]   = useState('');
 
-  // helper: keep ref in sync with state
   const setRecordingState = (val: boolean) => {
     isVoiceRecordingRef.current = val;
     setIsVoiceRecording(val);
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       audioContextRef.current?.close().catch(() => {});
-      recognitionRef.current?.abort();
     };
   }, []);
 
@@ -184,7 +178,7 @@ export default function DashboardPage() {
   }, [userSettings]);
 
 
-  // --- Voice Recording Logic ---
+  // --- Voice Recording: MediaRecorder → Gemini (reliable on all mobile browsers) ---
 
   const stopAudioVisualization = () => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
@@ -194,14 +188,12 @@ export default function DashboardPage() {
     setAudioLevel(0);
   };
 
-  // FIX 1: async + ctx.resume() to unblock suspended AudioContext on mobile
-  // FIX 2: fftSize=256 for real frequency data, amplify ×5 so speech is visible
   const startAudioVisualization = async (stream: MediaStream) => {
     try {
       const ctx = new AudioContext();
-      await ctx.resume();                      // ← critical on Android Chrome
+      await ctx.resume();
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;                  // ← 16× more resolution than before
+      analyser.fftSize = 256;
       analyser.smoothingTimeConstant = 0.4;
       ctx.createMediaStreamSource(stream).connect(analyser);
       audioContextRef.current = ctx;
@@ -211,27 +203,23 @@ export default function DashboardPage() {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
-        setAudioLevel(Math.min(1, avg * 5));   // ← amplify so quiet speech moves bars
+        setAudioLevel(Math.min(1, avg * 5));
         rafRef.current = requestAnimationFrame(tick);
       };
       tick();
-    } catch { /* AudioContext not supported – visualization skipped */ }
+    } catch { /* skip if AudioContext unsupported */ }
   };
 
   const handleToggleVoiceRecording = async () => {
-    // ── STOP ─────────────────────────────────────────────────────────────────
+    // ── STOP: user finished speaking ─────────────────────────────────────────
     if (isVoiceRecordingRef.current) {
       setRecordingState(false);
-      recognitionRef.current?.stop();
-      mediaRecorderRef.current?.stop();
       stopAudioVisualization();
+      mediaRecorderRef.current?.stop(); // triggers onstop → Gemini analysis
       return;
     }
 
     // ── START ─────────────────────────────────────────────────────────────────
-    voiceTranscriptRef.current = '';
-    setVoiceTranscript('');
-
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -244,160 +232,56 @@ export default function DashboardPage() {
       return;
     }
 
-    startAudioVisualization(stream);  // fire-and-forget async
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    audioChunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+
+      if (audioChunksRef.current.length === 0) return;
+
+      const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+      setIsVoiceLoading(true);
+
+      try {
+        const base64Audio = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror   = () => reject(new Error('FileReader failed'));
+          reader.readAsDataURL(blob);
+        });
+
+        const result = await recordExpenseWithVoiceAction({
+          voiceRecordingDataUri: base64Audio,
+          categories: categoryMapForAI,
+        });
+
+        setVoiceExpenseData({
+          title: result.description,
+          amount: result.amount,
+          category: result.category,
+          date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
+        });
+        setIsVoiceReviewOpen(true);
+      } catch {
+        toast({
+          title: 'خطأ في تحليل الصوت',
+          description: 'لم يتمكن التطبيق من فهم التسجيل. حاول مرة أخرى.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsVoiceLoading(false);
+      }
+    };
+
+    await startAudioVisualization(stream);
+    mediaRecorder.start();
     setRecordingState(true);
-
-    const SR =
-      typeof window !== 'undefined' &&
-      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-
-    if (SR) {
-      // ── PRIMARY: SpeechRecognition restart-loop ──────────────────────────
-      // FIX: continuous:false + manual restart avoids the Android Chrome bug
-      // where continuous:true stops immediately without capturing anything.
-
-      const processTranscript = async () => {
-        stopAudioVisualization();
-        stream.getTracks().forEach(t => t.stop());
-
-        const text = voiceTranscriptRef.current.trim();
-        if (!text) {
-          toast({
-            title: 'لم يُتعرف على كلام',
-            description: 'تحدث بوضوح وقرب الهاتف من فمك ثم حاول مجدداً.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        setIsVoiceLoading(true);
-        try {
-          const result = await recordExpenseAction({
-            expenseText: text,
-            categories: categoryMapForAI,
-          });
-          setVoiceExpenseData({
-            title: result.description || text,
-            amount: result.amount || undefined,
-            category: result.category,
-            date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
-          });
-          voiceTranscriptRef.current = '';
-          setVoiceTranscript('');
-          setIsVoiceReviewOpen(true);
-        } catch {
-          toast({
-            title: 'خطأ في تحليل الكلام',
-            description: 'لم نتمكن من استخراج بيانات المصروف. حاول مجدداً.',
-            variant: 'destructive',
-          });
-        } finally {
-          setIsVoiceLoading(false);
-        }
-      };
-
-      const startRecognitionSession = () => {
-        const recognition = new SR() as any;
-        recognitionRef.current = recognition;
-        recognition.lang = 'ar-SA';          // most compatible Arabic locale
-        recognition.continuous = false;       // ← FIX: avoid Android bug
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (e: any) => {
-          // Accumulate results across multiple sessions
-          const sessionText = Array.from<any>(e.results)
-            .map((r: any) => r[0].transcript)
-            .join('');
-          const full = (voiceTranscriptRef.current + ' ' + sessionText).trim();
-          voiceTranscriptRef.current = full;
-          setVoiceTranscript(full);
-        };
-
-        recognition.onend = () => {
-          if (isVoiceRecordingRef.current) {
-            // User hasn't pressed stop yet → restart for next phrase
-            try { startRecognitionSession(); } catch { /* ignore */ }
-          } else {
-            // User pressed stop → process what we have
-            processTranscript();
-          }
-        };
-
-        recognition.onerror = (e: any) => {
-          if (e.error === 'aborted') return;  // user-triggered, not an error
-          if (e.error === 'no-speech') {
-            // Restart silently if still recording
-            if (isVoiceRecordingRef.current) {
-              try { startRecognitionSession(); } catch { /* ignore */ }
-            }
-            return;
-          }
-          // Genuine error
-          toast({
-            title: 'خطأ في التعرف على الصوت',
-            description: `(${e.error}) — جرّب مجدداً`,
-            variant: 'destructive',
-          });
-          setRecordingState(false);
-          stopAudioVisualization();
-          stream.getTracks().forEach(t => t.stop());
-        };
-
-        recognition.start();
-      };
-
-      startRecognitionSession();
-
-    } else {
-      // ── FALLBACK: MediaRecorder → audio blob → Gemini ───────────────────
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        stopAudioVisualization();
-        stream.getTracks().forEach(t => t.stop());
-
-        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        setIsVoiceLoading(true);
-        try {
-          const base64Audio = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror   = () => reject(new Error('FileReader failed'));
-            reader.readAsDataURL(blob);
-          });
-
-          const result = await recordExpenseWithVoiceAction({
-            voiceRecordingDataUri: base64Audio,
-            categories: categoryMapForAI,
-          });
-
-          setVoiceExpenseData({
-            title: result.description,
-            amount: result.amount,
-            category: result.category,
-            date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
-          });
-          setIsVoiceReviewOpen(true);
-        } catch {
-          toast({
-            title: 'خطأ في تحليل الصوت',
-            description: 'تأكد من الاتصال وحاول مرة أخرى.',
-            variant: 'destructive',
-          });
-        } finally {
-          setIsVoiceLoading(false);
-        }
-      };
-
-      mediaRecorder.start();
-    }
   };
 
 
@@ -802,11 +686,11 @@ export default function DashboardPage() {
             </CardComponent>
           </div>
 
-          {/* Live transcript shown while recording via SpeechRecognition */}
-          {isVoiceRecording && voiceTranscript && (
-            <div className="flex items-start gap-2 rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 animate-in fade-in slide-in-from-bottom-1">
-              <Mic className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
-              <p className="text-xs text-foreground leading-relaxed">{voiceTranscript}</p>
+          {/* Recording status indicator */}
+          {isVoiceRecording && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 animate-in fade-in slide-in-from-bottom-1">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse shrink-0" />
+              <p className="text-xs text-muted-foreground">جاري التسجيل... اضغط مرة أخرى عند الانتهاء</p>
             </div>
           )}
         </CardContent>
