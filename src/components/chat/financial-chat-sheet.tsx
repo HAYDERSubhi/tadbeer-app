@@ -20,7 +20,6 @@ import {
   AlertTriangle,
   Info,
   TrendingDown,
-  MessageCircle,
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -314,7 +313,7 @@ export function FinancialChatSheet() {
         )}
         style={{ width: 52, height: 52 }}
       >
-        <MessageCircle className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
+        <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
 
         {/* Badge */}
         {badgeCount > 0 && (
