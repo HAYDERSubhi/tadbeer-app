@@ -47,7 +47,6 @@ interface ProactiveAlert {
 
 const QUICK_SUGGESTIONS = [
   'كم صرفت هذا الشهر؟',
-  'وين راحت فلوسي؟',
   'كم تبقى من ميزانيتي؟',
   'قارن هذا الشهر بالشهر الماضي',
   'ما وضع أهدافي؟',
@@ -73,10 +72,10 @@ export function FinancialChatSheet() {
 
   /* ── Respond to keyboard open/close via visualViewport ── */
   const updateSheetHeight = useCallback(() => {
-    const vh = window.visualViewport?.height ?? window.innerHeight;
+    const vp = window.visualViewport;
+    const vh = vp ? vp.height + vp.offsetTop : window.innerHeight;
     if (sheetContentRef.current) {
-      // Leave a small gap at the top so the user sees they can dismiss
-      const height = Math.max(vh - 16, 200);
+      const height = Math.max(vh - 12, 200);
       sheetContentRef.current.style.height = `${height}px`;
       sheetContentRef.current.style.maxHeight = `${height}px`;
     }
@@ -84,12 +83,12 @@ export function FinancialChatSheet() {
 
   useEffect(() => {
     if (!open) return;
-    updateSheetHeight();
+    // Small delay to let the sheet fully render before measuring
+    const t = setTimeout(updateSheetHeight, 50);
     window.visualViewport?.addEventListener('resize', updateSheetHeight);
-    window.visualViewport?.addEventListener('scroll', updateSheetHeight);
     return () => {
+      clearTimeout(t);
       window.visualViewport?.removeEventListener('resize', updateSheetHeight);
-      window.visualViewport?.removeEventListener('scroll', updateSheetHeight);
     };
   }, [open, updateSheetHeight]);
 
@@ -98,12 +97,7 @@ export function FinancialChatSheet() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
 
-  /* ── Focus input when sheet opens ── */
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-    }
-  }, [open]);
+  /* ── Do NOT auto-focus on open — prevents keyboard from hiding content ── */
 
   /* ── Proactive alerts (computed client-side, no AI call) ── */
   const proactiveAlerts = useMemo((): ProactiveAlert[] => {
@@ -335,8 +329,8 @@ export function FinancialChatSheet() {
         <SheetContent
           ref={sheetContentRef}
           side="bottom"
-          className="rounded-t-2xl p-0 flex flex-col gap-0 transition-[height] duration-75"
-          style={{ height: '82vh', maxHeight: '82vh' }}
+          className="rounded-t-2xl p-0 flex flex-col gap-0"
+          style={{ height: '88dvh', maxHeight: '88dvh' }}
         >
           {/* Header */}
           <SheetHeader className="flex-row items-center justify-between px-4 py-3 border-b shrink-0">
@@ -407,12 +401,12 @@ export function FinancialChatSheet() {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground mb-2 font-medium">اقتراحات سريعة:</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {QUICK_SUGGESTIONS.map((s) => (
                         <button
                           key={s}
                           onClick={() => handleSend(s)}
-                          className="text-[11px] px-3 py-1.5 rounded-full border border-border bg-background hover:bg-muted transition-colors"
+                          className="text-[11px] px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-muted transition-colors text-center leading-snug"
                         >
                           {s}
                         </button>
