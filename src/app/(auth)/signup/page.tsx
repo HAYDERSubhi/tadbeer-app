@@ -14,7 +14,6 @@ import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, User, CheckCircle2 } from 'lucide-react';
 import { addExpense, recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
-import { useSearchParams } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
 
@@ -52,15 +51,16 @@ const sampleExpenses = [
 export default function SignupPage() {
   const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading]             = useState(false);
 
-  // Persist referral code from URL into sessionStorage
+  // Persist referral code from URL into sessionStorage (no useSearchParams needed)
   useEffect(() => {
-    const ref = searchParams.get('ref');
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
     if (ref) sessionStorage.setItem('tadbeer-ref', ref);
-  }, [searchParams]);
+  }, []);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
