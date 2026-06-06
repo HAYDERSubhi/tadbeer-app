@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { UserProfile, Goal } from '@/types';
 import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
+import { subMonths, isAfter, parseISO as parseDateISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -40,7 +41,7 @@ import {
 } from "@/components/ui/accordion";
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addGoal, deleteGoal } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/use-categories';
@@ -79,12 +80,7 @@ function PlannerContent() {
   const { goals, expenses, userSettings } = useAppData();
 
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
-  const [activePlanId, setActivePlanId] = useState<string>('');
-  
-  const [plan, setPlan] = useState<FinancialPlannerOutput | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
+  const [planEnabled, setPlanEnabled] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const userProfile: UserProfile | undefined = userSettings?.profile;
@@ -104,6 +100,60 @@ function PlannerContent() {
   }, [goalIdFromQuery, goals, selectedGoalId]);
   
   const selectedGoal = useMemo(() => goals.find(g => g.id === selectedGoalId), [goals, selectedGoalId]);
+
+  // Reset plan when user switches to a different goal
+  useEffect(() => {
+    setPlanEnabled(false);
+  }, [selectedGoalId]);
+
+  // Limit expenses to last 6 months to avoid token overflows
+  const recentExpenses = useMemo(() => {
+    const cutoff = subMonths(new Date(), 6);
+    return expenses.filter(e => {
+      try { return isAfter(parseDateISO(e.date), cutoff); }
+      catch { return false; }
+    });
+  }, [expenses]);
+
+  // Stable cache key — only regenerates if goal or income changes
+  const planCacheKey = useMemo(() => {
+    if (!selectedGoal || !userProfile?.monthlyIncome) return null;
+    return `plan-${selectedGoal.id}-${selectedGoal.targetAmount}-${userProfile.monthlyIncome}`;
+  }, [selectedGoal, userProfile?.monthlyIncome]);
+
+  const {
+    data: plan,
+    isFetching: isGenerating,
+    error: planError,
+    refetch: refetchPlan,
+  } = useQuery<FinancialPlannerOutput>({
+    queryKey: ['financial-plan', planCacheKey],
+    queryFn: async () => {
+      if (!selectedGoal || !userProfile?.monthlyIncome) throw new Error('missing data');
+      const input: FinancialPlannerInput = {
+        goal: {
+          name: selectedGoal.name,
+          targetAmount: selectedGoal.targetAmount,
+          targetDate: format(new Date(selectedGoal.targetDate), 'yyyy-MM-dd'),
+        },
+        userProfile: {
+          monthlyIncome: userProfile.monthlyIncome,
+          familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
+        },
+        appTone: userSettings?.appTone ?? 'formal',
+        expenses: recentExpenses.map(e => ({
+          ...e,
+          category: categoryMap[e.category]?.name || e.category,
+        })),
+        userMessage: "أريد خطة مفصلة لتحقيق هذا الهدف.",
+      };
+      return financialPlanner(input);
+    },
+    enabled: planEnabled && !!planCacheKey,
+    staleTime: 1000 * 60 * 15, // 15 minutes — don't re-fetch unless goal changes
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
+  });
 
   const addGoalMutation = useMutation({
     mutationFn: (newGoal: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => addGoal(user!.uid, newGoal),
@@ -126,10 +176,9 @@ function PlannerContent() {
     onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
       toast({ title: "تم الحذف", description: "تم حذف الهدف المالي بنجاح." });
-      if(selectedGoalId === deletedId) setSelectedGoalId('');
-      if(activePlanId === deletedId) {
-        setActivePlanId('');
-        setPlan(null);
+      if(selectedGoalId === deletedId) {
+        setSelectedGoalId('');
+        setPlanEnabled(false);
       }
     }
   });
@@ -149,35 +198,12 @@ function PlannerContent() {
     deleteGoalMutation.mutate(goalId);
   };
 
-  const handleGeneratePlan = async () => {
-    if (!selectedGoal) {
-      setError("الرجاء اختيار هدف أولاً.");
-      return;
-    }
-    if (!userProfile || !userProfile.monthlyIncome || !userProfile.familyMembers || userProfile.familyMembers.length === 0) {
-      setError("الرجاء إكمال ملفك الشخصي في الإعدادات، خاصة الدخل الشهري وتفاصيل أفراد الأسرة.");
-      return;
-    }
-
-    setIsGenerating(true);
-    setActivePlanId(selectedGoal.id);
-    setError(null);
-    setPlan(null);
-
-    try {
-        const plannerInput: FinancialPlannerInput = {
-            goal: { name: selectedGoal.name, targetAmount: selectedGoal.targetAmount, targetDate: format(new Date(selectedGoal.targetDate), 'yyyy-MM-dd') },
-            userProfile: { monthlyIncome: userProfile.monthlyIncome, familyMembers: userProfile.familyMembers.map(({ id, ...rest}) => rest) },
-            expenses: expenses.map(e => ({ ...e, category: categoryMap[e.category]?.name || e.category })),
-            userMessage: "أريد خطة مفصلة لتحقيق هذا الهدف.",
-        };
-        const result = await financialPlanner(plannerInput);
-        setPlan(result);
-    } catch (e: any) {
-        console.error("Error generating financial plan:", e);
-        setError("حدث خطأ غير متوقع أثناء إنشاء الخطة. يرجى المحاولة مرة أخرى.");
-    } finally {
-        setIsGenerating(false);
+  const handleGeneratePlan = () => {
+    if (planEnabled && plan) {
+      // Already have a cached plan — force refresh
+      refetchPlan();
+    } else {
+      setPlanEnabled(true);
     }
   };
 
@@ -186,8 +212,10 @@ function PlannerContent() {
     return months <= 0 ? 1 : months;
   };
   
+  const error = planError ? "حدث خطأ أثناء إنشاء الخطة. يرجى المحاولة مرة أخرى." : null;
+
   const renderPlan = () => {
-    if (!plan || activePlanId !== selectedGoalId) return null;
+    if (!plan) return null;
     return (
         <Card className='mt-6 animate-in fade-in duration-500'>
             <CardHeader className="py-4">
@@ -382,7 +410,12 @@ function PlannerContent() {
             <CardContent className="p-4 space-y-2 text-center">
                  <Label className="text-xs">الهدف المختار: <span className="font-bold text-primary">{selectedGoal?.name || "اختر هدفًا"}</span></Label>
                 <Button onClick={handleGeneratePlan} disabled={isGenerating || !selectedGoalId || !userProfile?.monthlyIncome} className="w-full h-10 text-sm">
-                    {isGenerating && activePlanId === selectedGoalId ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإنشاء...</> : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية</>}
+                    {isGenerating
+                      ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin" /> جاري الإنشاء...</>
+                      : plan
+                        ? <><Bot className="ml-2 h-4 w-4" /> تحديث الخطة</>
+                        : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية</>
+                    }
                 </Button>
             </CardContent>
         </Card>
@@ -392,13 +425,13 @@ function PlannerContent() {
 
       {error && <Alert variant="destructive" className="p-3 text-xs"><XCircle className="h-4 w-4" /><AlertTitle className="font-semibold">خطأ</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
       
-      {(isGenerating && activePlanId === selectedGoalId) && 
+      {isGenerating &&
         <div className='space-y-3 mt-4'>
             <Skeleton className='h-10 w-full' /><Skeleton className='h-20 w-full' /><Skeleton className='h-40 w-full' />
         </div>
       }
-      
-      {plan && activePlanId === selectedGoalId && renderPlan()}
+
+      {plan && !isGenerating && renderPlan()}
 
     </div>
   );

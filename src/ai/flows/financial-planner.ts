@@ -29,6 +29,7 @@ const FinancialGoalSchema = z.object({
 const FinancialPlannerInputSchema = z.object({
   userProfile: UserProfileSchema,
   goal: FinancialGoalSchema,
+  appTone: z.enum(['formal', 'colloquial']).optional().describe("Tone: 'formal' = Modern Standard Arabic, 'colloquial' = friendly Iraqi dialect."),
   expenses: z.array(
       z.object({
           title: z.string(),
@@ -68,6 +69,8 @@ const prompt = ai.definePrompt({
     })},
     output: {schema: FinancialPlannerOutputSchema},
     prompt: `You are a highly skilled, logical, and encouraging financial planner for an Iraqi user. Your primary goal is to create a realistic, actionable, and personalized financial plan to help the user achieve a specific goal. All responses must be in Arabic.
+
+{{#if appTone}}Tone: {{#if (eq appTone "colloquial")}}Use a warm, friendly Iraqi dialect (عامية عراقية) throughout.{{else}}Use clear, professional Modern Standard Arabic (فصحى).{{/if}}{{/if}}
 
     **Today's Date:** {{currentDate}}
 
@@ -124,8 +127,10 @@ const financialPlannerFlow = ai.defineFlow(
         ...input,
         currentDate: format(new Date(), 'yyyy-MM-dd')
     };
-    const {output} = await prompt(promptInput);
-    
+    const {output} = await prompt(promptInput, {
+      config: { thinkingConfig: { thinkingBudget: 0 } },
+    });
+
     // Server-side validation and correction of the monthly savings calculation
     if (output) {
         const monthsLeft = differenceInCalendarMonths(new Date(input.goal.targetDate), new Date());
