@@ -42,19 +42,29 @@ export async function recordExpenseAction(
 
 /**
  * A Server Action to call the voice-to-expense AI flow.
+ *
+ * Returns a discriminated result object instead of throwing, because Next.js
+ * strips thrown error messages in production builds (replacing them with a
+ * generic "Server Components render" message). Returning the error as a value
+ * lets the real message cross the server/client boundary intact.
  */
+export type VoiceActionResult =
+  | { ok: true; data: RecordExpenseWithVoiceOutput }
+  | { ok: false; error: string };
+
 export async function recordExpenseWithVoiceAction(
   input: RecordExpenseWithVoiceInput
-): Promise<RecordExpenseWithVoiceOutput> {
+): Promise<VoiceActionResult> {
   try {
-    const result = await recordExpenseWithVoice(input);
-    return result;
+    const data = await recordExpenseWithVoice(input);
+    return { ok: true, data };
   } catch (error) {
     console.error('Error in recordExpenseWithVoiceAction:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to process voice expense: ${error.message}`);
-    }
-    throw new Error('An unknown error occurred while processing the voice command.');
+    const message =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : String(error);
+    return { ok: false, error: message };
   }
 }
 

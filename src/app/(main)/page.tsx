@@ -267,11 +267,16 @@ export default function DashboardPage() {
         // so we transcode in-browser to 16kHz mono WAV which Gemini accepts.
         const wavDataUri = await blobToWavDataUri(blob);
 
-        const result = await recordExpenseWithVoiceAction({
+        const response = await recordExpenseWithVoiceAction({
           voiceRecordingDataUri: wavDataUri,
           categories: categoryMapForAI,
         });
 
+        if (!response.ok) {
+          throw new Error(response.error);
+        }
+
+        const result = response.data;
         setVoiceExpenseData({
           title: result.description,
           amount: result.amount,
