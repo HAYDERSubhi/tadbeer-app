@@ -19,5 +19,6 @@ export const ai = genkit({
     }),
   ],
   // Set a default model for stability.
-  model: 'googleai/gemini-2.0-flash',
+  // NOTE: gemini-2.0-flash was retired by Google (404). Use 2.5-flash.
+  model: 'googleai/gemini-2.5-flash',
 });
