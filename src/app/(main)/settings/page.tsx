@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, FileText, ExternalLink, CreditCard, Smartphone, Sparkles } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -71,6 +71,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { useCurrency } from '@/hooks/use-currency';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -328,12 +329,6 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setI
 
     return (
         <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full text-xs h-9">
-                    <MessageSquare className="ml-2 h-4 w-4" />
-                    إرسال ملاحظات واقتراحات
-                </Button>
-            </DialogTrigger>
             <DialogContentComponent className={isMobile ? "flex flex-col" : ""}>
                 <DialogHeader>
                     <DialogTitle className="text-sm">إرسال ملاحظات</DialogTitle>
@@ -377,6 +372,7 @@ export default function SettingsPage() {
 
   const { userSettings, expenses, incomes } = useAppData();
   const { categories, getIconComponent } = useCategories();
+  const { format: formatCurrency } = useCurrency();
 
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
@@ -505,6 +501,7 @@ export default function SettingsPage() {
           if (variables.appTone || variables.notifications) setOpenAccordionItems(items => items.filter(i => i !== 'item-1'));
           if (variables.profile) setOpenAccordionItems(items => items.filter(i => i !== 'item-2'));
           if (variables.budget || variables.categoryBudgets || variables.recurringPayments) setOpenAccordionItems(items => items.filter(i => i !== 'item-3'));
+          if (variables.categories) setOpenAccordionItems(items => items.filter(i => i !== 'item-3b'));
       },
       onError: () => {
           toast({
@@ -1220,7 +1217,7 @@ export default function SettingsPage() {
                 <Card className="text-center bg-muted/50">
                     <CardContent className="p-3">
                         <Label className="text-xs">إجمالي الدخل الشهري المتكرر</Label>
-                        <p className="text-xl font-bold text-primary">{formatNumberWithCommas(totalRecurringIncome)} د.ع</p>
+                        <p className="text-xl font-bold text-primary">{formatCurrency(totalRecurringIncome)}</p>
                     </CardContent>
                 </Card>
 
@@ -1245,7 +1242,7 @@ export default function SettingsPage() {
                                             </div>
                                         </div>
                                         <div className='flex items-center'>
-                                            <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap text-sm">{income.amount.toLocaleString()}&nbsp;د.ع</p>
+                                            <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap text-sm">{formatCurrency(income.amount)}</p>
                                             <div className="flex items-center gap-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><Pencil className="h-4 w-4" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
@@ -1317,24 +1314,93 @@ export default function SettingsPage() {
         <AccordionItemWrapper
             value="item-3"
             icon={SlidersHorizontal}
-            title="إدارة الميزانية والفئات"
+            title="الميزانية والدفعات الدورية"
         >
              {/* Budget & Goals */}
             <div className="space-y-4">
-                 <h3 className='text-sm font-medium'>الميزانية والأهداف</h3>
-                <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية (د.ع)</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
+                 <h3 className='text-sm font-medium'>الميزانية الشهرية</h3>
+                <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2">
-                    <Label htmlFor="zeroSpendDaysTarget" className="text-xs">الهدف لأيام الإنفاق المنخفض (شهرياً)</Label>
-                    <p className="text-[11px] text-muted-foreground -mt-1">يوم الإنفاق المنخفض هو يوم يقل فيه إجمالي مصاريفك عن 10% من متوسط إنفاقك اليومي.</p>
+                    <Label htmlFor="zeroSpendDaysTarget" className="text-xs">هدف أيام الإنفاق المنخفض (شهرياً)</Label>
+                    <p className="text-[11px] text-muted-foreground -mt-1">يوم ينفق فيه أقل من 10% من متوسطك اليومي — هدفك كم يوم من هذا في الشهر؟</p>
                     <Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" />
                 </div>
             </div>
-            
+
             <Separator />
 
-            {/* Category Management */}
+            {/* Category Budgets */}
             <div className="space-y-4">
-              <h3 className="text-sm font-medium">إدارة الفئات</h3>
+                 <h3 className='text-sm font-medium'>ميزانيات الفئات</h3>
+                 <p className="text-[11px] text-muted-foreground -mt-2">حدد حداً لكل فئة لتتبع إنفاقك بدقة أكبر.</p>
+                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 bg-background border rounded-lg p-3">
+                    {categories.map((category) => (
+                        <div key={category.id} className="flex items-center gap-3">
+                            <span className="flex items-center gap-2 w-[45%] text-sm shrink-0"><span className="text-base">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`} className="text-xs leading-tight">{category.name}</Label></span>
+                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1 h-9 text-sm" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <Separator />
+
+            {/* Recurring Payments */}
+            <div className="space-y-4">
+                <h3 className='text-sm font-medium'>الدفعات الدورية</h3>
+                <p className="text-[11px] text-muted-foreground -mt-2">الإيجار، الاشتراكات، الأقساط — سيحسبها التطبيق ضمن الميزانية تلقائياً.</p>
+                <div className="space-y-2">
+                    {recurringPayments.length === 0 ? (
+                        <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد دفعات متكررة مسجلة.</p>
+                    ) : (
+                        <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
+                            {recurringPayments.map(p => (
+                                <li key={p.id} className="flex items-center justify-between p-2.5 border-b last:border-b-0">
+                                    <div className="flex-1"><p className="font-semibold text-sm">{p.title}</p><p className="text-xs text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: ar})}</p></div>
+                                    <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap text-sm">{formatCurrency(p.amount)}</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                <FormDialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="w-full text-xs h-9" variant="outline" onClick={handleAddNewPaymentClick}><UserPlus className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
+                    </DialogTrigger>
+                    <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
+                        <SheetHeader>
+                            <SheetTitle className="text-sm">{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
+                        </SheetHeader>
+                        <div className="overflow-y-auto flex-1 p-6 pt-2">
+                            <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="space-y-4">
+                                <div className="space-y-2"><Label htmlFor="rp-title" className="text-xs">اسم الدفعة</Label><Input id="rp-title" className="text-xs h-9" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
+                                <div className="space-y-2"><Label htmlFor="rp-amount" className="text-xs">المبلغ</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" className="text-xs h-9" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2"><Label htmlFor="rp-frequency" className="text-xs">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
+                                    <div className="space-y-2"><Label className="text-xs">تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={ar} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
+                                </div>
+                                <div className="space-y-2"><Label htmlFor="rp-category" className="text-xs">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category" className="text-xs h-9"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
+                                <Button type="submit" className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
+                            </form>
+                        </div>
+                    </SheetContent>
+                </FormDialog>
+            </div>
+            <Separator />
+            <Button onClick={handleSaveBudgetSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
+                {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
+                حفظ تغييرات الميزانية
+            </Button>
+        </AccordionItemWrapper>
+
+        {/* ===== Categories Section (split from item-3) ===== */}
+        <AccordionItemWrapper
+            value="item-3b"
+            icon={Tag}
+            title="إدارة الفئات"
+        >
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground -mt-2">أضف أو عدّل فئات المصاريف حسب احتياجك.</p>
               <div className="border rounded-lg p-2 space-y-2 max-h-72 overflow-y-auto">
                 {categories.map(cat => (
                   <div key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
@@ -1371,141 +1437,53 @@ export default function SettingsPage() {
                 <UserPlus className="ml-2 h-4 w-4" /> إضافة فئة جديدة
               </Button>
             </div>
-            
-            <Separator />
-            
-            {/* Category Budgets */}
-            <div className="space-y-4">
-                 <h3 className='text-sm font-medium'>ميزانيات الفئات</h3>
-                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-3 -mr-3 bg-background border rounded-lg p-3">
-                    {categories.map((category) => (
-                        <div key={category.id} className="flex items-center gap-4">
-                            <span className="flex items-center gap-2 w-1/3 text-sm"><span className="text-lg">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`} className="text-xs">{category.name}</Label></span>
-                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1 h-9 text-sm" />
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <Separator />
-
-            {/* Recurring Payments */}
-            <div className="space-y-4">
-                <h3 className='text-sm font-medium'>الدفعات الدورية</h3>
-                <div>
-                     <h4 className="font-medium mb-2 text-xs">الدفعات الحالية</h4>
-                    <div className="space-y-2">
-                        {recurringPayments.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد دفعات متكررة مسجلة.</p>
-                        ) : (
-                            <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
-                                {recurringPayments.map(p => (
-                                    <li key={p.id} className="flex items-center justify-between p-2.5 border-b last:border-b-0">
-                                        <div className="flex-1"><p className="font-semibold text-sm">{p.title}</p><p className="text-xs text-muted-foreground">{frequencyMap[p.frequency]} - يبدأ من {format(new Date(p.startDate), 'd MMM yyyy', {locale: ar})}</p></div>
-                                        <div className='flex items-center'><p className="font-semibold text-foreground whitespace-nowrap text-sm">{p.amount.toLocaleString()}&nbsp;د.ع</p><div className="flex items-center gap-0"><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditPaymentClick(p)}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteRecurringPayment(p.id)}><Trash2 className="h-4 w-4" /></Button></div></div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-                <FormDialog open={isRecurringPaymentDialogOpen} onOpenChange={setIsRecurringPaymentDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="w-full text-xs h-9" variant="outline" onClick={handleAddNewPaymentClick}><UserPlus className="ml-2 h-4 w-4" />إضافة دفعة دورية جديدة</Button>
-                    </DialogTrigger>
-                    <SheetContent side="bottom" className="flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
-                        <SheetHeader>
-                            <SheetTitle className="text-sm">{editingPaymentId ? 'تعديل الدفعة الدورية' : 'إضافة دفعة دورية جديدة'}</SheetTitle>
-                        </SheetHeader>
-                        <div className="overflow-y-auto flex-1 p-6 pt-2">
-                            <form onSubmit={recurringPaymentForm.handleSubmit(handleSaveRecurringPayment)} className="space-y-4">
-                                <div className="space-y-2"><Label htmlFor="rp-title" className="text-xs">اسم الدفعة</Label><Input id="rp-title" className="text-xs h-9" {...recurringPaymentForm.register('title')} placeholder="مثال: قسط السيارة، إيجار المنزل" />{recurringPaymentForm.formState.errors.title && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.title.message}</p>}</div>
-                                <div className="space-y-2"><Label htmlFor="rp-amount" className="text-xs">المبلغ (د.ع)</Label><Controller name="amount" control={recurringPaymentForm.control} render={({ field: { onChange, value, ...restField } }) => ( <Input {...restField} id="rp-amount" className="text-xs h-9" type="text" inputMode="decimal" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} /> )}/>{recurringPaymentForm.formState.errors.amount && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.amount.message}</p>}</div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2"><Label htmlFor="rp-frequency" className="text-xs">تكرار الدفعة</Label><Controller name="frequency" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-frequency" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="monthly">شهرياً</SelectItem><SelectItem value="quarterly">ربع سنوياً</SelectItem><SelectItem value="annually">سنوياً</SelectItem><SelectItem value="one-time">مرة واحدة</SelectItem></SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.frequency && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.frequency.message}</p>}</div>
-                                    <div className="space-y-2"><Label className="text-xs">تاريخ أول دفعة</Label><Controller name="startDate" control={recurringPaymentForm.control} render={({ field }) => ( <Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: ar }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={ar} /></PopoverContent></Popover> )}/>{recurringPaymentForm.formState.errors.startDate && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.startDate.message}</p>}</div>
-                                </div>
-                                <div className="space-y-2"><Label htmlFor="rp-category" className="text-xs">تصنيف المصروف</Label><Controller name="category" control={recurringPaymentForm.control} render={({ field }) => ( <Select onValueChange={field.onChange} value={field.value}><SelectTrigger id="rp-category" className="text-xs h-9"><SelectValue placeholder="اختر فئة..." /></SelectTrigger><SelectContent>{categories.map((cat) => ( <SelectItem key={cat.id} value={cat.id}>{getIconComponent(cat.icon)} {cat.name}</SelectItem> ))}</SelectContent></Select> )}/>{recurringPaymentForm.formState.errors.category && <p className="text-sm text-destructive mt-1">{recurringPaymentForm.formState.errors.category.message}</p>}</div>
-                                <Button type="submit" className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>{updateSettingsMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingPaymentId ? <><Save className="ml-2 h-4 w-4" /> تحديث الدفعة</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة الدفعة</>}</Button>
-                            </form>
-                        </div>
-                    </SheetContent>
-                </FormDialog>
-            </div>
-             <Separator />
-            <Button onClick={handleSaveBudgetSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
-                {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-                حفظ تغييرات الميزانية
-            </Button>
         </AccordionItemWrapper>
 
         {/* ===== Bank Card Section ===== */}
         <AccordionItemWrapper
             value="item-bank"
             icon={CreditCard}
-            title="ربط البطاقة المصرفية"
+            title="استيراد رسائل البطاقة"
         >
           <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              حوّل رسائل SMS البنكية إلى مصاريف بضغطة واحدة — يدعم Qi Card، البنك الأهلي، Tabadul، Zain Cash.
+            </p>
 
-            {/* Coming Soon Badge */}
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                <Sparkles className="h-3 w-3" />
-                قريباً
-              </span>
-              <span className="text-xs text-muted-foreground">هذه الميزة قيد التطوير</span>
-            </div>
-
-            {/* Explanation Card */}
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2">
-              <div className="flex items-start gap-2">
-                <Smartphone className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">كيف ستعمل الميزة؟</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                    نعمل حالياً على تطوير هذه الميزة لتعتمد على رسائل SMS البنكية — حيث سيتعرف التطبيق تلقائياً على رسائل بنكك ويضيف المعاملات دون أي إدخال يدوي.
-                  </p>
-                </div>
-              </div>
-
-              {/* Example SMS */}
-              <div className="mt-2 rounded-md bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800 p-2">
-                <p className="text-[10px] text-muted-foreground mb-1">مثال على رسالة SMS بنكية:</p>
-                <p className="text-xs font-mono text-foreground leading-relaxed">
-                  📩 تمت عملية شراء بمبلغ <span className="font-bold text-amber-700 dark:text-amber-400">25,000 د.ع</span> من متجر ABC<br/>
-                  الرصيد المتبقي: 975,000 د.ع
-                </p>
-                <div className="mt-2 flex items-center gap-1.5 text-[10px] text-primary">
-                  <Sparkles className="h-3 w-3" />
-                  <span>سيضيفها تدبير تلقائياً كمصروف في الفئة الصحيحة</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Steps Preview */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium">خطوات الربط المخططة:</p>
+            {/* How it works */}
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-semibold">كيف تعمل؟</p>
               <ol className="space-y-1.5 text-xs text-muted-foreground">
                 {[
-                  'اختيار بنكك من قائمة البنوك المدعومة',
-                  'منح التطبيق إذن قراءة رسائل SMS',
-                  'تحديد تنسيق رسائل بنكك (مرة واحدة)',
-                  'استيراد تلقائي لجميع المعاملات القادمة',
+                  'افتح تطبيق الرسائل وانسخ رسالة البنك',
+                  'الصقها في صفحة الاستيراد',
+                  'يتعرف عليها الذكاء الاصطناعي ويستخرج المبلغ والفئة',
+                  'راجع وأضفها بضغطة واحدة',
                 ].map((step, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-[9px] font-bold shrink-0">{i + 1}</span>
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
                     {step}
                   </li>
                 ))}
               </ol>
             </div>
 
-            {/* Notify me button (visual only) */}
-            <Button variant="outline" className="w-full h-9 text-xs border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" disabled>
-              <MessageSquare className="ml-2 h-4 w-4" />
-              سيتم إشعارك عند الإطلاق
-            </Button>
+            {/* Example SMS */}
+            <div className="rounded-md bg-background border p-2.5">
+              <p className="text-[10px] text-muted-foreground mb-1.5">مثال على رسالة بنكية:</p>
+              <p className="text-xs font-mono text-foreground leading-relaxed">
+                📩 تمت عملية شراء بمبلغ <span className="font-bold text-primary">25,000 د.ع</span> من متجر ABC<br/>
+                الرصيد المتبقي: 975,000 د.ع
+              </p>
+            </div>
 
+            <Button asChild className="w-full h-10 text-sm font-semibold">
+              <Link href="/import">
+                <CreditCard className="ml-2 h-4 w-4" />
+                فتح صفحة استيراد الرسائل
+                <ArrowLeft className="mr-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </AccordionItemWrapper>
 
@@ -1584,33 +1562,29 @@ export default function SettingsPage() {
             icon={Info}
             title={`حول التطبيق - إصدار ${packageInfo.version}`}
         >
-          <div className="p-4 space-y-4">
-              <Card className="bg-primary/5 border-primary/20">
-                  <CardHeader className="py-3">
-                      <CardTitle className="text-xs flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-primary" />
-                          عرض الاستحواذ (Qi Card)
-                      </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pb-3">
-                      <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
-                          هذا المستند مخصص لعرضه على شركة Qi Card، ويحتوي على تفاصيل الرؤية التقنية، خطة التكامل، والقيمة المضافة للشركة.
-                      </p>
-                      <Button asChild variant="default" className="w-full h-9 text-xs">
-                          <Link href="/proposal">
-                              عرض مقترح الاستحواذ
-                              <ExternalLink className="mr-2 h-3 w-3" />
-                          </Link>
-                      </Button>
-                  </CardContent>
-              </Card>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/40 border p-3 text-center space-y-1">
+              <p className="text-sm font-semibold">تدبير</p>
+              <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
+              <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
+            </div>
 
-              <FeedbackDialog 
-                isOpen={isFeedbackOpen}
-                setIsOpen={setIsFeedbackOpen}
-                isMobile={isMobile}
-              />
-            <p className="text-[10px] text-muted-foreground text-center pt-2">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
+            <Button
+              variant="outline"
+              className="w-full text-xs h-9"
+              onClick={() => setIsFeedbackOpen(true)}
+            >
+              <MessageSquare className="ml-2 h-4 w-4" />
+              إرسال ملاحظات أو اقتراح ميزة
+            </Button>
+
+            <FeedbackDialog
+              isOpen={isFeedbackOpen}
+              setIsOpen={setIsFeedbackOpen}
+              isMobile={isMobile}
+            />
+
+            <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
       </Accordion>
