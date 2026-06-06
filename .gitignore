@@ -43,3 +43,8 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# PWA — generated at build time by @ducanh2912/next-pwa, never commit
+/public/sw.js
+/public/workbox-*.js
+/public/swe-worker-*.js
