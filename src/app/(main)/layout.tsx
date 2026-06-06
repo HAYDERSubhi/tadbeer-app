@@ -2,7 +2,7 @@
 // src/app/(main)/layout.tsx
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import AppShell from '@/components/layout/app-shell';
@@ -12,6 +12,14 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
+import { OfflineIndicator } from '@/components/offline-indicator';
+import { useSmartNotifications } from '@/hooks/use-smart-notifications';
+
+// Inner component so useSmartNotifications can access AppDataProvider context
+function NotificationsRunner() {
+  useSmartNotifications();
+  return null;
+}
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -57,7 +65,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (user) {
     return (
       <AppDataProvider>
+        <NotificationsRunner />
         <PwaUpdateBanner />
+        <OfflineIndicator />
         <AppShell>
           <main className="flex-1 p-4 sm:p-6">
             {children}

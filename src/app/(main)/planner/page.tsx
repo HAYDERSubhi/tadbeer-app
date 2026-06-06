@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot } from 'lucide-react';
+import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot, PiggyBank, TrendingUp, Edit3 } from 'lucide-react';
 import { format, differenceInCalendarMonths, isFuture, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -42,7 +42,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { addGoal, deleteGoal } from '@/services/firestore';
+import { addGoal, deleteGoal, updateGoalSavedAmount } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
@@ -82,6 +82,8 @@ function PlannerContent() {
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
   const [planEnabled, setPlanEnabled] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [editingSavingId, setEditingSavingId] = useState<string | null>(null);
+  const [savingInput, setSavingInput] = useState<string>('');
   
   const userProfile: UserProfile | undefined = userSettings?.profile;
   
@@ -182,6 +184,23 @@ function PlannerContent() {
       }
     }
   });
+
+  const updateSavingMutation = useMutation({
+    mutationFn: ({ goalId, amount }: { goalId: string; amount: number }) =>
+      updateGoalSavedAmount(user!.uid, goalId, amount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
+      setEditingSavingId(null);
+      setSavingInput('');
+      toast({ title: "تم التحديث", description: "تم حفظ مبلغ التوفير بنجاح." });
+    },
+  });
+
+  const handleSaveSaving = (goalId: string, currentSaved: number) => {
+    const parsed = Number(savingInput.replace(/,/g, ''));
+    if (isNaN(parsed) || parsed < 0) return;
+    updateSavingMutation.mutate({ goalId, amount: parsed });
+  };
 
   const handleAddGoal = (data: GoalFormData) => {
     if (!user) return;
@@ -389,9 +408,55 @@ function PlannerContent() {
                       </CardTitle>
                       <CardDescription className="text-xs">تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: ar })}</CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-1">
+                    <CardContent className="flex-grow space-y-2">
                         <p className="text-lg font-bold text-primary">{formatCurrency(goal.targetAmount)}</p>
                         <p className="text-xs text-muted-foreground">تحتاج لتوفير ~<span className="font-bold text-foreground">{formatCurrency(Math.round(monthlySavings))}</span> شهريًا.</p>
+                        {/* ── Progress bar ── */}
+                        {(() => {
+                          const saved = goal.savedAmount ?? 0;
+                          const pct = Math.min(Math.round((saved / goal.targetAmount) * 100), 100);
+                          return (
+                            <div className="space-y-1 pt-1">
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span className="flex items-center gap-1"><PiggyBank className="h-3 w-3" /> وفّرت: <span className="font-bold text-foreground">{formatCurrency(saved)}</span></span>
+                                <span className="font-bold text-primary">{pct}%</span>
+                              </div>
+                              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                                <div
+                                  className={cn("h-2 rounded-full transition-all duration-500", pct >= 100 ? "bg-green-500" : "bg-primary")}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              {/* Edit saving */}
+                              {editingSavingId === goal.id ? (
+                                <div className="flex gap-1 pt-1">
+                                  <Input
+                                    autoFocus
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="المبلغ المُوفَّر"
+                                    className="h-7 text-xs flex-1"
+                                    value={savingInput}
+                                    onChange={e => setSavingInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') handleSaveSaving(goal.id, saved); if (e.key === 'Escape') setEditingSavingId(null); }}
+                                  />
+                                  <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleSaveSaving(goal.id, saved)} disabled={updateSavingMutation.isPending}>
+                                    {updateSavingMutation.isPending ? <Loader2Icon className="h-3 w-3 animate-spin" /> : 'حفظ'}
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingSavingId(null)}>إلغاء</Button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => { setEditingSavingId(goal.id); setSavingInput(String(saved)); }}
+                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors pt-0.5"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                  {saved > 0 ? 'تحديث المبلغ المُوفَّر' : 'أدخل المبلغ المُوفَّر'}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                     </CardContent>
                     <CardFooter>
                       <Button onClick={() => setSelectedGoalId(goal.id)} className="w-full h-9 text-xs" variant={isSelected ? "default" : "outline"}>

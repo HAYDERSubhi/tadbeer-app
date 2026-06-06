@@ -111,6 +111,12 @@ export const deleteGoal = async (uid: string, goalId: string) => {
     await deleteDoc(goalDoc);
 };
 
+export const updateGoalSavedAmount = async (uid: string, goalId: string, savedAmount: number) => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const goalDoc = doc(db, 'users', uid, 'goals', goalId);
+    await updateDoc(goalDoc, { savedAmount });
+};
+
 // =================================
 // Income Service
 // =================================

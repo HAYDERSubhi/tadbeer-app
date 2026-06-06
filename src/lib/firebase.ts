@@ -1,7 +1,12 @@
 
 // src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
 import { getAuth, type Auth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics, type Analytics } from "firebase/analytics";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
@@ -31,7 +36,12 @@ if (
 ) {
   try {
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    // Enable offline persistence via IndexedDB — works across tabs
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
     auth = getAuth(app);
     storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();

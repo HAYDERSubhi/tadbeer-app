@@ -20,6 +20,7 @@ export type Goal = {
   name: string;
   targetAmount: number;
   targetDate: string; // ISO string format
+  savedAmount?: number; // manually logged savings toward this goal
   createdAt: string; // ISO string format
 };
 

@@ -562,10 +562,11 @@ export default function SettingsPage() {
     });
   }
 
-  const handleDailyReminderChange = (checked: boolean) => {
+  const handleDailyReminderChange = async (checked: boolean) => {
     setDailyReminderEnabled(checked);
-    // The actual permission request is handled by the usePWAInstall hook.
-    // This just saves the user's preference.
+    if (checked && typeof window !== 'undefined' && 'Notification' in window) {
+      await Notification.requestPermission();
+    }
     updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked } });
   };
 
