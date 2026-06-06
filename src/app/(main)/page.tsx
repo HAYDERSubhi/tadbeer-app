@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
+import { blobToWavDataUri } from '@/lib/audio-to-wav';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -257,26 +258,17 @@ export default function DashboardPage() {
         return;
       }
 
-      // Use clean MIME type (strip codecs param) so Gemini accepts the data URI
-      const cleanMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
-      const blob = new Blob(audioChunksRef.current, { type: cleanMime });
+      const recordedMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
+      const blob = new Blob(audioChunksRef.current, { type: recordedMime });
       setIsVoiceLoading(true);
 
       try {
-        const base64Audio = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            // Ensure MIME in data URI is clean (no codecs)
-            const fixed = result.replace(/^data:[^;]+/, `data:${cleanMime}`);
-            resolve(fixed);
-          };
-          reader.onerror = () => reject(new Error('FileReader failed'));
-          reader.readAsDataURL(blob);
-        });
+        // Convert to WAV — Gemini does NOT support webm/opus (Android default),
+        // so we transcode in-browser to 16kHz mono WAV which Gemini accepts.
+        const wavDataUri = await blobToWavDataUri(blob);
 
         const result = await recordExpenseWithVoiceAction({
-          voiceRecordingDataUri: base64Audio,
+          voiceRecordingDataUri: wavDataUri,
           categories: categoryMapForAI,
         });
 
