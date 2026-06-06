@@ -416,11 +416,7 @@ export default function StatisticsPage() {
                                     fill: chartConfig.expenses?.color,
                                     stroke: chartConfig.expenses?.color,
                                 }}
-                                activeDot={{
-                                    r: 5,
-                                    strokeWidth: 2,
-                                }}
-                                label={<CustomLabel />}
+                                activeDot={{ r: 5, strokeWidth: 2 }}
                             />
                         </LineChart>
                     </ChartContainer>
@@ -428,69 +424,86 @@ export default function StatisticsPage() {
                 </CardContent>
             </Card>
             
-            <Card>
-                <CardHeader className="py-3">
-                    <CardTitle className="flex items-center gap-2 text-xs">
-                        <LineChartIcon className="h-4 w-4 text-primary" />
-                        تحليل اتجاهات الفئات
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                        {categoryTrends.length > 0
-                            ? `نظرة على تطور الإنفاق في أعلى 5 فئات لديك.`
-                            : 'لا توجد بيانات كافية لعرض اتجاهات الفئات.'}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    {categoryTrends.map(catTrend => (
-                        <div key={catTrend.categoryId} className="border p-3 rounded-lg">
-                             <div className="flex items-center justify-between gap-2 mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span style={{ color: chartConfig[catTrend.categoryId]?.color }} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
-                                    <p className="font-semibold text-sm">{catTrend.categoryName}</p>
-                                </div>
-                                <p className="font-bold text-sm text-muted-foreground">{formatCurrency(catTrend.total)}</p>
-                            </div>
-                            <div className="h-[150px] w-full">
-                                <ChartContainer config={chartConfig}>
-                                    <LineChart
-                                      accessibilityLayer
-                                      data={catTrend.trendData}
-                                      margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
-                                    >
-                                      <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{fontSize: 9}} />
-                                      <RechartsTooltip
-                                        cursor={false}
-                                        content={({ active, payload, label }) => active && payload && payload.length ? (
-                                             <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
-                                                <p className="font-medium mb-1">{label}</p>
-                                                <p style={{color: chartConfig[catTrend.categoryId]?.color}} className="font-semibold">{formatCurrency(payload[0].value as number)}</p>
-                                            </div>
-                                        ) : null}
-                                      />
-                                      <Line
-                                        type="monotone"
-                                        dataKey="expenses"
-                                        stroke={chartConfig[catTrend.categoryId]?.color}
-                                        strokeWidth={2}
-                                        dot={{
-                                            r: 2,
-                                            strokeWidth: 1,
-                                            fill: chartConfig[catTrend.categoryId]?.color,
-                                            stroke: chartConfig[catTrend.categoryId]?.color
+            {categoryTrends.length > 0 && (() => {
+                // Merge all category trends into a single dataset
+                const allNames = categoryTrends[0]?.trendData.map(d => d.name) ?? [];
+                const mergedData = allNames.map(name => {
+                    const point: Record<string, string | number> = { name };
+                    categoryTrends.forEach(ct => {
+                        const found = ct.trendData.find(d => d.name === name);
+                        point[ct.categoryId] = found?.expenses ?? 0;
+                    });
+                    return point;
+                });
+
+                return (
+                    <Card>
+                        <CardHeader className="py-3">
+                            <CardTitle className="flex items-center gap-2 text-xs">
+                                <LineChartIcon className="h-4 w-4 text-primary" />
+                                اتجاهات الفئات
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                                مقارنة تطور أعلى الفئات إنفاقاً خلال {periodDescription}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ChartContainer config={chartConfig} className="w-full h-[220px]">
+                                <LineChart data={mergedData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 9 }} tickMargin={6} />
+                                    <YAxis tickLine={false} axisLine={false} tickFormatter={v => `${((v as number) / 1000).toFixed(0)}k`} tick={{ fontSize: 9 }} />
+                                    <RechartsTooltip
+                                        content={({ active, payload, label }) => {
+                                            if (!active || !payload?.length) return null;
+                                            const nonZero = payload.filter(p => (p.value as number) > 0).sort((a, b) => (b.value as number) - (a.value as number));
+                                            if (!nonZero.length) return null;
+                                            return (
+                                                <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs space-y-1 min-w-[140px]">
+                                                    <p className="font-bold border-b pb-1 mb-1">{label}</p>
+                                                    {nonZero.map(p => (
+                                                        <div key={p.dataKey} className="flex justify-between gap-3">
+                                                            <span style={{ color: p.color }} className="font-medium truncate">
+                                                                {chartConfig[p.dataKey as string]?.label ?? p.dataKey}
+                                                            </span>
+                                                            <span className="text-muted-foreground shrink-0">{formatCurrency(p.value as number)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
                                         }}
-                                        activeDot={{
-                                          r: 4,
-                                          strokeWidth: 1,
-                                        }}
-                                        label={<CustomLabel />}
-                                      />
-                                    </LineChart>
-                                </ChartContainer>
+                                    />
+                                    {categoryTrends.map(ct => (
+                                        <Line
+                                            key={ct.categoryId}
+                                            type="monotone"
+                                            dataKey={ct.categoryId}
+                                            stroke={chartConfig[ct.categoryId]?.color}
+                                            strokeWidth={2}
+                                            dot={{ r: 2, fill: chartConfig[ct.categoryId]?.color }}
+                                            activeDot={{ r: 4 }}
+                                        />
+                                    ))}
+                                </LineChart>
+                            </ChartContainer>
+
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 justify-center">
+                                {categoryTrends.map(ct => (
+                                    <div key={ct.categoryId} className="flex items-center gap-1.5 text-xs">
+                                        <span
+                                            className="inline-block w-3 h-1.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: chartConfig[ct.categoryId]?.color }}
+                                        />
+                                        <span className="text-muted-foreground">{ct.categoryName}</span>
+                                        <span className="font-semibold">{formatCurrency(ct.total)}</span>
+                                    </div>
+                                ))}
                             </div>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+                        </CardContent>
+                    </Card>
+                );
+            })()}
 
             <InsightsCard
                 key={`${view}-${selectedMonth}-${selectedYear}`}
