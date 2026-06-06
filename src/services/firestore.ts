@@ -424,13 +424,14 @@ export const createHousehold = async (
     const inviteCode = generateInviteCode();
     const member: HouseholdMember = { uid, displayName, email, role: 'owner', joinedAt: new Date().toISOString() };
 
-    // 1. Create household doc
+    // 1. Create household doc (memberUids is a flat array for easy Rules checking)
     const hhRef = doc(collection(db, 'households'));
     await setDoc(hhRef, {
         name: householdName,
         ownerId: uid,
         inviteCode,
         members: [member],
+        memberUids: [uid],
         createdAt: serverTimestamp(),
     });
 
@@ -492,8 +493,8 @@ export const joinHouseholdByCode = async (
 
     const member: HouseholdMember = { uid, displayName, email, role: 'member', joinedAt: new Date().toISOString() };
 
-    // Add to members array
-    await updateDoc(hhDoc.ref, { members: arrayUnion(member) });
+    // Add to members array + memberUids
+    await updateDoc(hhDoc.ref, { members: arrayUnion(member), memberUids: arrayUnion(uid) });
 
     // Link user to household
     await setDoc(doc(db, 'users', uid, 'settings', 'main'), { householdId: hhId }, { merge: true });
@@ -525,7 +526,10 @@ export const leaveHousehold = async (uid: string, household: Household): Promise
         // Just remove member from array
         const member = household.members.find(m => m.uid === uid);
         if (member) {
-            await updateDoc(doc(db, 'households', household.id), { members: arrayRemove(member) });
+            await updateDoc(doc(db, 'households', household.id), {
+                members: arrayRemove(member),
+                memberUids: arrayRemove(uid),
+            });
         }
     }
 
@@ -544,7 +548,10 @@ export const removeMemberFromHousehold = async (
     const member = household.members.find(m => m.uid === memberUid);
     if (!member) return;
 
-    await updateDoc(doc(db, 'households', household.id), { members: arrayRemove(member) });
+    await updateDoc(doc(db, 'households', household.id), {
+        members: arrayRemove(member),
+        memberUids: arrayRemove(memberUid),
+    });
     await setDoc(doc(db, 'users', memberUid, 'settings', 'main'), { householdId: null }, { merge: true });
 };
 
