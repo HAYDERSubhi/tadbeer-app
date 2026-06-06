@@ -44,11 +44,23 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
   }, []);
   
   useEffect(() => {
-    if (isClient) {
-        const hasCompletedTour = localStorage.getItem(tourKey);
-        if (!hasCompletedTour) {
-            setTimeout(() => setIsOpen(true), 500);
-        }
+    if (!isClient) return;
+
+    const hasCompletedTour = localStorage.getItem(tourKey);
+    if (hasCompletedTour) return; // Already seen — never show again
+
+    const hasCompletedOnboarding = localStorage.getItem('tadbeer-onboarding-v1');
+
+    if (hasCompletedOnboarding) {
+      // Onboarding already done (returning user who hasn't seen tour yet)
+      setTimeout(() => setIsOpen(true), 800);
+    } else {
+      // Wait for onboarding to finish, then show tour
+      const handler = () => {
+        setTimeout(() => setIsOpen(true), 600);
+      };
+      window.addEventListener('onboarding-complete', handler);
+      return () => window.removeEventListener('onboarding-complete', handler);
     }
   }, [isClient, tourKey]);
 

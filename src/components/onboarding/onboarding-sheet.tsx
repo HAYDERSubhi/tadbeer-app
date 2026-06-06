@@ -90,6 +90,7 @@ export default function OnboardingSheet() {
   const dismiss = () => {
     localStorage.setItem(ONBOARDING_KEY, "done");
     setOpen(false);
+    window.dispatchEvent(new CustomEvent('onboarding-complete'));
   };
 
   const handleFinish = async () => {
@@ -116,6 +117,7 @@ export default function OnboardingSheet() {
       queryClient.invalidateQueries({ queryKey: ["userSettings", user.uid] });
       localStorage.setItem(ONBOARDING_KEY, "done");
       setOpen(false);
+      window.dispatchEvent(new CustomEvent('onboarding-complete'));
     } catch (e) {
       console.error("Onboarding save failed:", e);
     } finally {
