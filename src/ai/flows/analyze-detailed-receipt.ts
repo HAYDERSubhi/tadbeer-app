@@ -118,7 +118,12 @@ const analyzeDetailedReceiptFlow = ai.defineFlow(
     outputSchema: AnalyzeDetailedReceiptOutputSchema,
   },
   async input => {
-    const {output} = await analyzeDetailedReceiptPrompt(input);
+    // thinkingBudget:0 — receipt extraction is structured, not creative;
+    // disabling thinking cuts latency significantly on gemini-2.5-flash.
+    const {output} = await analyzeDetailedReceiptPrompt(
+      input,
+      { config: { thinkingConfig: { thinkingBudget: 0 } } }
+    );
     return output!;
   }
 );

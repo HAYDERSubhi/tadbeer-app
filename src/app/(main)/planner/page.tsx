@@ -44,6 +44,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addGoal, deleteGoal } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useCategories } from '@/hooks/use-categories';
+import { useCurrency } from '@/hooks/use-currency';
 
 const goalSchema = z.object({
   name: z.string().min(3, { message: 'اسم الهدف مطلوب (3 أحرف على الأقل)' }),
@@ -72,6 +73,7 @@ function PlannerContent() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { categoryMap } = useCategories();
+  const { format: formatCurrency } = useCurrency();
   const goalIdFromQuery = searchParams.get('goalId');
 
   const { goals, expenses, userSettings } = useAppData();
@@ -200,7 +202,7 @@ function PlannerContent() {
                     <Lightbulb className="h-4 w-4" />
                     <AlertTitle className="text-xs font-semibold">{plan.isAchievable ? "الهدف قابل للتحقيق" : "الهدف صعب التحقيق"}</AlertTitle>
                     <AlertDescription className="text-xs">
-                        تحتاج لتوفير <span className='font-bold'>{plan.savingsRequiredPerMonth.toLocaleString()} د.ع</span> شهريًا.
+                        تحتاج لتوفير <span className='font-bold'>{formatCurrency(plan.savingsRequiredPerMonth)}</span> شهريًا.
                         {!plan.isAchievable && " هذا قد يكون صعبًا. الخطة أدناه ستساعدك."}
                     </AlertDescription>
                 </Alert>
@@ -210,7 +212,7 @@ function PlannerContent() {
                         {plan.suggestedPlan.map((step, index) => (
                            <AccordionItem value={`item-${index}`} key={index}>
                                 <AccordionTrigger className='text-sm py-3'><div className='flex items-center gap-2 text-right'><div className='bg-primary/10 text-primary p-1 rounded-full h-8 w-8 flex items-center justify-center font-bold text-sm'>{index + 1}</div><span>{step.title}</span></div></AccordionTrigger>
-                                <AccordionContent className="p-3 space-y-2 text-xs"><p>{step.description}</p><p className='text-muted-foreground'><span className='font-semibold text-primary'>التوفير الشهري:</span> {step.suggestedMonthlySaving.toLocaleString()} د.ع</p>{step.categoryToImpact && (<p className='text-muted-foreground'><span className='font-semibold'>الفئة المتأثرة:</span> {step.categoryToImpact}</p>)}</AccordionContent>
+                                <AccordionContent className="p-3 space-y-2 text-xs"><p>{step.description}</p><p className='text-muted-foreground'><span className='font-semibold text-primary'>التوفير الشهري:</span> {formatCurrency(step.suggestedMonthlySaving)}</p>{step.categoryToImpact && (<p className='text-muted-foreground'><span className='font-semibold'>الفئة المتأثرة:</span> {step.categoryToImpact}</p>)}</AccordionContent>
                            </AccordionItem>
                         ))}
                     </Accordion>
@@ -360,8 +362,8 @@ function PlannerContent() {
                       <CardDescription className="text-xs">تاريخ الهدف: {format(new Date(goal.targetDate), 'MMMM yyyy', { locale: ar })}</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-1">
-                        <p className="text-lg font-bold text-primary">{goal.targetAmount.toLocaleString()} د.ع</p>
-                        <p className="text-xs text-muted-foreground">تحتاج لتوفير ~<span className="font-bold text-foreground">{monthlySavings.toLocaleString(undefined, {maximumFractionDigits: 0})} د.ع</span> شهريًا.</p>
+                        <p className="text-lg font-bold text-primary">{formatCurrency(goal.targetAmount)}</p>
+                        <p className="text-xs text-muted-foreground">تحتاج لتوفير ~<span className="font-bold text-foreground">{formatCurrency(Math.round(monthlySavings))}</span> شهريًا.</p>
                     </CardContent>
                     <CardFooter>
                       <Button onClick={() => setSelectedGoalId(goal.id)} className="w-full h-9 text-xs" variant={isSelected ? "default" : "outline"}>

@@ -82,11 +82,10 @@ const recordExpenseWithTextFlow = ai.defineFlow(
   async input => {
     const today = format(new Date(), 'yyyy-MM-dd');
     
-    const { output } = await extractAndCategorizePrompt({ 
-        expenseText: input.expenseText, 
-        currentDate: today,
-        categories: input.categories
-    });
+    const { output } = await extractAndCategorizePrompt(
+      { expenseText: input.expenseText, currentDate: today, categories: input.categories },
+      { config: { thinkingConfig: { thinkingBudget: 0 } } }
+    );
 
     if (!output) {
         throw new Error("Could not extract expense information from the text.");

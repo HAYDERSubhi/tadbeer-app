@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
+import { useCurrency } from '@/hooks/use-currency';
 
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
@@ -92,6 +93,7 @@ export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categories, getIconComponent } = useCategories();
+  const { format: formatCurrency } = useCurrency();
   
   const [view, setView] =useState<'month' | 'year'>('month');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -249,7 +251,7 @@ export default function StatisticsPage() {
                         توزيع المصاريف
                     </CardTitle>
                      <CardDescription className="text-xs">
-                        إجمالي الإنفاق في {periodDescription}: {totalForPeriod.toLocaleString()} د.ع
+                        إجمالي الإنفاق في {periodDescription}: {formatCurrency(totalForPeriod)}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -311,7 +313,7 @@ export default function StatisticsPage() {
                                 </div>
                             </div>
                             <div className='text-left ml-2'>
-                                <p className="text-xs font-bold shrink-0">{item.total.toLocaleString()}&nbsp;د.ع</p>
+                                <p className="text-xs font-bold shrink-0">{formatCurrency(item.total)}</p>
                                 {item.budget && (item.total / item.budget) > 0 && (
                                     <div className='w-16 mt-1 h-1.5 bg-secondary rounded-full'>
                                         <Progress
@@ -336,7 +338,7 @@ export default function StatisticsPage() {
                                                 <p className="font-medium text-foreground/90 truncate text-[11px]">{expense.title}</p>
                                                 <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: ar })}</p>
                                             </div>
-                                            <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{expense.amount.toLocaleString()}&nbsp;د.ع</span>
+                                            <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{formatCurrency(expense.amount)}</span>
                                         </li>
                                     ))}
                                 {filteredExpenses.filter(exp => exp.category === item.id).length > 10 && (
@@ -388,12 +390,12 @@ export default function StatisticsPage() {
                                         return (
                                             <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                 <p className="font-bold mb-1">{label}</p>
-                                                <p className="text-primary font-semibold mb-2 pb-2 border-b">الإجمالي: {total.toLocaleString()} د.ع</p>
+                                                <p className="text-primary font-semibold mb-2 pb-2 border-b">الإجمالي: {formatCurrency(total)}</p>
                                                 <div className="space-y-1">
                                                     {categoryBreakdown.map(cb => (
                                                         <div key={cb.name} className="flex justify-between items-center gap-2">
                                                             <span style={{color: cb.color}} className="font-semibold">{cb.name}</span>
-                                                            <span className="text-muted-foreground">{cb.value.toLocaleString()} د.ع</span>
+                                                            <span className="text-muted-foreground">{formatCurrency(cb.value)}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -446,7 +448,7 @@ export default function StatisticsPage() {
                                     <span style={{ color: chartConfig[catTrend.categoryId]?.color }} className="text-xl">{getIconComponent(catTrend.categoryIcon)}</span>
                                     <p className="font-semibold text-sm">{catTrend.categoryName}</p>
                                 </div>
-                                <p className="font-bold text-sm text-muted-foreground">{catTrend.total.toLocaleString()}&nbsp;د.ع</p>
+                                <p className="font-bold text-sm text-muted-foreground">{formatCurrency(catTrend.total)}</p>
                             </div>
                             <div className="h-[150px] w-full">
                                 <ChartContainer config={chartConfig}>
@@ -461,7 +463,7 @@ export default function StatisticsPage() {
                                         content={({ active, payload, label }) => active && payload && payload.length ? (
                                              <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs">
                                                 <p className="font-medium mb-1">{label}</p>
-                                                <p style={{color: chartConfig[catTrend.categoryId]?.color}} className="font-semibold">{payload[0].value?.toLocaleString()} د.ع</p>
+                                                <p style={{color: chartConfig[catTrend.categoryId]?.color}} className="font-semibold">{formatCurrency(payload[0].value as number)}</p>
                                             </div>
                                         ) : null}
                                       />
