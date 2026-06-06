@@ -318,7 +318,7 @@ export default function DashboardPage() {
 
   // Group expenses by date label
   const groupedExpenses = useMemo(() => {
-    const recent = allSortedExpenses.slice(0, 15);
+    const recent = allSortedExpenses.slice(0, 5);
     const groups: { label: string; expenses: typeof recent }[] = [];
     const seen = new Set<string>();
 
@@ -749,9 +749,9 @@ export default function DashboardPage() {
             </div>
           )}
         </CardContent>
-        {!isAppDataLoading && allSortedExpenses.length > 15 && (
-          <CardFooter className="p-2">
-            <Button variant="ghost" asChild className="w-full h-8 text-xs">
+        {!isAppDataLoading && allSortedExpenses.length > 5 && (
+          <CardFooter className="p-2 border-t">
+            <Button variant="ghost" asChild className="w-full h-9 text-xs text-primary">
               <Link href="/expenses">
                 عرض كل المصاريف ({allSortedExpenses.length})
                 <ArrowRight className="mr-2 h-3 w-3" />
