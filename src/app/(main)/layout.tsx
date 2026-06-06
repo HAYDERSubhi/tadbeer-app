@@ -11,6 +11,7 @@ import { Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
+import { PwaUpdateBanner } from '@/components/pwa-update-banner';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
@@ -56,6 +57,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (user) {
     return (
       <AppDataProvider>
+        <PwaUpdateBanner />
         <AppShell>
           <main className="flex-1 p-4 sm:p-6">
             {children}
