@@ -2,16 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Target, Settings, BarChart3, WalletCards } from 'lucide-react';
+import { Home, Trophy, Settings, BarChart3, WalletCards } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// RTL order: rightmost item first → الرئيسية، المصاريف، الإحصائيات، الأهداف، الإعدادات
+// RTL order: rightmost item first
 const navItems = [
-  { href: '/', label: 'الرئيسية', icon: Home },
-  { href: '/expenses', label: 'مصاريف', icon: WalletCards },
-  { href: '/stats', label: 'إحصائيات', icon: BarChart3 },
-  { href: '/planner', label: 'الأهداف', icon: Target },
-  { href: '/settings', label: 'إعدادات', icon: Settings },
+  { href: '/',             label: 'الرئيسية',  icon: Home },
+  { href: '/expenses',     label: 'مصاريف',    icon: WalletCards },
+  { href: '/stats',        label: 'إحصائيات',  icon: BarChart3 },
+  { href: '/achievements', label: 'إنجازات',   icon: Trophy },
+  { href: '/settings',     label: 'إعدادات',   icon: Settings },
 ];
 
 export default function PageNavigation() {
