@@ -5,7 +5,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, StopCircle, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus, FileScan } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus, FileScan } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -18,7 +18,7 @@ import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
-import { recordExpenseWithVoiceAction } from '@/app/actions';
+import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -34,6 +34,23 @@ import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
 import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 
+
+// ── Voice waveform: 5 bars that grow/shrink with real audio level ──────────────
+function VoiceWaveBars({ level, className }: { level: number; className?: string }) {
+  // centre bar is tallest, sides taper off
+  const multipliers = [0.45, 0.75, 1.0, 0.75, 0.45];
+  return (
+    <div className={cn('flex items-center justify-center gap-[3px]', className)}>
+      {multipliers.map((m, i) => (
+        <div
+          key={i}
+          className="w-[3px] rounded-full bg-current transition-all duration-75"
+          style={{ height: `${Math.max(4, Math.min(22, 4 + level * m * 22))}px` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 const tourSteps = [
   {
@@ -82,11 +99,28 @@ export default function DashboardPage() {
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
   
-  // --- Universally Supported Voice Recording State ---
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  // --- Voice Recording State & Refs ---
+  const mediaRecorderRef   = useRef<MediaRecorder | null>(null);
+  const audioChunksRef     = useRef<Blob[]>([]);
+  const audioContextRef    = useRef<AudioContext | null>(null);
+  const analyserRef        = useRef<AnalyserNode | null>(null);
+  const rafRef             = useRef<number | null>(null);
+  const recognitionRef     = useRef<any>(null);
+  const voiceTranscriptRef = useRef('');
+
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
-  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
+  const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
+  const [audioLevel,       setAudioLevel]        = useState(0);      // 0–1
+  const [voiceTranscript,  setVoiceTranscript]   = useState('');     // live transcript
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      audioContextRef.current?.close().catch(() => {});
+      recognitionRef.current?.abort();
+    };
+  }, []);
 
   const categoryMapForAI = useMemo(() => {
     return categories.reduce((acc, cat) => {
@@ -143,71 +177,193 @@ export default function DashboardPage() {
   }, [userSettings]);
 
 
-  // --- Reliable Voice Recording Logic ---
+  // --- Voice Recording Logic (SpeechRecognition → text AI  |  fallback → audio AI) ---
+
+  const stopAudioVisualization = () => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    audioContextRef.current?.close().catch(() => {});
+    audioContextRef.current = null;
+    analyserRef.current = null;
+    setAudioLevel(0);
+  };
+
+  const startAudioVisualization = (stream: MediaStream) => {
+    try {
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 32;
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      audioContextRef.current = ctx;
+      analyserRef.current = analyser;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
+        setAudioLevel(avg);
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch { /* AudioContext not supported – skip visualization */ }
+  };
+
   const handleToggleVoiceRecording = async () => {
+    // ── STOP ─────────────────────────────────────────────────────────────────
     if (isVoiceRecording) {
+      recognitionRef.current?.stop();
       mediaRecorderRef.current?.stop();
+      stopAudioVisualization();
       setIsVoiceRecording(false);
       return;
     }
 
+    // ── START ─────────────────────────────────────────────────────────────────
+    voiceTranscriptRef.current = '';
+    setVoiceTranscript('');
+
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast({
+        title: 'خطأ في الميكروفون',
+        description: 'امنح التطبيق إذن الوصول إلى الميكروفون وأعد المحاولة.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    startAudioVisualization(stream);
+    setIsVoiceRecording(true);
+
+    const SR =
+      typeof window !== 'undefined' &&
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+
+    if (SR) {
+      // ── PRIMARY PATH: browser speech-to-text → text AI ─────────────────
+      const recognition = new SR() as any;
+      recognitionRef.current = recognition;
+      recognition.lang = 'ar';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (e: any) => {
+        const transcript = Array.from<any>(e.results)
+          .map((r: any) => r[0].transcript)
+          .join('');
+        voiceTranscriptRef.current = transcript;
+        setVoiceTranscript(transcript);
+      };
+
+      recognition.onend = async () => {
+        stopAudioVisualization();
+        stream.getTracks().forEach(t => t.stop());
+        setIsVoiceRecording(false);
+
+        const text = voiceTranscriptRef.current.trim();
+        if (!text) {
+          toast({
+            title: 'لم يُتعرف على كلام',
+            description: 'تحدث بوضوح وقرب الميكروفون وحاول مجدداً.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        setIsVoiceLoading(true);
+        try {
+          const result = await recordExpenseAction({
+            expenseText: text,
+            categories: categoryMapForAI,
+          });
+          setVoiceExpenseData({
+            title: result.description || text,
+            amount: result.amount || undefined,
+            category: result.category,
+            date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
+          });
+          voiceTranscriptRef.current = '';
+          setVoiceTranscript('');
+          setIsVoiceReviewOpen(true);
+        } catch {
+          toast({
+            title: 'خطأ في تحليل الكلام',
+            description: 'لم نتمكن من استخراج بيانات المصروف. حاول مجدداً.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsVoiceLoading(false);
+        }
+      };
+
+      recognition.onerror = (e: any) => {
+        // 'no-speech' and 'aborted' are not real errors
+        if (e.error === 'aborted' || e.error === 'no-speech') return;
+        toast({
+          title: 'خطأ في التعرف على الصوت',
+          description: `رمز الخطأ: ${e.error}`,
+          variant: 'destructive',
+        });
+        stopAudioVisualization();
+        stream.getTracks().forEach(t => t.stop());
+        setIsVoiceRecording(false);
+      };
+
+      recognition.start();
+
+    } else {
+      // ── FALLBACK PATH: MediaRecorder → audio blob → Gemini ─────────────
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        stream.getTracks().forEach(track => track.stop());
-        
-        setIsVoiceLoading(true);
-        try {
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = async () => {
-            const base64Audio = reader.result as string;
-            
-            const result = await recordExpenseWithVoiceAction({
-              voiceRecordingDataUri: base64Audio,
-              categories: categoryMapForAI
-            });
+        stopAudioVisualization();
+        stream.getTracks().forEach(t => t.stop());
+        setIsVoiceRecording(false);
 
-            setVoiceExpenseData({
-              title: result.description,
-              amount: result.amount,
-              category: result.category,
-              date: result.date
-            });
-            setIsVoiceReviewOpen(true);
-            setIsVoiceLoading(false);
-          };
-        } catch (e) {
-          console.error("Error processing voice recording:", e);
-          toast({
-            title: "خطأ في تحليل الصوت",
-            description: "لم نتمكن من تحليل تسجيلك. حاول مرة أخرى.",
-            variant: "destructive",
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        setIsVoiceLoading(true);
+
+        try {
+          // Proper async/await – no nested callbacks that swallow errors
+          const base64Audio = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror   = () => reject(new Error('FileReader failed'));
+            reader.readAsDataURL(blob);
           });
+
+          const result = await recordExpenseWithVoiceAction({
+            voiceRecordingDataUri: base64Audio,
+            categories: categoryMapForAI,
+          });
+
+          setVoiceExpenseData({
+            title: result.description,
+            amount: result.amount,
+            category: result.category,
+            date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
+          });
+          setIsVoiceReviewOpen(true);
+        } catch {
+          toast({
+            title: 'خطأ في تحليل الصوت',
+            description: 'تأكد من الاتصال وحاول مرة أخرى.',
+            variant: 'destructive',
+          });
+        } finally {
           setIsVoiceLoading(false);
         }
       };
 
       mediaRecorder.start();
-      setIsVoiceRecording(true);
-    } catch (err) {
-      console.error("Error accessing microphone:", err);
-      toast({
-        title: "خطأ في الميكروفون",
-        description: "يرجى منح الإذن للوصول إلى الميكروفون لاستخدام هذه الميزة.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -501,18 +657,30 @@ export default function DashboardPage() {
                 <p className="font-semibold text-xs">يدوي</p>
             </Link>
             
-            <div onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording} className={cn("flex flex-col items-center justify-center gap-2 p-2 rounded-lg group hover:bg-muted/50 transition-colors", isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer")}>
-                <span className={cn(
-                    "flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors", 
-                    isVoiceRecording && "bg-destructive/20 animate-pulse"
-                )}>
-                    {isVoiceLoading ? <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 text-foreground animate-spin" /> : 
-                    isVoiceRecording ? <StopCircle className="w-6 h-6 sm:w-7 sm:h-7 text-destructive" /> : 
-                    <Mic className="w-6 h-6 sm:w-7 sm:h-7" />}
-                </span>
-                <p className="font-semibold text-xs">
-                    {isVoiceLoading ? 'تحليل' : isVoiceRecording ? 'استماع' : 'صوت'}
-                </p>
+            <div
+              onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording}
+              className={cn(
+                "flex flex-col items-center justify-center gap-2 p-2 rounded-lg group transition-colors",
+                isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
+              )}
+            >
+              <span className={cn(
+                "flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg transition-all duration-200",
+                isVoiceRecording
+                  ? "bg-destructive/15 text-destructive ring-2 ring-destructive/40 ring-offset-background ring-offset-1"
+                  : "bg-primary/10 text-primary group-hover:bg-primary/20"
+              )}>
+                {isVoiceLoading ? (
+                  <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" />
+                ) : isVoiceRecording ? (
+                  <VoiceWaveBars level={audioLevel} className="w-7 h-7 sm:w-8 sm:h-8" />
+                ) : (
+                  <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
+                )}
+              </span>
+              <p className="font-semibold text-xs">
+                {isVoiceLoading ? 'تحليل...' : isVoiceRecording ? 'استماع' : 'صوت'}
+              </p>
             </div>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
@@ -600,6 +768,14 @@ export default function DashboardPage() {
               )}
             </CardComponent>
           </div>
+
+          {/* Live transcript shown while recording via SpeechRecognition */}
+          {isVoiceRecording && voiceTranscript && (
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/5 border border-destructive/20 px-3 py-2 animate-in fade-in slide-in-from-bottom-1">
+              <Mic className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-foreground leading-relaxed">{voiceTranscript}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
