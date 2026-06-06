@@ -35,9 +35,8 @@ import { useCurrency } from '@/hooks/use-currency';
 import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 
 
-// ── Voice waveform: 5 bars that grow/shrink with real audio level ──────────────
+// ── Voice waveform: 5 bars driven by real audio level ────────────────────────
 function VoiceWaveBars({ level, className }: { level: number; className?: string }) {
-  // centre bar is tallest, sides taper off
   const multipliers = [0.45, 0.75, 1.0, 0.75, 0.45];
   return (
     <div className={cn('flex items-center justify-center gap-[3px]', className)}>
@@ -45,7 +44,8 @@ function VoiceWaveBars({ level, className }: { level: number; className?: string
         <div
           key={i}
           className="w-[3px] rounded-full bg-current transition-all duration-75"
-          style={{ height: `${Math.max(4, Math.min(22, 4 + level * m * 22))}px` }}
+          // level is already amplified (0–1). min height keeps bars visible.
+          style={{ height: `${Math.max(4, Math.min(22, 4 + level * m * 18))}px` }}
         />
       ))}
     </div>
@@ -100,18 +100,25 @@ export default function DashboardPage() {
   const [isCardSheetOpen, setIsCardSheetOpen] = useState(false);
   
   // --- Voice Recording State & Refs ---
-  const mediaRecorderRef   = useRef<MediaRecorder | null>(null);
-  const audioChunksRef     = useRef<Blob[]>([]);
-  const audioContextRef    = useRef<AudioContext | null>(null);
-  const analyserRef        = useRef<AnalyserNode | null>(null);
-  const rafRef             = useRef<number | null>(null);
-  const recognitionRef     = useRef<any>(null);
-  const voiceTranscriptRef = useRef('');
+  const mediaRecorderRef      = useRef<MediaRecorder | null>(null);
+  const audioChunksRef        = useRef<Blob[]>([]);
+  const audioContextRef       = useRef<AudioContext | null>(null);
+  const analyserRef           = useRef<AnalyserNode | null>(null);
+  const rafRef                = useRef<number | null>(null);
+  const recognitionRef        = useRef<any>(null);
+  const voiceTranscriptRef    = useRef('');
+  const isVoiceRecordingRef   = useRef(false); // mirror of state for use inside callbacks
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
-  const [audioLevel,       setAudioLevel]        = useState(0);      // 0–1
-  const [voiceTranscript,  setVoiceTranscript]   = useState('');     // live transcript
+  const [audioLevel,       setAudioLevel]        = useState(0);
+  const [voiceTranscript,  setVoiceTranscript]   = useState('');
+
+  // helper: keep ref in sync with state
+  const setRecordingState = (val: boolean) => {
+    isVoiceRecordingRef.current = val;
+    setIsVoiceRecording(val);
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -177,7 +184,7 @@ export default function DashboardPage() {
   }, [userSettings]);
 
 
-  // --- Voice Recording Logic (SpeechRecognition → text AI  |  fallback → audio AI) ---
+  // --- Voice Recording Logic ---
 
   const stopAudioVisualization = () => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
@@ -187,11 +194,15 @@ export default function DashboardPage() {
     setAudioLevel(0);
   };
 
-  const startAudioVisualization = (stream: MediaStream) => {
+  // FIX 1: async + ctx.resume() to unblock suspended AudioContext on mobile
+  // FIX 2: fftSize=256 for real frequency data, amplify ×5 so speech is visible
+  const startAudioVisualization = async (stream: MediaStream) => {
     try {
       const ctx = new AudioContext();
+      await ctx.resume();                      // ← critical on Android Chrome
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 32;
+      analyser.fftSize = 256;                  // ← 16× more resolution than before
+      analyser.smoothingTimeConstant = 0.4;
       ctx.createMediaStreamSource(stream).connect(analyser);
       audioContextRef.current = ctx;
       analyserRef.current = analyser;
@@ -200,20 +211,20 @@ export default function DashboardPage() {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
-        setAudioLevel(avg);
+        setAudioLevel(Math.min(1, avg * 5));   // ← amplify so quiet speech moves bars
         rafRef.current = requestAnimationFrame(tick);
       };
       tick();
-    } catch { /* AudioContext not supported – skip visualization */ }
+    } catch { /* AudioContext not supported – visualization skipped */ }
   };
 
   const handleToggleVoiceRecording = async () => {
     // ── STOP ─────────────────────────────────────────────────────────────────
-    if (isVoiceRecording) {
+    if (isVoiceRecordingRef.current) {
+      setRecordingState(false);
       recognitionRef.current?.stop();
       mediaRecorderRef.current?.stop();
       stopAudioVisualization();
-      setIsVoiceRecording(false);
       return;
     }
 
@@ -233,40 +244,27 @@ export default function DashboardPage() {
       return;
     }
 
-    startAudioVisualization(stream);
-    setIsVoiceRecording(true);
+    startAudioVisualization(stream);  // fire-and-forget async
+    setRecordingState(true);
 
     const SR =
       typeof window !== 'undefined' &&
       ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
     if (SR) {
-      // ── PRIMARY PATH: browser speech-to-text → text AI ─────────────────
-      const recognition = new SR() as any;
-      recognitionRef.current = recognition;
-      recognition.lang = 'ar';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
+      // ── PRIMARY: SpeechRecognition restart-loop ──────────────────────────
+      // FIX: continuous:false + manual restart avoids the Android Chrome bug
+      // where continuous:true stops immediately without capturing anything.
 
-      recognition.onresult = (e: any) => {
-        const transcript = Array.from<any>(e.results)
-          .map((r: any) => r[0].transcript)
-          .join('');
-        voiceTranscriptRef.current = transcript;
-        setVoiceTranscript(transcript);
-      };
-
-      recognition.onend = async () => {
+      const processTranscript = async () => {
         stopAudioVisualization();
         stream.getTracks().forEach(t => t.stop());
-        setIsVoiceRecording(false);
 
         const text = voiceTranscriptRef.current.trim();
         if (!text) {
           toast({
             title: 'لم يُتعرف على كلام',
-            description: 'تحدث بوضوح وقرب الميكروفون وحاول مجدداً.',
+            description: 'تحدث بوضوح وقرب الهاتف من فمك ثم حاول مجدداً.',
             variant: 'destructive',
           });
           return;
@@ -298,23 +296,61 @@ export default function DashboardPage() {
         }
       };
 
-      recognition.onerror = (e: any) => {
-        // 'no-speech' and 'aborted' are not real errors
-        if (e.error === 'aborted' || e.error === 'no-speech') return;
-        toast({
-          title: 'خطأ في التعرف على الصوت',
-          description: `رمز الخطأ: ${e.error}`,
-          variant: 'destructive',
-        });
-        stopAudioVisualization();
-        stream.getTracks().forEach(t => t.stop());
-        setIsVoiceRecording(false);
+      const startRecognitionSession = () => {
+        const recognition = new SR() as any;
+        recognitionRef.current = recognition;
+        recognition.lang = 'ar-SA';          // most compatible Arabic locale
+        recognition.continuous = false;       // ← FIX: avoid Android bug
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (e: any) => {
+          // Accumulate results across multiple sessions
+          const sessionText = Array.from<any>(e.results)
+            .map((r: any) => r[0].transcript)
+            .join('');
+          const full = (voiceTranscriptRef.current + ' ' + sessionText).trim();
+          voiceTranscriptRef.current = full;
+          setVoiceTranscript(full);
+        };
+
+        recognition.onend = () => {
+          if (isVoiceRecordingRef.current) {
+            // User hasn't pressed stop yet → restart for next phrase
+            try { startRecognitionSession(); } catch { /* ignore */ }
+          } else {
+            // User pressed stop → process what we have
+            processTranscript();
+          }
+        };
+
+        recognition.onerror = (e: any) => {
+          if (e.error === 'aborted') return;  // user-triggered, not an error
+          if (e.error === 'no-speech') {
+            // Restart silently if still recording
+            if (isVoiceRecordingRef.current) {
+              try { startRecognitionSession(); } catch { /* ignore */ }
+            }
+            return;
+          }
+          // Genuine error
+          toast({
+            title: 'خطأ في التعرف على الصوت',
+            description: `(${e.error}) — جرّب مجدداً`,
+            variant: 'destructive',
+          });
+          setRecordingState(false);
+          stopAudioVisualization();
+          stream.getTracks().forEach(t => t.stop());
+        };
+
+        recognition.start();
       };
 
-      recognition.start();
+      startRecognitionSession();
 
     } else {
-      // ── FALLBACK PATH: MediaRecorder → audio blob → Gemini ─────────────
+      // ── FALLBACK: MediaRecorder → audio blob → Gemini ───────────────────
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -326,13 +362,10 @@ export default function DashboardPage() {
       mediaRecorder.onstop = async () => {
         stopAudioVisualization();
         stream.getTracks().forEach(t => t.stop());
-        setIsVoiceRecording(false);
 
         const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         setIsVoiceLoading(true);
-
         try {
-          // Proper async/await – no nested callbacks that swallow errors
           const base64Audio = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
@@ -658,7 +691,7 @@ export default function DashboardPage() {
             </Link>
             
             <div
-              onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording}
+              onClick={(isVoiceLoading) ? undefined : handleToggleVoiceRecording}
               className={cn(
                 "flex flex-col items-center justify-center gap-2 p-2 rounded-lg group transition-colors",
                 isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
