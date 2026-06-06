@@ -148,7 +148,9 @@ const financialCoachFlow = ai.defineFlow(
       ...input,
       isColloquial: input.appTone === 'colloquial',
     };
-    const {output} = await prompt(promptInput);
+    const {output} = await prompt(promptInput, {
+      config: { thinkingConfig: { thinkingBudget: 0 } },
+    });
     return output!;
   }
 );

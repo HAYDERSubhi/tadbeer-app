@@ -374,7 +374,13 @@ export default function DashboardPage() {
     };
     
     if (categoryBudgets) {
-        input.categoryBudgets = categoryBudgets;
+        // Convert category IDs to readable names so AI understands them
+        const namedCategoryBudgets: Record<string, number> = {};
+        Object.entries(categoryBudgets).forEach(([id, amount]) => {
+            const name = categoryMap[id]?.name || id;
+            namedCategoryBudgets[name] = amount as number;
+        });
+        input.categoryBudgets = namedCategoryBudgets;
     }
 
     if (userProfile) {

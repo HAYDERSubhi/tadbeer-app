@@ -105,7 +105,9 @@ const analyzeSpendingPatternsFlow = ai.defineFlow(
     outputSchema: AnalyzeSpendingPatternsOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input);
+    const {output} = await prompt(input, {
+      config: { thinkingConfig: { thinkingBudget: 0 } },
+    });
     return output!;
   }
 );
