@@ -22,7 +22,8 @@ const AnalyzeSpendingPatternsInputSchema = z.object({
       })
   ).describe("An array of the user's expenses for the specified period."),
   totalBudget: z.number().optional().describe("The user's total budget for the period (if applicable)."),
-  periodDescription: z.string().describe("A description of the time period being analyzed (e.g., 'this month', 'the year 2023').")
+  periodDescription: z.string().describe("A description of the time period being analyzed (e.g., 'this month', 'the year 2023')."),
+  appTone: z.enum(['formal', 'colloquial']).optional().describe("The desired tone. 'formal' = Modern Standard Arabic. 'colloquial' = friendly Iraqi dialect."),
 });
 export type AnalyzeSpendingPatternsInput = z.infer<typeof AnalyzeSpendingPatternsInputSchema>;
 
@@ -64,6 +65,10 @@ const prompt = ai.definePrompt({
   input: {schema: AnalyzeSpendingPatternsInputSchema},
   output: {schema: AnalyzeSpendingPatternsOutputSchema},
   prompt: `You are a data analyst AI for a personal finance app. Your task is to analyze a user's spending for a specific period and provide objective, data-driven insights. Do NOT give advice or use coaching language. Stick to the facts from the data. All responses must be in Arabic.
+
+{{#if appTone}}
+**Tone:** {{#if (eq appTone "colloquial")}}Use a friendly, natural Iraqi dialect (عامية عراقية). Keep it short and warm.{{else}}Use clear, professional Modern Standard Arabic (فصحى).{{/if}}
+{{/if}}
 
 **Period to Analyze:** {{periodDescription}}
 {{#if totalBudget}}

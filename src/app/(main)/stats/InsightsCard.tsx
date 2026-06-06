@@ -48,6 +48,7 @@ export function InsightsCard({ filteredExpenses, periodDescription }: InsightsCa
       })),
       totalBudget: userSettings?.budget?.totalBudget,
       periodDescription,
+      appTone: userSettings?.appTone ?? 'formal',
     };
   }, [filteredExpenses, periodDescription, userSettings, categoryMap, isAppDataLoading]);
 

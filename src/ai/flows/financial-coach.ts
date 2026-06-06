@@ -14,6 +14,9 @@ import {z} from 'genkit';
 const FinancialCoachInputSchema = z.object({
   totalBudget: z.number().describe("The user's total monthly budget in IQD. If this value is 0, it means the user has not set a budget."),
   zeroSpendDaysTarget: z.number().describe("The user's monthly goal for low-spending days."),
+  currentDate: z.string().describe("Today's date in YYYY-MM-DD format (Asia/Baghdad timezone)."),
+  dayOfMonth: z.number().describe("The current day of the month (1-31). Use this to understand how far into the month we are."),
+  daysLeftInMonth: z.number().describe("How many days are left in the current month including today. Use this to assess urgency of budget warnings."),
   expenses: z.array(
       z.object({
           title: z.string(),
@@ -69,8 +72,10 @@ Your response MUST STRICTLY follow the persona dictated by the 'appTone' paramet
 
 ---
 **User's Context:**
+- Today's date: {{currentDate}} (Day {{dayOfMonth}} of the month — {{daysLeftInMonth}} days remaining this month)
 - Monthly budget: {{totalBudget}} د.ع. (If this is 0, it means the user has not set a budget yet.)
 - Goal for low-spending days: {{zeroSpendDaysTarget}} يوم.
+- **IMPORTANT**: Use the days remaining to calibrate warnings. If only a few days remain and the user is near their budget limit, the warning is more urgent. If the month just started, a high spend rate is more alarming.
 - Expenses this month:
 {{#each expenses}}
 - "{{this.title}}" بمبلغ {{this.amount}} د.ع في فئة "{{this.category}}" بتاريخ {{this.date}}.

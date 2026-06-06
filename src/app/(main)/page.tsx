@@ -353,17 +353,28 @@ export default function DashboardPage() {
     if (isAppDataLoading || !userSettings) return null;
 
     const userBudget = userSettings.budget;
-    
-    if (monthlyExpenses.length === 0) {
-        return null;
-    }
+
+    // Don't call AI if no expenses or no budget set — show static prompt instead
+    if (monthlyExpenses.length === 0) return null;
+    if (!userBudget?.totalBudget || userBudget.totalBudget === 0) return null;
     
     const categoryBudgets = userSettings.categoryBudgets;
     const userProfile = userSettings.profile;
     
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysLeftInMonth = daysInMonth - dayOfMonth + 1;
+    const currentDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Baghdad', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(now);
+
     const input: FinancialCoachInput = {
         totalBudget: userBudget?.totalBudget || 0,
         zeroSpendDaysTarget: userBudget?.zeroSpendDaysTarget || 4,
+        currentDate,
+        dayOfMonth,
+        daysLeftInMonth,
         expenses: monthlyExpenses.map(e => ({
             title: e.title,
             amount: e.amount,
@@ -781,13 +792,26 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : !hasExpenses ? (
             <p className="text-center text-muted-foreground p-4 text-xs">
-              {hasExpenses 
-                ? "حدد ميزانية شهرية في الإعدادات لتفعيل نصائح المدرب المالي."
-                : "لا توجد نصائح حالياً. أضف بعض المصاريف للحصول على تحليلات."
-              }
+              أضف بعض المصاريف للحصول على نصائح مخصصة.
             </p>
+          ) : (
+            // No budget set — show actionable prompt instead of calling AI
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <InsightIcon name="Lightbulb" className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">حدد ميزانيتك أولاً</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  المدرب يحتاج ميزانية شهرية ليُقدّم نصائح دقيقة لك.
+                </p>
+              </div>
+              <a href="/settings" className="text-xs font-semibold text-primary underline underline-offset-2">
+                اذهب للإعدادات ←
+              </a>
+            </div>
           )}
         </CardContent>
       </Card>
