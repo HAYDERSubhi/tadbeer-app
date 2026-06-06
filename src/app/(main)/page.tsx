@@ -232,7 +232,12 @@ export default function DashboardPage() {
       return;
     }
 
-    const mediaRecorder = new MediaRecorder(stream);
+    // Pick a supported MIME type that Gemini accepts
+    const preferredTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
+    const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    const mediaRecorder = supportedMime
+      ? new MediaRecorder(stream, { mimeType: supportedMime })
+      : new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current = [];
 
@@ -243,16 +248,30 @@ export default function DashboardPage() {
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
 
-      if (audioChunksRef.current.length === 0) return;
+      if (audioChunksRef.current.length === 0) {
+        toast({
+          title: 'التسجيل فارغ',
+          description: 'لم يتم التقاط أي صوت. تأكد من عمل الميكروفون وحاول مجدداً.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+      // Use clean MIME type (strip codecs param) so Gemini accepts the data URI
+      const cleanMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
+      const blob = new Blob(audioChunksRef.current, { type: cleanMime });
       setIsVoiceLoading(true);
 
       try {
         const base64Audio = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror   = () => reject(new Error('FileReader failed'));
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            // Ensure MIME in data URI is clean (no codecs)
+            const fixed = result.replace(/^data:[^;]+/, `data:${cleanMime}`);
+            resolve(fixed);
+          };
+          reader.onerror = () => reject(new Error('FileReader failed'));
           reader.readAsDataURL(blob);
         });
 
@@ -268,10 +287,11 @@ export default function DashboardPage() {
           date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
         });
         setIsVoiceReviewOpen(true);
-      } catch {
+      } catch (err) {
+        console.error('Voice analysis error:', err);
         toast({
           title: 'خطأ في تحليل الصوت',
-          description: 'لم يتمكن التطبيق من فهم التسجيل. حاول مرة أخرى.',
+          description: 'لم يتمكن التطبيق من فهم التسجيل. تأكد من الاتصال وحاول مرة أخرى.',
           variant: 'destructive',
         });
       } finally {
@@ -280,7 +300,7 @@ export default function DashboardPage() {
     };
 
     await startAudioVisualization(stream);
-    mediaRecorder.start();
+    mediaRecorder.start(250); // collect chunks every 250ms for reliability
     setRecordingState(true);
   };
 

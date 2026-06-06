@@ -42,23 +42,39 @@ const prompt = ai.definePrompt({
   name: 'recordExpenseWithVoicePrompt',
   input: {schema: RecordExpenseWithVoiceInputSchema},
   output: {schema: RecordExpenseWithVoiceOutputSchema},
-  prompt: `You are an AI assistant that helps users record their expenses from a voice note in Iraqi Arabic dialect.
-  You will receive a voice recording of the expense, and you need to extract the information.
+  prompt: `You are an AI assistant specialized in extracting expense data from voice recordings in Iraqi Arabic dialect.
 
-  **Instructions:**
-  1.  Listen to the voice recording carefully. The user will state an expense, for example "سجلت اليوم 50 ألف دينار على البانزين" (Today I spent 50 thousand dinars on gasoline) or "اشتريت باذنجان بعشرتالاف" (I bought eggplant for 10 thousand).
-  2.  Extract the amount, description, and date. If no date is mentioned, use today's date.
-  3.  From the list of available categories below, you **must** choose the most logical category **ID**. For example, for "بانزين" (gasoline), the category ID should be "private_car". For "باذنجان" (eggplant), it should be "food". For "صابون" (soap), it should be "home_supplies".
-  4.  Return the extracted information in the required JSON format. The 'category' field must be one of the provided IDs.
+## Your Task
+Listen to the voice recording and extract the expense details.
 
-  **Available Categories (ID: Name):**
-  {{#each categories}}
-  - {{ @key }}: {{ this }}
-  {{/each}}
+## Iraqi Arabic Number Examples
+- "خمسين ألف" = 50000
+- "مية ألف" / "مئة ألف" = 100000
+- "عشرتالاف" / "عشر آلاف" = 10000
+- "ألفين وخمسمية" = 2500
+- "خمسة وعشرين" = 25
+- Always return numbers as plain integers (no commas, no currency symbols)
 
-  **Voice Recording:**
-  {{media url=voiceRecordingDataUri}}
-  `,
+## Instructions
+1. Listen carefully — the user describes an expense in Iraqi Arabic
+2. Extract: the amount spent, what it was spent on, and the date (default to today if not mentioned)
+3. Choose the most appropriate category ID from the list below
+4. Always return a valid JSON response even if audio is unclear — make your best guess
+
+## Available Categories (ID: Arabic Name)
+{{#each categories}}
+- {{ @key }}: {{ this }}
+{{/each}}
+
+## Voice Recording
+{{media url=voiceRecordingDataUri}}
+
+## Important
+- amount must be a number (e.g. 50000 not "50 thousand")
+- category must be exactly one of the IDs listed above
+- date must be YYYY-MM-DD format
+- description should be a short Arabic phrase describing the expense
+`,
 });
 
 const recordExpenseWithVoiceFlow = ai.defineFlow(
