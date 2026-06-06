@@ -14,7 +14,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
-import { blobToWavDataUri } from '@/lib/audio-to-wav';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -258,17 +257,26 @@ export default function DashboardPage() {
         return;
       }
 
+      // Send webm directly — gemini-2.5-flash supports audio/webm natively.
+      // The earlier WAV conversion was only needed because gemini-2.0-flash
+      // was retired (404 error). webm is smaller and faster to send.
       const recordedMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
       const blob = new Blob(audioChunksRef.current, { type: recordedMime });
       setIsVoiceLoading(true);
 
       try {
-        // Convert to WAV — Gemini does NOT support webm/opus (Android default),
-        // so we transcode in-browser to 16kHz mono WAV which Gemini accepts.
-        const wavDataUri = await blobToWavDataUri(blob);
+        const audioDataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const raw = reader.result as string;
+            resolve(raw.replace(/^data:[^;]+/, `data:${recordedMime}`));
+          };
+          reader.onerror = () => reject(new Error('FileReader failed'));
+          reader.readAsDataURL(blob);
+        });
 
         const response = await recordExpenseWithVoiceAction({
-          voiceRecordingDataUri: wavDataUri,
+          voiceRecordingDataUri: audioDataUri,
           categories: categoryMapForAI,
         });
 
