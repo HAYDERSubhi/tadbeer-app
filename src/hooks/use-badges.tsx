@@ -131,7 +131,9 @@ export function useBadges() {
             ['week_logger',    hasConsecutiveDays(expenseDates, 7)],
             ['zero_day',       hadZeroSpendDay(expenseDates)],
             ['family_leader',  !!householdId],
-            ['report_viewer',  localStorage.getItem('tadbeer-report-viewed') === '1'],
+            // report_viewer: only true if user explicitly visited /report page
+            // (flag set ONLY in report/page.tsx, NOT in achievements page)
+            ['report_viewer',  typeof window !== 'undefined' && localStorage.getItem('tadbeer-report-viewed') === '1'],
             ['month_saver',    finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0)],
             ['big_saver',      finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0.2)],
             ['first_referral', referralCount >= 1],
