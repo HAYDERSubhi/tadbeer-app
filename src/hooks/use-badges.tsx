@@ -85,7 +85,7 @@ export function useBadges() {
     const queryClient = useQueryClient();
     const savingRef = useRef<Set<string>>(new Set()); // prevent double-save in same session
 
-    const { data: earnedBadges = [] } = useQuery({
+    const { data: earnedBadges = [], isSuccess: badgesLoaded } = useQuery({
         queryKey: ['badges', user?.uid],
         queryFn: () => getUserBadges(user!.uid),
         enabled: !!user,
@@ -100,7 +100,10 @@ export function useBadges() {
     });
 
     useEffect(() => {
-        if (!user || earnedBadges === undefined) return;
+        // Wait for the actual server response before checking badges.
+        // Without this, earnedBadges starts as [] and every badge re-triggers
+        // the toast on every refresh (race condition with Firestore load).
+        if (!user || !badgesLoaded) return;
 
         const earnedIds = new Set(earnedBadges.map(b => b.id));
         const budget = userSettings?.budget?.totalBudget ?? 0;
@@ -143,7 +146,7 @@ export function useBadges() {
         checks.forEach(([id, cond]) => checkAndAward(id, cond));
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [expenses, userSettings, householdId, earnedBadges, referralCount, user]);
+    }, [expenses, userSettings, householdId, earnedBadges, referralCount, user, badgesLoaded]);
 
     return { earnedBadges, referralCount };
 }
