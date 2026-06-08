@@ -372,7 +372,7 @@ export default function DashboardPage() {
   }, [monthlyExpenses, userSettings?.budget?.totalBudget, financialCoachInput]);
 
   // Use React Query for AI insights — cached for 10 minutes, won't re-fetch unless data changes
-  const { data: insightsData, isLoading: isInsightsLoading } = useQuery({
+  const { data: insightsData, isLoading: isInsightsLoading, isError: isInsightsError, refetch: refetchInsights } = useQuery({
     queryKey: ['financial-coach', insightsCacheKey],
     queryFn: async () => {
       if (!financialCoachInput) return { insights: [] };
@@ -382,7 +382,7 @@ export default function DashboardPage() {
     enabled: !!user && !!financialCoachInput && !isAppDataLoading,
     staleTime: 1000 * 60 * 10,   // 10 minutes — don't re-fetch if data unchanged
     gcTime: 1000 * 60 * 30,      // Keep in cache 30 minutes
-    retry: 1,
+    retry: 0,
   });
 
   const insights = insightsData?.insights ?? null;
@@ -812,10 +812,17 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            // Budget set, expenses exist, but AI returned nothing (unlikely edge case)
-            <p className="text-center text-muted-foreground p-4 text-xs">
-              تعذّر تحميل النصائح. حاول مرة أخرى.
-            </p>
+            // Budget set, expenses exist, but AI call failed or returned nothing
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <p className="text-xs text-muted-foreground">
+                {isInsightsError ? 'تعذّر الاتصال بالمدرب الذكي.' : 'جارٍ تحليل بياناتك...'}
+              </p>
+              {isInsightsError && (
+                <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetchInsights()}>
+                  إعادة المحاولة
+                </Button>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

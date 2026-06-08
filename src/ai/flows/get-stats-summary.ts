@@ -9,8 +9,7 @@
  * - GetStatsSummaryInput - Input type for the function.
  * - GetStatsSummaryOutput - Return type for the function.
  */
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
