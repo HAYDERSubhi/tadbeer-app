@@ -76,6 +76,29 @@ function finishedMonthUnderBudget(
     return saved > 0; // any saving
 }
 
+// ── Toast-shown tracker (localStorage) ──────────────────────────────────────
+// Keeps a permanent record of which badge toasts have been shown.
+// This is the single source of truth for "did we already notify this user?"
+// It's separate from Firestore (which tracks whether the badge was earned).
+// Once a toast is shown it's NEVER shown again, even across page reloads.
+
+const TOASTED_STORAGE_KEY = 'tadbeer-badge-toasted';
+
+function getToastedSet(): Set<string> {
+    try {
+        const raw = localStorage.getItem(TOASTED_STORAGE_KEY);
+        return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+}
+
+function markToasted(id: string): void {
+    try {
+        const set = getToastedSet();
+        set.add(id);
+        localStorage.setItem(TOASTED_STORAGE_KEY, JSON.stringify([...set]));
+    } catch { /* noop */ }
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBadges() {
@@ -83,7 +106,7 @@ export function useBadges() {
     const { expenses, userSettings, householdId } = useAppData();
     const { toast } = useToast();
     const queryClient = useQueryClient();
-    const savingRef = useRef<Set<string>>(new Set()); // prevent double-save in same session
+    const savingRef = useRef<Set<string>>(new Set()); // prevent double-save in same render cycle
 
     const { data: earnedBadges = [], isSuccess: badgesLoaded } = useQuery({
         queryKey: ['badges', user?.uid],
@@ -100,9 +123,8 @@ export function useBadges() {
     });
 
     useEffect(() => {
-        // Wait for the actual server response before checking badges.
-        // Without this, earnedBadges starts as [] and every badge re-triggers
-        // the toast on every refresh (race condition with Firestore load).
+        // Must wait for real Firestore data before checking — avoids false positives
+        // when earnedBadges is still the initial [] default.
         if (!user || !badgesLoaded) return;
 
         const earnedIds = new Set(earnedBadges.map(b => b.id));
@@ -112,9 +134,19 @@ export function useBadges() {
 
         const checkAndAward = async (id: BadgeId, condition: boolean) => {
             if (!condition) return;
-            if (earnedIds.has(id)) return;
-            if (savingRef.current.has(id)) return;
+            if (earnedIds.has(id)) return;       // already in Firestore → skip
+            if (savingRef.current.has(id)) return; // being saved right now → skip
+
+            // Check localStorage toast-tracker BEFORE saving/toasting.
+            // This is the definitive guard against repeated toasts across refreshes.
+            if (getToastedSet().has(id)) {
+                // Toast was shown before but badge may not have saved yet — try saving silently
+                if (!earnedIds.has(id)) saveBadge(user.uid, id).catch(() => {});
+                return;
+            }
+
             savingRef.current.add(id);
+            markToasted(id); // mark BEFORE async ops so re-renders can't race
 
             await saveBadge(user.uid, id);
             queryClient.invalidateQueries({ queryKey: ['badges', user.uid] });
