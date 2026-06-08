@@ -140,6 +140,9 @@ export default function StatisticsPage() {
   
   useEffect(() => {
     if (!user || isAppDataLoading) return;
+    // If we have expenses but the selected month isn't in the available list yet,
+    // skip — the correction effect will update selectedMonth and re-trigger this.
+    if (expenses.length > 0 && view === 'month' && !availableMonths.includes(selectedMonth)) return;
 
     const fetchStats = async () => {
         setIsStatsLoading(true);
@@ -160,7 +163,7 @@ export default function StatisticsPage() {
     };
 
     fetchStats();
-  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, expenses]);
+  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, expenses, availableMonths]);
 
   useEffect(() => {
     if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {

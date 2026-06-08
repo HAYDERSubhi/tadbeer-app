@@ -782,8 +782,8 @@ export default function DashboardPage() {
             <p className="text-center text-muted-foreground p-4 text-xs">
               أضف بعض المصاريف للحصول على نصائح مخصصة.
             </p>
-          ) : (
-            // No budget set — show actionable prompt instead of calling AI
+          ) : !budgetData.isBudgetSet ? (
+            // Budget not set — ask user to configure it
             <div className="flex flex-col items-center gap-3 py-4 text-center">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <InsightIcon name="Lightbulb" className="h-5 w-5 text-primary" />
@@ -798,6 +798,24 @@ export default function DashboardPage() {
                 اذهب للإعدادات
               </Link>
             </div>
+          ) : monthlyExpenses.length === 0 ? (
+            // Budget set but no expenses this month yet
+            <div className="flex flex-col items-center gap-3 py-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                <InsightIcon name="Leaf" className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">لا توجد مصاريف هذا الشهر بعد</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  ابدأ بتسجيل مصاريف الشهر الحالي وسيُقدّم المدرب نصائحه فوراً.
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Budget set, expenses exist, but AI returned nothing (unlikely edge case)
+            <p className="text-center text-muted-foreground p-4 text-xs">
+              تعذّر تحميل النصائح. حاول مرة أخرى.
+            </p>
           )}
         </CardContent>
       </Card>
