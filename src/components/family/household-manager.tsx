@@ -273,29 +273,39 @@ function ActiveHousehold({ household }: { household: Household }) {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function HouseholdManager() {
+/**
+ * HouseholdManager
+ * @param embedded - when true, renders without the Card wrapper (used inside accordion)
+ */
+export function HouseholdManager({ embedded = false }: { embedded?: boolean }) {
     const { household, householdId } = useAppData();
 
-    return (
-        <Card>
-            <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-base">الحساب العائلي</CardTitle>
-                </div>
-                <CardDescription>
-                    {householdId
-                        ? `عائلة ${household?.name ?? '...'} — شارك بياناتك مع أفراد عائلتك`
-                        : 'شارك الميزانية والمصاريف مع أفراد عائلتك'}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+    const inner = (
+        <>
+            {!embedded && (
+                <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-base">الحساب العائلي</CardTitle>
+                    </div>
+                    <CardDescription>
+                        {householdId
+                            ? `عائلة ${household?.name ?? '...'} — شارك بياناتك مع أفراد عائلتك`
+                            : 'شارك الميزانية والمصاريف مع أفراد عائلتك'}
+                    </CardDescription>
+                </CardHeader>
+            )}
+            <CardContent className={embedded ? 'p-0' : undefined}>
                 {household ? (
                     <ActiveHousehold household={household} />
                 ) : (
                     <NoHousehold />
                 )}
             </CardContent>
-        </Card>
+        </>
     );
+
+    if (embedded) return <div>{inner}</div>;
+
+    return <Card>{inner}</Card>;
 }

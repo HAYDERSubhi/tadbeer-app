@@ -1078,44 +1078,12 @@ export default function SettingsPage() {
     </AccordionItem>
   );
 
-  // Quick nav: opens the section + scrolls to it
-  const jumpToSection = (sectionId: string, accordionValue: string) => {
-    setOpenAccordionItems(prev => prev.includes(accordionValue) ? prev : [...prev, accordionValue]);
-    setTimeout(() => {
-      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 120);
-  };
-
-  const quickNavItems = [
-    { label: 'الميزانية', icon: '💰', sectionId: 'settings-budget', value: 'item-3' },
-    { label: 'ملفي', icon: '👤', sectionId: 'settings-profile', value: 'item-2' },
-    { label: 'المظهر', icon: '🎨', sectionId: 'settings-appearance', value: 'item-1' },
-    { label: 'الفئات', icon: '🏷️', sectionId: 'settings-categories', value: 'item-3b' },
-    { label: 'حول التطبيق', icon: '💬', sectionId: 'settings-support', value: 'item-5' },
-  ];
-
   const FormDialog = Sheet;
 
   return (
     <div className="space-y-4 pb-20">
 
-      {/* Quick Navigation */}
-      <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
-        <div className="flex gap-2 w-max">
-          {quickNavItems.map(item => (
-            <button
-              key={item.sectionId}
-              onClick={() => jumpToSection(item.sectionId, item.value)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-background text-xs font-medium whitespace-nowrap hover:bg-primary/10 hover:border-primary/40 active:scale-95 transition-all shrink-0"
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Account and Theme Section */}
+      {/* Account card — always visible, not collapsible */}
       <Card>
         <CardContent className="p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1152,47 +1120,40 @@ export default function SettingsPage() {
              </CardFooter>
         )}
       </Card>
-      
-      {/* Planner/Goals shortcut (moved from nav) */}
-      <Link href="/planner">
-        <Card className="active:scale-[0.98] transition-transform">
-          <CardContent className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                <Target className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">الأهداف والمدخرات</p>
-                <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك</p>
-              </div>
-            </div>
-            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
-          </CardContent>
-        </Card>
-      </Link>
 
-      {/* Achievements shortcut */}
-      <Link href="/achievements">
-        <Card className="active:scale-[0.98] transition-transform">
-          <CardContent className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-500/10 rounded-lg text-amber-500">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">الإنجازات والشارات</p>
-                <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك</p>
-              </div>
-            </div>
-            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
-          </CardContent>
-        </Card>
-      </Link>
-
-      {/* Family / Household Management */}
-      <HouseholdManager />
-
+      {/* All settings as uniform accordion */}
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
+
+        {/* Planner / Goals */}
+        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات">
+          <div className="text-center space-y-3">
+            <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك المالية</p>
+            <Link href="/planner">
+              <Button className="w-full gap-2 h-9 text-sm">
+                <Target className="h-4 w-4" />
+                الذهاب إلى الأهداف
+              </Button>
+            </Link>
+          </div>
+        </AccordionItemWrapper>
+
+        {/* Achievements */}
+        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات">
+          <div className="text-center space-y-3">
+            <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك لاستخدام تدبير</p>
+            <Link href="/achievements">
+              <Button className="w-full gap-2 h-9 text-sm" variant="outline">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                عرض الإنجازات والشارات
+              </Button>
+            </Link>
+          </div>
+        </AccordionItemWrapper>
+
+        {/* Family / Household — now a proper accordion section */}
+        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي">
+          <HouseholdManager embedded />
+        </AccordionItemWrapper>
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
