@@ -99,6 +99,22 @@ function markToasted(id: string): void {
     } catch { /* noop */ }
 }
 
+// ── One-time migration: sync already-shown toasts from old approach ──────────
+// If report_viewer was previously "earned" (flag exists) but we never toasted it
+// properly, mark it as toasted NOW so it never shows again.
+// This runs once per browser and is safe to leave in forever.
+function runMigration(): void {
+    try {
+        const toasted = getToastedSet();
+        // If the old report-viewed flag is set, the user already "earned" this badge.
+        // Suppress any future toast for it.
+        if (localStorage.getItem('tadbeer-report-viewed') === '1' && !toasted.has('report_viewer')) {
+            markToasted('report_viewer');
+        }
+    } catch { /* noop */ }
+}
+if (typeof window !== 'undefined') runMigration();
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBadges() {
