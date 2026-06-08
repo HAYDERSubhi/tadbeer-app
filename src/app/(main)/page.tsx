@@ -463,7 +463,17 @@ export default function DashboardPage() {
     const currentDay = getDate(today);
     const timeProgress = (currentDay / daysInMonth) * 100;
     const spentPercentage = isBudgetSet ? (totalSpent / totalBudget) * 100 : 0;
-    
+
+    // Predict the day budget will run out
+    // dailyRate = totalSpent / days elapsed; predictedEndDay = budget / dailyRate
+    let predictedEndDay: number | null = null;
+    if (isBudgetSet && totalSpent > 0 && remaining > 0 && currentDay >= 3) {
+      const dailyRate = totalSpent / currentDay;
+      const daysUntilEmpty = remaining / dailyRate;
+      const endDay = Math.floor(currentDay + daysUntilEmpty);
+      if (endDay <= daysInMonth) predictedEndDay = endDay;
+    }
+
     return {
       isBudgetSet,
       totalBudget,
@@ -472,6 +482,7 @@ export default function DashboardPage() {
       spentOutOfBudget,
       spentPercentage,
       timeProgress,
+      predictedEndDay,
     };
   }, [monthlyExpenses, userSettings]);
   
@@ -592,6 +603,7 @@ export default function DashboardPage() {
             outOfBudget={budgetData.spentOutOfBudget}
             spentPercentage={budgetData.spentPercentage}
             timeProgress={budgetData.timeProgress}
+            predictedEndDay={budgetData.predictedEndDay}
         />
       ) : (
         <Card>

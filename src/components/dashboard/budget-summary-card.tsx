@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, TrendingDown } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 
@@ -16,6 +16,7 @@ interface BudgetSummaryCardProps {
     spentPercentage: number;
     timeProgress: number;
     isBudgetSet: boolean;
+    predictedEndDay?: number | null;
 }
 
 const StatItem = ({ label, value, isVisible, className, formatFn }: {
@@ -41,6 +42,7 @@ export default function BudgetSummaryCard({
     spentPercentage,
     timeProgress,
     isBudgetSet,
+    predictedEndDay,
 }: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
     const { format: formatCurrency } = useCurrency();
@@ -93,6 +95,16 @@ export default function BudgetSummaryCard({
                             <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
                         )}
                     </div>
+
+                    {/* Budget end prediction */}
+                    {predictedEndDay && isVisible && (
+                        <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-1.5 mt-1">
+                            <TrendingDown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <span className="font-bold">{predictedEndDay}</span> من الشهر
+                            </p>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
