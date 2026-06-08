@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Share2, TrendingDown, TrendingUp, Target, Award, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { getUserBadges, saveBadge } from '@/services/firestore';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -146,11 +148,37 @@ export default function ReportPage() {
     const { categories } = useCategories();
     const { format: formatCurrency } = useCurrency();
     const { toast } = useToast();
+    const { user } = useAuth();
 
-    // Badge: mark report as viewed
+    // Award report_viewer badge exactly once when this page is first opened.
+    // Uses a localStorage key so we never toast twice, even across refreshes.
     useEffect(() => {
-        localStorage.setItem('tadbeer-report-viewed', '1');
-    }, []);
+        if (!user) return;
+        const toastedKey = 'tadbeer-badge-toasted';
+        const getToasted = (): Set<string> => {
+            try { return new Set(JSON.parse(localStorage.getItem(toastedKey) || '[]')); }
+            catch { return new Set(); }
+        };
+        const alreadyToasted = getToasted();
+        if (alreadyToasted.has('report_viewer')) return; // already shown toast before
+
+        // Check Firestore — if badge already earned, just mark toasted silently
+        getUserBadges(user.uid).then(earned => {
+            if (earned.some(b => b.id === 'report_viewer')) {
+                // Already in Firestore — mark toasted so we never show again
+                const s = getToasted(); s.add('report_viewer');
+                localStorage.setItem(toastedKey, JSON.stringify([...s]));
+                return;
+            }
+            // First time visiting report page — award the badge
+            saveBadge(user.uid, 'report_viewer').then(() => {
+                const s = getToasted(); s.add('report_viewer');
+                localStorage.setItem(toastedKey, JSON.stringify([...s]));
+                toast({ title: '📊 إنجاز جديد — محلّل ذكي!', description: 'فتحت التقرير الشهري' });
+            }).catch(() => {});
+        }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.uid]);
     const [monthOffset, setMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
 
     const selectedMonth = useMemo(() => {

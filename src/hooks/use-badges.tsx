@@ -176,15 +176,14 @@ export function useBadges() {
             }
         };
 
-        // Evaluate all badges
+        // Evaluate all badges.
+        // NOTE: report_viewer is intentionally NOT here — it is awarded directly
+        // by report/page.tsx on mount to avoid false positives on every app load.
         const checks: Array<[BadgeId, boolean]> = [
             ['first_expense',  expenses.length > 0],
             ['week_logger',    hasConsecutiveDays(expenseDates, 7)],
             ['zero_day',       hadZeroSpendDay(expenseDates)],
             ['family_leader',  !!householdId],
-            // report_viewer: only true if user explicitly visited /report page
-            // (flag set ONLY in report/page.tsx, NOT in achievements page)
-            ['report_viewer',  typeof window !== 'undefined' && localStorage.getItem('tadbeer-report-viewed') === '1'],
             ['month_saver',    finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0)],
             ['big_saver',      finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0.2)],
             ['first_referral', referralCount >= 1],
