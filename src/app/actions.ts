@@ -140,6 +140,26 @@ export async function financialChatAction(
 }
 
 /**
+ * A Server Action for cross-month trend analysis.
+ */
+import {
+  analyzeMonthlyTrends,
+  type AnalyzeMonthlyTrendsInput,
+  type AnalyzeMonthlyTrendsOutput,
+} from '@/ai/flows/analyze-monthly-trends';
+
+export async function analyzeMonthlyTrendsAction(
+  input: AnalyzeMonthlyTrendsInput
+): Promise<AnalyzeMonthlyTrendsOutput> {
+  try {
+    return await analyzeMonthlyTrends(input);
+  } catch (error) {
+    console.error('Error in analyzeMonthlyTrendsAction:', error);
+    throw new Error('Failed to analyze monthly trends.');
+  }
+}
+
+/**
  * A Server Action to securely call the getStatsSummary flow from the client.
  */
 export async function getStatsSummaryAction(

@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
 import { SixMonthChart } from '@/components/dashboard/six-month-chart';
+import { AiTrendsCard } from '@/components/dashboard/ai-trends-card';
 import { useCurrency } from '@/hooks/use-currency';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -247,6 +248,9 @@ export default function StatisticsPage() {
       
       {/* 6-month bar chart — always visible */}
       <SixMonthChart />
+
+      {/* AI Cross-month trend analysis */}
+      <AiTrendsCard />
 
       {/* Monthly Comparison — always visible */}
       <MonthlyComparisonCard />

@@ -1052,8 +1052,8 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, value, children }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode }) => (
-    <AccordionItem value={value} className="border-b-0">
+  const AccordionItemWrapper = ({ icon, title, value, children, sectionId }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode, sectionId?: string }) => (
+    <AccordionItem value={value} className="border-b-0" id={sectionId}>
       <Card>
         <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium" onClick={() => setOpenAccordionItems(prev => prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value])}>
           <CardHeader className="w-full py-3">
@@ -1078,10 +1078,42 @@ export default function SettingsPage() {
     </AccordionItem>
   );
 
+  // Quick nav: opens the section + scrolls to it
+  const jumpToSection = (sectionId: string, accordionValue: string) => {
+    setOpenAccordionItems(prev => prev.includes(accordionValue) ? prev : [...prev, accordionValue]);
+    setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+  };
+
+  const quickNavItems = [
+    { label: 'الميزانية', icon: '💰', sectionId: 'settings-budget', value: 'item-3' },
+    { label: 'ملفي', icon: '👤', sectionId: 'settings-profile', value: 'item-2' },
+    { label: 'المظهر', icon: '🎨', sectionId: 'settings-appearance', value: 'item-1' },
+    { label: 'الفئات', icon: '🏷️', sectionId: 'settings-categories', value: 'item-3b' },
+    { label: 'حول التطبيق', icon: '💬', sectionId: 'settings-support', value: 'item-5' },
+  ];
+
   const FormDialog = Sheet;
 
   return (
     <div className="space-y-4 pb-20">
+
+      {/* Quick Navigation */}
+      <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
+        <div className="flex gap-2 w-max">
+          {quickNavItems.map(item => (
+            <button
+              key={item.sectionId}
+              onClick={() => jumpToSection(item.sectionId, item.value)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-background text-xs font-medium whitespace-nowrap hover:bg-primary/10 hover:border-primary/40 active:scale-95 transition-all shrink-0"
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Account and Theme Section */}
       <Card>
@@ -1165,6 +1197,7 @@ export default function SettingsPage() {
           value="item-1"
           icon={Palette}
           title="المظهر والإشعارات"
+          sectionId="settings-appearance"
         >
           <div className="space-y-6">
 
@@ -1246,10 +1279,11 @@ export default function SettingsPage() {
           </div>
         </AccordionItemWrapper>
 
-        <AccordionItemWrapper 
+        <AccordionItemWrapper
           value="item-2"
           icon={Users}
           title="الملف الشخصي والدخل"
+          sectionId="settings-profile"
         >
             {/* Income Section */}
             <div className="space-y-4">
@@ -1356,6 +1390,7 @@ export default function SettingsPage() {
             value="item-3"
             icon={SlidersHorizontal}
             title="الميزانية والدفعات الدورية"
+            sectionId="settings-budget"
         >
              {/* Budget & Goals */}
             <div className="space-y-4">
@@ -1439,6 +1474,7 @@ export default function SettingsPage() {
             value="item-3b"
             icon={Tag}
             title="إدارة الفئات"
+            sectionId="settings-categories"
         >
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground -mt-2">أضف أو عدّل فئات المصاريف حسب احتياجك.</p>
@@ -1602,6 +1638,7 @@ export default function SettingsPage() {
             value="item-5"
             icon={Info}
             title={`حول التطبيق - إصدار ${packageInfo.version}`}
+            sectionId="settings-support"
         >
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/40 border p-3 text-center space-y-1">
