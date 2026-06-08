@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
+import Link from 'next/link';
 
 export default function AllExpensesPage() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function AllExpensesPage() {
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'category'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const EditComponent = isMobile ? Sheet : Dialog;
 
@@ -128,8 +130,34 @@ export default function AllExpensesPage() {
   if (isError) return <FirestoreErrorAlert error={error} context="المصاريف" />;
   if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
+  const deleteTargetTitle = expenses.find(e => e.id === deleteConfirmId)?.title ?? '';
+
   return (
     <div className="space-y-4 pb-20">
+
+      {/* Single-expense delete confirmation */}
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف "{deleteTargetTitle}"؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmId(null)}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConfirmId && user) deleteMutation.mutate(deleteConfirmId);
+                setDeleteConfirmId(null);
+              }}
+            >
+              نعم، احذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Search & Filter */}
       <Card>
@@ -237,6 +265,15 @@ export default function AllExpensesPage() {
         </CardContent>
       </Card>
 
+      {/* FAB — Add expense */}
+      <Link
+        href="/add-expense"
+        className="fixed bottom-20 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
+        aria-label="إضافة مصروف جديد"
+      >
+        <Plus className="h-6 w-6" />
+      </Link>
+
       {/* Results */}
       <Card>
         <CardHeader className="py-3 px-4">
@@ -265,7 +302,13 @@ export default function AllExpensesPage() {
               ) : (
                 <>
                   <h3 className="text-base font-semibold">لا توجد مصاريف مسجلة</h3>
-                  <p className="text-sm mt-1">ابدأ بإضافة أول مصروف لك من الصفحة الرئيسية.</p>
+                  <p className="text-sm mt-1">ابدأ بتسجيل أول مصروف لك</p>
+                  <Link href="/add-expense">
+                    <Button size="sm" className="mt-4 gap-2">
+                      <Plus className="h-4 w-4" />
+                      إضافة مصروف
+                    </Button>
+                  </Link>
                 </>
               )}
             </div>
@@ -329,8 +372,8 @@ export default function AllExpensesPage() {
                                   <Pencil className="ml-2 h-4 w-4" /> تعديل
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => { if (user) deleteMutation.mutate(expense.id); }}
-                                  className="text-destructive focus:text-destructive"
+                                  onSelect={() => setDeleteConfirmId(expense.id)}
+                                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
                                 >
                                   <Trash2Icon className="ml-2 h-4 w-4" /> حذف
                                 </DropdownMenuItem>

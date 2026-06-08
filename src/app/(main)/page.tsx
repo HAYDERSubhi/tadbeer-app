@@ -5,12 +5,13 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ArrowRight, Receipt, Plus, FileScan } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
@@ -444,12 +445,34 @@ export default function DashboardPage() {
   
   const ExpenseListItem = ({ expense }: { expense: Expense }) => {
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const categoryInfo = categoryMap[expense.category];
-    
+
     const EditComponent = isMobile ? Sheet : Dialog;
-    
+
     return (
       <Fragment>
+        {/* Delete confirmation */}
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
+              <AlertDialogDescription>
+                هل أنت متأكد من حذف "{expense.title}"؟ لا يمكن التراجع عن هذا الإجراء.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => handleDeleteExpense(expense.id)}
+              >
+                نعم، احذف
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <li className="flex items-center p-2 transition-colors hover:bg-muted/50 rounded-lg">
           <div className="flex flex-1 items-center gap-3 overflow-hidden">
             <span className={cn("flex h-auto w-auto shrink-0 items-center justify-center text-xl text-muted-foreground")}>
@@ -475,7 +498,10 @@ export default function DashboardPage() {
                       <Pencil className="ml-2 h-4 w-4" />
                       تعديل
                     </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDeleteExpense(expense.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <DropdownMenuItem
+                    onSelect={() => setIsDeleteOpen(true)}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
                     <Trash2 className="ml-2 h-4 w-4" />
                     حذف
                   </DropdownMenuItem>
@@ -711,7 +737,7 @@ export default function DashboardPage() {
             <Button variant="ghost" asChild className="w-full h-9 text-xs text-primary">
               <Link href="/expenses">
                 عرض كل المصاريف ({allSortedExpenses.length})
-                <ArrowRight className="mr-2 h-3 w-3" />
+                <ChevronLeft className="mr-1 h-3 w-3" />
               </Link>
             </Button>
           </CardFooter>
@@ -719,7 +745,7 @@ export default function DashboardPage() {
       </Card>
 
       <Card id="smart-insights-card">
-        <CardHeader>
+        <CardHeader className="py-3">
           <CardTitle className="text-sm font-semibold">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -768,9 +794,9 @@ export default function DashboardPage() {
                   المدرب يحتاج ميزانية شهرية ليُقدّم نصائح دقيقة لك.
                 </p>
               </div>
-              <a href="/settings" className="text-xs font-semibold text-primary underline underline-offset-2">
-                اذهب للإعدادات ←
-              </a>
+              <Link href="/settings" className="text-xs font-semibold text-primary underline underline-offset-2">
+                اذهب للإعدادات
+              </Link>
             </div>
           )}
         </CardContent>
