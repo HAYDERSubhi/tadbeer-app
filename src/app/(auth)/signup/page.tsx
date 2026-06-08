@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, CheckCircle2 } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { addExpense, recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
@@ -64,6 +64,8 @@ export default function SignupPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
   const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
@@ -150,16 +152,16 @@ export default function SignupPage() {
       </div>
 
       {/* ── Card ──────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4">
+      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-4">
         <div className="text-center">
-          <h2 className="text-lg font-bold text-gray-900">إنشاء حساب جديد</h2>
-          <p className="text-xs text-gray-500 mt-0.5">مجاني تماماً</p>
+          <h2 className="text-lg font-bold">إنشاء حساب جديد</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">مجاني تماماً</p>
         </div>
 
         {/* Google — primary CTA */}
         <Button
           variant="outline"
-          className="w-full h-11 border-2 border-gray-200 hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-sm font-semibold"
+          className="w-full h-11 border-2 border-border hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-sm font-semibold"
           onClick={handleGoogleSignUp}
           disabled={anyLoading}
         >
@@ -175,43 +177,63 @@ export default function SignupPage() {
             <span className="w-full border-t border-gray-100" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-[11px] text-gray-400">أو بالبريد الإلكتروني</span>
+            <span className="bg-card px-3 text-[11px] text-muted-foreground">أو بالبريد الإلكتروني</span>
           </div>
         </div>
 
         {/* Email form */}
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="email" className="text-xs font-medium text-gray-700">البريد الإلكتروني</Label>
+            <Label htmlFor="email" className="text-xs font-medium">البريد الإلكتروني</Label>
             <Input
               id="email" type="email" placeholder="email@example.com"
-              className="h-10 text-sm border-gray-200 focus:border-teal-400"
+              className="h-10 text-sm focus:border-teal-400"
               {...form.register('email')}
             />
             {form.formState.errors.email && (
-              <p className="text-xs text-red-500">{form.formState.errors.email.message}</p>
+              <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="password" className="text-xs font-medium text-gray-700">كلمة المرور</Label>
-            <Input
-              id="password" type="password"
-              className="h-10 text-sm border-gray-200 focus:border-teal-400"
-              {...form.register('password')}
-            />
+            <Label htmlFor="password" className="text-xs font-medium">كلمة المرور</Label>
+            <div className="relative">
+              <Input
+                id="password" type={showPassword ? 'text' : 'password'}
+                className="h-10 text-sm focus:border-teal-400 pl-10"
+                {...form.register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {form.formState.errors.password && (
-              <p className="text-xs text-red-500">{form.formState.errors.password.message}</p>
+              <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="confirmPassword" className="text-xs font-medium text-gray-700">تأكيد كلمة المرور</Label>
-            <Input
-              id="confirmPassword" type="password"
-              className="h-10 text-sm border-gray-200 focus:border-teal-400"
-              {...form.register('confirmPassword')}
-            />
+            <Label htmlFor="confirmPassword" className="text-xs font-medium">تأكيد كلمة المرور</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'}
+                className="h-10 text-sm focus:border-teal-400 pl-10"
+                {...form.register('confirmPassword')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(v => !v)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             {form.formState.errors.confirmPassword && (
-              <p className="text-xs text-red-500">{form.formState.errors.confirmPassword.message}</p>
+              <p className="text-xs text-destructive">{form.formState.errors.confirmPassword.message}</p>
             )}
           </div>
           <Button
@@ -240,7 +262,7 @@ export default function SignupPage() {
         )}
 
         {/* Footer links */}
-        <div className="flex items-center justify-between pt-1 text-xs text-gray-500">
+        <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
           <button
             type="button"
             onClick={handleGuestSignIn}

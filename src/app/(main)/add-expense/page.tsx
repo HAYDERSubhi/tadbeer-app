@@ -35,6 +35,7 @@ const expenseSchema = z.object({
   date: z.date({ required_error: 'التاريخ مطلوب' }),
   isOutOfBudget: z.boolean().optional(),
   outOfBudgetDetails: z.string().optional(),
+  description: z.string().optional(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -198,7 +199,7 @@ export default function AddExpensePage() {
             // ──────────────────────────────────────────────────────────────
 
             form.reset();
-            router.push('/');
+            router.push('/expenses');
         }
     });
 
