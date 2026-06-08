@@ -13,6 +13,7 @@ import { useEffect, useCallback } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { useZeroStreak } from '@/hooks/use-zero-streak';
 import { isThisMonth, parseISO, differenceInHours, format } from 'date-fns';
+import { getUpcomingPayments } from '@/lib/billing-utils';
 
 const LAST_REMINDER_KEY = 'tadbeer-last-reminder';
 const LAST_MONTHLY_KEY = 'tadbeer-last-monthly';
@@ -154,6 +155,37 @@ export function useSmartNotifications() {
   useEffect(() => {
     checkBudgetAlert();
   }, [checkBudgetAlert]);
+
+  /* ── Bill reminders: notify 3 days before due date ── */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const payments = userSettings?.recurringPayments ?? [];
+    const upcoming = getUpcomingPayments(payments, 3); // within 3 days
+    if (upcoming.length === 0) return;
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    upcoming.forEach(({ payment, daysUntilDue }) => {
+      // Fire once per payment per cycle (key includes payment id + due date)
+      const key = `tadbeer-bill-notif-${payment.id}-${today}`;
+      if (localStorage.getItem(key)) return;
+
+      requestPermission().then(granted => {
+        if (!granted) return;
+        const whenMsg =
+          daysUntilDue === 0 ? 'اليوم!' :
+          daysUntilDue === 1 ? 'غداً' :
+          `بعد ${daysUntilDue} أيام`;
+
+        sendNotification(
+          `🔔 فاتورة قادمة — ${payment.title}`,
+          `موعد دفع ${formatNum(payment.amount)} د.ع ${whenMsg}`
+        );
+        localStorage.setItem(key, '1');
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userSettings?.recurringPayments]);
 
   /* ── Zero-spend streak: evening encouragement ── */
   useEffect(() => {

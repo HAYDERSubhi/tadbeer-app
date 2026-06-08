@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
+import { SixMonthChart } from '@/components/dashboard/six-month-chart';
 import { useCurrency } from '@/hooks/use-currency';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -244,6 +245,9 @@ export default function StatisticsPage() {
             </CardContent>
         </Card>
       
+      {/* 6-month bar chart — always visible */}
+      <SixMonthChart />
+
       {/* Monthly Comparison — always visible */}
       <MonthlyComparisonCard />
 

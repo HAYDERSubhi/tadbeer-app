@@ -15,7 +15,7 @@ import ManualExpenseForm from '@/components/expenses/manual-expense-form';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { format, isToday, isYesterday, addDays, isSameDay, addMonths, addQuarters, addYears, startOfDay, isFuture, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
+import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
 import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
@@ -35,6 +35,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
+import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -131,52 +132,7 @@ export default function DashboardPage() {
     }, {} as Record<string, string>);
   }, [categories]);
 
-  const upcomingPayments = useMemo(() => {
-    const tomorrow = startOfDay(addDays(new Date(), 1));
-    const allPayments = userSettings?.recurringPayments || [];
-    
-    return allPayments.filter(p => {
-        const startDate = new Date(p.startDate);
-        let nextDueDate = startDate;
-
-        if (isFuture(nextDueDate) && !isSameDay(nextDueDate, tomorrow)) {
-          return false;
-        }
-
-        switch (p.frequency) {
-            case 'one-time':
-                nextDueDate = startDate;
-                break;
-            case 'monthly':
-                nextDueDate = new Date();
-                nextDueDate.setDate(startDate.getDate());
-                if (nextDueDate < new Date()) {
-                    nextDueDate = addMonths(nextDueDate, 1);
-                }
-                const daysInMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
-                if(startDate.getDate() > daysInMonth) {
-                  nextDueDate.setDate(daysInMonth);
-                }
-                break;
-            case 'quarterly':
-                nextDueDate = startDate;
-                while (nextDueDate < new Date()) {
-                    nextDueDate = addQuarters(nextDueDate, 1);
-                }
-                break;
-            case 'annually':
-                nextDueDate = startDate;
-                while (nextDueDate < new Date()) {
-                    nextDueDate = addYears(nextDueDate, 1);
-                }
-                break;
-            default:
-                return false;
-        }
-
-        return isSameDay(startOfDay(nextDueDate), tomorrow);
-    });
-  }, [userSettings]);
+  // upcomingPayments moved to UpcomingBillsCard component
 
 
   // --- Voice Recording: MediaRecorder → Gemini (reliable on all mobile browsers) ---
@@ -552,18 +508,7 @@ export default function DashboardPage() {
       <OnboardingSheet />
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
       
-      {upcomingPayments.length > 0 && (
-        <Alert variant="destructive" className="animate-in fade-in">
-          <AlertTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" />تذكير بدفعة مستحقة غداً!</AlertTitle>
-          <AlertDescription>
-            <ul>
-              {upcomingPayments.map(p => (
-                <li key={p.id}>- {p.title} بمبلغ {formatCurrency(p.amount)}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
+      <UpcomingBillsCard />
 
       {/* Budget Alert */}
       {!isAppDataLoading && budgetData.isBudgetSet && budgetData.spentPercentage >= 80 && (
