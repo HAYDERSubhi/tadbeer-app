@@ -18,8 +18,8 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { financialCoach, type FinancialCoachOutput, type FinancialCoachInput } from '@/ai/flows/financial-coach';
-import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
+import type { FinancialCoachOutput, FinancialCoachInput } from '@/ai/flows/financial-coach';
+import { recordExpenseWithVoiceAction, recordExpenseAction, financialCoachAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -376,7 +376,7 @@ export default function DashboardPage() {
     queryKey: ['financial-coach', insightsCacheKey],
     queryFn: async () => {
       if (!financialCoachInput) return { insights: [] };
-      const result = await financialCoach(financialCoachInput);
+      const result = await financialCoachAction(financialCoachInput);
       return result;
     },
     enabled: !!user && !!financialCoachInput && !isAppDataLoading,

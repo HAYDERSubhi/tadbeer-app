@@ -2,6 +2,11 @@
 'use server';
 
 import {
+  financialCoach,
+  type FinancialCoachInput,
+  type FinancialCoachOutput,
+} from '@/ai/flows/financial-coach';
+import {
   financialChat,
   type FinancialChatInput,
   type FinancialChatOutput,
@@ -31,6 +36,26 @@ import {
   type ParseBankSmsInput,
   type ParseBankSmsOutput,
 } from '@/ai/flows/parse-bank-sms';
+
+/**
+ * A Server Action to securely call the financialCoach AI flow from the client.
+ * Wrapping it here (instead of calling the flow directly) ensures consistent
+ * serialization behaviour across all deployment environments.
+ */
+export async function financialCoachAction(
+  input: FinancialCoachInput
+): Promise<FinancialCoachOutput> {
+  try {
+    const result = await financialCoach(input);
+    return result;
+  } catch (error) {
+    console.error('Error in financialCoachAction:', error);
+    if (error instanceof Error) {
+      throw new Error(`Failed to get financial coach insights: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred in the financial coach.');
+  }
+}
 
 /**
  * A Server Action to securely call the recordExpenseWithText AI flow from the client.
