@@ -68,6 +68,13 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Raise server-action body limit to 4 MB so large audio data-URIs
+    // (long voice recordings) don't get rejected by Next.js before reaching
+    // the handler. The /api/voice route handles audio so this also acts as
+    // a safety net for any remaining server actions that receive media.
+    serverActionsBodySizeLimit: '4mb',
+  },
   images: {
     remotePatterns: [
       {

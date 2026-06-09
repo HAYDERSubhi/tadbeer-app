@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
-import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
+import { recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -102,10 +102,13 @@ export default function DashboardPage() {
   const analyserRef         = useRef<AnalyserNode | null>(null);
   const rafRef              = useRef<number | null>(null);
   const isVoiceRecordingRef = useRef(false);
+  const recordingTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStopTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
   const [audioLevel,       setAudioLevel]        = useState(0);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const setRecordingState = (val: boolean) => {
     isVoiceRecordingRef.current = val;
@@ -115,6 +118,8 @@ export default function DashboardPage() {
   useEffect(() => {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
       audioContextRef.current?.close().catch(() => {});
     };
   }, []);
@@ -137,6 +142,12 @@ export default function DashboardPage() {
     audioContextRef.current = null;
     analyserRef.current = null;
     setAudioLevel(0);
+  };
+
+  const stopRecordingTimers = () => {
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    if (autoStopTimerRef.current)  { clearTimeout(autoStopTimerRef.current);   autoStopTimerRef.current  = null; }
+    setRecordingSeconds(0);
   };
 
   const startAudioVisualization = async (stream: MediaStream) => {
@@ -162,11 +173,12 @@ export default function DashboardPage() {
   };
 
   const handleToggleVoiceRecording = async () => {
-    // ── STOP: user finished speaking ─────────────────────────────────────────
+    // ── STOP: user tapped again ───────────────────────────────────────────────
     if (isVoiceRecordingRef.current) {
       setRecordingState(false);
       stopAudioVisualization();
-      mediaRecorderRef.current?.stop(); // triggers onstop → Gemini analysis
+      stopRecordingTimers();
+      mediaRecorderRef.current?.stop(); // triggers onstop → API → Gemini
       return;
     }
 
@@ -183,14 +195,14 @@ export default function DashboardPage() {
       return;
     }
 
-    // Pick a supported MIME type that Gemini accepts
+    // Pick a supported MIME type — Gemini accepts webm/ogg/mp4
     const preferredTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
     const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
     const mediaRecorder = supportedMime
       ? new MediaRecorder(stream, { mimeType: supportedMime })
       : new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
-    audioChunksRef.current = [];
+    audioChunksRef.current   = [];
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -208,46 +220,57 @@ export default function DashboardPage() {
         return;
       }
 
-      // Send webm directly — gemini-2.5-flash supports audio/webm natively.
-      // The earlier WAV conversion was only needed because gemini-2.0-flash
-      // was retired (404 error). webm is smaller and faster to send.
       const recordedMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
       const blob = new Blob(audioChunksRef.current, { type: recordedMime });
       setIsVoiceLoading(true);
 
       try {
+        // Convert blob → base64 data URI
         const audioDataUri = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => {
             const raw = reader.result as string;
+            // Ensure MIME type in the URI matches the actual format
             resolve(raw.replace(/^data:[^;]+/, `data:${recordedMime}`));
           };
           reader.onerror = () => reject(new Error('FileReader failed'));
           reader.readAsDataURL(blob);
         });
 
-        const response = await recordExpenseWithVoiceAction({
-          voiceRecordingDataUri: audioDataUri,
-          categories: categoryMapForAI,
+        // Use /api/voice route (isolated maxDuration=60) instead of server action
+        // to avoid Vercel's 10s default timeout on server actions.
+        const res = await fetch('/api/voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            voiceRecordingDataUri: audioDataUri,
+            categories: categoryMapForAI,
+          }),
         });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const response: { ok: boolean; data?: { amount: number; category: string; date: string; description?: string | null }; error?: string } = await res.json();
 
         if (!response.ok) {
-          throw new Error(response.error);
+          throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
         }
 
-        const result = response.data;
+        const result = response.data!;
         setVoiceExpenseData({
-          title: result.description ?? undefined,
-          amount: result.amount,
+          title:    result.description ?? undefined,
+          amount:   result.amount,
           category: result.category,
-          date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
+          date:     result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
         });
         setIsVoiceReviewOpen(true);
+
       } catch (err) {
         console.error('Voice analysis error:', err);
+        const detail = err instanceof Error ? err.message : String(err);
         toast({
           title: 'خطأ في تحليل الصوت',
-          description: 'لم يتمكن التطبيق من فهم التسجيل. حاول مرة أخرى وتحدث بوضوح.',
+          description: detail.length < 120 ? detail : 'تعذّر تحليل التسجيل. تحقق من اتصالك وحاول مجدداً.',
           variant: 'destructive',
         });
       } finally {
@@ -256,8 +279,24 @@ export default function DashboardPage() {
     };
 
     await startAudioVisualization(stream);
-    mediaRecorder.start(250); // collect chunks every 250ms for reliability
+    mediaRecorder.start(250); // 250ms chunks for reliability
     setRecordingState(true);
+    setRecordingSeconds(0);
+
+    // ── Recording timer (counts up every second for UX display) ──────────────
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingSeconds(s => s + 1);
+    }, 1000);
+
+    // ── Auto-stop at 60s to prevent huge payloads ─────────────────────────────
+    autoStopTimerRef.current = setTimeout(() => {
+      if (!isVoiceRecordingRef.current) return;
+      toast({ title: 'تم إيقاف التسجيل تلقائياً', description: 'الحد الأقصى للتسجيل هو 60 ثانية.' });
+      setRecordingState(false);
+      stopAudioVisualization();
+      stopRecordingTimers();
+      mediaRecorderRef.current?.stop();
+    }, 60_000);
   };
 
 
@@ -561,8 +600,12 @@ export default function DashboardPage() {
                   <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
                 )}
               </span>
-              <p className="font-semibold text-xs">
-                {isVoiceLoading ? 'تحليل...' : isVoiceRecording ? 'استماع' : 'صوت'}
+              <p className="font-semibold text-xs tabular-nums">
+                {isVoiceLoading
+                  ? 'تحليل...'
+                  : isVoiceRecording
+                    ? `${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, '0')}`
+                    : 'صوت'}
               </p>
             </div>
 
