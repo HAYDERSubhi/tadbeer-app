@@ -46,38 +46,55 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
-    // Settings first (needed for householdId)
-    const { data: userSettings, isLoading: settingsLoading, isFetched: settingsFetched, isError: settingsIsError, error: settingsError } = useQuery<UserSettings, Error>({
+    // Settings first (needed for householdId).
+    // placeholderData gives instant default while fetching so isLoading=false,
+    // but isFetched+isRefetching tells us if REAL data has settled.
+    const {
+        data: userSettings,
+        isLoading: settingsLoading,
+        isFetched: settingsFetched,
+        isRefetching: settingsRefetching,
+        isError: settingsIsError,
+        error: settingsError,
+    } = useQuery<UserSettings, Error>({
         queryKey: ['userSettings', user?.uid],
         queryFn: () => getUserSettings(user!.uid),
         enabled: !!user,
         placeholderData: defaultSettings,
-        staleTime: 1000 * 60,
+        // 5 min — mutations always invalidate explicitly so longer stale is safe.
+        staleTime: 1000 * 60 * 5,
     });
 
     const householdId = userSettings?.householdId ?? null;
 
     // Recent expenses only (last ~7 months) — fast initial load for the homepage.
     // queryKey includes 'recent' so it coexists with the all-expenses cache entry.
-    const { data: expenses = [], isLoading: expensesLoading, isFetched: expensesFetched, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
+    const {
+        data: expenses = [],
+        isLoading: expensesLoading,
+        isFetched: expensesFetched,
+        isRefetching: expensesRefetching,
+        isError: expensesIsError,
+        error: expensesError,
+    } = useQuery<Expense[], Error>({
         queryKey: ['expenses', user?.uid, householdId, 'recent'],
         queryFn: () => getExpenses(user!.uid, householdId, { startDate: RECENT_START }),
         enabled: !!user && !settingsLoading,
-        staleTime: 1000 * 60,
+        staleTime: 1000 * 60 * 5,
     });
 
     const { data: goals = [], isLoading: goalsLoading, isError: goalsIsError, error: goalsError } = useQuery<Goal[], Error>({
         queryKey: ['goals', user?.uid, householdId],
         queryFn: () => getGoals(user!.uid, householdId),
         enabled: !!user && !settingsLoading,
-        staleTime: 1000 * 60,
+        staleTime: 1000 * 60 * 5,
     });
 
     const { data: incomes = [], isLoading: incomesLoading, isError: incomesIsError, error: incomesError } = useQuery<Income[], Error>({
         queryKey: ['incomes', user?.uid],
         queryFn: () => getIncomes(user!.uid),
         enabled: !!user,
-        staleTime: 1000 * 60,
+        staleTime: 1000 * 60 * 5,
     });
 
     // Household doc (only when user is in a household)
@@ -85,7 +102,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         queryKey: ['household', householdId],
         queryFn: () => getHousehold(householdId!),
         enabled: !!householdId,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 10,
     });
 
     const isLoading = settingsLoading || expensesLoading || goalsLoading || incomesLoading;
@@ -100,8 +117,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         household,
         householdId,
         isLoading,
-        isSettingsFetched: settingsFetched,
-        isExpensesFetched: expensesFetched,
+        // "truly ready" = fetched at least once AND not currently re-fetching stale data.
+        // This prevents showing stale cached data during background refetch.
+        isSettingsFetched: settingsFetched && !settingsRefetching,
+        isExpensesFetched: expensesFetched && !expensesRefetching,
         isError,
         error,
         queryClient,

@@ -32,11 +32,20 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<FirebaseError | null>(null);
-
+  // Initialize synchronously from the Firebase-cached auth state so we never
+  // flash a loading screen when the user is already signed in.
   const auth = firebaseAuth;
+  // Synchronous init: if Firebase already resolved the auth state (cached),
+  // start with the real user so no loading flash occurs for returning users.
+  const [user, setUser] = useState<User | null>(() => auth?.currentUser ?? null);
+  // loading=true only when Firebase hasn't yet resolved the auth state.
+  // If currentUser is already set (cached login), we start as not-loading.
+  // If currentUser is null, Firebase may still be resolving — stay loading.
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!auth) return false; // No Firebase → no loading, show error
+    return auth.currentUser === null; // null = not yet resolved OR logged out
+  });
+  const [authError, setAuthError] = useState<FirebaseError | null>(null);
 
   useEffect(() => {
     // This effect now specifically checks for the `auth/configuration-missing` scenario
