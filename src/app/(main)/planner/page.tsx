@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot, PiggyBank, TrendingUp, Edit3 } from 'lucide-react';
+import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRight, Lightbulb, PlusCircle, Trash2Icon, ChevronsRight, Flag, Calendar as CalendarIconLucide, Bot, Vault, TrendingUp, Edit3 } from 'lucide-react';
 import { format, differenceInCalendarMonths, isFuture, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -418,7 +418,7 @@ function PlannerContent() {
                           return (
                             <div className="space-y-1 pt-1">
                               <div className="flex justify-between text-[10px] text-muted-foreground">
-                                <span className="flex items-center gap-1"><PiggyBank className="h-3 w-3" /> وفّرت: <span className="font-bold text-foreground">{formatCurrency(saved)}</span></span>
+                                <span className="flex items-center gap-1"><Vault className="h-3 w-3" /> وفّرت: <span className="font-bold text-foreground">{formatCurrency(saved)}</span></span>
                                 <span className="font-bold text-primary">{pct}%</span>
                               </div>
                               <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">

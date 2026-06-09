@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Vault } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCurrency } from '@/hooks/use-currency';
@@ -72,7 +72,7 @@ export function IncomeVsExpensesCard() {
               "flex items-center justify-center w-8 h-8 rounded-full",
               savings >= 0 ? "bg-primary/10" : "bg-destructive/10"
             )}>
-              <PiggyBank className={cn("h-4 w-4", savings >= 0 ? "text-primary" : "text-destructive")} />
+              <Vault className={cn("h-4 w-4", savings >= 0 ? "text-primary" : "text-destructive")} />
             </div>
             <p className="text-[10px] text-muted-foreground">التوفير</p>
             <p className={cn("text-xs font-bold", savings >= 0 ? "text-primary" : "text-destructive")}>
