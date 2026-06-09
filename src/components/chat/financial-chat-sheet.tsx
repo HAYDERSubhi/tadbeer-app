@@ -198,7 +198,7 @@ export function FinancialChatSheet() {
       byCategory[name] = (byCategory[name] || 0) + e.amount;
     });
 
-    // Previous month total
+    // Previous month — full breakdown by category (not just total)
     const prevMonthExpenses = expenses.filter(e => {
       try {
         const d = parseISO(e.date);
@@ -208,11 +208,16 @@ export function FinancialChatSheet() {
       } catch { return false; }
     });
     const prevMonthTotal = prevMonthExpenses.reduce((s, e) => s + e.amount, 0);
+    const prevByCategory: Record<string, number> = {};
+    prevMonthExpenses.forEach(e => {
+      const name = categoryMap[e.category]?.name || e.category;
+      prevByCategory[name] = (prevByCategory[name] || 0) + e.amount;
+    });
 
-    // Recent 5 expenses
+    // Recent 10 expenses (increased from 5 for richer context)
     const recent = [...expenses]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5)
+      .slice(0, 10)
       .map(e => ({
         title: e.title,
         amount: e.amount,
@@ -231,6 +236,13 @@ export function FinancialChatSheet() {
       };
     });
 
+    // Category budgets (named, not by ID) — needed to answer "كم ميزانيتي للأكل؟"
+    const categoryBudgetsNamed: Record<string, number> = {};
+    Object.entries(userSettings?.categoryBudgets || {}).forEach(([id, amt]) => {
+      const name = categoryMap[id]?.name || id;
+      categoryBudgetsNamed[name] = amt as number;
+    });
+
     return JSON.stringify({
       currentDate: format(now, 'yyyy-MM-dd'),
       dayOfMonth: now.getDate(),
@@ -238,7 +250,9 @@ export function FinancialChatSheet() {
       spentThisMonth: totalSpent,
       remainingBudget: totalBudget ? totalBudget - totalSpent : null,
       budgetUsagePercent: totalBudget ? Math.round((totalSpent / totalBudget) * 100) : null,
+      categoryBudgets: Object.keys(categoryBudgetsNamed).length ? categoryBudgetsNamed : null,
       previousMonthTotal: prevMonthTotal,
+      previousMonthByCategory: Object.keys(prevByCategory).length ? prevByCategory : null,
       monthlyIncome: userSettings?.profile?.monthlyIncome || 0,
       spendingByCategoryThisMonth: byCategory,
       recentExpenses: recent,
@@ -428,12 +442,13 @@ export function FinancialChatSheet() {
                 <div
                   key={i}
                   className={cn(
-                    'flex',
-                    msg.role === 'user' ? 'justify-start' : 'justify-start'
+                    'flex items-end gap-2',
+                    // RTL: user = right side (justify-end), AI = left side (justify-start)
+                    msg.role === 'user' ? 'justify-end' : 'justify-start'
                   )}
                 >
                   {msg.role === 'assistant' && (
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full animate-gold-shimmer shadow ml-2 mt-0.5">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full animate-gold-shimmer shadow mt-0.5">
                       <Bot className="h-3 w-3 text-white" />
                     </div>
                   )}
@@ -441,8 +456,8 @@ export function FinancialChatSheet() {
                     className={cn(
                       'rounded-2xl px-4 py-2.5 text-xs leading-relaxed max-w-[82%]',
                       msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-tl-sm mr-auto'
-                        : 'bg-muted text-foreground rounded-tr-sm'
+                        ? 'bg-primary text-primary-foreground rounded-br-sm'
+                        : 'bg-muted text-foreground rounded-bl-sm'
                     )}
                   >
                     {msg.content}
