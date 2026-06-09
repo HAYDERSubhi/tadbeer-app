@@ -17,10 +17,12 @@ const RecordExpenseWithVoiceInputSchema = z.object({
 export type RecordExpenseWithVoiceInput = z.infer<typeof RecordExpenseWithVoiceInputSchema>;
 
 const RecordExpenseWithVoiceOutputSchema = z.object({
-  amount: z.number().describe('The expense amount as a plain number.'),
+  // z.coerce.number() accepts both numeric strings ("50000") and real numbers (50000).
+  amount: z.coerce.number().describe('The expense amount as a plain number.'),
   category: z.string().describe('The category ID from the provided list.'),
   date: z.string().describe('Date in YYYY-MM-DD format. Default to today if not mentioned.'),
-  description: z.string().optional().describe('Short Arabic description of the expense.'),
+  // nullable() so Gemini returning null (instead of omitting) doesn't break validation.
+  description: z.string().nullable().optional().describe('Short Arabic description of the expense.'),
 });
 export type RecordExpenseWithVoiceOutput = z.infer<typeof RecordExpenseWithVoiceOutputSchema>;
 
@@ -60,11 +62,13 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
 "اليوم" = ${todayISO}. "أمس" = اليوم ناقص يوم واحد. لا تخمّن تاريخاً من معلوماتك القديمة.
 
 ## أمثلة على الأرقام العراقية
-- "خمسين ألف" = 50000
-- "مية ألف" = 100000
-- "عشرتالاف" = 10000
+- "خمسين ألف" أو "50 ألف" = 50000
+- "مية ألف" أو "100 ألف" = 100000
+- "عشرتالاف" أو "10 ألف" = 10000
 - "ألفين وخمسمية" = 2500
 - "خمسة وعشرين" = 25000 (في سياق المصاريف اليومية)
+- "ألف وخمسمية" = 1500
+- "مليون" = 1000000
 
 ## التعليمات
 1. استمع بعناية للتسجيل

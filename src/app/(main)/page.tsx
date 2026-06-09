@@ -237,7 +237,7 @@ export default function DashboardPage() {
 
         const result = response.data;
         setVoiceExpenseData({
-          title: result.description,
+          title: result.description ?? undefined,
           amount: result.amount,
           category: result.category,
           date: result.date ? new Date(result.date).toISOString() : new Date().toISOString(),
