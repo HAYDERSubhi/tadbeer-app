@@ -16,14 +16,18 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   start_url: "/",
   display: "standalone",
   orientation: "portrait",
-  // Ensure a light background for the splash screen in both light and dark modes
-  background_color_dark: "#F8FAFC",
+  // White splash screen background so the icon doesn't appear on black.
   background_color: "#F8FAFC",
-  // Force a light theme color for the browser chrome in both modes to fix the black splash screen issue
-  theme_color_dark: "#F8FAFC", 
-  theme_color: "#F8FAFC",      
+  // Teal theme matches the app primary color.
+  theme_color: "#14A39A",
   short_name: "تدبير",
   description: "إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.",
+  icons: [
+    { src: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    { src: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    // maskable: allows Android to use adaptive icon with coloured background.
+    { src: "/icons/maskable-icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+  ],
   screenshots: [
     {
       "src": "/screenshots/screenshot-1-light.png",

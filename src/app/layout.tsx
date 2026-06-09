@@ -1,7 +1,16 @@
 // src/app/layout.tsx
 import type { Metadata, Viewport } from 'next';
+import { Tajawal } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '@/components/providers';
+
+// Self-hosted via Next.js — eliminates render-blocking Google Fonts request.
+const tajawal = Tajawal({
+  subsets: ['arabic'],
+  weight: ['400', '500', '700', '900'],
+  display: 'swap',
+  variable: '--font-tajawal',
+});
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tadbeer.app';
 
@@ -79,7 +88,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={tajawal.variable}>
       <body>
         <AppProviders>
           {children}
