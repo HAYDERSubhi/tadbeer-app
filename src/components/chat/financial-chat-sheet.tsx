@@ -272,24 +272,31 @@ export function FinancialChatSheet() {
     setInput('');
     setIsSending(true);
 
-    const result = await financialChatAction({
-      messages: updatedMessages,
-      financialContext,
-      appTone: userSettings?.appTone ?? 'formal',
-    });
+    try {
+      const result = await financialChatAction({
+        messages: updatedMessages,
+        financialContext,
+        appTone: userSettings?.appTone ?? 'formal',
+      });
 
-    if (result.ok) {
-      setMessages(prev => [...prev, { role: 'assistant', content: result.data.reply }]);
-    } else {
+      if (result.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: result.data.reply }]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.' },
+        ]);
+      }
+    } catch {
+      // Network error, Vercel timeout, or any unhandled throw — must unblock UI.
       setMessages(prev => [
         ...prev,
-        {
-          role: 'assistant',
-          content: 'عذرًا، حدث خطأ. يرجى المحاولة مرة أخرى.',
-        },
+        { role: 'assistant', content: 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.' },
       ]);
+    } finally {
+      // ALWAYS unblock — this was the root cause of the infinite loading state.
+      setIsSending(false);
     }
-    setIsSending(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

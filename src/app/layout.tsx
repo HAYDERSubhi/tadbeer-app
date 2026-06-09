@@ -71,6 +71,10 @@ export const metadata: Metadata = {
   },
 };
 
+// Raise Vercel serverless timeout to 30s for all server actions in this app
+// (AI flows — Gemini API — can occasionally take >10s default limit).
+export const maxDuration = 30;
+
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
