@@ -1,24 +1,28 @@
-
-// src/app/(main)/stats/page.tsx
+// src/app/(main)\stats\page.tsx
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getExpenses } from '@/services/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon } from "lucide-react";
 import {
-  ResponsiveContainer, PieChart as RechartsPieChart, Pie, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell,
+  PieChartIcon, TrendingUpIcon, ListOrdered, Loader2,
+  BarChart2, LineChartIcon, TrendingUp, TrendingDown, Minus,
+} from "lucide-react";
+import {
+  PieChart as RechartsPieChart, Pie, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, Label,
 } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, parseISO, getYear, compareDesc } from 'date-fns';
-import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
+  format, parseISO, getYear, compareDesc,
+  startOfMonth, endOfMonth, startOfYear, endOfYear,
+  isWithinInterval, subMonths,
+} from 'date-fns';
+import { arIQ, formatYearMonth } from '@/lib/arabic-date';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { InsightsCard } from './InsightsCard';
@@ -27,40 +31,18 @@ import { CoachInsightsCard } from '@/components/dashboard/coach-insights-card';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { MonthlyComparisonCard } from '@/components/dashboard/monthly-comparison-card';
 import { SixMonthChart } from '@/components/dashboard/six-month-chart';
-import { AiTrendsCard } from '@/components/dashboard/ai-trends-card';
 import { useCurrency } from '@/hooks/use-currency';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FileBarChart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// ─── Pie chart active shape ───────────────────────────────────────────────────
-const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-  return (
-    <g>
-      <text x={cx} y={cy - 12} dy={8} textAnchor="middle" fill={fill} className="text-sm font-bold">
-        {payload.name}
-      </text>
-      <text x={cx} y={cy + 8} textAnchor="middle" fill="hsl(var(--foreground))" className="text-lg font-bold">
-        {value.toLocaleString()}
-      </text>
-      <text x={cx} y={cy + 28} textAnchor="middle" fill="hsl(var(--muted-foreground))" className="text-xs">
-        ({(percent * 100).toFixed(1)}%)
-      </text>
-      <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius}
-        startAngle={startAngle} endAngle={endAngle} fill={fill} />
-      <Sector cx={cx} cy={cy} startAngle={startAngle} endAngle={endAngle}
-        innerRadius={outerRadius + 6} outerRadius={outerRadius + 10} fill={fill} />
-    </g>
-  );
-};
-
-const formatNumberShort = (num: number) => {
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (num >= 1_000) return (num / 1_000).toFixed(0) + 'K';
-  return num.toString();
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+const fmt = (n: number) => {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1_000)     return (n / 1_000).toFixed(0) + 'K';
+  return n.toString();
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -70,7 +52,7 @@ export default function StatisticsPage() {
   const { categories, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
-  // Fetch ALL expenses (no startDate filter) — stats need the full history.
+  // Full history — no date filter
   const { data: expenses = [], isLoading: allExpensesLoading } = useQuery({
     queryKey: ['expenses', user?.uid, householdId, 'all'],
     queryFn: () => getExpenses(user!.uid, householdId),
@@ -78,103 +60,95 @@ export default function StatisticsPage() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const [view, setView] = useState<'month' | 'year'>('month');
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [view, setView]           = useState<'month' | 'year'>('month');
+  const [selectedYear, setSelectedYear]   = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  const [activeIndex, setActiveIndex] = useState(0);
-  const onPieEnter = useCallback((_: any, index: number) => setActiveIndex(index), []);
 
-  // ── Derived period lists ──────────────────────────────────────────────────
+  // ── Available period lists ────────────────────────────────────────────────
   const availableYears = useMemo(() => {
     if (!expenses.length) return [new Date().getFullYear()];
-    const years = expenses.map(e => {
-      try { return getYear(parseISO(e.date)); } catch { return null; }
-    }).filter((y): y is number => y !== null);
-    return Array.from(new Set(years)).sort((a, b) => b - a);
+    const s = new Set(expenses.map(e => { try { return getYear(parseISO(e.date)); } catch { return null; } }).filter((y): y is number => y !== null));
+    return Array.from(s).sort((a, b) => b - a);
   }, [expenses]);
 
   const availableMonths = useMemo(() => {
     if (!expenses.length) return [format(new Date(), 'yyyy-MM')];
-    const months = expenses.map(e => {
-      try { return format(parseISO(e.date), 'yyyy-MM'); } catch { return null; }
-    }).filter((m): m is string => m !== null);
-    return Array.from(new Set(months)).sort((a, b) => b.localeCompare(a));
+    const s = new Set(expenses.map(e => { try { return format(parseISO(e.date), 'yyyy-MM'); } catch { return null; } }).filter((m): m is string => m !== null));
+    return Array.from(s).sort((a, b) => b.localeCompare(a));
   }, [expenses]);
 
-  // Correct selected period when available lists change
-  const effectiveMonth = availableMonths.includes(selectedMonth)
-    ? selectedMonth
-    : (availableMonths[0] ?? format(new Date(), 'yyyy-MM'));
-
-  const effectiveYear = availableYears.includes(selectedYear)
-    ? selectedYear
-    : (availableYears[0] ?? new Date().getFullYear());
+  const effectiveMonth = availableMonths.includes(selectedMonth) ? selectedMonth : (availableMonths[0] ?? format(new Date(), 'yyyy-MM'));
+  const effectiveYear  = availableYears.includes(selectedYear)   ? selectedYear  : (availableYears[0] ?? new Date().getFullYear());
 
   // ── Chart config ──────────────────────────────────────────────────────────
-  const chartConfig = useMemo(() => {
-    const config: ChartConfig = {};
-    categories.forEach(cat => {
-      config[cat.id] = {
-        label: cat.name,
-        icon: () => getIconComponent(cat.icon),
-        color: `hsl(var(--chart-${cat.color}))`,
-      };
+  const chartConfig = useMemo((): ChartConfig => {
+    const cfg: ChartConfig = {};
+    categories.forEach(c => {
+      cfg[c.id] = { label: c.name, icon: () => getIconComponent(c.icon), color: `hsl(var(--chart-${c.color}))` };
     });
-    config.expenses = { label: "المصاريف", color: "hsl(var(--primary))" };
-    return config;
+    cfg.expenses = { label: 'المصاريف', color: 'hsl(var(--primary))' };
+    return cfg;
   }, [categories, getIconComponent]);
 
-  // ── Core stats — computed synchronously, no server call, no loading state ─
+  // ── Core stats (synchronous, no server call) ──────────────────────────────
   const statsData = useMemo(() => {
-    if (!user || isAppDataLoading || allExpensesLoading || !userSettings) return null;
-    if (!expenses.length) return null;
+    if (!user || isAppDataLoading || allExpensesLoading || !userSettings || !expenses.length) return null;
     try {
-      return getStatsSummary({
-        expenses,
-        view,
-        selectedPeriod: view === 'month' ? effectiveMonth : String(effectiveYear),
-        userSettings,
-      });
-    } catch (err) {
-      console.error('getStatsSummary failed:', err);
+      return getStatsSummary({ expenses, view, selectedPeriod: view === 'month' ? effectiveMonth : String(effectiveYear), userSettings });
+    } catch (e) {
+      console.error('getStatsSummary:', e);
       return null;
     }
   }, [user, isAppDataLoading, allExpensesLoading, expenses, view, effectiveMonth, effectiveYear, userSettings]);
 
+  // ── Previous period total (for the comparison badge) ─────────────────────
+  const prevTotal = useMemo(() => {
+    if (!expenses.length) return 0;
+    let s: Date, e: Date;
+    if (view === 'month') {
+      const [y, m] = effectiveMonth.split('-').map(Number);
+      const prev = subMonths(new Date(y, m - 1, 1), 1);
+      s = startOfMonth(prev); e = endOfMonth(prev);
+    } else {
+      s = startOfYear(new Date(effectiveYear - 1, 0, 1));
+      e = endOfYear(new Date(effectiveYear - 1, 0, 1));
+    }
+    return expenses
+      .filter(exp => { try { return isWithinInterval(parseISO(exp.date), { start: s, end: e }); } catch { return false; } })
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expenses, view, effectiveMonth, effectiveYear]);
+
   const {
-    pieChartData = [],
-    trendChartData = [],
+    pieChartData    = [],
+    trendChartData  = [],
     categorySummary = [],
-    categoryTrends = [],
-    totalForPeriod = 0,
+    categoryTrends  = [],
+    totalForPeriod  = 0,
     filteredExpenses = [],
     periodDescription = '',
   } = statsData ?? {};
 
-  // ── Loading / empty states ────────────────────────────────────────────────
-  if (isAppDataLoading || allExpensesLoading) {
-    return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const diffPct = prevTotal > 0 ? ((totalForPeriod - prevTotal) / prevTotal) * 100 : null;
 
+  // ── Loading / empty ───────────────────────────────────────────────────────
+  if (isAppDataLoading || allExpensesLoading) {
+    return <div className="flex justify-center items-center h-[60vh]"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
+  }
   if (!expenses.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center px-6">
-        <BarChart className="h-12 w-12 text-muted-foreground mb-4" />
+        <BarChart2 className="h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-lg font-bold mb-2">لا توجد بيانات لعرضها</h2>
         <p className="text-xs text-muted-foreground">ابدأ بإضافة بعض المصاريف لترى الإحصائيات هنا.</p>
       </div>
     );
   }
 
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4 pb-24">
 
-      {/* Monthly report shortcut */}
+      {/* ── التقرير الشهري ── */}
       <Link href="/report">
         <Button variant="outline" className="w-full gap-2 h-10">
           <FileBarChart className="h-4 w-4 text-primary" />
@@ -182,19 +156,19 @@ export default function StatisticsPage() {
         </Button>
       </Link>
 
-      {/* Period selector */}
+      {/* ── اختيار الفترة ── */}
       <Card>
         <CardContent className="p-3">
-          <Tabs value={view} onValueChange={(v) => setView(v as 'month' | 'year')} className="w-full">
+          <Tabs value={view} onValueChange={v => setView(v as 'month' | 'year')} className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-9">
               <TabsTrigger value="month" className="text-xs">شهري</TabsTrigger>
-              <TabsTrigger value="year" className="text-xs">سنوي</TabsTrigger>
+              <TabsTrigger value="year"  className="text-xs">سنوي</TabsTrigger>
             </TabsList>
 
             <TabsContent value="month" className="mt-3">
-              <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
                 <Tabs value={effectiveMonth} onValueChange={setSelectedMonth}>
-                  <TabsList className="h-8 inline-flex w-auto gap-0.5">
+                  <TabsList className="h-8 inline-flex w-auto">
                     {availableMonths.map(m => (
                       <TabsTrigger key={m} value={m} className="whitespace-nowrap text-xs px-2.5 py-1 h-auto">
                         {formatYearMonth(m)}
@@ -206,13 +180,11 @@ export default function StatisticsPage() {
             </TabsContent>
 
             <TabsContent value="year" className="mt-3">
-              <div className="overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+              <div className="overflow-x-auto -mx-1 px-1 scrollbar-hide">
                 <Tabs value={String(effectiveYear)} onValueChange={v => setSelectedYear(Number(v))}>
-                  <TabsList className="h-8 inline-flex w-auto gap-0.5">
+                  <TabsList className="h-8 inline-flex w-auto">
                     {availableYears.map(y => (
-                      <TabsTrigger key={y} value={String(y)} className="text-xs px-2.5 py-1 h-auto">
-                        {y}
-                      </TabsTrigger>
+                      <TabsTrigger key={y} value={String(y)} className="text-xs px-2.5 py-1 h-auto">{y}</TabsTrigger>
                     ))}
                   </TabsList>
                 </Tabs>
@@ -222,59 +194,114 @@ export default function StatisticsPage() {
         </CardContent>
       </Card>
 
-      {/* Always-visible dashboard cards */}
+      {/* ── مخطط الستة أشهر (سياق تاريخي عام) ── */}
       <SixMonthChart />
-      <AiTrendsCard />
-      <MonthlyComparisonCard />
 
-      {/* Period-specific stats — statsData is ready synchronously */}
+      {/* ── بعد هذا كل شيء خاص بالفترة المختارة ── */}
       {!statsData ? (
         <div className="space-y-4">
-          <Skeleton className="h-48 w-full rounded-xl" />
-          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-72 w-full rounded-xl" />
           <Skeleton className="h-56 w-full rounded-xl" />
         </div>
       ) : (
         <>
-          {/* ── Pie chart ──────────────────────────────────────────────── */}
+
+          {/* ── بطاقة ملخص الفترة ── */}
           <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <PieChartIcon className="h-4 w-4 text-primary" />
-                توزيع المصاريف
-              </CardTitle>
-              <CardDescription className="text-xs">
-                إجمالي الإنفاق في {periodDescription}:{' '}
-                <span className="font-semibold text-foreground">{formatCurrency(totalForPeriod)}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4">
-              {pieChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="w-full h-[240px]">
-                  <RechartsPieChart>
-                    <RechartsTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={pieChartData}
-                      activeIndex={activeIndex}
-                      activeShape={renderActiveShape}
-                      cx="50%" cy="50%"
-                      innerRadius={60} outerRadius={80}
-                      dataKey="value"
-                      onMouseEnter={onPieEnter}
-                    >
-                      {pieChartData.map((entry, i) => (
-                        <Cell key={`cell-${i}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ChartContainer>
-              ) : (
-                <p className="text-muted-foreground text-xs text-center py-10">لا توجد مصاريف لعرضها.</p>
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground mb-1">{periodDescription}</p>
+              <div className="flex items-end justify-between">
+                <p className="text-2xl font-bold tracking-tight">{formatCurrency(totalForPeriod)}</p>
+                {diffPct !== null && (
+                  <div className={cn(
+                    "flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full",
+                    diffPct > 0  ? "bg-destructive/10 text-destructive"
+                    : diffPct < 0 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-muted text-muted-foreground"
+                  )}>
+                    {diffPct > 0 ? <TrendingUp className="h-3 w-3" />
+                    : diffPct < 0 ? <TrendingDown className="h-3 w-3" />
+                    : <Minus className="h-3 w-3" />}
+                    {Math.abs(diffPct).toFixed(1)}%
+                    <span className="font-normal opacity-70">عن الفترة السابقة</span>
+                  </div>
+                )}
+              </div>
+              {prevTotal > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  الفترة السابقة: {formatCurrency(prevTotal)}
+                </p>
               )}
             </CardContent>
           </Card>
 
-          {/* ── Category summary with accordion ─────────────────────── */}
+          {/* ── الدائرة البيانية + ليجند ── */}
+          {pieChartData.length > 0 && (
+            <Card>
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <PieChartIcon className="h-4 w-4 text-primary" />
+                  توزيع المصاريف
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pb-4 px-4">
+                {/* Donut chart — no interactive active shape */}
+                <div className="flex justify-center">
+                  <ChartContainer config={chartConfig} className="w-full max-w-[220px] h-[220px]">
+                    <RechartsPieChart>
+                      <Pie
+                        data={pieChartData}
+                        cx="50%" cy="50%"
+                        innerRadius={65} outerRadius={95}
+                        dataKey="value"
+                        paddingAngle={2}
+                        strokeWidth={0}
+                        isAnimationActive={true}
+                      >
+                        {pieChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.fill} />
+                        ))}
+                        <Label
+                          content={({ viewBox }) => {
+                            const vb = viewBox as { cx?: number; cy?: number };
+                            const cx = vb?.cx ?? 110;
+                            const cy = vb?.cy ?? 110;
+                            return (
+                              <g>
+                                <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle"
+                                  className="fill-foreground font-bold" style={{ fontSize: 15, fontWeight: 700 }}>
+                                  {fmt(totalForPeriod)}
+                                </text>
+                                <text x={cx} y={cy + 12} textAnchor="middle" dominantBaseline="middle"
+                                  className="fill-muted-foreground" style={{ fontSize: 10 }}>
+                                  الإجمالي
+                                </text>
+                              </g>
+                            );
+                          }}
+                        />
+                      </Pie>
+                    </RechartsPieChart>
+                  </ChartContainer>
+                </div>
+
+                {/* Legend rows */}
+                <div className="mt-3 space-y-2">
+                  {pieChartData.map(item => (
+                    <div key={item.key} className="flex items-center gap-2">
+                      <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ background: item.fill }} />
+                      <span className="flex-1 text-xs truncate">{item.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{item.percentage.toFixed(1)}%</span>
+                      <span className="text-xs font-semibold shrink-0 min-w-[60px] text-left">{formatCurrency(item.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ── ملخص الفئات (accordion) ── */}
           <Card>
             <CardHeader className="py-3 px-4">
               <CardTitle className="flex items-center gap-2 text-sm">
@@ -282,31 +309,21 @@ export default function StatisticsPage() {
                 ملخص الفئات
               </CardTitle>
               <CardDescription className="text-xs">
-                {categorySummary.length === 0
-                  ? 'لا توجد مصاريف مسجلة في هذه الفترة.'
-                  : 'اضغط على فئة لعرض تفاصيلها.'}
+                {categorySummary.length > 0 ? 'اضغط على فئة لعرض مصاريفها.' : 'لا توجد مصاريف في هذه الفترة.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {categorySummary.length > 0 ? (
-                <Accordion
-                  type="single"
-                  collapsible
-                  className="w-full"
-                  onValueChange={value => {
-                    const idx = categorySummary.findIndex(item => item.id === value);
-                    if (idx !== -1) setActiveIndex(idx);
-                  }}
-                >
-                  {categorySummary.map((item) => (
-                    <AccordionItem value={item.id} key={item.id} className="border-b last:border-0">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors data-[state=open]:bg-muted/50">
+                <Accordion type="single" collapsible className="w-full">
+                  {categorySummary.map(item => (
+                    <AccordionItem key={item.id} value={item.id} className="border-b last:border-0">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/40 data-[state=open]:bg-muted/40 transition-colors">
                         <div className="flex items-center justify-between w-full gap-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <span style={{ color: item.chartColor }} className="text-xl shrink-0">
                               {getIconComponent(item.icon)}
                             </span>
-                            <div className="flex-1 min-w-0 text-right">
+                            <div className="text-right flex-1 min-w-0">
                               <p className="font-semibold text-sm truncate">{item.name}</p>
                               <p className="text-[11px] text-muted-foreground">{item.percentage.toFixed(1)}% من الإجمالي</p>
                             </div>
@@ -314,13 +331,11 @@ export default function StatisticsPage() {
                           <div className="text-left shrink-0">
                             <p className="text-sm font-bold">{formatCurrency(item.total)}</p>
                             {item.budget && item.total > 0 && (
-                              <div className="w-16 mt-1">
-                                <Progress
-                                  value={(item.total / item.budget) * 100}
-                                  indicatorClassName={(item.total / item.budget) > 1 ? 'bg-destructive' : 'bg-primary'}
-                                  className="h-1.5"
-                                />
-                              </div>
+                              <Progress
+                                value={Math.min((item.total / item.budget) * 100, 100)}
+                                indicatorClassName={(item.total / item.budget) > 1 ? 'bg-destructive' : 'bg-primary'}
+                                className="h-1.5 w-16 mt-1"
+                              />
                             )}
                           </div>
                         </div>
@@ -331,22 +346,20 @@ export default function StatisticsPage() {
                             .filter(e => e.category === item.id)
                             .sort((a, b) => compareDesc(parseISO(a.date), parseISO(b.date)))
                             .slice(0, 10)
-                            .map(expense => (
-                              <li key={expense.id} className="flex justify-between items-center gap-2 text-xs">
+                            .map(exp => (
+                              <li key={exp.id} className="flex justify-between items-start gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground/90 truncate text-[12px]">{expense.title}</p>
+                                  <p className="text-[12px] font-medium truncate">{exp.title}</p>
                                   <p className="text-[11px] text-muted-foreground">
-                                    {format(parseISO(expense.date), 'd MMM', { locale: arIQ })}
+                                    {format(parseISO(exp.date), 'd MMM', { locale: arIQ })}
                                   </p>
                                 </div>
-                                <span className="font-semibold text-foreground/80 shrink-0 text-[12px]">
-                                  {formatCurrency(expense.amount)}
-                                </span>
+                                <span className="text-[12px] font-semibold shrink-0">{formatCurrency(exp.amount)}</span>
                               </li>
                             ))}
                           {filteredExpenses.filter(e => e.category === item.id).length > 10 && (
                             <li className="text-center text-xs text-muted-foreground pt-1">
-                              و{' '}{filteredExpenses.filter(e => e.category === item.id).length - 10}{' '}مصروف آخر...
+                              و {filteredExpenses.filter(e => e.category === item.id).length - 10} مصروف آخر
                             </li>
                           )}
                         </ul>
@@ -355,94 +368,65 @@ export default function StatisticsPage() {
                   ))}
                 </Accordion>
               ) : (
-                <div className="px-6 py-10 text-center text-muted-foreground text-xs">
-                  لا توجد مصاريف لعرضها.
-                </div>
+                <p className="text-center text-xs text-muted-foreground px-4 py-8">لا توجد مصاريف لعرضها.</p>
               )}
             </CardContent>
           </Card>
 
-          {/* ── Trend line chart ─────────────────────────────────────── */}
-          <Card>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <TrendingUpIcon className="h-4 w-4 text-primary" />
-                اتجاه المصاريف
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {trendChartData.length > 0
-                  ? `إجمالي الإنفاق يوماً بيوم خلال ${periodDescription}`
-                  : 'لا توجد بيانات كافية.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4">
-              {trendChartData.length > 0 ? (
-                <ChartContainer config={chartConfig} className="w-full h-[240px]">
-                  <LineChart
-                    data={trendChartData}
-                    margin={{ top: 20, right: 12, left: -20, bottom: 0 }}
-                  >
+          {/* ── اتجاه الإنفاق (يومي/شهري) ── */}
+          {trendChartData.length > 0 && (
+            <Card>
+              <CardHeader className="py-3 px-4">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <TrendingUpIcon className="h-4 w-4 text-primary" />
+                  اتجاه الإنفاق
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {view === 'month' ? 'الإنفاق اليومي' : 'الإنفاق الشهري'} خلال {periodDescription}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pb-4 px-2">
+                <ChartContainer config={chartConfig} className="w-full h-[220px]">
+                  <LineChart data={trendChartData} margin={{ top: 16, right: 8, left: -18, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 9 }} />
-                    <YAxis
-                      tickLine={false} axisLine={false} tickMargin={6}
-                      tickFormatter={v => formatNumberShort(v as number)}
-                      tick={{ fontSize: 9 }}
-                    />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={6} tick={{ fontSize: 9 }} />
+                    <YAxis tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
                     <RechartsTooltip
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const total = payload.reduce((s, p) => s + (p.value as number), 0);
                         const breakdown = categoryTrends
-                          .map(ct => ({
-                            name: ct.categoryName,
-                            value: ct.trendData.find(d => d.name === label)?.expenses ?? 0,
-                            color: chartConfig[ct.categoryId]?.color,
-                          }))
-                          .filter(cb => cb.value > 0)
-                          .sort((a, b) => b.value - a.value);
+                          .map(ct => ({ name: ct.categoryName, value: ct.trendData.find(d => d.name === label)?.expenses ?? 0, color: chartConfig[ct.categoryId]?.color }))
+                          .filter(x => x.value > 0).sort((a, b) => b.value - a.value);
                         return (
-                          <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs min-w-[140px]">
+                          <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs min-w-[130px]">
                             <p className="font-bold mb-1">{label}</p>
-                            <p className="text-primary font-semibold mb-2 pb-1.5 border-b">
-                              الإجمالي: {formatCurrency(total)}
-                            </p>
-                            <div className="space-y-1">
-                              {breakdown.map(cb => (
-                                <div key={cb.name} className="flex justify-between gap-3">
-                                  <span style={{ color: cb.color }} className="font-medium">{cb.name}</span>
-                                  <span className="text-muted-foreground">{formatCurrency(cb.value)}</span>
-                                </div>
-                              ))}
-                            </div>
+                            <p className="text-primary font-semibold mb-1.5 pb-1.5 border-b">{formatCurrency(total)}</p>
+                            {breakdown.map(b => (
+                              <div key={b.name} className="flex justify-between gap-2">
+                                <span style={{ color: b.color }} className="font-medium">{b.name}</span>
+                                <span className="text-muted-foreground">{formatCurrency(b.value)}</span>
+                              </div>
+                            ))}
                           </div>
                         );
                       }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="expenses"
-                      stroke={chartConfig.expenses?.color}
-                      strokeWidth={2.5}
-                      dot={{ r: 3, fill: chartConfig.expenses?.color, stroke: chartConfig.expenses?.color, strokeWidth: 1 }}
-                      activeDot={{ r: 5, strokeWidth: 2 }}
-                    />
+                    <Line type="monotone" dataKey="expenses" stroke={chartConfig.expenses?.color}
+                      strokeWidth={2.5} dot={{ r: 2.5, fill: chartConfig.expenses?.color, strokeWidth: 0 }}
+                      activeDot={{ r: 5, strokeWidth: 2 }} />
                   </LineChart>
                 </ChartContainer>
-              ) : (
-                <p className="text-muted-foreground text-center pt-10 text-xs">لا توجد مصاريف لعرضها.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* ── Category trends comparison ────────────────────────────── */}
-          {categoryTrends.length > 0 && (() => {
-            const allNames = categoryTrends[0].trendData.map(d => d.name);
-            const merged = allNames.map(name => {
+          {/* ── مقارنة الفئات ── */}
+          {categoryTrends.length > 1 && (() => {
+            const names = categoryTrends[0].trendData.map(d => d.name);
+            const merged = names.map(name => {
               const pt: Record<string, string | number> = { name };
-              categoryTrends.forEach(ct => {
-                pt[ct.categoryId] = ct.trendData.find(d => d.name === name)?.expenses ?? 0;
-              });
+              categoryTrends.forEach(ct => { pt[ct.categoryId] = ct.trendData.find(d => d.name === name)?.expenses ?? 0; });
               return pt;
             });
             return (
@@ -452,38 +436,26 @@ export default function StatisticsPage() {
                     <LineChartIcon className="h-4 w-4 text-primary" />
                     مقارنة الفئات
                   </CardTitle>
-                  <CardDescription className="text-xs">
-                    أعلى الفئات إنفاقاً خلال {periodDescription}
-                  </CardDescription>
+                  <CardDescription className="text-xs">أعلى الفئات إنفاقاً خلال {periodDescription}</CardDescription>
                 </CardHeader>
-                <CardContent className="pb-4">
-                  <ChartContainer config={chartConfig} className="w-full h-[220px]">
-                    <LineChart data={merged} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
+                <CardContent className="pb-4 px-2">
+                  <ChartContainer config={chartConfig} className="w-full h-[200px]">
+                    <LineChart data={merged} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 9 }} tickMargin={6} />
-                      <YAxis
-                        tickLine={false} axisLine={false}
-                        tickFormatter={v => formatNumberShort(v as number)}
-                        tick={{ fontSize: 9 }}
-                      />
+                      <YAxis tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
                       <RechartsTooltip
                         content={({ active, payload, label }) => {
                           if (!active || !payload?.length) return null;
-                          const nonZero = payload
-                            .filter(p => (p.value as number) > 0)
-                            .sort((a, b) => (b.value as number) - (a.value as number));
-                          if (!nonZero.length) return null;
+                          const nz = payload.filter(p => (p.value as number) > 0).sort((a, b) => (b.value as number) - (a.value as number));
+                          if (!nz.length) return null;
                           return (
-                            <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs space-y-1 min-w-[140px]">
-                              <p className="font-bold border-b pb-1">{label}</p>
-                              {nonZero.map(p => (
-                                <div key={String(p.dataKey)} className="flex justify-between gap-3">
-                                  <span style={{ color: p.color }} className="font-medium truncate">
-                                    {chartConfig[p.dataKey as string]?.label ?? p.dataKey}
-                                  </span>
-                                  <span className="text-muted-foreground shrink-0">
-                                    {formatCurrency(p.value as number)}
-                                  </span>
+                            <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs min-w-[130px]">
+                              <p className="font-bold border-b pb-1 mb-1">{label}</p>
+                              {nz.map(p => (
+                                <div key={String(p.dataKey)} className="flex justify-between gap-2">
+                                  <span style={{ color: p.color }} className="font-medium truncate">{chartConfig[p.dataKey as string]?.label ?? p.dataKey}</span>
+                                  <span className="text-muted-foreground shrink-0">{formatCurrency(p.value as number)}</span>
                                 </div>
                               ))}
                             </div>
@@ -491,26 +463,17 @@ export default function StatisticsPage() {
                         }}
                       />
                       {categoryTrends.map(ct => (
-                        <Line
-                          key={ct.categoryId}
-                          type="monotone"
-                          dataKey={ct.categoryId}
-                          stroke={chartConfig[ct.categoryId]?.color}
-                          strokeWidth={2}
-                          dot={{ r: 2, fill: chartConfig[ct.categoryId]?.color }}
-                          activeDot={{ r: 4 }}
-                        />
+                        <Line key={ct.categoryId} type="monotone" dataKey={ct.categoryId}
+                          stroke={chartConfig[ct.categoryId]?.color} strokeWidth={2}
+                          dot={{ r: 2, fill: chartConfig[ct.categoryId]?.color, strokeWidth: 0 }}
+                          activeDot={{ r: 4 }} />
                       ))}
                     </LineChart>
                   </ChartContainer>
-                  {/* Legend */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 justify-center">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 justify-center">
                     {categoryTrends.map(ct => (
                       <div key={ct.categoryId} className="flex items-center gap-1.5 text-xs">
-                        <span
-                          className="inline-block w-3 h-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: chartConfig[ct.categoryId]?.color }}
-                        />
+                        <span className="w-2.5 h-1.5 rounded-full shrink-0" style={{ background: chartConfig[ct.categoryId]?.color }} />
                         <span className="text-muted-foreground">{ct.categoryName}</span>
                         <span className="font-semibold">{formatCurrency(ct.total)}</span>
                       </div>
@@ -521,14 +484,14 @@ export default function StatisticsPage() {
             );
           })()}
 
-          {/* ── AI insights ──────────────────────────────────────────── */}
+          {/* ── التحليل الذكي ── */}
           <InsightsCard
-            key={`${view}-${effectiveMonth}-${effectiveYear}`}
+            key={`insights-${view}-${effectiveMonth}-${effectiveYear}`}
             filteredExpenses={filteredExpenses}
             periodDescription={periodDescription}
           />
 
-          {/* ── Financial coach ───────────────────────────────────────── */}
+          {/* ── نصائح المدرب الذكي ── */}
           <CoachInsightsCard
             key={`coach-${view}-${effectiveMonth}-${effectiveYear}`}
             filteredExpenses={filteredExpenses}
@@ -537,6 +500,7 @@ export default function StatisticsPage() {
             periodDescription={periodDescription}
             selectedPeriod={view === 'month' ? effectiveMonth : String(effectiveYear)}
           />
+
         </>
       )}
     </div>

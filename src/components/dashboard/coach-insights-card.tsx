@@ -99,21 +99,21 @@ export function CoachInsightsCard({
 
   const insights = data?.insights ?? [];
 
-  // Don't render card if not useful
-  if (!isBudgetSet || filteredExpenses.length === 0) {
+  // Don't render if no expenses at all
+  if (filteredExpenses.length === 0) return null;
+
+  // Budget not set — show a small nudge instead of a full broken card
+  if (!isBudgetSet) {
     return (
-      <Card>
-        <CardContent className="py-6 text-center text-xs text-muted-foreground">
-          {!isBudgetSet ? (
-            <div className="flex flex-col items-center gap-2">
-              <p>حدد ميزانيتك أولاً لتفعيل نصائح المدرب.</p>
-              <Button size="sm" variant="outline" asChild className="text-xs h-8">
-                <Link href="/settings">الإعدادات</Link>
-              </Button>
-            </div>
-          ) : (
-            <p>لا توجد مصاريف في هذه الفترة لتحليلها.</p>
-          )}
+      <Card className="border-dashed">
+        <CardContent className="py-5 text-center">
+          <Sparkles className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground mb-3">
+            حدد ميزانيتك الشهرية لتفعيل نصائح المدرب الذكي الشخصية.
+          </p>
+          <Button size="sm" variant="outline" asChild className="text-xs h-8">
+            <Link href="/settings">ضبط الميزانية</Link>
+          </Button>
         </CardContent>
       </Card>
     );
