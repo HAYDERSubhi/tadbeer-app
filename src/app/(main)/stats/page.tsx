@@ -489,6 +489,9 @@ export default function StatisticsPage() {
             key={`insights-${view}-${effectiveMonth}-${effectiveYear}`}
             filteredExpenses={filteredExpenses}
             periodDescription={periodDescription}
+            allExpenses={expenses}
+            selectedPeriod={view === 'month' ? effectiveMonth : String(effectiveYear)}
+            view={view}
           />
 
           {/* ── نصائح المدرب الذكي ── */}

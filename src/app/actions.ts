@@ -20,6 +20,7 @@ import {
   analyzeSpendingPatterns,
   type AnalyzeSpendingPatternsInput,
   type AnalyzeSpendingPatternsOutput,
+  type AnalyzeSpendingPatternsResult,
 } from '@/ai/flows/analyze-spending-patterns';
 import {
     getStatsSummary,
@@ -130,16 +131,12 @@ export async function parseBankSmsAction(
  */
 export async function analyzeSpendingPatternsAction(
   input: AnalyzeSpendingPatternsInput
-): Promise<AnalyzeSpendingPatternsOutput> {
+): Promise<AnalyzeSpendingPatternsResult> {
   try {
-    const result = await analyzeSpendingPatterns(input);
-    return result;
+    return await analyzeSpendingPatterns(input);
   } catch (error) {
     console.error('Error in analyzeSpendingPatternsAction:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to analyze spending: ${error.message}`);
-    }
-    throw new Error('An unknown error occurred while analyzing spending.');
+    return null; // Return null on error instead of throwing — UI handles it gracefully
   }
 }
 

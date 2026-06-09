@@ -12,15 +12,20 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const ExpenseItemSchema = z.object({
+  title: z.string(),
+  amount: z.number(),
+  category: z.string().describe("The category name, not the ID."),
+  date: z.string(),
+});
+
 const AnalyzeSpendingPatternsInputSchema = z.object({
-  expenses: z.array(
-      z.object({
-          title: z.string(),
-          amount: z.number(),
-          category: z.string().describe("The category name, not the ID."),
-          date: z.string(),
-      })
-  ).describe("An array of the user's expenses for the specified period."),
+  expenses: z.array(ExpenseItemSchema)
+    .describe("An array of the user's expenses for the specified period."),
+  previousPeriodExpenses: z.array(ExpenseItemSchema).optional()
+    .describe("Expenses from the PREVIOUS period (e.g. last month). Provided so the AI can identify trends and compare."),
+  previousPeriodDescription: z.string().optional()
+    .describe("A label for the previous period (e.g. 'شهر أيار 2026') for use in comparisons."),
   totalBudget: z.number().optional().describe("The user's total budget for the period (if applicable)."),
   periodDescription: z.string().describe("A description of the time period being analyzed (e.g., 'this month', 'the year 2023')."),
   appTone: z.enum(['formal', 'colloquial']).optional().describe("The desired tone. 'formal' = Modern Standard Arabic. 'colloquial' = friendly Iraqi dialect."),
@@ -42,20 +47,12 @@ const AnalyzeSpendingPatternsOutputSchema = z.object({
     keyObservations: z.array(AnalysisPointSchema).min(2).max(2).describe("Exactly two key, data-driven observations about the spending patterns. These should be analytical, not prescriptive advice."),
 });
 export type AnalyzeSpendingPatternsOutput = z.infer<typeof AnalyzeSpendingPatternsOutputSchema>;
+export type AnalyzeSpendingPatternsResult = AnalyzeSpendingPatternsOutput | null;
 
 
-export async function analyzeSpendingPatterns(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsOutput> {
-  // If no expenses, return a default empty state to avoid calling the AI.
-  if (input.expenses.length === 0) {
-    return {
-        performanceSummary: "لا توجد بيانات إنفاق لهذه الفترة.",
-        highestSpendingCategory: { category: "N/A", amount: 0, percentage: 0 },
-        keyObservations: [
-            { icon: "Wallet", text: "أضف بعض المصاريف لبدء التحليل." },
-            { icon: "PieChart", text: "لا يمكن إنشاء ملاحظات بدون بيانات." }
-        ]
-    };
-  }
+export async function analyzeSpendingPatterns(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsOutput | null> {
+  // Return null (not a dummy object) so the caller can distinguish "no data" from a real result.
+  if (input.expenses.length === 0) return null;
   return analyzeSpendingPatternsFlow(input);
 }
 
@@ -64,42 +61,40 @@ const prompt = ai.definePrompt({
   name: 'analyzeSpendingPatternsPrompt',
   input: {schema: AnalyzeSpendingPatternsInputSchema},
   output: {schema: AnalyzeSpendingPatternsOutputSchema},
-  prompt: `You are a data analyst AI for a personal finance app. Your task is to analyze a user's spending for a specific period and provide objective, data-driven insights. Do NOT give advice or use coaching language. Stick to the facts from the data. All responses must be in Arabic.
+  prompt: `You are a data analyst AI for a personal finance app. Analyze the user's spending and provide objective, data-driven insights. Do NOT give advice or coaching language — state facts only. All responses must be in Arabic.
 
-{{#if appTone}}
-**Tone:** {{#if (eq appTone "colloquial")}}Use a friendly, natural Iraqi dialect (عامية عراقية). Keep it short and warm.{{else}}Use clear, professional Modern Standard Arabic (فصحى).{{/if}}
-{{/if}}
+**Tone:** {{#if (eq appTone "colloquial")}}Use friendly Iraqi dialect (عامية عراقية). Short and warm.{{else}}Use professional Modern Standard Arabic (فصحى).{{/if}}
 
-**Period to Analyze:** {{periodDescription}}
-{{#if totalBudget}}
-**Budget for this period:** {{totalBudget}} د.ع
-{{/if}}
+---
+**Current Period:** {{periodDescription}}
+{{#if totalBudget}}**Budget:** {{totalBudget}} د.ع{{/if}}
 
-**Expense Data:**
+**Current Period Expenses:**
 {{#each expenses}}
-- {{this.amount}} د.ع in "{{this.category}}" on {{this.date}} for "{{this.title}}".
+- {{this.amount}} د.ع | "{{this.category}}" | {{this.date}} | "{{this.title}}"
 {{/each}}
 
+{{#if previousPeriodExpenses}}
+---
+**Previous Period ({{previousPeriodDescription}}) Expenses — for trend comparison only:**
+{{#each previousPeriodExpenses}}
+- {{this.amount}} د.ع | "{{this.category}}" | {{this.date}} | "{{this.title}}"
+{{/each}}
+{{/if}}
+
+---
 **Instructions:**
-1.  Calculate Key Metrics:
-    -   Total spending for the period.
-    -   Spending for each category.
-    -   The category with the highest spending.
-    -   The percentage of the total spending for the highest category.
 
-2.  Generate 'performanceSummary': Write one neutral, data-driven sentence summarizing the user's spending. Example: "إجمالي إنفاقك خلال هذه الفترة بلغ 1,250,000 د.ع." Or if a budget is present: "لقد أنفقت 85% من ميزانيتك المحددة لهذه الفترة."
+1. **performanceSummary** — One neutral sentence: total spent, and if previous period data exists, compare totals (e.g., "ارتفع إنفاقك بنسبة 12% مقارنةً بـ {{previousPeriodDescription}}").
 
-3.  Identify 'highestSpendingCategory': Find the single category with the most spending. Fill in the 'category' name, total 'amount', and its 'percentage' of the total spend.
+2. **highestSpendingCategory** — Category with highest spend: name, amount, percentage of total.
 
-4.  Generate 'keyObservations' (Exactly 2):
-    -   These must be factual observations based on the provided data ONLY.
-    -   Do NOT give advice (e.g., avoid "حاول تقليل..."). Instead, state facts (e.g., "ثلث إنفاقك كان على فئة الطعام.").
-    -   Pick the two most interesting or significant data points.
-    -   Good Example Observation: "شكلت فئتا الطعام والمواصلات معًا 55% من إجمالي مصاريفك." (Icon: PieChart)
-    -   Good Example Observation: "الإنفاق على الترفيه شهد زيادة ملحوظة في الأسبوع الأخير من الشهر." (Icon: TrendingUp)
-    -   Bad Example Observation (Coaching): "يجب عليك مراقبة إنفاقك على التسوق."
+3. **keyObservations** — Exactly 2 factual observations. Priority:
+   - If previous period data exists: MUST include at least one trend comparison (e.g., "إنفاق فئة الطعام ارتفع 18% عن الشهر الماضي"). Icon: TrendingUp or TrendingDown.
+   - Otherwise: two interesting facts about the current period distribution.
+   - NEVER give advice. State facts only.
 
-Provide the final output strictly in the specified JSON format.
+Respond strictly in the specified JSON format.
 `,
 });
 
