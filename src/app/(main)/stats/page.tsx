@@ -22,7 +22,8 @@ import {
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { InsightsCard } from './InsightsCard';
-import { getStatsSummaryAction } from '@/app/actions';
+import { getStatsSummaryAction } from '@/app/stats-actions';
+import { CoachInsightsCard } from '@/components/dashboard/coach-insights-card';
 import type { GetStatsSummaryOutput } from '@/ai/flows/get-stats-summary';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -98,6 +99,11 @@ export default function StatisticsPage() {
   const { user } = useAuth();
   const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categories, getIconComponent } = useCategories();
+  const categoryMap = useMemo(() => {
+    const map: Record<string, { name: string; icon: string }> = {};
+    categories.forEach(c => { map[c.id] = { name: c.name, icon: c.icon }; });
+    return map;
+  }, [categories]);
   const { format: formatCurrency } = useCurrency();
   
   const [view, setView] =useState<'month' | 'year'>('month');
@@ -531,6 +537,16 @@ export default function StatisticsPage() {
                 key={`${view}-${selectedMonth}-${selectedYear}`}
                 filteredExpenses={filteredExpenses}
                 periodDescription={periodDescription}
+            />
+
+            {/* Financial Coach — AI tips for the selected period */}
+            <CoachInsightsCard
+                key={`coach-${view}-${selectedMonth}-${selectedYear}`}
+                filteredExpenses={filteredExpenses}
+                userSettings={userSettings}
+                categoryMap={categoryMap}
+                periodDescription={periodDescription}
+                selectedPeriod={view === 'month' ? selectedMonth : String(selectedYear)}
             />
         </>
       )}

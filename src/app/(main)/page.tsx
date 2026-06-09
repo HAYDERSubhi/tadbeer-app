@@ -18,8 +18,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import type { FinancialCoachOutput, FinancialCoachInput } from '@/ai/flows/financial-coach';
-import { recordExpenseWithVoiceAction, recordExpenseAction, financialCoachAction } from '@/app/actions';
+import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
@@ -74,12 +73,6 @@ const tourSteps = [
     title: 'إضافة المصروفات',
     content: 'استخدم هذه الأزرار لإضافة مصروفاتك بسهولة عبر الكتابة، الصوت، أو مسح الفواتير.',
     placement: 'bottom',
-  },
-   {
-    selector: '#smart-insights-card',
-    title: 'النصائح الذكية',
-    content: 'يقوم مدربك المالي بتحليل إنفاقك وتقديم نصائح مخصصة لك هنا.',
-    placement: 'top',
   },
   {
     selector: '#main-navigation',
@@ -306,86 +299,6 @@ export default function DashboardPage() {
         } catch { return false; }
     });
   }, [expenses]);
-  
-  const financialCoachInput = useMemo(() => {
-    if (isAppDataLoading || !userSettings) return null;
-
-    const userBudget = userSettings.budget;
-
-    // Don't call AI if no expenses or no budget set — show static prompt instead
-    if (monthlyExpenses.length === 0) return null;
-    if (!userBudget?.totalBudget || userBudget.totalBudget === 0) return null;
-    
-    const categoryBudgets = userSettings.categoryBudgets;
-    const userProfile = userSettings.profile;
-    
-    const now = new Date();
-    const dayOfMonth = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const daysLeftInMonth = daysInMonth - dayOfMonth + 1;
-    const currentDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Baghdad', year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(now);
-
-    const input: FinancialCoachInput = {
-        totalBudget: userBudget?.totalBudget || 0,
-        zeroSpendDaysTarget: userBudget?.zeroSpendDaysTarget || 4,
-        currentDate,
-        dayOfMonth,
-        daysLeftInMonth,
-        expenses: monthlyExpenses.map(e => ({
-            title: e.title,
-            amount: e.amount,
-            category: categoryMap[e.category]?.name || e.category,
-            date: format(new Date(e.date), 'yyyy-MM-dd'),
-        })),
-        appTone: userSettings.appTone || 'formal',
-    };
-    
-    if (categoryBudgets) {
-        // Convert category IDs to readable names so AI understands them
-        const namedCategoryBudgets: Record<string, number> = {};
-        Object.entries(categoryBudgets).forEach(([id, amount]) => {
-            const name = categoryMap[id]?.name || id;
-            namedCategoryBudgets[name] = amount as number;
-        });
-        input.categoryBudgets = namedCategoryBudgets;
-    }
-
-    if (userProfile) {
-        input.userProfile = {
-            monthlyIncome: userProfile.monthlyIncome,
-            familyMembers: userProfile.familyMembers?.map(({ id, ...rest }) => rest) || [],
-        };
-    }
-    
-    return input;
-  }, [monthlyExpenses, userSettings, categoryMap, isAppDataLoading]);
-
-  // Stable cache key — only changes when actual expense data or budget changes
-  // MUST be declared AFTER monthlyExpenses and financialCoachInput
-  const insightsCacheKey = useMemo(() => {
-    if (!financialCoachInput) return null;
-    const expensesHash = monthlyExpenses.map(e => `${e.id}:${e.amount}`).join('|');
-    const budgetHash = userSettings?.budget?.totalBudget ?? 0;
-    return `coach-${expensesHash}-${budgetHash}`;
-  }, [monthlyExpenses, userSettings?.budget?.totalBudget, financialCoachInput]);
-
-  // Use React Query for AI insights — cached for 10 minutes, won't re-fetch unless data changes
-  const { data: insightsData, isLoading: isInsightsLoading, isError: isInsightsError, refetch: refetchInsights } = useQuery({
-    queryKey: ['financial-coach', insightsCacheKey],
-    queryFn: async () => {
-      if (!financialCoachInput) return { insights: [] };
-      const result = await financialCoachAction(financialCoachInput);
-      return result;
-    },
-    enabled: !!user && !!financialCoachInput && !isAppDataLoading,
-    staleTime: 1000 * 60 * 10,   // 10 minutes — don't re-fetch if data unchanged
-    gcTime: 1000 * 60 * 30,      // Keep in cache 30 minutes
-    retry: 0,
-  });
-
-  const insights = insightsData?.insights ?? null;
   
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
@@ -744,89 +657,6 @@ export default function DashboardPage() {
         )}
       </Card>
 
-      <Card id="smart-insights-card">
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm font-semibold">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span>نصائح المدرب المالي</span>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isInsightsLoading ? (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-              <div className="flex items-center space-x-4 space-x-reverse"><Skeleton className="h-8 w-8 rounded-full" /><div className="space-y-2"><Skeleton className="h-4 w-[250px]" /><Skeleton className="h-4 w-[200px]" /></div></div>
-            </div>
-          ) : insights && insights.length > 0 ? (
-            <div className="space-y-3">
-              {insights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                   <span className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    insight.type === 'praise' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
-                    insight.type === 'tip' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-                    insight.type === 'warning' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-                  )}>
-                    <InsightIcon name={insight.icon} className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-sm">{insight.title}</p>
-                    <p className="text-xs text-muted-foreground">{insight.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : !hasExpenses ? (
-            <p className="text-center text-muted-foreground p-4 text-xs">
-              أضف بعض المصاريف للحصول على نصائح مخصصة.
-            </p>
-          ) : !budgetData.isBudgetSet ? (
-            // Budget not set — ask user to configure it
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <InsightIcon name="Lightbulb" className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">حدد ميزانيتك أولاً</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  المدرب يحتاج ميزانية شهرية ليُقدّم نصائح دقيقة لك.
-                </p>
-              </div>
-              <Link href="/settings" className="text-xs font-semibold text-primary underline underline-offset-2">
-                اذهب للإعدادات
-              </Link>
-            </div>
-          ) : monthlyExpenses.length === 0 ? (
-            // Budget set but no expenses this month yet
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <InsightIcon name="Leaf" className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">لا توجد مصاريف هذا الشهر بعد</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  ابدأ بتسجيل مصاريف الشهر الحالي وسيُقدّم المدرب نصائحه فوراً.
-                </p>
-              </div>
-            </div>
-          ) : (
-            // Budget set, expenses exist, but AI call failed or returned nothing
-            <div className="flex flex-col items-center gap-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">
-                {isInsightsError ? 'تعذّر الاتصال بالمدرب الذكي.' : 'جارٍ تحليل بياناتك...'}
-              </p>
-              {isInsightsError && (
-                <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetchInsights()}>
-                  إعادة المحاولة
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
     </div>
   );
 }
