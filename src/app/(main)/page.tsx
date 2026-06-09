@@ -442,6 +442,21 @@ export default function DashboardPage() {
   const hasExpenses = expenses.length > 0;
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
 
+  // Show full-page skeleton while auth + initial data settle.
+  // This is ONE skeleton pass, not multiple cards flashing individually.
+  const pageReady = !!user && isSettingsFetched && isExpensesFetched;
+  if (!pageReady) {
+    return (
+      <div className="space-y-3 pb-24 animate-in fade-in duration-200">
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-56 w-full rounded-2xl" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 pb-24">
       <OnboardingSheet />
