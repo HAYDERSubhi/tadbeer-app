@@ -299,36 +299,37 @@ export function FinancialChatSheet() {
 
   return (
     <>
-      {/* ── Floating Action Button — hidden on data-entry pages ── */}
-      <button
-        onClick={handleOpen}
-        aria-label="مستشار الجيب"
-        className={cn(
-          isHidden && 'hidden',
-          // Position — sits just above the nav bar, left side to avoid conflict with any right-side FABs
-          'fixed bottom-20 left-4 z-40',
-          // Size & shape
-          'h-13 w-13 rounded-full shadow-lg',
-          // Gold shimmer
-          'animate-gold-shimmer',
-          // Inner layout
-          'flex items-center justify-center',
-          // Interaction
-          'transition-transform duration-200 active:scale-95',
-          // Remove default button styles
-          'border-0 outline-none focus-visible:ring-2 focus-visible:ring-yellow-400'
-        )}
-        style={{ width: 52, height: 52 }}
-      >
-        <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
+      {/* ── Floating Action Button — not rendered on data-entry pages ── */}
+      {!isHidden && (
+        <button
+          onClick={handleOpen}
+          aria-label="مستشار الجيب"
+          className={cn(
+            // Position — sits just above the nav bar, left side to avoid conflict with any right-side FABs
+            'fixed bottom-20 left-4 z-40',
+            // Size & shape
+            'h-13 w-13 rounded-full shadow-lg',
+            // Gold shimmer
+            'animate-gold-shimmer',
+            // Inner layout
+            'flex items-center justify-center',
+            // Interaction
+            'transition-transform duration-200 active:scale-95',
+            // Remove default button styles
+            'border-0 outline-none focus-visible:ring-2 focus-visible:ring-yellow-400'
+          )}
+          style={{ width: 52, height: 52 }}
+        >
+          <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
 
-        {/* Badge */}
-        {badgeCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
-            {badgeCount}
-          </span>
-        )}
-      </button>
+          {/* Badge */}
+          {badgeCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
+              {badgeCount}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* ── Chat Sheet ── */}
       <Sheet open={open} onOpenChange={setOpen}>

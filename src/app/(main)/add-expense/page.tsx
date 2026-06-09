@@ -200,7 +200,7 @@ export default function AddExpensePage() {
 
     return (
         <div className="flex flex-col h-full">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-5 p-4 overflow-y-auto pb-28">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-5 p-4 overflow-y-auto pb-40">
 
                 {/* ─── 1. Frequent Expenses ─── */}
                 {frequentExpenses.length > 0 && (
