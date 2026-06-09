@@ -2,8 +2,10 @@
 "use client";
 
 import { useZeroStreak } from '@/hooks/use-zero-streak';
+import { useAppData } from '@/hooks/use-app-data';
 import { cn } from '@/lib/utils';
 import { Flame, ShieldCheck, TrendingDown } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function getMessage(streak: number, spentToday: boolean): { title: string; sub: string } {
   if (spentToday) {
@@ -26,7 +28,13 @@ function getMessage(streak: number, spentToday: boolean): { title: string; sub: 
 }
 
 export function ZeroStreakCard() {
+  const { isExpensesFetched } = useAppData();
   const { streak, spentToday, lastExpenseDate } = useZeroStreak();
+
+  // Show skeleton until real data arrives — prevents stale-cache flash.
+  if (!isExpensesFetched) {
+    return <Skeleton className="h-[82px] w-full rounded-2xl" />;
+  }
 
   // Don't show if user has no data at all
   if (!lastExpenseDate && streak === 0) return null;

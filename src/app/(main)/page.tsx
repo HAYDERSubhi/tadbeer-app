@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const { categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
-  const { expenses, userSettings, isLoading: isAppDataLoading, isSettingsFetched } = useAppData();
+  const { expenses, userSettings, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
 
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
@@ -598,7 +598,7 @@ export default function DashboardPage() {
                 <History className="h-4 w-4 text-primary" />
                 <span>أحدث المصاريف</span>
               </div>
-              {!isAppDataLoading && allSortedExpenses.length > 0 && (
+              {!isAppDataLoading && isExpensesFetched && allSortedExpenses.length > 0 && (
                 <span className="text-xs text-muted-foreground font-normal">
                   {allSortedExpenses.length} مصروف
                 </span>
@@ -607,7 +607,7 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {isAppDataLoading ? (
+          {isAppDataLoading || !isExpensesFetched ? (
             <div className="p-4 space-y-3">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />

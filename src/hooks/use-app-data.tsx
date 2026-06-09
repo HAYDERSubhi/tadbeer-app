@@ -18,6 +18,8 @@ interface AppDataContextType {
     isLoading: boolean;
     /** True once the real settings have been fetched from Firestore (not just placeholder). */
     isSettingsFetched: boolean;
+    /** True once the real expenses have been fetched (prevents stale-cache flash). */
+    isExpensesFetched: boolean;
     isError: boolean;
     error: Error | null;
     queryClient: ReturnType<typeof useQueryClient>;
@@ -57,7 +59,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     // Recent expenses only (last ~7 months) — fast initial load for the homepage.
     // queryKey includes 'recent' so it coexists with the all-expenses cache entry.
-    const { data: expenses = [], isLoading: expensesLoading, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
+    const { data: expenses = [], isLoading: expensesLoading, isFetched: expensesFetched, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
         queryKey: ['expenses', user?.uid, householdId, 'recent'],
         queryFn: () => getExpenses(user!.uid, householdId, { startDate: RECENT_START }),
         enabled: !!user && !settingsLoading,
@@ -99,6 +101,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         householdId,
         isLoading,
         isSettingsFetched: settingsFetched,
+        isExpensesFetched: expensesFetched,
         isError,
         error,
         queryClient,
