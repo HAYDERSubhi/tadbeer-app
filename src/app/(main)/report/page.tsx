@@ -6,7 +6,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, subMonths } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { Button } from '@/components/ui/button';
 import { Share2, TrendingDown, TrendingUp, Target, Award, ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,7 @@ function ReportCard({
 }) {
     const remaining = totalBudget - totalSpent;
     const usagePct = pct(totalSpent, totalBudget);
-    const monthLabel = format(month, 'MMMM yyyy', { locale: ar });
+    const monthLabel = format(month, 'MMMM yyyy', { locale: arIQ });
     const isOver = remaining < 0;
 
     return (
@@ -217,7 +217,7 @@ export default function ReportPage() {
     }, [monthExpenses, categories]);
 
     const handleShare = async () => {
-        const monthLabel = format(selectedMonth, 'MMMM yyyy', { locale: ar });
+        const monthLabel = format(selectedMonth, 'MMMM yyyy', { locale: arIQ });
         const lines = [
             `📊 تقريري الشهري — ${monthLabel}`,
             ``,
@@ -269,7 +269,7 @@ export default function ReportPage() {
                     <ChevronRight className="h-5 w-5" />
                 </Button>
                 <p className="font-semibold text-sm">
-                    {isCurrentMonth ? 'هذا الشهر' : format(selectedMonth, 'MMMM yyyy', { locale: ar })}
+                    {isCurrentMonth ? 'هذا الشهر' : format(selectedMonth, 'MMMM yyyy', { locale: arIQ })}
                 </p>
                 <Button
                     variant="ghost"

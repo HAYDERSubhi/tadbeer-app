@@ -9,7 +9,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
 import { getUpcomingPayments } from '@/lib/billing-utils';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 
 export function UpcomingBillsCard() {
   const { userSettings } = useAppData();
@@ -61,7 +61,7 @@ export function UpcomingBillsCard() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-xs truncate">{payment.title}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {catName} · {format(dueDate, 'd MMM', { locale: ar })}
+                  {catName} · {format(dueDate, 'd MMM', { locale: arIQ })}
                 </p>
               </div>
               <div className="text-right shrink-0">

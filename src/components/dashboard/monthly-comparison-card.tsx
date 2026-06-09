@@ -11,7 +11,7 @@ import {
   startOfMonth, endOfMonth, subMonths,
   isWithinInterval, parseISO, format
 } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 
 export function MonthlyComparisonCard() {
   const { expenses, isLoading } = useAppData();
@@ -65,8 +65,8 @@ export function MonthlyComparisonCard() {
   const isDown = diff < 0;
   const isEqual = diff === 0;
 
-  const currentMonthName = format(new Date(), 'MMMM', { locale: ar });
-  const prevMonthName = format(subMonths(new Date(), 1), 'MMMM', { locale: ar });
+  const currentMonthName = format(new Date(), 'MMMM', { locale: arIQ });
+  const prevMonthName = format(subMonths(new Date(), 1), 'MMMM', { locale: arIQ });
 
   return (
     <Card>

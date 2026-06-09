@@ -14,7 +14,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Expense } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, getYear, startOfYear, endOfYear, compareDesc } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 import {
   Accordion,
   AccordionContent,
@@ -158,7 +158,10 @@ export default function StatisticsPage() {
   }, [categories, getIconComponent]);
   
   useEffect(() => {
-    if (!user || isAppDataLoading) return;
+    // Wait for BOTH shared data (settings/goals) AND the full expenses list before
+    // computing stats. Without allExpensesLoading guard, getStatsSummary receives
+    // an empty array on the first render and produces empty charts.
+    if (!user || isAppDataLoading || allExpensesLoading) return;
     // If we have expenses but the selected month isn't in the available list yet,
     // skip — the correction effect will update selectedMonth and re-trigger this.
     if (expenses.length > 0 && view === 'month' && !availableMonths.includes(selectedMonth)) return;
@@ -182,7 +185,7 @@ export default function StatisticsPage() {
     };
 
     fetchStats();
-  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, expenses, availableMonths]);
+  }, [user, view, selectedMonth, selectedYear, userSettings, isAppDataLoading, allExpensesLoading, expenses, availableMonths]);
 
   useEffect(() => {
     if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
@@ -241,7 +244,7 @@ export default function StatisticsPage() {
                                     <TabsList className="h-8">
                                         {availableMonths.map(m => (
                                             <TabsTrigger key={m} value={m} className="whitespace-nowrap text-xs px-2 py-1 h-auto">
-                                                {format(parseISO(`${m}-01`), 'MMMM yyyy', {locale: ar})}
+                                                {formatYearMonth(m)}
                                             </TabsTrigger>
                                         ))}
                                     </TabsList>
@@ -377,7 +380,7 @@ export default function StatisticsPage() {
                                         <li key={expense.id} className="flex justify-between items-center gap-2 text-xs animate-in fade-in duration-300">
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-foreground/90 truncate text-[11px]">{expense.title}</p>
-                                                <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: ar })}</p>
+                                                <p className="text-[10px] text-muted-foreground">{format(parseISO(expense.date), 'd MMM', { locale: arIQ })}</p>
                                             </div>
                                             <span className="font-semibold text-foreground/80 shrink-0 whitespace-nowrap text-[11px]">{formatCurrency(expense.amount)}</span>
                                         </li>

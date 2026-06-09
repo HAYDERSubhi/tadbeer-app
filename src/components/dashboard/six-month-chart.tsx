@@ -24,7 +24,7 @@ import {
   parseISO,
   format,
 } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 
 const CustomTooltip = ({
   active,
@@ -80,7 +80,7 @@ export function SixMonthChart() {
         .reduce((s, e) => s + e.amount, 0);
 
       return {
-        name: format(monthDate, 'MMM', { locale: ar }),
+        name: format(monthDate, 'MMM', { locale: arIQ }),
         total,
         isCurrentMonth: i === 5,
       };

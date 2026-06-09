@@ -17,7 +17,7 @@ import { useCategories } from '@/hooks/use-categories';
 import {
   subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, format,
 } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { analyzeMonthlyTrendsAction } from '@/app/actions';
 import type { AnalyzeMonthlyTrendsInput } from '@/ai/flows/analyze-monthly-trends';
 
@@ -60,7 +60,7 @@ function buildMonthData(
     }));
 
   return {
-    monthLabel: format(monthDate, 'MMMM', { locale: ar }),
+    monthLabel: format(monthDate, 'MMMM', { locale: arIQ }),
     totalSpent,
     categories,
   };

@@ -18,7 +18,7 @@ import { deleteExpense, getExpenses } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format, compareDesc, parseISO } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
 import EditExpenseForm from '@/components/expenses/edit-expense-form';
@@ -370,7 +370,7 @@ export default function AllExpensesPage() {
                         <div className="min-w-0">
                           <p className="font-semibold truncate text-xs">{expense.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {categoryInfo?.name || 'غير معروفة'} · {format(parseISO(expense.date), "d MMM", { locale: ar })}
+                            {categoryInfo?.name || 'غير معروفة'} · {format(parseISO(expense.date), "d MMM", { locale: arIQ })}
                           </p>
                           {expense.description && (
                             <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5 italic">

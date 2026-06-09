@@ -8,7 +8,7 @@ import { getUserBadges, getReferralCount } from '@/services/firestore';
 import { BADGES, getBadgeDef } from '@/lib/badges';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { Copy, Share2, Trophy, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -61,7 +61,7 @@ export default function AchievementsPage() {
         const b = earnedBadges.find(e => e.id === badgeId);
         if (!b) return null;
         try {
-            return format(new Date(b.earnedAt), 'd MMM yyyy', { locale: ar });
+            return format(new Date(b.earnedAt), 'd MMM yyyy', { locale: arIQ });
         } catch { return null; }
     };
 

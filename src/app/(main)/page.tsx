@@ -17,7 +17,7 @@ import EditExpenseForm from '@/components/expenses/edit-expense-form';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { recordExpenseWithVoiceAction, recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour from '@/components/tour/onboarding-tour';
@@ -278,7 +278,7 @@ export default function DashboardPage() {
       if (isToday(date)) label = 'اليوم';
       else if (isYesterday(date)) label = 'أمس';
       else if (isThisWeek(date, { weekStartsOn: 6 })) label = 'هذا الأسبوع';
-      else label = format(date, 'MMMM yyyy', { locale: ar });
+      else label = format(date, 'MMMM yyyy', { locale: arIQ });
 
       if (!seen.has(label)) {
         seen.add(label);

@@ -30,7 +30,7 @@ import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
 import { useCategories } from '@/hooks/use-categories';
 import { Progress } from '@/components/ui/progress';
@@ -517,7 +517,7 @@ export default function DetailedReceiptPage() {
                     <Calendar mode="single"
                       selected={storeInfo.date ? new Date(storeInfo.date) : new Date()}
                       onSelect={d => setStoreInfo(p => ({ ...p, date: d ? format(d, 'yyyy-MM-dd') : null }))}
-                      initialFocus dir="rtl" locale={ar}
+                      initialFocus dir="rtl" locale={arIQ}
                       disabled={d => d > new Date()} />
                   </PopoverContent>
                 </Popover>

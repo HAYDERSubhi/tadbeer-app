@@ -12,7 +12,7 @@
 import {z} from 'zod';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 
 const PieChartDataItemSchema = z.object({
   name: z.string(),
@@ -93,7 +93,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
       const monthFromMonth = parseInt(selectedPeriod.substring(5, 7), 10) - 1;
       periodStart = startOfMonth(new Date(yearFromMonth, monthFromMonth));
       periodEnd = endOfMonth(periodStart);
-      periodDescription = `شهر ${format(periodStart, 'MMMM yyyy', { locale: ar })}`;
+      periodDescription = `شهر ${format(periodStart, 'MMMM yyyy', { locale: arIQ })}`;
     }
 
     filteredExpenses = expenses.filter(exp => {
@@ -165,7 +165,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
       });
       
       trendChartData = Object.entries(monthlyTotals).map(([monthKey, total]) => ({
-        name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: ar }),
+        name: formatYearMonth(monthKey).split(' ')[0],
         expenses: total,
       }));
 
@@ -179,7 +179,7 @@ export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetS
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
                 chartColor: `var(--chart-${categoryDetails.color})`,
                 trendData: Object.entries(categoryMonthlyTotals[catId]).map(([monthKey, total]) => ({
-                    name: format(parseISO(`${monthKey}-01`), 'MMM', { locale: ar }),
+                    name: formatYearMonth(monthKey).split(' ')[0],
                     expenses: total,
                 })),
             });
