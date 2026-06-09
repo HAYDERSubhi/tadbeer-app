@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const { categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
-  const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
+  const { expenses, userSettings, isLoading: isAppDataLoading, isSettingsFetched } = useAppData();
 
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
@@ -476,7 +476,7 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {isAppDataLoading ? (
+      {isAppDataLoading || !isSettingsFetched ? (
         <Skeleton className="h-40 w-full rounded-lg" />
       ) : budgetData.isBudgetSet ? (
         <BudgetSummaryCard

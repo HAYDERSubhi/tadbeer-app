@@ -16,6 +16,8 @@ interface AppDataContextType {
     household: Household | null;
     householdId: string | null;
     isLoading: boolean;
+    /** True once the real settings have been fetched from Firestore (not just placeholder). */
+    isSettingsFetched: boolean;
     isError: boolean;
     error: Error | null;
     queryClient: ReturnType<typeof useQueryClient>;
@@ -43,7 +45,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const queryClient = useQueryClient();
 
     // Settings first (needed for householdId)
-    const { data: userSettings, isLoading: settingsLoading, isError: settingsIsError, error: settingsError } = useQuery<UserSettings, Error>({
+    const { data: userSettings, isLoading: settingsLoading, isFetched: settingsFetched, isError: settingsIsError, error: settingsError } = useQuery<UserSettings, Error>({
         queryKey: ['userSettings', user?.uid],
         queryFn: () => getUserSettings(user!.uid),
         enabled: !!user,
@@ -96,6 +98,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         household,
         householdId,
         isLoading,
+        isSettingsFetched: settingsFetched,
         isError,
         error,
         queryClient,
