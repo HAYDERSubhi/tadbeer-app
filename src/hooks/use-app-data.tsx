@@ -1,11 +1,12 @@
 // src/hooks/use-app-data.tsx
 "use client";
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Expense, Goal, UserSettings, Income, Household } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { getExpenses, getGoals, getIncomes, getUserSettings, getHousehold } from '@/services/firestore';
+import { subMonths, startOfMonth } from 'date-fns';
 
 interface AppDataContextType {
     expenses: Expense[];
@@ -32,6 +33,11 @@ const defaultSettings: UserSettings = {
     recurringPayments: [],
 };
 
+// Load the last 6 complete months + the current month.
+// This covers: SixMonthChart, MonthlyComparisonCard, AiTrendsCard, budget widget.
+// Pages that need the full history (stats, expenses) fetch separately.
+const RECENT_START = startOfMonth(subMonths(new Date(), 6));
+
 export function AppDataProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -47,10 +53,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     const householdId = userSettings?.householdId ?? null;
 
-    // Data queries — use householdId when available
+    // Recent expenses only (last ~7 months) — fast initial load for the homepage.
+    // queryKey includes 'recent' so it coexists with the all-expenses cache entry.
     const { data: expenses = [], isLoading: expensesLoading, isError: expensesIsError, error: expensesError } = useQuery<Expense[], Error>({
-        queryKey: ['expenses', user?.uid, householdId],
-        queryFn: () => getExpenses(user!.uid, householdId),
+        queryKey: ['expenses', user?.uid, householdId, 'recent'],
+        queryFn: () => getExpenses(user!.uid, householdId, { startDate: RECENT_START }),
         enabled: !!user && !settingsLoading,
         staleTime: 1000 * 60,
     });

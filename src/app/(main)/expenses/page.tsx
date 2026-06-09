@@ -13,8 +13,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/hooks/use-auth';
-import { useMutation } from '@tanstack/react-query';
-import { deleteExpense } from '@/services/firestore';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { deleteExpense, getExpenses } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format, compareDesc, parseISO } from 'date-fns';
@@ -30,7 +30,16 @@ import Link from 'next/link';
 export default function AllExpensesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { expenses, isLoading, isError, error, queryClient } = useAppData();
+  const { householdId, isLoading: settingsLoading, isError, error, queryClient } = useAppData();
+
+  // Load ALL expenses — the full history is needed for this page.
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ['expenses', user?.uid, householdId, 'all'],
+    queryFn: () => getExpenses(user!.uid, householdId),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+  const isLoading = settingsLoading || expensesLoading;
   const { categories, categoryMap, getIconComponent } = useCategories();
   const isMobile = useIsMobile();
   const { format: formatCurrency } = useCurrency();

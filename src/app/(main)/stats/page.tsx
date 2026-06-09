@@ -3,6 +3,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getExpenses } from '@/services/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PieChartIcon, TrendingUpIcon, ListOrdered, Loader2, BarChart, LineChartIcon, AreaChart as AreaChartIcon } from "lucide-react";
 import { ResponsiveContainer, PieChart as RechartsPieChart, Pie, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Sector, Cell, Legend, Area } from 'recharts';
@@ -97,8 +99,19 @@ const CustomLabel = (props: any) => {
 
 export default function StatisticsPage() {
   const { user } = useAuth();
-  const { expenses, userSettings, isLoading: isAppDataLoading } = useAppData();
+  const { userSettings, householdId, isLoading: isAppDataLoading } = useAppData();
   const { categories, getIconComponent } = useCategories();
+
+  // Load ALL expenses here — stats need the full history.
+  // Uses a separate cache key ('all') so it coexists with the 'recent' entry
+  // loaded by useAppData, and both are invalidated by the existing
+  // queryClient.invalidateQueries({ queryKey: ['expenses', uid] }) pattern.
+  const { data: expenses = [], isLoading: allExpensesLoading } = useQuery({
+    queryKey: ['expenses', user?.uid, householdId, 'all'],
+    queryFn: () => getExpenses(user!.uid, householdId),
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
   const categoryMap = useMemo(() => {
     const map: Record<string, { name: string; icon: string }> = {};
     categories.forEach(c => { map[c.id] = { name: c.name, icon: c.icon }; });
@@ -190,7 +203,7 @@ export default function StatisticsPage() {
   }, [statsData]);
 
 
-  if (isAppDataLoading) {
+  if (isAppDataLoading || allExpensesLoading) {
     return <div className="flex justify-center items-center h-[60vh]"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 

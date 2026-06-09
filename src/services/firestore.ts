@@ -8,6 +8,7 @@ import {
     deleteDoc,
     query,
     where,
+    orderBy,
     Timestamp,
     serverTimestamp,
     getDoc,
@@ -36,11 +37,22 @@ function generateInviteCode(): string {
 // Expenses Service
 // =================================
 
-export const getExpenses = async (uid: string, householdId?: string | null): Promise<Expense[]> => {
+export const getExpenses = async (
+    uid: string,
+    householdId?: string | null,
+    options?: { startDate?: Date }
+): Promise<Expense[]> => {
     if (!db) return [];
     const [p1, p2] = basePath(uid, householdId);
     const expensesCol = collection(db, p1, p2, 'expenses');
-    const expenseSnapshot = await getDocs(expensesCol);
+
+    // When a startDate is provided we use a Firestore index query (fast).
+    // Without startDate we fetch all documents (needed by stats/expenses pages).
+    const q = options?.startDate
+        ? query(expensesCol, where('date', '>=', Timestamp.fromDate(options.startDate)), orderBy('date', 'desc'))
+        : expensesCol;
+
+    const expenseSnapshot = await getDocs(q);
     const expenses: Expense[] = [];
     expenseSnapshot.forEach((doc) => {
         const data = doc.data();
