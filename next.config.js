@@ -10,6 +10,11 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
+    // Take control immediately when a new SW version is installed,
+    // instead of waiting for all tabs to close. This ensures users
+    // always get fresh code as soon as a new deployment lands.
+    skipWaiting: true,
+    clientsClaim: true,
   },
   // --- START of PWA manifest options ---
   id: "app.tadbeer.web",

@@ -1,9 +1,8 @@
 
 // src/ai/flows/get-stats-summary.ts
-'use server';
 /**
- * @fileOverview An AI flow for calculating and summarizing financial statistics for a given period.
- * This flow performs aggregation on the server to reduce client-side load.
+ * @fileOverview Pure client-side statistics computation — no server required.
+ * All logic is date-fns + arithmetic; it runs instantly in the browser.
  *
  * - getStatsSummary - The main function to call.
  * - GetStatsSummaryInput - Input type for the function.
@@ -67,8 +66,8 @@ const GetStatsSummaryOutputSchema = z.object({
 export type GetStatsSummaryInput = z.infer<typeof GetStatsSummaryInputSchema>;
 export type GetStatsSummaryOutput = z.infer<typeof GetStatsSummaryOutputSchema>;
 
-// It's a data processing flow that runs on the server.
-export async function getStatsSummary(input: GetStatsSummaryInput): Promise<GetStatsSummaryOutput> {
+// Pure synchronous computation — runs instantly in the browser with no network call.
+export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOutput {
     const { expenses, view, selectedPeriod, userSettings } = input;
 
     const categories = userSettings.categories || [];

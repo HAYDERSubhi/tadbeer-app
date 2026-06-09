@@ -6,6 +6,12 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/use-auth';
 import { QueryProvider } from '@/components/query-provider';
+import { useSwUpdate } from '@/hooks/use-sw-update';
+
+function SwUpdateWatcher() {
+  useSwUpdate();
+  return null;
+}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +23,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     >
       <QueryProvider>
         <AuthProvider>
+          <SwUpdateWatcher />
           {children}
           <Toaster />
         </AuthProvider>
