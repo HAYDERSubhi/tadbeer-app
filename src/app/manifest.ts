@@ -14,12 +14,11 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'ar',
     orientation: 'portrait',
     icons: [
-      // 'any' = regular icon shown on home screen / task switcher
       { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      // 'maskable' = adaptive icon for Android splash screen — must use the
-      // version with coloured background fill so it doesn't appear black.
-      { src: '/icons/maskable-icon.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      // NOTE: maskable-icon.png was removed — it had a black background which
+      // caused the Android splash screen to show a large black square.
+      // Android will now use icon-512x512.png (any) on the #F8FAFC background.
     ],
     // Web Share Target: lets the installed PWA appear in Android's share sheet.
     // When the user shares a bank SMS/notification, Android opens /import with
