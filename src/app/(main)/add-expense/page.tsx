@@ -64,6 +64,7 @@ export default function AddExpensePage() {
 
     const [isCategorizing, setIsCategorizing] = useState(false);
     const [showFrequent, setShowFrequent] = useState(false);
+    const [showExtras, setShowExtras] = useState(false);
 
     // Build frequent expenses from history (top 6 most used)
     const frequentExpenses = useMemo(() => {
@@ -77,7 +78,7 @@ export default function AddExpensePage() {
             .sort((a, b) => b.count - a.count)
             .slice(0, 6);
     }, [expenses]);
-    
+
     const form = useForm<ExpenseFormData>({
         resolver: zodResolver(expenseSchema),
         defaultValues: {
@@ -101,41 +102,34 @@ export default function AddExpensePage() {
     }, [categories]);
 
     useEffect(() => {
-        if (!debouncedTitle) {
-          return;
-        }
+        if (!debouncedTitle) return;
 
         const getCategorySuggestion = async () => {
-          setIsCategorizing(true);
-          try {
-            const result = await recordExpenseAction({
-              expenseText: debouncedTitle,
-              categories: categoryMapForAI,
-            });
-            if (result.category) {
-              form.setValue('category', result.category, { shouldValidate: true });
+            setIsCategorizing(true);
+            try {
+                const result = await recordExpenseAction({
+                    expenseText: debouncedTitle,
+                    categories: categoryMapForAI,
+                });
+                if (result.category) {
+                    form.setValue('category', result.category, { shouldValidate: true });
+                }
+            } catch (error) {
+                console.error("Failed to get category suggestion:", error);
+            } finally {
+                setIsCategorizing(false);
             }
-          } catch (error) {
-            console.error("Failed to get category suggestion:", error);
-          } finally {
-            setIsCategorizing(false);
-          }
         };
 
         getCategorySuggestion();
     }, [debouncedTitle, categoryMapForAI, form]);
-    
+
     const addExpenseMutation = useMutation({
         mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
             addExpense(user!.uid, newExpense, householdId),
         onMutate: async (newExpenseData) => {
-            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
             await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
-
-            // Snapshot the previous value
             const previousExpenses = queryClient.getQueryData<Expense[]>(['expenses', user?.uid]);
-
-            // Optimistically update to the cache
             if (previousExpenses) {
                 queryClient.setQueryData<Expense[]>(['expenses', user?.uid], [
                     {
@@ -148,12 +142,9 @@ export default function AddExpensePage() {
                     ...previousExpenses,
                 ]);
             }
-
-            // Return a context object with the snapshotted value
             return { previousExpenses };
         },
         onError: (err, newExpense, context) => {
-            // If the mutation fails, use the context returned from onMutate to roll back
             if (context?.previousExpenses) {
                 queryClient.setQueryData(['expenses', user?.uid], context.previousExpenses);
             }
@@ -164,62 +155,54 @@ export default function AddExpensePage() {
             });
         },
         onSettled: () => {
-            // Always refetch after error or success to keep server sync
             queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
         },
         onSuccess: (_, variables) => {
             toast({
-              title: "تمت الإضافة بنجاح!",
-              description: `تم إضافة مصروف "${variables.title}".`,
+                title: "تمت الإضافة بنجاح!",
+                description: `تم إضافة مصروف "${variables.title}".`,
             });
 
-            // ── Duplicate detection (household only) ──────────────────────
+            // Duplicate detection (household only)
             if (householdId) {
                 const now = new Date();
-                const limit24h = 24 * 60 * 60 * 1000; // 24 hours in ms
+                const limit24h = 24 * 60 * 60 * 1000;
                 const duplicate = expenses.find(e => {
-                    if (e.uid === user!.uid) return false; // same user — skip
+                    if (e.uid === user!.uid) return false;
                     if (e.amount !== variables.amount) return false;
                     if (e.category !== variables.category) return false;
                     try {
-                        const diff = Math.abs(now.getTime() - new Date(e.date).getTime());
-                        return diff <= limit24h;
+                        return Math.abs(now.getTime() - new Date(e.date).getTime()) <= limit24h;
                     } catch { return false; }
                 });
                 if (duplicate) {
                     setTimeout(() => {
                         toast({
                             title: '⚠️ مصروف مكرر محتمل!',
-                            description: `تم تسجيل نفس المبلغ والفئة من عضو آخر في العائلة خلال آخر 24 ساعة. هل هذا مصروف مختلف؟`,
+                            description: `تم تسجيل نفس المبلغ والفئة من عضو آخر في العائلة خلال آخر 24 ساعة.`,
                             variant: 'destructive',
                         });
                     }, 600);
                 }
             }
-            // ──────────────────────────────────────────────────────────────
 
             form.reset();
             router.push('/expenses');
-        }
+        },
     });
 
     const onSubmit = (data: ExpenseFormData) => {
         if (!user) return;
-
-        const newExpenseData = {
-          ...data,
-          date: data.date.toISOString(),
-        };
-        addExpenseMutation.mutate(newExpenseData);
+        addExpenseMutation.mutate({ ...data, date: data.date.toISOString() });
     };
 
     const selectedCategory = form.watch('category');
 
     return (
         <div className="flex flex-col h-full">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 overflow-y-auto pb-28">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-5 p-4 overflow-y-auto pb-28">
 
-                {/* Frequent Expenses Suggestions */}
+                {/* ─── 1. Frequent Expenses ─── */}
                 {frequentExpenses.length > 0 && (
                     <div className="space-y-2">
                         <button
@@ -229,7 +212,9 @@ export default function AddExpensePage() {
                         >
                             <Clock className="h-3.5 w-3.5" />
                             <span>مصاريف متكررة</span>
-                            {showFrequent ? <ChevronUp className="h-3 w-3 mr-auto" /> : <ChevronDown className="h-3 w-3 mr-auto" />}
+                            {showFrequent
+                                ? <ChevronUp className="h-3 w-3 mr-auto" />
+                                : <ChevronDown className="h-3 w-3 mr-auto" />}
                         </button>
                         {showFrequent && (
                             <div className="grid grid-cols-2 gap-2 animate-in fade-in">
@@ -257,106 +242,202 @@ export default function AddExpensePage() {
                     </div>
                 )}
 
-                <div className="space-y-4">
-                     <div className="relative">
-                        <Input {...form.register('title')} placeholder="اسم السلعة/الخدمة" />
-                    </div>
-                    {form.formState.errors.title && <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>}
+                {/* ─── 2. Category Grid — FIRST ─── */}
+                <div className="space-y-2">
+                    <p className={cn(
+                        "text-xs font-medium text-muted-foreground flex items-center gap-1.5 h-4",
+                        isCategorizing && "text-primary"
+                    )}>
+                        {isCategorizing ? (
+                            <><Loader2 className="h-3 w-3 animate-spin shrink-0" /> جاري تصنيف الفئة تلقائياً...</>
+                        ) : 'اختر الفئة'}
+                    </p>
 
-                    <div className="relative">
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                        {categories.map((cat) => (
+                            <div
+                                key={cat.id}
+                                onClick={() => form.setValue('category', cat.id, { shouldValidate: true })}
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 cursor-pointer transition-all duration-200 active:scale-95 select-none",
+                                    selectedCategory === cat.id
+                                        ? 'border-primary bg-primary/10 shadow-sm'
+                                        : 'border-transparent bg-muted/50 hover:bg-muted hover:border-muted-foreground/20'
+                                )}
+                            >
+                                <span className={cn(
+                                    "flex items-center justify-center w-11 h-11 text-xl rounded-full transition-colors",
+                                    selectedCategory === cat.id
+                                        ? 'bg-primary/20 text-primary'
+                                        : 'bg-background text-foreground/70'
+                                )}>
+                                    {getIconComponent(cat.icon)}
+                                </span>
+                                <p className={cn(
+                                    "text-[11px] font-medium leading-tight line-clamp-2",
+                                    selectedCategory === cat.id ? 'text-primary' : 'text-foreground/75'
+                                )}>
+                                    {cat.name}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {form.formState.errors.category && (
+                        <p className="text-sm text-destructive text-center">{form.formState.errors.category.message}</p>
+                    )}
+                </div>
+
+                {/* ─── 3. Title + Amount + Date ─── */}
+                <div className="space-y-3">
+
+                    {/* Title */}
+                    <div>
+                        <Input
+                            {...form.register('title')}
+                            placeholder="اسم السلعة/الخدمة"
+                            className="h-11"
+                        />
+                        {form.formState.errors.title && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                        )}
+                    </div>
+
+                    {/* Amount — larger with currency suffix */}
+                    <div>
                         <Controller
                             name="amount"
                             control={form.control}
                             render={({ field: { onChange, value, ...restField } }) => (
-                                <Input
-                                    {...restField}
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="المبلغ"
-                                    value={value === 0 ? '' : formatNumberWithCommas(value)}
-                                    onChange={(e) => {
-                                        const parsed = parseFormattedNumber(e.target.value);
-                                        if (parsed === '' || !isNaN(Number(parsed))) {
-                                            onChange(parsed === '' ? 0 : Number(parsed));
-                                        }
-                                    }}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        {...restField}
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="المبلغ"
+                                        className="h-14 text-xl font-bold pl-14 text-right"
+                                        value={value === 0 ? '' : formatNumberWithCommas(value)}
+                                        onChange={(e) => {
+                                            const parsed = parseFormattedNumber(e.target.value);
+                                            if (parsed === '' || !isNaN(Number(parsed))) {
+                                                onChange(parsed === '' ? 0 : Number(parsed));
+                                            }
+                                        }}
+                                    />
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">
+                                        د.ع
+                                    </span>
+                                </div>
                             )}
                         />
+                        {form.formState.errors.amount && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>
+                        )}
                     </div>
-                    {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
 
+                    {/* Date */}
                     <Controller
                         name="date"
                         control={form.control}
                         render={({ field }) => (
-                             <Popover>
+                            <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal relative pr-10", !field.value && "text-muted-foreground")}>
-                                         <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                        <span>التاريخ:</span>
-                                        {field.value ? <span className="mr-2 font-semibold">{format(field.value, "dd/MM/yyyy")}</span> : <span>اختر تاريخاً</span>}
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start h-11 font-normal relative pr-10",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <span className="text-muted-foreground ml-1">التاريخ:</span>
+                                        {field.value
+                                            ? <span className="font-semibold">{format(field.value, "dd/MM/yyyy")}</span>
+                                            : <span>اختر تاريخاً</span>
+                                        }
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={ar} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} />
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        initialFocus
+                                        dir="rtl"
+                                        locale={ar}
+                                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                    />
                                 </PopoverContent>
                             </Popover>
                         )}
                     />
-                     {form.formState.errors.date && <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>}
-                    
-                    <div className="flex items-center space-x-2 space-x-reverse pt-2">
-                        <Controller
-                            name="isOutOfBudget"
-                            control={form.control}
-                            render={({ field }) => ( <Checkbox id="isOutOfBudget" checked={field.value} onCheckedChange={field.onChange} /> )}
-                        />
-                        <Label htmlFor="isOutOfBudget" className="cursor-pointer">مصروف خارج الميزانية</Label>
-                    </div>
+                    {form.formState.errors.date && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>
+                    )}
+                </div>
 
-                    {form.watch('isOutOfBudget') && (
-                        <div className="relative">
-                            <Textarea {...form.register('outOfBudgetDetails')} placeholder="سبب الخروج عن الميزانية" className="min-h-[60px]" />
+                {/* ─── 4. Optional extras — collapsed ─── */}
+                <div>
+                    <button
+                        type="button"
+                        onClick={() => setShowExtras(v => !v)}
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full py-1"
+                    >
+                        {showExtras
+                            ? <ChevronUp className="h-3.5 w-3.5 shrink-0" />
+                            : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                        <span>خيارات إضافية</span>
+                        <span className="text-[10px] opacity-50 mr-auto">(ملاحظة · خارج الميزانية)</span>
+                    </button>
+
+                    {showExtras && (
+                        <div className="space-y-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="flex items-center gap-2">
+                                <Controller
+                                    name="isOutOfBudget"
+                                    control={form.control}
+                                    render={({ field }) => (
+                                        <Checkbox
+                                            id="isOutOfBudget"
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    )}
+                                />
+                                <Label htmlFor="isOutOfBudget" className="cursor-pointer text-sm">
+                                    مصروف خارج الميزانية
+                                </Label>
+                            </div>
+
+                            {form.watch('isOutOfBudget') && (
+                                <Textarea
+                                    {...form.register('outOfBudgetDetails')}
+                                    placeholder="سبب الخروج عن الميزانية"
+                                    className="min-h-[56px] text-sm"
+                                />
+                            )}
+
+                            <Textarea
+                                {...form.register('description')}
+                                placeholder="ملاحظة (اختياري) — مثال: غداء مع العمل"
+                                className="min-h-[56px] text-sm"
+                            />
                         </div>
                     )}
-
-                    <div className="relative">
-                        <Textarea
-                            {...form.register('description')}
-                            placeholder="ملاحظة (اختياري) — مثال: غداء مع العمل"
-                            className="min-h-[60px] text-sm"
-                        />
-                    </div>
                 </div>
 
-                <div className="space-y-3">
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 text-center">
-                        {categories.map((cat) => (
-                            <div 
-                                key={cat.id} 
-                                onClick={() => form.setValue('category', cat.id, { shouldValidate: true })}
-                                className={cn(
-                                    "flex flex-col items-center justify-center gap-2 p-2 rounded-lg border-2 cursor-pointer transition-all duration-200",
-                                    selectedCategory === cat.id 
-                                        ? 'border-primary bg-primary/10 shadow-lg scale-105'
-                                        : 'border-transparent bg-muted/60 hover:border-primary/50'
-                                )}
-                            >
-                                <span className={cn("flex items-center justify-center w-12 h-12 text-2xl rounded-full transition-colors", selectedCategory === cat.id ? 'bg-primary/20 text-primary' : 'bg-background')}>
-                                    {getIconComponent(cat.icon)}
-                                </span>
-                                <p className="text-xs font-medium break-words">{cat.name}</p>
-                            </div>
-                        ))}
-                    </div>
-                     {form.formState.errors.category && <p className="text-sm text-destructive mt-1 text-center">{form.formState.errors.category.message}</p>}
-                </div>
             </form>
 
+            {/* ─── Fixed save button ─── */}
             <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
-                 <Button onClick={form.handleSubmit(onSubmit)} className="w-full h-14 text-lg" disabled={addExpenseMutation.isPending}>
-                    {addExpenseMutation.isPending ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
+                <Button
+                    onClick={form.handleSubmit(onSubmit)}
+                    className="w-full h-14 text-lg"
+                    disabled={addExpenseMutation.isPending}
+                >
+                    {addExpenseMutation.isPending
+                        ? <Loader2 className="h-6 w-6 animate-spin" />
+                        : <Save className="h-6 w-6" />}
                     <span className="mr-2">حفظ المصروف</span>
                 </Button>
             </div>
