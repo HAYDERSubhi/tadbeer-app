@@ -53,8 +53,29 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
 
     const promptText = `أنت مساعد ذكي متخصص في تسجيل المصاريف من التسجيلات الصوتية باللهجة العراقية.
 
-## مهمتك
-استمع للتسجيل الصوتي واستخرج بيانات المصروف.
+## مهمتك الأولى: التفريغ الصوتي الدقيق
+استمع بدقة شديدة لكل كلمة في التسجيل. اكتب الكلمات العربية **بالضبط** كما نُطقت.
+لا تخمّن الكلمات غير الواضحة — ركّز على الفروق الدقيقة بين الأصوات المتشابهة:
+- (ح) و (خ) و (ه) و (ع) — أصوات مختلفة كلياً
+- (ق) و (ك) و (ج)
+- (س) و (ص) و (ث)
+- (ذ) و (ز) و (ض) و (ظ)
+
+## قاموس مساعد للكلمات الشائعة في المصاريف
+| ما قد تسمعه | الكلمة الصحيحة |
+|---|---|
+| حاسوب / لابتوب / كمبيوتر | حاسوب |
+| موبايل / تلفون / جوال | هاتف |
+| سيارة / عربية / سيار | سيارة |
+| بنزين / وقود | بنزين |
+| أكل / طعام / غداء / عشاء | وجبة |
+| كهربا / فاتورة كهرباء | فاتورة كهرباء |
+| ماي / ماء / مياه | ماء |
+| دوا / دواء / حبوب | دواء |
+| ملابس / هدوم / ثياب | ملابس |
+| جامعة / مدرسة / كلية | رسوم دراسية |
+| فرن / ثلاجة / غسالة / مكيف | أجهزة منزلية |
+| تاكسي / كريم / أوبر | مواصلات |
 
 ## تاريخ اليوم
 تاريخ اليوم الفعلي هو: ${todayISO}
@@ -71,8 +92,8 @@ const recordExpenseWithVoiceFlow = ai.defineFlow(
 - "مليون" = 1000000
 
 ## التعليمات
-1. استمع بعناية للتسجيل
-2. استخرج: المبلغ، وصف المصروف، والتاريخ
+1. فرّغ التسجيل بدقة (ركّز على الحروف المتشابهة)
+2. استخرج: المبلغ، اسم/وصف المصروف، والتاريخ
 3. اختر أنسب فئة من القائمة أدناه
 4. أعد إجابة JSON صحيحة دائماً
 
@@ -83,7 +104,7 @@ ${categoriesList}
 - amount يجب أن يكون رقم صحيح (مثال: 50000 وليس "خمسين ألف")
 - category يجب أن يكون أحد الـ IDs بالضبط
 - date بصيغة YYYY-MM-DD، والافتراضي هو ${todayISO}
-- description وصف قصير بالعربية`;
+- description اسم المصروف بالعربية (اكتب ما سمعته بدقة، لا تخمّن)`;
 
     // Extract MIME type from data URI
     const mimeMatch = input.voiceRecordingDataUri.match(/^data:([^;]+)/);
@@ -91,9 +112,10 @@ ${categoriesList}
 
     const { output } = await ai.generate({
       output: { schema: RecordExpenseWithVoiceOutputSchema },
-      // Disable "thinking" — this is a simple extraction task, and thinking
-      // adds significant latency on gemini-2.5-flash. Speeds up analysis a lot.
-      config: { thinkingConfig: { thinkingBudget: 0 } },
+      // Small thinking budget — improves Arabic transcription accuracy
+      // (especially distinguishing similar consonants like ح/خ/ه/ع)
+      // without adding significant latency.
+      config: { thinkingConfig: { thinkingBudget: 512 } },
       prompt: [
         {
           media: {

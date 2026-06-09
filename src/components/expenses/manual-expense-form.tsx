@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
+import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import { useEffect, useMemo, useState } from 'react';
@@ -49,6 +50,7 @@ interface ManualExpenseFormProps {
 
 export default function ManualExpenseForm({ setOpen, initialData }: ManualExpenseFormProps) {
   const { user } = useAuth();
+  const { householdId } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { categories, getIconComponent } = useCategories();
@@ -117,40 +119,51 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   }, [debouncedTitle, categoryMapForAI, form, initialData]);
 
   const addExpenseMutation = useMutation({
-    mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => addExpense(user!.uid, newExpense),
+    mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
+      addExpense(user!.uid, newExpense, householdId),
     onMutate: async (newExpenseData) => {
-        // Cancel any outgoing refetches
+        // Cancel any outgoing refetches for both query variants
         await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
 
-        // Snapshot the previous value
-        const previousExpenses = queryClient.getQueryData<Expense[]>(['expenses', user?.uid]);
+        // Snapshot previous values for both 'recent' and 'all' caches
+        const prevRecent = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'recent']);
+        const prevAll    = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'all']);
 
-        // Optimistically update to the cache
-        if (previousExpenses) {
-            queryClient.setQueryData<Expense[]>(['expenses', user?.uid], [
-                {
-                    ...newExpenseData,
-                    id: `temp-${Date.now()}`,
-                    uid: user!.uid,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                },
-                ...previousExpenses,
-            ]);
+        const tempExpense: Expense = {
+            ...newExpenseData,
+            id: `temp-${Date.now()}`,
+            uid: user!.uid,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        // Optimistically update both cache entries
+        if (prevRecent) {
+            queryClient.setQueryData<Expense[]>(
+              ['expenses', user?.uid, householdId, 'recent'],
+              [tempExpense, ...prevRecent],
+            );
+        }
+        if (prevAll) {
+            queryClient.setQueryData<Expense[]>(
+              ['expenses', user?.uid, householdId, 'all'],
+              [tempExpense, ...prevAll],
+            );
         }
 
         // Close the dialog immediately for an "instant" feel
         setOpen(false);
 
-        return { previousExpenses };
+        return { prevRecent, prevAll };
     },
-    onError: (err, newExpense, context) => {
-        // Roll back if error
-        if (context?.previousExpenses) {
-            queryClient.setQueryData(['expenses', user?.uid], context.previousExpenses);
+    onError: (err, _newExpense, context) => {
+        // Roll back both cache entries
+        if (context?.prevRecent) {
+            queryClient.setQueryData(['expenses', user?.uid, householdId, 'recent'], context.prevRecent);
         }
-        // Re-open if failed so user can try again? Actually, better to just show toast
-        // and let them re-trigger from dashboard if it was voice.
+        if (context?.prevAll) {
+            queryClient.setQueryData(['expenses', user?.uid, householdId, 'all'], context.prevAll);
+        }
         toast({
             title: "خطأ في الحفظ",
             description: "عذراً، تعذر حفظ المصروف. يرجى التحقق من الاتصال.",
@@ -158,7 +171,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         });
     },
     onSettled: () => {
-        // Always refetch to sync
+        // Always refetch to sync with server
         queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
     },
     onSuccess: (_, variables) => {
