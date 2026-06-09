@@ -57,8 +57,16 @@ export default function AllExpensesPage() {
   const EditComponent = isMobile ? Sheet : Dialog;
 
   const deleteMutation = useMutation({
-    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
-    onSuccess: () => {
+    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId, householdId),
+    onSuccess: (_data, expenseId) => {
+      // Instantly remove from ALL cache entries then invalidate for reconciliation.
+      const removeFromCache = (key: unknown[]) => {
+        queryClient.setQueryData<import('@/types').Expense[]>(key, old =>
+          old ? old.filter(e => e.id !== expenseId) : old
+        );
+      };
+      removeFromCache(['expenses', user?.uid, householdId, 'recent']);
+      removeFromCache(['expenses', user?.uid, householdId, 'all']);
       queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
       toast({ title: "تم الحذف", description: "تم حذف المصروف بنجاح." });
     },
@@ -124,7 +132,16 @@ export default function AllExpensesPage() {
     if (!user || selectedIds.size === 0) return;
     setIsBulkDeleting(true);
     try {
-      await Promise.all([...selectedIds].map(id => deleteExpense(user.uid, id)));
+      await Promise.all([...selectedIds].map(id => deleteExpense(user.uid, id, householdId)));
+      // Instantly remove deleted items from cache.
+      const deletedIds = selectedIds;
+      const removeFromCache = (key: unknown[]) => {
+        queryClient.setQueryData<import('@/types').Expense[]>(key, old =>
+          old ? old.filter(e => !deletedIds.has(e.id)) : old
+        );
+      };
+      removeFromCache(['expenses', user.uid, householdId, 'recent']);
+      removeFromCache(['expenses', user.uid, householdId, 'all']);
       queryClient.invalidateQueries({ queryKey: ['expenses', user.uid] });
       toast({ title: "تم الحذف", description: `تم حذف ${selectedIds.size} مصروف بنجاح.` });
       setSelectedIds(new Set());

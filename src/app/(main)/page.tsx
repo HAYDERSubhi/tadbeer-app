@@ -90,7 +90,7 @@ export default function DashboardPage() {
   const { categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
-  const { expenses, userSettings, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
+  const { expenses, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
 
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
@@ -301,8 +301,18 @@ export default function DashboardPage() {
   }, [expenses]);
   
   const deleteMutation = useMutation({
-    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId),
-    onSuccess: () => {
+    mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId, householdId),
+    onSuccess: (_data, expenseId) => {
+      // 1. Instantly remove from BOTH cache entries (recent + all) so UI
+      //    updates without waiting for Firestore round-trip.
+      const removeFromCache = (key: unknown[]) => {
+        queryClient.setQueryData<import('@/types').Expense[]>(key, old =>
+          old ? old.filter(e => e.id !== expenseId) : old
+        );
+      };
+      removeFromCache(['expenses', user?.uid, householdId, 'recent']);
+      removeFromCache(['expenses', user?.uid, householdId, 'all']);
+      // 2. Invalidate so background refetch reconciles with Firestore.
       queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
       toast({ title: "تم الحذف", description: "تم حذف المصروف بنجاح." });
     },
