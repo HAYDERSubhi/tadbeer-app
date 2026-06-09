@@ -82,6 +82,9 @@ ${history}
       config: { thinkingConfig: { thinkingBudget: 0 } },
     });
 
-    return { reply: response.text.trim() };
+    // response.text can be undefined/empty if the model returns no text parts
+    // (e.g. a safety block or a pure-thinking response). Guard defensively.
+    const reply = (response.text ?? '').trim();
+    return { reply: reply || 'عذرًا، لم أتمكن من توليد رد. حاول مرة أخرى.' };
   }
 );

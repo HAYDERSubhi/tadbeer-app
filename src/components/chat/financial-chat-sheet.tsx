@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
-import { financialChatAction } from '@/app/actions';
+// financialChatAction replaced by direct /api/chat fetch — see handleSend below.
 import { format, isThisMonth, parseISO, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { useCurrency } from '@/hooks/use-currency';
 
@@ -273,28 +273,44 @@ export function FinancialChatSheet() {
     setIsSending(true);
 
     try {
-      const result = await financialChatAction({
-        messages: updatedMessages,
-        financialContext,
-        appTone: userSettings?.appTone ?? 'formal',
+      // Use the dedicated /api/chat route instead of a server action so that
+      // `export const maxDuration = 60` in route.ts is honoured directly by
+      // Vercel — server actions inherit timeout from the layout hierarchy which
+      // is unreliable when the closest layout is a Client Component.
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          financialContext,
+          appTone: userSettings?.appTone ?? 'formal',
+        }),
       });
 
-      if (result.ok) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.data.reply }]);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const result: { ok: boolean; data?: { reply: string }; error?: string } =
+        await res.json();
+
+      if (result.ok && result.data?.reply) {
+        setMessages(prev => [...prev, { role: 'assistant', content: result.data!.reply }]);
       } else {
         setMessages(prev => [
           ...prev,
           { role: 'assistant', content: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.' },
         ]);
       }
-    } catch {
-      // Network error, Vercel timeout, or any unhandled throw — must unblock UI.
+    } catch (err) {
+      // Network error, timeout, or any other fetch failure — always unblock UI.
+      console.error('[FinancialChat] fetch error:', err);
       setMessages(prev => [
         ...prev,
         { role: 'assistant', content: 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.' },
       ]);
     } finally {
-      // ALWAYS unblock — this was the root cause of the infinite loading state.
+      // ALWAYS unblock — prevents the UI from freezing in loading state.
       setIsSending(false);
     }
   };
