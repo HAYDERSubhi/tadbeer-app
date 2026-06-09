@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Sheet,
   SheetContent,
@@ -58,6 +59,11 @@ export function FinancialChatSheet() {
   const { expenses, goals, userSettings, isLoading } = useAppData();
   const { categoryMap } = useCategories();
   const { format: formatCurrency } = useCurrency();
+  const pathname = usePathname();
+
+  // Hide the floating button on pages where the user is actively entering data
+  const HIDDEN_PATHS = ['/add-expense', '/add-expense/'];
+  const isHidden = HIDDEN_PATHS.some(p => pathname === p || pathname?.startsWith(p));
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -293,11 +299,12 @@ export function FinancialChatSheet() {
 
   return (
     <>
-      {/* ── Floating Action Button ── */}
+      {/* ── Floating Action Button — hidden on data-entry pages ── */}
       <button
         onClick={handleOpen}
         aria-label="مستشار الجيب"
         className={cn(
+          isHidden && 'hidden',
           // Position — sits just above the nav bar, left side to avoid conflict with any right-side FABs
           'fixed bottom-20 left-4 z-40',
           // Size & shape

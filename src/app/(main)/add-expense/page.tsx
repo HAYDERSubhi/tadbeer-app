@@ -429,10 +429,10 @@ export default function AddExpensePage() {
             </form>
 
             {/* ─── Fixed save button ─── */}
-            <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
+            <div className="fixed bottom-16 left-0 right-0 px-4 py-3 bg-background/80 backdrop-blur-sm border-t border-border">
                 <Button
                     onClick={form.handleSubmit(onSubmit)}
-                    className="w-full h-14 text-lg"
+                    className="w-full h-12 text-base"
                     disabled={addExpenseMutation.isPending}
                 >
                     {addExpenseMutation.isPending
