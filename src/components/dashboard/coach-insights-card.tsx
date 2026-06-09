@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
-import { financialCoachAction } from '@/app/stats-actions';
+import { financialCoachAction } from '@/app/actions';
 import type { FinancialCoachInput } from '@/ai/flows/financial-coach';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO } from 'date-fns';
