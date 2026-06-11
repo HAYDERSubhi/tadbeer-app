@@ -13,7 +13,6 @@ import { AppDataProvider } from '@/hooks/use-app-data';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
 import { PullToRefresh } from '@/components/pull-to-refresh';
-import { SplashScreen } from '@/components/splash-screen';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { useSmartNotifications } from '@/hooks/use-smart-notifications';
 import { useBadges } from '@/hooks/use-badges';
@@ -72,7 +71,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <AppDataProvider>
       {user && <NotificationsRunner />}
       {user && <BadgeChecker />}
-      {user && <SplashScreen />}
       <PwaUpdateBanner />
       <OfflineIndicator />
       <PullToRefresh />
