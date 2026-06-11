@@ -87,6 +87,7 @@
     @apply bg-background text-foreground;
     font-family: var(--font-tajawal), 'Tajawal', sans-serif;
     direction: rtl; /* RTL support */
+    overscroll-behavior-y: contain; /* disable native pull-to-refresh — custom PTR handles it */
     min-height: 100vh;
   }
   h1, h2, h3, h4, h5, h6 {
