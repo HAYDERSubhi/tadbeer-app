@@ -3,10 +3,15 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
 
-const PULL_THRESHOLD = 65;  // px of travel to trigger refresh
-const MAX_PULL       = 100; // rubber-band ceiling
+const PULL_THRESHOLD = 65;
+const MAX_PULL       = 100;
+
+// SVG arc geometry
+const SIZE         = 44;
+const CX           = SIZE / 2;
+const RADIUS       = 17;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ≈ 106.8
 
 export function PullToRefresh() {
   const queryClient = useQueryClient();
@@ -24,8 +29,7 @@ export function PullToRefresh() {
     pullYRef.current = 0;
 
     await queryClient.invalidateQueries();
-    // Keep the spinner visible briefly so it doesn't flash and disappear
-    await new Promise<void>(r => setTimeout(r, 700));
+    await new Promise<void>(r => setTimeout(r, 800));
 
     refreshingRef.current = false;
     setRefreshing(false);
@@ -44,11 +48,9 @@ export function PullToRefresh() {
       const raw = e.touches[0].clientY - startYRef.current;
       if (raw <= 0) { pullYRef.current = 0; setPullY(0); return; }
 
-      // Rubber-band resistance — pull feels heavier as it stretches
       const dist = Math.min(raw * 0.45, MAX_PULL);
       pullYRef.current = dist;
       setPullY(dist);
-      // Suppress native scroll/overscroll once a clear downward pull is detected
       if (raw > 8) e.preventDefault();
     };
 
@@ -75,53 +77,96 @@ export function PullToRefresh() {
 
   const progress = Math.min(pullY / PULL_THRESHOLD, 1);
 
-  // The indicator sits just below the sticky header (h-16 = 64px).
-  // translateY maps: hidden → -48px (above header), full pull → +8px (below header edge).
-  // While refreshing it stays locked at +8px.
+  // Indicator lives inside the header zone (0–64px).
+  // translateY: -44 (hidden above) → 10 (center sits at y=32, well inside header).
+  // Never drops below the header line.
   const translateY = refreshing
-    ? 8
+    ? 10
     : pullY > 0
-      ? Math.min(progress * 56 - 48, 8)
-      : -48;
+      ? Math.min(-44 + progress * 54, 10)
+      : -44;
 
-  const visible = pullY > 4 || refreshing;
+  // SVG arc: stroke-dashoffset goes from full circumference (invisible) to 0 (full circle).
+  // The arc starts drawing from 12 o'clock (rotate -90°) and grows clockwise.
+  const arcOffset = refreshing ? 0 : CIRCUMFERENCE * (1 - progress);
 
   return (
     <div
       aria-hidden
       className="fixed left-0 right-0 z-[60] flex justify-center pointer-events-none"
       style={{
-        top: 64,
+        top: 0,
         transform: `translateY(${translateY}px)`,
-        // Animate snap-back on release; no transition while finger is moving
-        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.25s ease',
+        transition: (refreshing || pullY > 0) ? 'none' : 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
       }}
     >
+      {/* Frosted-glass pill — adapts to light/dark, no harsh white box */}
       <div
-        className={cn(
-          'flex items-center justify-center rounded-full shadow-lg',
-          'bg-white dark:bg-zinc-800',
-          'transition-opacity duration-150',
-          visible ? 'opacity-100' : 'opacity-0',
-        )}
-        style={{ width: 40, height: 40 }}
+        className="relative flex items-center justify-center rounded-full backdrop-blur-md shadow-md"
+        style={{
+          width: SIZE,
+          height: SIZE,
+          background: 'color-mix(in srgb, var(--background, #fff) 75%, transparent)',
+          opacity: pullY > 2 || refreshing ? 1 : 0,
+          transition: 'opacity 0.15s',
+        }}
       >
+        {/* ── SVG: arc draws itself, then spins during refresh ── */}
+        <svg
+          width={SIZE}
+          height={SIZE}
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="absolute inset-0"
+          style={{
+            animation: refreshing ? 'ptr-spin 0.9s linear infinite' : 'none',
+          }}
+        >
+          {/* Faint track — appears as arc starts drawing */}
+          <circle
+            cx={CX} cy={CX} r={RADIUS}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeOpacity={0.12 * progress}
+          />
+          {/* The arc being drawn — stroke-dashoffset shrinks with pull progress */}
+          <circle
+            cx={CX} cy={CX} r={RADIUS}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={arcOffset}
+            transform={`rotate(-90 ${CX} ${CX})`}
+            style={{ transition: refreshing ? 'none' : 'stroke-dashoffset 0.04s linear' }}
+          />
+        </svg>
+
+        {/* Logo — fades in as the arc nears completion */}
         <img
           src="/logo.png"
           alt=""
-          className={refreshing ? 'animate-spin' : ''}
           style={{
-            width: 26,
-            height: 26,
+            position: 'relative',
+            width: SIZE - 18,
+            height: SIZE - 18,
             objectFit: 'contain',
-            // Fade in as pull deepens; full opacity at threshold
-            opacity: 0.2 + progress * 0.8,
-            // Rotate with pull progress (0→270°); Tailwind animate-spin takes over when refreshing
-            transform:  refreshing ? undefined : `rotate(${progress * 270}deg)`,
-            transition: refreshing ? undefined : 'transform 0.05s linear, opacity 0.1s',
+            opacity: progress * 0.9,
+            transition: 'opacity 0.1s',
+            // Blend white PNG background away — works on light & semi-transparent surfaces
+            mixBlendMode: 'multiply',
           }}
         />
       </div>
+
+      {/* Keyframe for the refresh spin — defined inline to avoid global CSS dependency */}
+      <style>{`
+        @keyframes ptr-spin {
+          from { transform: rotate(0deg);   }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
