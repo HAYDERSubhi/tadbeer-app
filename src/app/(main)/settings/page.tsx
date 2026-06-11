@@ -407,6 +407,10 @@ export default function SettingsPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
+  // Prevents the auto-sync useEffect from firing on first render before
+  // userSettings is populated — avoids spurious "تم الحفظ" toast on page open.
+  const incomeSyncInitialized = useRef(false);
+
   // State for Feedback Dialog
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
@@ -525,11 +529,19 @@ export default function SettingsPage() {
 
   useEffect(() => {
       const userProfile = userSettings?.profile;
-      if (user && userProfile && incomes) {
-          if (userProfile.monthlyIncome !== totalRecurringIncome) {
-              const updatedProfile = { ...userProfile, monthlyIncome: totalRecurringIncome };
-              updateSettingsMutation.mutate({ profile: updatedProfile });
-          }
+      if (!user || !userProfile || !incomes) return;
+
+      // Skip the very first evaluation — at this point userSettings just loaded
+      // and we have no baseline to compare against. Saving here would trigger a
+      // false "تم الحفظ" toast every time the user opens the Settings page.
+      if (!incomeSyncInitialized.current) {
+          incomeSyncInitialized.current = true;
+          return;
+      }
+
+      if (userProfile.monthlyIncome !== totalRecurringIncome) {
+          const updatedProfile = { ...userProfile, monthlyIncome: totalRecurringIncome };
+          updateSettingsMutation.mutate({ profile: updatedProfile });
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalRecurringIncome, userSettings, incomes, user]);
