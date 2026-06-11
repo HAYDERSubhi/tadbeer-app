@@ -32,7 +32,6 @@ import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
-import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
@@ -565,8 +564,6 @@ export default function DashboardPage() {
         </Card>
       )}
       
-      <IncomeVsExpensesCard />
-
       <ZeroStreakCard />
 
       <Card id="expense-input-card" className="overflow-hidden">
