@@ -7,24 +7,29 @@ import { cn } from '@/lib/utils';
 import { Flame, ShieldCheck, TrendingDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// The streak counts COMPLETED days only (ending yesterday) — today never
+// counts until it's over, so the card can't celebrate while today's list
+// shows spending.
 function getMessage(streak: number, spentToday: boolean): { title: string; sub: string } {
   if (spentToday) {
     return {
       title: 'أنفقت اليوم',
-      sub: 'حافظ على الميزانية وابدأ streak جديداً غداً!',
+      sub: streak > 0
+        ? `سلسلتك المكتملة حتى أمس: ${streak} — تنكسر اليوم، عاود غداً!`
+        : 'حافظ على الميزانية وجرّب يوماً كاملاً بلا صرف!',
     };
   }
   if (streak === 0) {
     return {
-      title: 'لا توجد مصاريف بعد',
-      sub: 'أضف مصاريفك لتبدأ متابعة أيامك الصفرية.',
+      title: 'لا إنفاق اليوم حتى الآن',
+      sub: 'أكمل اليوم بلا أي صرف ليُحتسب أول يوم صفري مكتمل غداً.',
     };
   }
-  if (streak === 1) return { title: 'يوم صفري! 🎯', sub: 'بداية رائعة، واصل غداً!' };
-  if (streak < 4)   return { title: `${streak} أيام صفرية 🔥`, sub: 'أنت على الطريق الصحيح!' };
-  if (streak < 7)   return { title: `${streak} أيام صفرية 🔥`, sub: 'رائع! تحدّك أسبوع كامل!' };
-  if (streak < 14)  return { title: `${streak} يوماً صفرياً 🔥`, sub: 'أسبوع كامل بدون إنفاق — أنت بطل!' };
-  return             { title: `${streak} يوماً صفرياً 🏆`, sub: 'إنجاز استثنائي! استمر في التحدي!' };
+  if (streak === 1) return { title: 'يوم صفري مكتمل! 🎯', sub: 'أمس مرّ بلا أي صرف — واصل اليوم!' };
+  if (streak < 4)   return { title: `${streak} أيام صفرية مكتملة 🔥`, sub: 'أنت على الطريق الصحيح!' };
+  if (streak < 7)   return { title: `${streak} أيام صفرية مكتملة 🔥`, sub: 'رائع! تحدّك أسبوع كامل!' };
+  if (streak < 14)  return { title: `${streak} يوماً صفرياً مكتملاً 🔥`, sub: 'أسبوع كامل بدون إنفاق — أنت بطل!' };
+  return             { title: `${streak} يوماً صفرياً مكتملاً 🏆`, sub: 'إنجاز استثنائي! استمر في التحدي!' };
 }
 
 export function ZeroStreakCard() {

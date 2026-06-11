@@ -3,12 +3,14 @@
 
 import { useMemo } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
-import { format, differenceInCalendarDays, parseISO, isToday } from 'date-fns';
+import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 
 export type ZeroStreakResult = {
-  streak: number;          // consecutive zero-spend days (0 = spent today)
-  spentToday: boolean;     // did user log any expense today?
-  lastExpenseDate: string | null; // ISO date of most recent expense
+  /** Consecutive COMPLETED zero-spend days, counted backwards from yesterday.
+      Today is never included — a day only counts once it has fully ended. */
+  streak: number;
+  spentToday: boolean;     // did user log any expense today (local time)?
+  lastExpenseDate: string | null; // local yyyy-MM-dd of most recent expense
 };
 
 export function useZeroStreak(): ZeroStreakResult {
@@ -22,10 +24,14 @@ export function useZeroStreak(): ZeroStreakResult {
     const today = new Date();
     const todayStr = format(today, 'yyyy-MM-dd');
 
-    // Build set of unique dates that have at least one expense
+    // Build set of unique LOCAL dates that have at least one expense.
+    // parseISO + format converts the stored UTC instant to the user's local
+    // day — slicing the raw ISO string would shift expenses entered between
+    // midnight and ~3am (Baghdad UTC+3) to the previous day, making the card
+    // celebrate a "zero day" while today's list clearly shows spending.
     const expenseDateSet = new Set(
       expenses.map(e => {
-        try { return e.date.slice(0, 10); } catch { return ''; }
+        try { return format(parseISO(e.date), 'yyyy-MM-dd'); } catch { return ''; }
       }).filter(Boolean)
     );
 
@@ -35,13 +41,12 @@ export function useZeroStreak(): ZeroStreakResult {
     const sortedDates = [...expenseDateSet].sort().reverse();
     const lastExpenseDate = sortedDates[0] ?? null;
 
-    if (spentToday) {
-      return { streak: 0, spentToday: true, lastExpenseDate };
-    }
-
-    // Count consecutive zero-spend days going backwards from today
+    // Count consecutive zero-spend days going backwards from YESTERDAY.
+    // Today is still in progress and must not be counted or celebrated —
+    // only fully completed days qualify.
     let streak = 0;
-    let cur = new Date(today);
+    const cur = new Date(today);
+    cur.setDate(cur.getDate() - 1); // start at yesterday
 
     while (true) {
       const key = format(cur, 'yyyy-MM-dd');
