@@ -658,16 +658,9 @@ export default function DashboardPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <History className="h-4 w-4 text-primary" />
-                <span>أحدث المصاريف</span>
-              </div>
-              {!isAppDataLoading && isExpensesFetched && allSortedExpenses.length > 0 && (
-                <span className="text-xs text-muted-foreground font-normal">
-                  {allSortedExpenses.length} مصروف
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <span>أحدث المصاريف</span>
             </div>
           </CardTitle>
         </CardHeader>

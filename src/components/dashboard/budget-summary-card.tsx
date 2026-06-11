@@ -128,7 +128,13 @@ export default function BudgetSummaryCard({
                         </div>
                     )}
                     <div className="flex justify-between items-center text-xs pt-1">
-                        <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" formatFn={formatCurrency} />
+                        {/* Hidden when zero — no point reserving space for an empty value.
+                            The empty span keeps the time text anchored to the left side. */}
+                        {outOfBudget > 0 ? (
+                            <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" formatFn={formatCurrency} />
+                        ) : (
+                            <span />
+                        )}
                         {isBudgetSet && (
                             <p className="text-muted-foreground">اليوم {currentDay} — مضى {timeProgress.toFixed(0)}% من الشهر</p>
                         )}
