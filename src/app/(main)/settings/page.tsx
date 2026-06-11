@@ -49,7 +49,7 @@ import type { Expense, UserProfile, FamilyMember, UserSettings, Income, Recurrin
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpense, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback, exportUserData, importUserData } from '@/services/firestore';
+import { updateUserSettings, addExpensesBatch, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback, exportUserData, importUserData } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
@@ -811,14 +811,14 @@ export default function SettingsPage() {
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error("User not authenticated");
-      const promises = newExpenses.map(exp => addExpense(user!.uid, exp, householdId));
-      return Promise.all(promises);
+      // Atomic batch — all rows saved together or none (no partial imports).
+      return addExpensesBatch(user!.uid, newExpenses, householdId);
     },
-    onSuccess: (results) => {
+    onSuccess: (importedCount) => {
         queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
         toast({
           title: "اكتمل الاستيراد",
-          description: `تم استيراد ${results.length} مصروف بنجاح.`,
+          description: `تم استيراد ${importedCount} مصروف بنجاح.`,
         });
         setIsMappingColumns(false);
     },
@@ -978,7 +978,7 @@ export default function SettingsPage() {
       categoryBudgets: {},
       profile: {
           monthlyIncome: 0,
-          familyMembers: [{ id: crypto.randomUUID(), type: 'adult', age: 30 }]
+          familyMembers: [{ id: crypto.randomUUID(), type: 'adult' as const, age: 30 }]
       },
       recurringPayments: [],
       appTone: 'formal' as AppTone,

@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { deleteExpense, getExpenses } from '@/services/firestore';
+import { deleteExpense, deleteExpensesBatch, getExpenses } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format, compareDesc, parseISO } from 'date-fns';
@@ -132,7 +132,8 @@ export default function AllExpensesPage() {
     if (!user || selectedIds.size === 0) return;
     setIsBulkDeleting(true);
     try {
-      await Promise.all([...selectedIds].map(id => deleteExpense(user.uid, id, householdId)));
+      // Atomic batch — all selected items deleted together or none.
+      await deleteExpensesBatch(user.uid, [...selectedIds], householdId);
       // Instantly remove deleted items from cache.
       const deletedIds = selectedIds;
       const removeFromCache = (key: unknown[]) => {

@@ -102,6 +102,58 @@ export const deleteExpense = async (uid: string, expenseId: string, householdId?
     await deleteDoc(expenseDoc);
 };
 
+// ─── Atomic batch operations ────────────────────────────────────────────────
+// Firestore limits a single batch to 500 writes. We chunk at 450 to leave
+// headroom. Within one chunk the write is all-or-nothing, which prevents the
+// partial-save → retry → duplicates failure mode of per-document Promise.all.
+
+const BATCH_CHUNK_SIZE = 450;
+
+export const addExpensesBatch = async (
+    uid: string,
+    expensesData: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[],
+    householdId?: string | null
+): Promise<number> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const [p1, p2] = basePath(uid, householdId);
+    const expensesCol = collection(db, p1, p2, 'expenses');
+
+    for (let i = 0; i < expensesData.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = expensesData.slice(i, i + BATCH_CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach(expenseData => {
+            const newDocRef = doc(expensesCol); // auto-generated ID
+            batch.set(newDocRef, {
+                ...expenseData,
+                date: new Date(expenseData.date),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+        });
+        await batch.commit();
+    }
+    return expensesData.length;
+};
+
+export const deleteExpensesBatch = async (
+    uid: string,
+    expenseIds: string[],
+    householdId?: string | null
+): Promise<number> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const [p1, p2] = basePath(uid, householdId);
+
+    for (let i = 0; i < expenseIds.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = expenseIds.slice(i, i + BATCH_CHUNK_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach(id => {
+            batch.delete(doc(db!, p1, p2, 'expenses', id));
+        });
+        await batch.commit();
+    }
+    return expenseIds.length;
+};
+
 // =================================
 // Goals Service
 // =================================
