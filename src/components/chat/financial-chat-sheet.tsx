@@ -1,7 +1,7 @@
 // src/components/chat/financial-chat-sheet.tsx
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, Fragment } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Sheet,
@@ -45,18 +45,61 @@ interface ProactiveAlert {
 
 /* ─────────────────────────────── Quick suggestions ─────────────────── */
 
-const QUICK_SUGGESTIONS = [
+const BASE_SUGGESTIONS = [
   'كم صرفت هذا الشهر؟',
   'كم تبقى من ميزانيتي؟',
   'قارن هذا الشهر بالشهر الماضي',
-  'ما وضع أهدافي؟',
   'أين يمكنني توفير أكثر؟',
 ];
+const GOALS_SUGGESTION = 'ما وضع أهدافي؟';
+
+/* ── Lightweight markdown renderer (no extra dependency) ──
+   Handles: **bold**, numbered lists, bullet lists, line breaks.
+   Used for AI replies only — user messages render as plain text. */
+function renderMarkdown(text: string): React.ReactNode {
+  const paragraphs = text.split(/\n{2,}/);
+  return paragraphs.map((para, pi) => {
+    const lines = para.split('\n');
+    const isList = lines.every(l => /^(\d+\.\s|\*\s|-\s)/.test(l.trim()) || l.trim() === '');
+    if (isList) {
+      return (
+        <ul key={pi} className="list-none space-y-1 my-1">
+          {lines.filter(l => l.trim()).map((line, li) => (
+            <li key={li} className="flex gap-1.5 items-start">
+              <span className="text-primary mt-0.5 shrink-0">•</span>
+              <span>{inlineBold(line.replace(/^(\d+\.\s|\*\s|-\s)/, ''))}</span>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    return (
+      <p key={pi} className={pi > 0 ? 'mt-2' : undefined}>
+        {lines.map((line, li) => (
+          <Fragment key={li}>
+            {li > 0 && <br />}
+            {inlineBold(line)}
+          </Fragment>
+        ))}
+      </p>
+    );
+  });
+}
+
+function inlineBold(text: string): React.ReactNode {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  if (parts.length === 1) return text;
+  return parts.map((p, i) => i % 2 === 1 ? <strong key={i}>{p}</strong> : p);
+}
 
 /* ─────────────────────────── Main Component ────────────────────────── */
 
 export function FinancialChatSheet() {
   const { expenses, goals, userSettings, isLoading } = useAppData();
+  const hasGoals = goals.length > 0;
+  const QUICK_SUGGESTIONS = hasGoals
+    ? [...BASE_SUGGESTIONS.slice(0, 3), GOALS_SUGGESTION, BASE_SUGGESTIONS[3]]
+    : BASE_SUGGESTIONS;
   const { categoryMap } = useCategories();
   const { format: formatCurrency } = useCurrency();
   const pathname = usePathname();
@@ -66,10 +109,21 @@ export function FinancialChatSheet() {
   const isHidden = HIDDEN_PATHS.some(p => pathname === p || pathname?.startsWith(p));
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = sessionStorage.getItem('advisor_messages');
+      return saved ? (JSON.parse(saved) as ChatMessage[]) : [];
+    } catch { return []; }
+  });
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [alertsDismissed, setAlertsDismissed] = useState(false);
+
+  // Persist conversation across sheet open/close within the same browser session
+  useEffect(() => {
+    try { sessionStorage.setItem('advisor_messages', JSON.stringify(messages)); } catch { /* quota */ }
+  }, [messages]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -329,8 +383,9 @@ export function FinancialChatSheet() {
 
   const isEmpty = messages.length === 0;
 
-  const handleBackToSuggestions = () => {
+  const handleClearConversation = () => {
     setMessages([]);
+    try { sessionStorage.removeItem('advisor_messages'); } catch { /* ignore */ }
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -388,17 +443,17 @@ export function FinancialChatSheet() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {/* Back to suggestions — only visible when there's an active conversation */}
+              {/* Clear conversation — only when there's history */}
               {!isEmpty && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground"
-                  onClick={handleBackToSuggestions}
+                  className="h-7 gap-1 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                  onClick={handleClearConversation}
                   disabled={isSending}
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
-                  اسئلة أخرى
+                  محادثة جديدة
                 </Button>
               )}
               <Button
@@ -483,7 +538,9 @@ export function FinancialChatSheet() {
                         : 'bg-muted text-foreground rounded-bl-sm'
                     )}
                   >
-                    {msg.content}
+                    {msg.role === 'assistant'
+                      ? renderMarkdown(msg.content)
+                      : msg.content}
                   </div>
                 </div>
               ))}
