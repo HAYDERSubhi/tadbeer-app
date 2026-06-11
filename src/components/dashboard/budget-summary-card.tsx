@@ -75,8 +75,10 @@ export default function BudgetSummaryCard({
 
     // Fill = elapsed time (the month itself), capped at 100%.
     const timeFillWidth = isBudgetSet ? Math.min(timeProgress, 100) : 0;
-    // Marker position = actual spend %, capped at 100%.
-    const spendMarkerPos = Math.min(spentPercentage, 100);
+    // Marker position = actual spend %, clamped to [2, 98] so the triangle
+    // never disappears behind the bar's rounded end caps at very low or
+    // very high spend.
+    const spendMarkerPos = Math.min(Math.max(spentPercentage, 2), 98);
 
     return (
         <Card id="budget-summary-card" className="w-full">
