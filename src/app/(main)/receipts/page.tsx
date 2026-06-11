@@ -17,7 +17,7 @@ import {
   ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
+import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
@@ -217,9 +217,19 @@ export default function DetailedReceiptPage() {
     }
     setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]);
     try {
-      // Use data URIs directly — no storage upload needed
+      // Use data URIs directly — no storage upload needed.
+      // /api/receipt route has maxDuration=60 (server actions are capped at
+      // 10s on Vercel, which multi-image analysis exceeds).
       setProcessingStep('analyzing');
-      const result = await analyzeDetailedReceipt({ receiptImages: images.map(i => i.src), categories: categoryMapForAI });
+      const res = await fetch('/api/receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiptImages: images.map(i => i.src), categories: categoryMapForAI }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const response: { ok: boolean; data?: AnalyzeDetailedReceiptOutput; error?: string } = await res.json();
+      if (!response.ok || !response.data) throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
+      const result = response.data;
 
       setProcessingStep('extracting');
       const date = result.transactionDate
@@ -232,7 +242,13 @@ export default function DetailedReceiptPage() {
       setAnalyzedItems(result.items.map(item => ({ ...item, id: crypto.randomUUID() })));
       setProcessingStep(null);
     } catch (e: any) {
-      setError('حدث خطأ أثناء تحليل الفاتورة. تأكد أن الصور واضحة وحاول مرة أخرى.');
+      console.error('Receipt analysis error:', e);
+      const detail = e instanceof Error ? e.message : String(e);
+      setError(
+        detail && detail.length < 120
+          ? `حدث خطأ أثناء التحليل: ${detail}`
+          : 'حدث خطأ أثناء تحليل الفاتورة. تأكد أن الصور واضحة وحاول مرة أخرى.'
+      );
       setProcessingStep(null);
     } finally { setIsLoading(false); }
   };
