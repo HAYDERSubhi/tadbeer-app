@@ -12,6 +12,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
+import { PullToRefresh } from '@/components/pull-to-refresh';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { useSmartNotifications } from '@/hooks/use-smart-notifications';
 import { useBadges } from '@/hooks/use-badges';
@@ -72,6 +73,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {user && <BadgeChecker />}
       <PwaUpdateBanner />
       <OfflineIndicator />
+      <PullToRefresh />
       <AppShell>
         <main className="flex-1 p-4 sm:p-6">
           {children}
