@@ -31,6 +31,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
 import { useCategories } from '@/hooks/use-categories';
+import { findDuplicateExpense } from '@/lib/duplicate-check';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -50,10 +61,12 @@ interface ManualExpenseFormProps {
 
 export default function ManualExpenseForm({ setOpen, initialData }: ManualExpenseFormProps) {
   const { user } = useAuth();
-  const { householdId } = useAppData();
+  const { householdId, expenses: recentExpenses } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { categories, getIconComponent } = useCategories();
+  // Holds the expense awaiting user confirmation when a duplicate is detected.
+  const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -190,6 +203,13 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       ...data,
       date: data.date.toISOString(),
     };
+
+    // Pre-save duplicate check: same amount + category + title + day.
+    const duplicate = findDuplicateExpense(recentExpenses, newExpenseData);
+    if (duplicate) {
+      setPendingDuplicate({ data: newExpenseData, existingTitle: duplicate.title });
+      return;
+    }
     addExpenseMutation.mutate(newExpenseData);
   };
   
@@ -311,7 +331,32 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
             {addExpenseMutation.isPending ? <><Loader2Icon className="ml-2 h-5 w-5 animate-spin"/> جاري الحفظ...</> : <><Save className="ml-2 h-5 w-5" /> حفظ المصروف</>}
         </Button>
       </div>
-    
+
+      {/* Duplicate-expense confirmation */}
+      <AlertDialog open={!!pendingDuplicate} onOpenChange={(open) => { if (!open) setPendingDuplicate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ مصروف مكرر محتمل</AlertDialogTitle>
+            <AlertDialogDescription>
+              يوجد مصروف مسجل اليوم بنفس العنوان والمبلغ والفئة
+              {pendingDuplicate ? ` ("${pendingDuplicate.existingTitle}")` : ''}.
+              هل تريد الحفظ على أي حال؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDuplicate) addExpenseMutation.mutate(pendingDuplicate.data);
+                setPendingDuplicate(null);
+              }}
+            >
+              احفظ على أي حال
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </form>
   );
 }

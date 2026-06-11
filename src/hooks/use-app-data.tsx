@@ -100,9 +100,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: incomes = [], isLoading: incomesLoading, isError: incomesIsError, error: incomesError } = useQuery<Income[], Error>({
-        queryKey: ['incomes', user?.uid],
-        queryFn: () => getIncomes(user!.uid),
-        enabled: !!user,
+        queryKey: ['incomes', user?.uid, householdId],
+        queryFn: () => getIncomes(user!.uid, householdId),
+        enabled: !!user && !settingsLoading,
         staleTime: 1000 * 60 * 5,
     });
 

@@ -17,7 +17,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { deleteExpense, deleteExpensesBatch, getExpenses } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
-import { format, compareDesc, parseISO } from 'date-fns';
+import { format, compareDesc, parseISO, isBefore, startOfMonth } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -157,7 +157,14 @@ export default function AllExpensesPage() {
   if (isError) return <FirestoreErrorAlert error={error} context="المصاريف" />;
   if (isLoading) return <div className="flex justify-center items-center h-[60vh]"><Loader2Icon className="h-12 w-12 animate-spin text-primary" /></div>;
 
-  const deleteTargetTitle = expenses.find(e => e.id === deleteConfirmId)?.title ?? '';
+  const deleteTarget = expenses.find(e => e.id === deleteConfirmId);
+  const deleteTargetTitle = deleteTarget?.title ?? '';
+  // Deleting from a closed month silently rewrites historical reports — warn.
+  const deleteTargetIsPastMonth = (() => {
+    if (!deleteTarget) return false;
+    try { return isBefore(parseISO(deleteTarget.date), startOfMonth(new Date())); }
+    catch { return false; }
+  })();
 
   return (
     <div className="space-y-4 pb-20">
@@ -169,6 +176,11 @@ export default function AllExpensesPage() {
             <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد من حذف "{deleteTargetTitle}"؟ لا يمكن التراجع عن هذا الإجراء.
+              {deleteTargetIsPastMonth && (
+                <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
+                  ⚠️ هذا المصروف من شهر منتهٍ — حذفه سيغيّر تقاريرك السابقة بأثر رجعي.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

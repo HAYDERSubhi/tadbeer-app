@@ -18,8 +18,19 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon, Loader2Icon, PencilIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { arIQ } from '@/lib/arabic-date';
+import { format, isBefore, startOfMonth, parseISO } from 'date-fns';
+import { arIQ, formatYearMonth } from '@/lib/arabic-date';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
@@ -79,12 +90,30 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
     }
   });
 
+  // Holds form data awaiting confirmation when editing a closed (past) month.
+  const [pendingPastEdit, setPendingPastEdit] = useState<ExpenseFormData | null>(null);
+
+  // Is the ORIGINAL expense dated in a month before the current one?
+  const isPastMonthExpense = (() => {
+    try { return isBefore(parseISO(expense.date), startOfMonth(new Date())); }
+    catch { return false; }
+  })();
+
+  const expenseMonthLabel = (() => {
+    try { return formatYearMonth(format(parseISO(expense.date), 'yyyy-MM')); }
+    catch { return ''; }
+  })();
+
   const onSubmit = (data: ExpenseFormData) => {
     if (!user) return;
-    const updatedExpenseData = { ...data, date: data.date.toISOString() };
-    updateExpenseMutation.mutate(updatedExpenseData);
+    // Editing a past month changes historical reports — confirm first.
+    if (isPastMonthExpense) {
+      setPendingPastEdit(data);
+      return;
+    }
+    updateExpenseMutation.mutate({ ...data, date: data.date.toISOString() });
   };
-  
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
       <div>
@@ -186,7 +215,32 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
       <Button type="submit" className="w-full" disabled={updateExpenseMutation.isPending}>
         {updateExpenseMutation.isPending ? <><Loader2Icon className="ml-2 h-4 w-4 animate-spin"/> جاري التحديث...</> : <><PencilIcon className="ml-2 h-4 w-4" /> تحديث المصروف</>}
       </Button>
-      
+
+      {/* Past-month edit confirmation — editing closed months changes historical reports */}
+      <AlertDialog open={!!pendingPastEdit} onOpenChange={(open) => { if (!open) setPendingPastEdit(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ تعديل شهر منتهٍ</AlertDialogTitle>
+            <AlertDialogDescription>
+              هذا المصروف من {expenseMonthLabel || 'شهر سابق'} — تعديله سيغيّر تقاريرك وإحصاءاتك السابقة بأثر رجعي. هل أنت متأكد؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingPastEdit) {
+                  updateExpenseMutation.mutate({ ...pendingPastEdit, date: pendingPastEdit.date.toISOString() });
+                }
+                setPendingPastEdit(null);
+              }}
+            >
+              نعم، عدّل
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </form>
   );
 }

@@ -207,38 +207,59 @@ export const updateGoalSavedAmount = async (uid: string, goalId: string, savedAm
 // Income Service
 // =================================
 
-export const getIncomes = async (uid: string): Promise<Income[]> => {
+// Reads incomes from the household path (when in a household) PLUS the user's
+// personal path, so legacy incomes recorded before joining a household never
+// disappear. Each income is tagged with its `scope` so update/delete can
+// route to the correct path.
+export const getIncomes = async (uid: string, householdId?: string | null): Promise<Income[]> => {
     if (!db) return [];
-    const incomesCol = collection(db, 'users', uid, 'incomes');
-    const incomeSnapshot = await getDocs(incomesCol);
-    const incomes: Income[] = [];
-    incomeSnapshot.forEach((doc) => {
-        const data = doc.data();
-        incomes.push({
-            id: doc.id,
-            uid,
-            ...data,
-            date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-        } as Income);
-    });
-    return incomes;
+
+    const readCollection = async (p1: string, p2: string, scope: 'personal' | 'household'): Promise<Income[]> => {
+        const snapshot = await getDocs(collection(db!, p1, p2, 'incomes'));
+        const result: Income[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            result.push({
+                id: doc.id,
+                uid: (data.uid as string) || uid,
+                ...data,
+                date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                scope,
+            } as Income);
+        });
+        return result;
+    };
+
+    if (householdId) {
+        const [household, personal] = await Promise.all([
+            readCollection('households', householdId, 'household'),
+            readCollection('users', uid, 'personal'),
+        ]);
+        return [...household, ...personal];
+    }
+    return readCollection('users', uid, 'personal');
 };
 
-export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'createdAt' | 'uid'>) => {
+export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'createdAt' | 'uid' | 'scope'>, householdId?: string | null) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomesCol = collection(db, 'users', uid, 'incomes');
+    const [p1, p2] = basePath(uid, householdId);
+    const incomesCol = collection(db, p1, p2, 'incomes');
     const docRef = await addDoc(incomesCol, {
         ...incomeData,
+        uid, // record who added it (useful for shared household incomes)
         date: new Date(incomeData.date),
         createdAt: serverTimestamp(),
     });
     return docRef.id;
 };
 
-export const updateIncome = async (uid: string, incomeId: string, incomeData: Partial<Omit<Income, 'id' | 'createdAt' | 'uid'>>) => {
+// `scope` decides which path the income lives in; legacy personal incomes of
+// household members must still be updated in the personal path.
+export const updateIncome = async (uid: string, incomeId: string, incomeData: Partial<Omit<Income, 'id' | 'createdAt' | 'uid' | 'scope'>>, householdId?: string | null, scope?: 'personal' | 'household') => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomeDoc = doc(db, 'users', uid, 'incomes', incomeId);
+    const [p1, p2] = scope === 'personal' ? ['users', uid] : basePath(uid, householdId);
+    const incomeDoc = doc(db, p1, p2, 'incomes', incomeId);
     const dataToUpdate: { [key: string]: any } = { ...incomeData };
     if (incomeData.date) {
         dataToUpdate.date = new Date(incomeData.date);
@@ -246,9 +267,10 @@ export const updateIncome = async (uid: string, incomeId: string, incomeData: Pa
     await updateDoc(incomeDoc, dataToUpdate);
 };
 
-export const deleteIncome = async (uid: string, incomeId: string) => {
+export const deleteIncome = async (uid: string, incomeId: string, householdId?: string | null, scope?: 'personal' | 'household') => {
     if (!db) throw new Error("Firestore is not initialized");
-    const incomeDoc = doc(db, 'users', uid, 'incomes', incomeId);
+    const [p1, p2] = scope === 'personal' ? ['users', uid] : basePath(uid, householdId);
+    const incomeDoc = doc(db, p1, p2, 'incomes', incomeId);
     await deleteDoc(incomeDoc);
 };
 

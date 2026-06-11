@@ -26,6 +26,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
 import { Textarea } from '@/components/ui/textarea';
 import { useAppData } from '@/hooks/use-app-data';
+import { findDuplicateExpense } from '@/lib/duplicate-check';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useCurrency } from '@/hooks/use-currency';
 
 const expenseSchema = z.object({
@@ -60,6 +71,8 @@ export default function AddExpensePage() {
     const { toast } = useToast();
     const { categories, getIconComponent } = useCategories();
     const { expenses, householdId } = useAppData();
+    // Holds the expense awaiting user confirmation when a duplicate is detected.
+    const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);
     const { format: formatCurrency } = useCurrency();
 
     const [isCategorizing, setIsCategorizing] = useState(false);
@@ -208,7 +221,15 @@ export default function AddExpensePage() {
 
     const onSubmit = (data: ExpenseFormData) => {
         if (!user) return;
-        addExpenseMutation.mutate({ ...data, date: data.date.toISOString() });
+        const payload = { ...data, date: data.date.toISOString() };
+
+        // Pre-save duplicate check: same amount + category + title + day.
+        const duplicate = findDuplicateExpense(expenses, payload);
+        if (duplicate) {
+            setPendingDuplicate({ data: payload, existingTitle: duplicate.title });
+            return;
+        }
+        addExpenseMutation.mutate(payload);
     };
 
     const selectedCategory = form.watch('category');
@@ -456,6 +477,31 @@ export default function AddExpensePage() {
                     <span className="mr-2">حفظ المصروف</span>
                 </Button>
             </div>
+
+            {/* Duplicate-expense confirmation */}
+            <AlertDialog open={!!pendingDuplicate} onOpenChange={(open) => { if (!open) setPendingDuplicate(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>⚠️ مصروف مكرر محتمل</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            يوجد مصروف مسجل اليوم بنفس العنوان والمبلغ والفئة
+                            {pendingDuplicate ? ` ("${pendingDuplicate.existingTitle}")` : ''}.
+                            هل تريد الحفظ على أي حال؟
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (pendingDuplicate) addExpenseMutation.mutate(pendingDuplicate.data);
+                                setPendingDuplicate(null);
+                            }}
+                        >
+                            احفظ على أي حال
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

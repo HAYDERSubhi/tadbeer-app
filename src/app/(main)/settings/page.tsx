@@ -398,6 +398,9 @@ export default function SettingsPage() {
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
   const [isRecurringPaymentDialogOpen, setIsRecurringPaymentDialogOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  // Where the income being edited lives — legacy personal incomes of household
+  // members must be updated in the personal path, not the household path.
+  const [editingIncomeScope, setEditingIncomeScope] = useState<'personal' | 'household' | undefined>(undefined);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [isDataResetOpen, setIsDataResetOpen] = useState(false);
   
@@ -675,7 +678,7 @@ export default function SettingsPage() {
   });
 
   const addIncomeMutation = useMutation({
-    mutationFn: (newIncome: Omit<Income, 'id'|'createdAt'|'uid'>) => addIncome(user!.uid, newIncome),
+    mutationFn: (newIncome: Omit<Income, 'id'|'createdAt'|'uid'|'scope'>) => addIncome(user!.uid, newIncome, householdId),
     onSuccess: () => {
       toast({ title: "تمت الإضافة", description: "تم إضافة مصدر الدخل بنجاح." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
@@ -687,7 +690,7 @@ export default function SettingsPage() {
   });
 
   const updateIncomeMutation = useMutation({
-    mutationFn: ({ incomeId, incomeData }: { incomeId: string, incomeData: Partial<Omit<Income, 'id'|'createdAt'|'uid'>> }) => updateIncome(user!.uid, incomeId, incomeData),
+    mutationFn: ({ incomeId, incomeData, scope }: { incomeId: string, incomeData: Partial<Omit<Income, 'id'|'createdAt'|'uid'|'scope'>>, scope?: 'personal' | 'household' }) => updateIncome(user!.uid, incomeId, incomeData, householdId, scope),
     onSuccess: () => {
       toast({ title: "تم التحديث", description: "تم تحديث مصدر الدخل بنجاح." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
@@ -699,7 +702,7 @@ export default function SettingsPage() {
   });
 
   const deleteIncomeMutation = useMutation({
-    mutationFn: (incomeId: string) => deleteIncome(user!.uid, incomeId),
+    mutationFn: (income: Income) => deleteIncome(user!.uid, income.id, householdId, income.scope),
     onSuccess: () => {
       toast({ title: "تم الحذف", description: "تم حذف مصدر الدخل." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
@@ -717,14 +720,15 @@ export default function SettingsPage() {
     };
   
     if (editingIncomeId) {
-      updateIncomeMutation.mutate({ incomeId: editingIncomeId, incomeData: incomePayload });
+      updateIncomeMutation.mutate({ incomeId: editingIncomeId, incomeData: incomePayload, scope: editingIncomeScope });
     } else {
       addIncomeMutation.mutate(incomePayload);
     }
   };
-  
+
   const handleEditIncomeClick = (income: Income) => {
     setEditingIncomeId(income.id);
+    setEditingIncomeScope(income.scope);
     incomeForm.reset({
         title: income.title,
         amount: income.amount,
@@ -736,6 +740,7 @@ export default function SettingsPage() {
   
   const handleAddNewIncomeClick = () => {
     setEditingIncomeId(null);
+    setEditingIncomeScope(undefined);
     incomeForm.reset({ title: '', amount: 0, type: undefined, date: new Date() });
     setIsIncomeDialogOpen(true);
   };
@@ -1281,7 +1286,7 @@ export default function SettingsPage() {
                                             <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap text-sm">{formatCurrency(income.amount)}</p>
                                             <div className="flex items-center gap-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income.id)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     </li>

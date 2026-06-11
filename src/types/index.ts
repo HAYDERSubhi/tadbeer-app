@@ -32,6 +32,10 @@ export type Income = {
   type: 'recurring' | 'one-time';
   date: string; // ISO string format, relevant for one-time income
   createdAt: string; // ISO string format
+  // Set at read time (not stored): which Firestore path this income lives in.
+  // Household members may still have legacy incomes in their personal path;
+  // update/delete must route to the correct path.
+  scope?: 'personal' | 'household';
 };
 
 export type FamilyMember = {
