@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, TrendingDown } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
+import { getDate } from 'date-fns';
 
 interface BudgetSummaryCardProps {
     totalBudget: number;
@@ -47,15 +48,35 @@ export default function BudgetSummaryCard({
     const [isVisible, setIsVisible] = useState(true);
     const { format: formatCurrency } = useCurrency();
 
+    const currentDay = getDate(new Date());
+
+    // Bar design: the FILL represents elapsed time in the month; the COLOR
+    // encodes spending health; a vertical MARKER shows the actual spend %.
+    // Reading: marker behind the fill edge = on track; marker ahead of it =
+    // spending faster than time — the gap is the size of the risk.
     const progressBarColor = (() => {
         if (!isBudgetSet) return 'bg-primary/50';
+        // Early-month grace (days 1-3): the relative formula compares spend
+        // to only ~3-10% elapsed time, so one rent bill turns the bar red
+        // unfairly. Stay calm unless spend exceeds 25% of the whole budget.
+        if (currentDay <= 3 && spentPercentage <= 25) return 'bg-primary';
         if (spentPercentage <= timeProgress) return 'bg-primary';
         const overspendRatio = timeProgress > 0 ? (spentPercentage - timeProgress) / timeProgress : 1;
         if (overspendRatio < 0.25) return 'bg-yellow-500';
         return 'bg-destructive';
     })();
 
-    const barDisplayWidth = isBudgetSet ? Math.min(spentPercentage, 100) : 0;
+    // Marker color follows the state, darker for contrast over the track.
+    const markerColorClass = (() => {
+        if (progressBarColor === 'bg-destructive') return 'text-destructive';
+        if (progressBarColor === 'bg-yellow-500') return 'text-yellow-700 dark:text-yellow-500';
+        return 'text-foreground/70';
+    })();
+
+    // Fill = elapsed time (the month itself), capped at 100%.
+    const timeFillWidth = isBudgetSet ? Math.min(timeProgress, 100) : 0;
+    // Marker position = actual spend %, capped at 100%.
+    const spendMarkerPos = Math.min(spentPercentage, 100);
 
     return (
         <Card id="budget-summary-card" className="w-full">
@@ -72,27 +93,44 @@ export default function BudgetSummaryCard({
 
                 <div className="px-2 space-y-2">
                     {isBudgetSet && (
-                        <div className="relative w-full h-8">
+                        <div className="relative w-full h-8 mt-2">
                             <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
+                                {/* Time fill — the bar IS the month */}
                                 <div
                                     className={cn("absolute top-0 bottom-0 transition-all duration-500", progressBarColor)}
-                                    style={{ right: '0', width: `${Math.min(barDisplayWidth, timeProgress)}%` }}
+                                    style={{ right: '0', width: `${timeFillWidth}%` }}
                                 />
+                                {/* Centered spend label */}
                                 <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-xs mix-blend-difference pointer-events-none">
-                                    {spentPercentage.toFixed(0)}%
+                                    إنفاق {spentPercentage.toFixed(0)}%
                                 </div>
                             </div>
+                            {/* Week markers (25/50/75%) */}
                             <div className="absolute inset-0 flex items-end pointer-events-none">
                                 <div className="absolute bottom-0 bg-foreground/30" style={{ right: '25%', width: '1px', height: '20%' }} />
                                 <div className="absolute bottom-0 bg-foreground/50" style={{ right: '50%', width: '1.5px', height: '20%' }} />
                                 <div className="absolute bottom-0 bg-foreground/30" style={{ right: '75%', width: '1px', height: '20%' }} />
+                            </div>
+                            {/* Spend marker ▾ — its position is the actual spend %.
+                                Behind the fill edge = on track; ahead of it = overspending. */}
+                            <div
+                                className={cn("absolute pointer-events-none transition-all duration-500", markerColorClass)}
+                                style={{ right: `${spendMarkerPos}%`, top: '-7px', bottom: '0', transform: 'translateX(50%)' }}
+                            >
+                                <div style={{
+                                    width: 0, height: 0, margin: '0 auto',
+                                    borderLeft: '5px solid transparent',
+                                    borderRight: '5px solid transparent',
+                                    borderTop: '6px solid currentColor',
+                                }} />
+                                <div className="bg-current opacity-60 mx-auto" style={{ width: '2px', height: 'calc(100% - 6px)' }} />
                             </div>
                         </div>
                     )}
                     <div className="flex justify-between items-center text-xs pt-1">
                         <StatItem label="خارج الميزانية" value={outOfBudget} isVisible={isVisible} className="text-blue-500 !text-sm" formatFn={formatCurrency} />
                         {isBudgetSet && (
-                            <p className="text-muted-foreground">{timeProgress.toFixed(0)}% من الشهر</p>
+                            <p className="text-muted-foreground">اليوم {currentDay} — مضى {timeProgress.toFixed(0)}% من الشهر</p>
                         )}
                     </div>
 
