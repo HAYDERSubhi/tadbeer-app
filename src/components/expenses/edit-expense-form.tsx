@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
+import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateExpense } from '@/services/firestore';
 import { useCategories } from '@/hooks/use-categories';
@@ -41,6 +42,7 @@ type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export default function EditExpenseForm({ expense, setOpen }: { expense: Expense, setOpen: (open: boolean) => void }) {
   const { user } = useAuth();
+  const { householdId } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { categories, getIconComponent } = useCategories();
@@ -58,7 +60,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
   });
 
   const updateExpenseMutation = useMutation({
-    mutationFn: (data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => updateExpense(user!.uid, expense.id, data),
+    mutationFn: (data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) => updateExpense(user!.uid, expense.id, data, householdId),
     onSuccess: (_, variables) => {
         queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
         toast({

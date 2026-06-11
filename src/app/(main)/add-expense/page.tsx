@@ -129,24 +129,39 @@ export default function AddExpensePage() {
             addExpense(user!.uid, newExpense, householdId),
         onMutate: async (newExpenseData) => {
             await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
-            const previousExpenses = queryClient.getQueryData<Expense[]>(['expenses', user?.uid]);
-            if (previousExpenses) {
-                queryClient.setQueryData<Expense[]>(['expenses', user?.uid], [
-                    {
-                        ...newExpenseData,
-                        id: `temp-${Date.now()}`,
-                        uid: user!.uid,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    },
-                    ...previousExpenses,
-                ]);
+
+            // The real cache keys include householdId + variant ('recent'/'all').
+            const prevRecent = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'recent']);
+            const prevAll    = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'all']);
+
+            const tempExpense: Expense = {
+                ...newExpenseData,
+                id: `temp-${Date.now()}`,
+                uid: user!.uid,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
+
+            if (prevRecent) {
+                queryClient.setQueryData<Expense[]>(
+                    ['expenses', user?.uid, householdId, 'recent'],
+                    [tempExpense, ...prevRecent],
+                );
             }
-            return { previousExpenses };
+            if (prevAll) {
+                queryClient.setQueryData<Expense[]>(
+                    ['expenses', user?.uid, householdId, 'all'],
+                    [tempExpense, ...prevAll],
+                );
+            }
+            return { prevRecent, prevAll };
         },
         onError: (err, newExpense, context) => {
-            if (context?.previousExpenses) {
-                queryClient.setQueryData(['expenses', user?.uid], context.previousExpenses);
+            if (context?.prevRecent) {
+                queryClient.setQueryData(['expenses', user?.uid, householdId, 'recent'], context.prevRecent);
+            }
+            if (context?.prevAll) {
+                queryClient.setQueryData(['expenses', user?.uid, householdId, 'all'], context.prevAll);
             }
             toast({
                 title: "خطأ في الحفظ",

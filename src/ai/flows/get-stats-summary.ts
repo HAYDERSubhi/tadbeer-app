@@ -58,6 +58,9 @@ const GetStatsSummaryOutputSchema = z.object({
   categorySummary: z.array(CategorySummaryItemSchema),
   categoryTrends: z.array(CategoryTrendDataSchema),
   totalForPeriod: z.number(),
+  // Out-of-budget expenses are excluded from totalForPeriod (same definition
+  // as the dashboard budget card) and reported separately here.
+  outOfBudgetTotal: z.number(),
   filteredExpenses: z.array(z.any()), // We can be loose with the expense type here as it's for display only
   periodDescription: z.string(),
 });
@@ -103,22 +106,31 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
       }
     });
 
-    const totalForPeriod = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Unified definition with the dashboard: budget-relevant totals exclude
+    // out-of-budget expenses; those are surfaced separately as outOfBudgetTotal.
+    const inBudgetExpenses = filteredExpenses.filter(exp => !exp.isOutOfBudget);
+    const totalForPeriod = inBudgetExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const outOfBudgetTotal = filteredExpenses
+      .filter(exp => exp.isOutOfBudget)
+      .reduce((sum, exp) => sum + exp.amount, 0);
 
     const categoryTotals: { [key: string]: number } = {};
-    filteredExpenses.forEach(exp => {
+    inBudgetExpenses.forEach(exp => {
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
 
     const pieChartData = Object.entries(categoryTotals)
       .map(([key, value], index) => {
           const categoryDetails = categoryMap[key];
-          const colorIndex = categoryDetails ? parseInt(categoryDetails.color, 10) - 1 : index % 5;
+          // Guard against non-numeric category colors (custom/imported
+          // categories) — NaN would produce an invisible chart slice.
+          const parsedColor = categoryDetails ? parseInt(categoryDetails.color, 10) : NaN;
+          const colorIndex = Number.isFinite(parsedColor) ? parsedColor - 1 : index % 5;
           return {
             name: categoryMap[key]?.name || key,
             value: value,
             key: key,
-            fill: `hsl(var(${chartColors[colorIndex % 5]}))`,
+            fill: `hsl(var(${chartColors[((colorIndex % 5) + 5) % 5]}))`,
             percentage: totalForPeriod > 0 ? (value / totalForPeriod) * 100 : 0,
           };
       })
@@ -153,7 +165,7 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
         });
       }
 
-      filteredExpenses.forEach(exp => {
+      inBudgetExpenses.forEach(exp => {
         const monthKey = format(parseISO(exp.date), 'yyyy-MM');
         if (monthlyTotals.hasOwnProperty(monthKey)) {
             monthlyTotals[monthKey] += exp.amount;
@@ -176,7 +188,7 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
                 categoryName: categoryDetails.name,
                 categoryIcon: categoryDetails.icon,
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
-                chartColor: `var(--chart-${categoryDetails.color})`,
+                chartColor: `var(--chart-${Number.isFinite(parseInt(categoryDetails.color, 10)) ? categoryDetails.color : '1'})`,
                 trendData: Object.entries(categoryMonthlyTotals[catId]).map(([monthKey, total]) => ({
                     name: formatYearMonth(monthKey).split(' ')[0],
                     expenses: total,
@@ -200,7 +212,7 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
         day = subDays(day, -1);
       }
       
-      filteredExpenses.forEach(exp => {
+      inBudgetExpenses.forEach(exp => {
         const dayKey = format(parseISO(exp.date), 'd');
         if (dailyTotals.hasOwnProperty(dayKey)) {
             dailyTotals[dayKey] += exp.amount;
@@ -223,7 +235,7 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
                 categoryName: categoryDetails.name,
                 categoryIcon: categoryDetails.icon,
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
-                chartColor: `var(--chart-${categoryDetails.color})`,
+                chartColor: `var(--chart-${Number.isFinite(parseInt(categoryDetails.color, 10)) ? categoryDetails.color : '1'})`,
                 trendData: Object.entries(categoryDailyTotals[catId]).map(([dayKey, total]) => ({
                     name: dayKey,
                     expenses: total,
@@ -239,6 +251,7 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
       categorySummary,
       categoryTrends,
       totalForPeriod,
+      outOfBudgetTotal,
       filteredExpenses,
       periodDescription,
     };

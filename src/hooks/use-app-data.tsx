@@ -40,7 +40,11 @@ const defaultSettings: UserSettings = {
 // Load the last 6 complete months + the current month.
 // This covers: SixMonthChart, MonthlyComparisonCard, AiTrendsCard, budget widget.
 // Pages that need the full history (stats, expenses) fetch separately.
-const RECENT_START = startOfMonth(subMonths(new Date(), 6));
+// Computed at fetch time (not module load) so a long-lived PWA session that
+// crosses a month boundary gets a fresh window on its next refetch.
+function getRecentStart(): Date {
+    return startOfMonth(subMonths(new Date(), 6));
+}
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
@@ -77,8 +81,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         isError: expensesIsError,
         error: expensesError,
     } = useQuery<Expense[], Error>({
+        // NOTE: keep this key exactly 4 elements — optimistic updates elsewhere
+        // (manual form, add-expense page, expenses page) target it verbatim.
+        // The window is computed fresh inside queryFn, so every actual fetch
+        // (staleTime 5 min) uses an up-to-date 6-month window even in
+        // long-lived PWA sessions that cross a month boundary.
         queryKey: ['expenses', user?.uid, householdId, 'recent'],
-        queryFn: () => getExpenses(user!.uid, householdId, { startDate: RECENT_START }),
+        queryFn: () => getExpenses(user!.uid, householdId, { startDate: getRecentStart() }),
         enabled: !!user && !settingsLoading,
         staleTime: 1000 * 60 * 5,
     });

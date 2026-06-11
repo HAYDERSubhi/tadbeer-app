@@ -113,7 +113,10 @@ export default function StatisticsPage() {
       s = startOfYear(new Date(effectiveYear - 1, 0, 1));
       e = endOfYear(new Date(effectiveYear - 1, 0, 1));
     }
+    // Same definition as totalForPeriod: out-of-budget expenses excluded,
+    // so the comparison badge compares like with like.
     return expenses
+      .filter(exp => !exp.isOutOfBudget)
       .filter(exp => { try { return isWithinInterval(parseISO(exp.date), { start: s, end: e }); } catch { return false; } })
       .reduce((sum, exp) => sum + exp.amount, 0);
   }, [expenses, view, effectiveMonth, effectiveYear]);
@@ -124,6 +127,7 @@ export default function StatisticsPage() {
     categorySummary = [],
     categoryTrends  = [],
     totalForPeriod  = 0,
+    outOfBudgetTotal = 0,
     filteredExpenses = [],
     periodDescription = '',
   } = statsData ?? {};
@@ -231,6 +235,11 @@ export default function StatisticsPage() {
               {prevTotal > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-1">
                   الفترة السابقة: {formatCurrency(prevTotal)}
+                </p>
+              )}
+              {outOfBudgetTotal > 0 && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  + {formatCurrency(outOfBudgetTotal)} مصاريف خارج الميزانية (غير مشمولة بالإجمالي أعلاه)
                 </p>
               )}
             </CardContent>

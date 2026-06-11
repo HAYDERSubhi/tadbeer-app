@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { analyzeDetailedReceipt, AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
+import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import Cropper from 'react-easy-crop';
@@ -107,6 +108,7 @@ const confidenceMeta = {
 
 export default function DetailedReceiptPage() {
   const { user } = useAuth();
+  const { householdId } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { categories } = useCategories();
@@ -244,7 +246,7 @@ export default function DetailedReceiptPage() {
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (exps: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error('not auth');
-      return Promise.all(exps.map(e => addExpense(user.uid, e)));
+      return Promise.all(exps.map(e => addExpense(user.uid, e, householdId)));
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });

@@ -371,7 +371,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
-  const { userSettings, expenses, incomes } = useAppData();
+  const { userSettings, expenses, incomes, householdId } = useAppData();
   const { categories, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
@@ -811,7 +811,7 @@ export default function SettingsPage() {
   const addMultipleExpensesMutation = useMutation({
     mutationFn: (newExpenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[]) => {
       if (!user) throw new Error("User not authenticated");
-      const promises = newExpenses.map(exp => addExpense(user!.uid, exp));
+      const promises = newExpenses.map(exp => addExpense(user!.uid, exp, householdId));
       return Promise.all(promises);
     },
     onSuccess: (results) => {
