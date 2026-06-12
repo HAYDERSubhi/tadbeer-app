@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Tajawal } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '@/components/providers';
+import { SWUpdater } from '@/components/sw-updater';
 
 // Self-hosted via Next.js — eliminates render-blocking Google Fonts request.
 const tajawal = Tajawal({
@@ -95,6 +96,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning className={tajawal.variable}>
       <body>
         <AppProviders>
+          <SWUpdater />
           {children}
         </AppProviders>
       </body>
