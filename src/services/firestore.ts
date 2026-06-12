@@ -690,6 +690,37 @@ export const getReferralCount = async (uid: string): Promise<number> => {
 };
 
 // =================================
+// Installment Plans Service
+// =================================
+import type { InstallmentPlan } from '@/types';
+
+export const getInstallmentPlans = async (uid: string): Promise<InstallmentPlan[]> => {
+  if (!db) throw new Error("Firestore is not initialized");
+  const col = collection(db, 'users', uid, 'installmentPlans');
+  const q = query(col, orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as InstallmentPlan));
+};
+
+export const addInstallmentPlan = async (uid: string, data: Omit<InstallmentPlan,'id'|'uid'|'createdAt'>): Promise<string> => {
+  if (!db) throw new Error("Firestore is not initialized");
+  const ref = await addDoc(collection(db, 'users', uid, 'installmentPlans'), {
+    ...data, uid, createdAt: serverTimestamp(),
+  });
+  return ref.id;
+};
+
+export const payInstallment = async (uid: string, planId: string, newPaidCount: number, isCompleted: boolean): Promise<void> => {
+  if (!db) throw new Error("Firestore is not initialized");
+  await updateDoc(doc(db, 'users', uid, 'installmentPlans', planId), { paidCount: newPaidCount, isCompleted });
+};
+
+export const deleteInstallmentPlan = async (uid: string, planId: string): Promise<void> => {
+  if (!db) throw new Error("Firestore is not initialized");
+  await deleteDoc(doc(db, 'users', uid, 'installmentPlans', planId));
+};
+
+// =================================
 // Debts Service
 // =================================
 

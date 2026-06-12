@@ -120,6 +120,22 @@ export type EarnedBadge = {
   earnedAt: string; // ISO string
 };
 
+export type InstallmentPlan = {
+  id: string;
+  uid: string;
+  name: string;
+  totalAmount: number;    // إجمالي ما ستدفعه (سعر التقسيط)
+  downPayment: number;    // الدفعة الأولى
+  months: number;         // عدد الأقساط
+  monthlyPayment: number; // القسط الشهري المحسوب
+  originalPrice?: number; // السعر النقدي (للمقارنة)
+  paymentDay: number;     // يوم الاستحقاق من الشهر (1-28)
+  startDate: string;      // تاريخ أول قسط YYYY-MM-DD
+  paidCount: number;      // عدد الأقساط المدفوعة
+  isCompleted: boolean;
+  createdAt: string;
+};
+
 export type Debt = {
   id: string;
   uid: string;
