@@ -49,7 +49,7 @@ export default function CurrencyPage() {
   const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫'];
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] pb-0 max-w-md mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] pb-0 max-w-md mx-auto overflow-hidden">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-2 pb-3 shrink-0">
@@ -89,9 +89,9 @@ export default function CurrencyPage() {
           <span className="text-xs text-muted-foreground">{fromCur.name}</span>
           <span className="text-xs font-medium text-muted-foreground">{fromCur.flag} {fromCur.code}</span>
         </div>
-        <div className="flex items-end gap-2 justify-end">
-          <span className="text-muted-foreground text-lg">{fromCur.symbol}</span>
-          <span className={`font-bold text-right leading-none ${amount ? 'text-4xl text-foreground' : 'text-4xl text-muted-foreground/30'}`}>
+        <div className="flex items-baseline gap-3 justify-end mt-1">
+          <span className="text-muted-foreground text-xl font-medium">{fromCur.symbol}</span>
+          <span className={`font-bold leading-none ${amount ? 'text-5xl text-foreground' : 'text-5xl text-muted-foreground/25'}`}>
             {amount || '0'}
           </span>
         </div>
@@ -139,8 +139,8 @@ export default function CurrencyPage() {
       </div>
 
       {/* Custom numpad — always visible above nav */}
-      <div className="shrink-0 bg-background border-t border-border px-3 pt-2 pb-2">
-        <div className="grid grid-cols-3 gap-1.5">
+      <div className="shrink-0 bg-background border-t border-border px-3 pt-2 pb-3">
+        <div className="grid grid-cols-3 gap-1.5" dir="ltr">
           {keys.map((k, i) => (
             <button
               key={i}
