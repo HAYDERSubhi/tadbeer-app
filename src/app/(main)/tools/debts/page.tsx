@@ -177,7 +177,7 @@ function AddSheet({ onClose, onSave }: {
         </div>
 
         {/* زر الحفظ — ثابت في الأسفل */}
-        <div className="shrink-0 px-5 pt-2 pb-6 border-t border-border bg-background">
+        <div className="shrink-0 px-5 pt-2 pb-20 border-t border-border bg-background">
           <button onClick={handleSave}
             disabled={!name.trim() || !amount}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all">
