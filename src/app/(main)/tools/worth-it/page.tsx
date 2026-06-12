@@ -75,8 +75,6 @@ export default function WorthItPage() {
   const budgetPct    = hasBudget ? (price / totalBudget) * 100 : 0;
   const incomePct    = hasIncome ? (price / monthlyIncome) * 100 : 0;
   const incomeMonths = hasIncome ? price / monthlyIncome : 0;
-  const workDays     = hasIncome ? price / (monthlyIncome / 22) : 0;
-  const workHours    = workDays * 8;
 
   function handleKey(k: string) {
     if (k === '⌫') { setAmount(p => p.slice(0, -1)); return; }
@@ -177,29 +175,6 @@ export default function WorthItPage() {
               )}
             </div>
 
-            {/* فاصل */}
-            {hasIncome && <div className="border-t border-border mx-3" />}
-
-            {/* صف ٢: وقت العمل */}
-            {hasIncome && (
-              <div className="px-3 py-2.5">
-                <p className="text-[10px] text-muted-foreground mb-2">من وقت عملك</p>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-muted/40 rounded-xl py-2 text-center">
-                    <p className="font-bold text-xl text-foreground leading-tight">
-                      {workDays < 0.1 ? '< 1' : workDays < 10 ? workDays.toFixed(1) : Math.round(workDays).toLocaleString('en-US')}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">يوم عمل</p>
-                  </div>
-                  <div className="flex-1 bg-muted/40 rounded-xl py-2 text-center">
-                    <p className="font-bold text-xl text-foreground leading-tight">
-                      {workHours < 1 ? '< 1' : Math.round(workHours).toLocaleString('en-US')}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">ساعة عمل</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
