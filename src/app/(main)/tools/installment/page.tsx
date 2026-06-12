@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
@@ -12,12 +12,10 @@ import { ChevronRight, Plus, Check, Trash2, Bell, X, AlertTriangle, BookOpen, Ca
 import Link from 'next/link';
 import type { InstallmentPlan } from '@/types';
 
-// ── مساعدات ───────────────────────────────────────────────────
 function fmt(n: number) {
   return Math.round(n).toLocaleString('en-US');
 }
 
-// تنسيق حقل الإدخال: يعرض فواصل ويحذف الحروف
 function fmtInput(raw: string): string {
   const n = parseInt(raw.replace(/,/g, '') || '0');
   return n ? n.toLocaleString('en-US') : '';
@@ -27,13 +25,13 @@ function parseAmt(s: string): number {
   return parseInt(s.replace(/,/g, '') || '0') || 0;
 }
 
-function useAmountField(init = '') {
-  const [raw, setRaw] = useState(init);
+function useAmountField() {
+  const [raw, setRaw] = useState('');
   const display = fmtInput(raw);
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     setRaw(e.target.value.replace(/,/g, '').replace(/\D/g, ''));
   }
-  return { value: parseAmt(raw), display, onChange, setRaw };
+  return { value: parseAmt(raw), display, onChange };
 }
 
 function daysUntil(dateStr: string) {
@@ -54,14 +52,20 @@ function dueDateLabel(days: number): string {
   return new Date(Date.now() + days * 86400000).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' });
 }
 
-// ── Sheet حفظ الخطة ──────────────────────────────────────────
-function SaveSheet({ monthly, total, down, original, months, onClose, onSave }: {
-  monthly: number; total: number; down: number; original: number; months: number;
+function urgencyScore(plan: InstallmentPlan): number {
+  if (plan.isCompleted) return 9999;
+  const d = daysUntil(nextPaymentDate(plan));
+  return d; // أصغر = أعجل
+}
+
+// ── Sheet جدولة الخطة (بعد إدخال الاسم في الحاسبة) ──────────
+function ScheduleSheet({ monthly, name, onClose, onSave }: {
+  monthly: number;
+  name: string;
   onClose: () => void;
-  onSave: (name: string, day: number, startDate: string) => void;
+  onSave: (day: number, startDate: string) => void;
 }) {
-  const [name,      setName]      = useState('');
-  const [day,       setDay]       = useState(1);
+  const [day, setDay] = useState(1);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -71,34 +75,26 @@ function SaveSheet({ monthly, total, down, original, months, onClose, onSave }: 
   return (
     <div className="fixed inset-0 z-50 flex items-end pb-16">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col max-h-[80dvh]">
+      <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col max-h-[70dvh]">
 
-        {/* header ثابت */}
         <div className="shrink-0 px-5 pt-3 pb-3">
           <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold">حفظ الخطة</h2>
+            <div>
+              <h2 className="text-base font-bold">متى تبدأ الأقساط؟</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{name}</p>
+            </div>
             <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
           </div>
         </div>
 
-        {/* ملخص سريع */}
         <div className="shrink-0 mx-5 mb-3 bg-muted/40 rounded-xl px-4 py-2.5 flex justify-between text-sm">
           <span className="text-muted-foreground">القسط الشهري</span>
           <span className="font-bold">{fmt(monthly)} د.ع</span>
         </div>
 
-        {/* حقول قابلة للتمرير */}
         <div className="flex-1 overflow-y-auto px-5 pb-2">
           <div className="flex flex-col gap-3">
-
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">اسم المنتج *</label>
-              <input value={name} onChange={e => setName(e.target.value)}
-                placeholder="مثال: سيارة كيا، لابتوب، ثلاجة..."
-                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
-            </div>
-
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">يوم الاستحقاق من كل شهر</label>
               <select value={day} onChange={e => setDay(Number(e.target.value))}
@@ -108,7 +104,6 @@ function SaveSheet({ monthly, total, down, original, months, onClose, onSave }: 
                 ))}
               </select>
             </div>
-
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">تاريخ أول قسط</label>
               <input value={startDate} onChange={e => setStartDate(e.target.value)}
@@ -118,12 +113,10 @@ function SaveSheet({ monthly, total, down, original, months, onClose, onSave }: 
           </div>
         </div>
 
-        {/* زر الحفظ ثابت */}
         <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background">
           <button
-            disabled={!name.trim()}
-            onClick={() => onSave(name.trim(), day, startDate)}
-            className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all">
+            onClick={() => onSave(day, startDate)}
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all">
             حفظ الخطة
           </button>
         </div>
@@ -145,7 +138,7 @@ function DeleteConfirm({ name, onConfirm, onCancel }: {
           <p className="font-semibold text-sm">حذف الخطة؟</p>
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          سيتم حذف خطة <span className="font-semibold text-foreground">{name}</span> وكل سجل مدفوعاتها نهائياً.
+          سيتم حذف <span className="font-semibold text-foreground">{name}</span> وكل سجل مدفوعاتها نهائياً.
         </p>
         <div className="flex gap-2">
           <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-border text-sm text-muted-foreground">إلغاء</button>
@@ -158,24 +151,22 @@ function DeleteConfirm({ name, onConfirm, onCancel }: {
 
 // ── بطاقة الخطة ───────────────────────────────────────────────
 function PlanCard({ plan, onPay, onDelete }: {
-  plan: InstallmentPlan;
-  onPay: () => void;
-  onDelete: () => void;
+  plan: InstallmentPlan; onPay: () => void; onDelete: () => void;
 }) {
-  const progress   = Math.round((plan.paidCount / plan.months) * 100);
-  const paidAmt    = plan.monthlyPayment * plan.paidCount + plan.downPayment;
-  const remaining  = plan.monthlyPayment * (plan.months - plan.paidCount);
-  const nextDate   = !plan.isCompleted ? nextPaymentDate(plan) : null;
-  const days       = nextDate ? daysUntil(nextDate) : null;
-  const isOverdue  = days !== null && days < 0;
-  const isDueSoon  = days !== null && days >= 0 && days <= 7;
+  const progress  = Math.round((plan.paidCount / plan.months) * 100);
+  const paidAmt   = plan.monthlyPayment * plan.paidCount + plan.downPayment;
+  const remaining = plan.monthlyPayment * (plan.months - plan.paidCount);
+  const nextDate  = !plan.isCompleted ? nextPaymentDate(plan) : null;
+  const days      = nextDate ? daysUntil(nextDate) : null;
+  const isOverdue = days !== null && days < 0;
+  const isDueSoon = days !== null && days >= 0 && days <= 7;
 
-  const borderCls = isOverdue ? 'border-red-300 dark:border-red-700'
-    : isDueSoon ? 'border-amber-300 dark:border-amber-700' : 'border-border';
+  const borderCls = isOverdue  ? 'border-red-300 dark:border-red-700'
+    : isDueSoon ? 'border-amber-300 dark:border-amber-700'
+    : 'border-border';
 
   return (
     <div className={`bg-card border rounded-2xl px-4 py-3 ${borderCls}`}>
-      {/* اسم + badge */}
       <div className="flex items-start justify-between mb-2">
         <div>
           <p className="text-sm font-semibold">{plan.name}</p>
@@ -199,7 +190,7 @@ function PlanCard({ plan, onPay, onDelete }: {
         </div>
       </div>
 
-      {/* شريط التقدم */}
+      {/* شريط التقدم — اتجاه LTR مقصود هنا (مكتمل من اليسار لليمين) */}
       <div className="mb-2">
         <div className="flex justify-between items-center mb-1">
           <span className="text-[10px] text-muted-foreground">{plan.paidCount} من {plan.months} قسط مدفوع</span>
@@ -210,7 +201,6 @@ function PlanCard({ plan, onPay, onDelete }: {
         </div>
       </div>
 
-      {/* أرقام */}
       <div className="grid grid-cols-3 gap-2 mb-2.5 text-center">
         <div className="bg-muted/40 rounded-xl py-2">
           <p className="text-xs font-bold">{fmt(plan.monthlyPayment)}</p>
@@ -226,7 +216,6 @@ function PlanCard({ plan, onPay, onDelete }: {
         </div>
       </div>
 
-      {/* زر الدفع */}
       {!plan.isCompleted && (
         <button onClick={onPay}
           className="w-full flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-xl border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary transition-colors active:scale-[0.98]">
@@ -240,35 +229,34 @@ function PlanCard({ plan, onPay, onDelete }: {
 
 // ── الصفحة الرئيسية ───────────────────────────────────────────
 export default function InstallmentPage() {
-  const { user }       = useAuth();
+  const { user }   = useAuth();
   const { userSettings, incomes } = useAppData();
-  const qc             = useQueryClient();
+  const qc         = useQueryClient();
 
-  const [tab, setTab]  = useState<'calc' | 'plans'>('calc');
+  const [tab, setTab]        = useState<'calc' | 'plans'>('calc');
   const [toDelete, setToDelete] = useState<InstallmentPlan | null>(null);
-  const [showSave, setShowSave] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
 
   // حقول الحاسبة
-  const total    = useAmountField();
-  const down     = useAmountField();
+  const total     = useAmountField();
+  const down      = useAmountField();
   const origPrice = useAmountField();
-  const [months, setMonths]  = useState('12');
+  const [months, setMonths]          = useState('12');
+  const [productName, setProductName] = useState('');
 
   // حسابات فورية
   const net      = Math.max(0, total.value - down.value);
   const mths     = parseInt(months) || 1;
   const monthly  = net > 0 ? Math.round(net / mths) : 0;
   const extraCost = origPrice.value > 0 ? Math.max(0, total.value - origPrice.value) : 0;
-  const extraPct  = origPrice.value > 0 ? ((extraCost / origPrice.value) * 100) : 0;
+  const extraPct  = origPrice.value > 0 ? (extraCost / origPrice.value) * 100 : 0;
 
-  // مقارنة بالدخل والميزانية
   const recurringIncome = (incomes ?? []).filter(i => i.type === 'recurring').reduce((s,i) => s + i.amount, 0);
   const monthlyIncome   = recurringIncome || (userSettings?.profile?.monthlyIncome ?? 0);
   const totalBudget     = userSettings?.budget?.totalBudget ?? 0;
   const incomePct       = monthlyIncome > 0 ? (monthly / monthlyIncome) * 100 : 0;
   const budgetPct       = totalBudget  > 0  ? (monthly / totalBudget)   * 100 : 0;
 
-  // خطط محفوظة
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['installmentPlans', user?.uid],
     queryFn:  () => getInstallmentPlans(user!.uid),
@@ -277,13 +265,17 @@ export default function InstallmentPage() {
 
   const addMutation = useMutation({
     mutationFn: (data: Omit<InstallmentPlan,'id'|'uid'|'createdAt'>) => addInstallmentPlan(user!.uid, data),
-    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] }); setShowSave(false); setTab('plans'); },
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] });
+      setShowSchedule(false);
+      setTab('plans');
+    },
   });
 
   const payMutation = useMutation({
     mutationFn: ({ id, paid, done }: { id: string; paid: number; done: boolean }) =>
       payInstallment(user!.uid, id, paid, done),
-    onSuccess:  () => qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] }),
   });
 
   const delMutation = useMutation({
@@ -291,9 +283,10 @@ export default function InstallmentPage() {
     onSuccess:  () => { qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] }); setToDelete(null); },
   });
 
-  function handleSavePlan(name: string, day: number, startDate: string) {
+  function handleScheduleSave(day: number, startDate: string) {
     addMutation.mutate({
-      name, totalAmount: total.value, downPayment: down.value,
+      name: productName.trim() || 'منتج',
+      totalAmount: total.value, downPayment: down.value,
       months: mths, monthlyPayment: monthly,
       originalPrice: origPrice.value || undefined,
       paymentDay: day, startDate,
@@ -301,16 +294,13 @@ export default function InstallmentPage() {
     });
   }
 
-  // إحصاء خطط داش بورد
-  const activePlans   = plans.filter(p => !p.isCompleted);
-  const totalMonthly  = activePlans.reduce((s, p) => s + p.monthlyPayment, 0);
+  // داشبورد — مرتّب حسب الأولوية
+  const activePlans    = plans.filter(p => !p.isCompleted).sort((a,b) => urgencyScore(a) - urgencyScore(b));
+  const completedPlans = plans.filter(p => p.isCompleted);
+  const totalMonthly   = activePlans.reduce((s,p) => s + p.monthlyPayment, 0);
   const totalIncomePct = monthlyIncome > 0 ? (totalMonthly / monthlyIncome) * 100 : 0;
-  const urgentPlans   = activePlans.filter(p => {
-    const d = daysUntil(nextPaymentDate(p));
-    return d <= 5 && d >= -30;
-  });
+  const urgentPlans    = activePlans.filter(p => { const d = daysUntil(nextPaymentDate(p)); return d <= 5 && d >= -30; });
 
-  // شريط لون المؤشر
   function barColor(pct: number, lo: number, hi: number) {
     if (pct <= lo) return 'bg-emerald-500';
     if (pct <= hi) return 'bg-amber-400';
@@ -325,18 +315,18 @@ export default function InstallmentPage() {
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
         <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
           <ChevronRight className="h-6 w-6" />
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-bold">حاسبة التقسيط</h1>
-          <p className="text-[11px] text-muted-foreground">احسب قسطك وتتبّع خططك</p>
+          <p className="text-[11px] text-muted-foreground">احسب قسطك وتتبّع أقساطك</p>
         </div>
       </div>
 
-      {/* ── تبويبان ── */}
+      {/* تبويبان */}
       <div className="flex gap-1.5 px-1 mb-2 shrink-0">
         <button onClick={() => setTab('calc')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
@@ -359,80 +349,79 @@ export default function InstallmentPage() {
         </button>
       </div>
 
-      {/* ══════════════ تبويب الحاسبة ══════════════ */}
+      {/* ══════ تبويب الحاسبة ══════ */}
       {tab === 'calc' && (
-        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-2">
+        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
 
-          {/* المدخلات */}
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
             <p className="text-xs font-semibold text-muted-foreground mb-3">بيانات التقسيط</p>
 
-            {/* إجمالي سعر التقسيط — إلزامي */}
+            {/* إجمالي سعر التقسيط */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 إجمالي سعر التقسيط *
                 <span className="mr-1 text-[10px] opacity-60">(ما ستدفعه كاملاً)</span>
               </label>
               <div className="relative">
-                <input
-                  value={total.display}
-                  onChange={total.onChange}
-                  inputMode="numeric"
+                <input value={total.display} onChange={total.onChange} inputMode="numeric"
                   placeholder="مثال: 18,000,000"
                   className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
               </div>
             </div>
 
-            {/* عدد الأشهر — إلزامي */}
+            {/* عدد الأشهر */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط (شهر) *</label>
-              <input
-                value={months}
+              <input value={months}
                 onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
                 onFocus={e => e.target.select()}
                 onBlur={() => { if (!months) setMonths('12'); }}
-                inputMode="numeric"
-                placeholder="مثال: 12"
+                inputMode="numeric" placeholder="مثال: 12"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
             </div>
 
-            {/* دفعة أولى — اختياري */}
+            {/* دفعة أولى */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 الدفعة الأولى
-                <span className="mr-1 text-[10px] opacity-60">(اختياري — 0 إذا لا يوجد)</span>
+                <span className="mr-1 text-[10px] opacity-60">(اختياري)</span>
               </label>
               <div className="relative">
-                <input
-                  value={down.display}
-                  onChange={down.onChange}
-                  inputMode="numeric"
+                <input value={down.display} onChange={down.onChange} inputMode="numeric"
                   placeholder="0"
                   className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
               </div>
             </div>
 
-            {/* السعر النقدي — اختياري للمقارنة */}
-            <div>
+            {/* السعر نقداً */}
+            <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 السعر نقداً
-                <span className="mr-1 text-[10px] opacity-60">(اختياري — لحساب الفائدة الحقيقية)</span>
+                <span className="mr-1 text-[10px] opacity-60">(اختياري — لمقارنة التكلفة)</span>
               </label>
               <div className="relative">
-                <input
-                  value={origPrice.display}
-                  onChange={origPrice.onChange}
-                  inputMode="numeric"
+                <input value={origPrice.display} onChange={origPrice.onChange} inputMode="numeric"
                   placeholder="اتركه فارغاً إذا لا تعرفه"
                   className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
               </div>
             </div>
+
+            {/* اسم المنتج — هنا في الحاسبة مباشرة */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                اسم المنتج
+                <span className="mr-1 text-[10px] opacity-60">(للحفظ كخطة متتبعة)</span>
+              </label>
+              <input value={productName} onChange={e => setProductName(e.target.value)}
+                placeholder="مثال: سيارة، لابتوب، ثلاجة..."
+                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
+            </div>
           </div>
 
-          {/* النتائج — تظهر فقط إذا أُدخل إجمالي */}
+          {/* النتائج */}
           {total.value > 0 && (
             <>
               {/* القسط الشهري */}
@@ -449,7 +438,7 @@ export default function InstallmentPage() {
                 )}
               </div>
 
-              {/* مقارنة بالدخل والميزانية */}
+              {/* تأثير على الدخل والميزانية — شرائط RTL */}
               {(monthlyIncome > 0 || totalBudget > 0) && (
                 <div className="bg-card border border-border rounded-2xl px-4 py-3">
                   <p className="text-xs text-muted-foreground mb-3">تأثير القسط على وضعك</p>
@@ -460,7 +449,8 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من الدخل الشهري</span>
                           <span className={`text-xs font-bold ${textColor(incomePct,10,30)}`}>{incomePct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" dir="ltr">
+                        {/* scaleX(-1) يجعل الشريط يمتلئ من اليمين */}
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
                           <div className={`h-full rounded-full ${barColor(incomePct,10,30)}`} style={{width:`${Math.min(incomePct,100)}%`}} />
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">دخلك: {fmt(monthlyIncome)} د.ع</p>
@@ -472,7 +462,7 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من ميزانية الشهر</span>
                           <span className={`text-xs font-bold ${textColor(budgetPct,25,75)}`}>{budgetPct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" dir="ltr">
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
                           <div className={`h-full rounded-full ${barColor(budgetPct,25,75)}`} style={{width:`${Math.min(budgetPct,100)}%`}} />
                         </div>
                       </div>
@@ -501,15 +491,14 @@ export default function InstallmentPage() {
               )}
 
               {/* زر الحفظ */}
-              <button onClick={() => setShowSave(true)}
-                className="w-full py-3 rounded-2xl border border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+              <button onClick={() => setShowSchedule(true)}
+                className="w-full py-3 rounded-2xl border border-primary text-primary text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all bg-card">
                 <Plus className="h-4 w-4" />
                 حفظ كخطة مُتتبَّعة
               </button>
             </>
           )}
 
-          {/* placeholder */}
           {total.value === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <p className="text-4xl mb-3">🧮</p>
@@ -520,29 +509,32 @@ export default function InstallmentPage() {
         </div>
       )}
 
-      {/* ══════════════ تبويب الخطط ══════════════ */}
+      {/* ══════ تبويب أقساطي ══════ */}
       {tab === 'plans' && (
-        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-2">
+        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
 
-          {/* ملخص */}
+          {/* ملخص شامل */}
           {activePlans.length > 0 && (
-            <div className="flex gap-2">
-              <div className="flex-1 bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
-                <p className="text-[10px] text-muted-foreground mb-1">أقساطي الشهرية</p>
-                <p className="text-base font-bold text-foreground">{fmt(totalMonthly)}</p>
-                <p className="text-[10px] text-muted-foreground">د.ع / شهر</p>
+            <div className="bg-card border border-border rounded-2xl px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground">إجمالي أقساطك الشهرية</p>
+                {monthlyIncome > 0 && (
+                  <span className={`text-xs font-bold ${textColor(totalIncomePct,20,40)}`}>
+                    {totalIncomePct.toFixed(1)}% من دخلك
+                  </span>
+                )}
               </div>
+              <p className="text-2xl font-bold">{fmt(totalMonthly)} <span className="text-sm font-normal text-muted-foreground">د.ع / شهر</span></p>
               {monthlyIncome > 0 && (
-                <div className="flex-1 bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-1">% من دخلك</p>
-                  <p className={`text-base font-bold ${textColor(totalIncomePct,20,40)}`}>{totalIncomePct.toFixed(1)}%</p>
-                  <p className="text-[10px] text-muted-foreground">من الدخل</p>
+                <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
+                  <div className={`h-full rounded-full ${barColor(totalIncomePct,20,40)}`} style={{width:`${Math.min(totalIncomePct,100)}%`}} />
                 </div>
               )}
+              <p className="text-[10px] text-muted-foreground mt-1.5">{activePlans.length} خطة نشطة{completedPlans.length > 0 ? ` · ${completedPlans.length} مكتملة` : ''}</p>
             </div>
           )}
 
-          {/* تنبيهات */}
+          {/* تنبيهات الأقساط القريبة والمتأخرة */}
           {urgentPlans.length > 0 && (
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2 flex flex-col gap-1.5">
               {urgentPlans.map(p => {
@@ -551,7 +543,7 @@ export default function InstallmentPage() {
                   <div key={p.id} className="flex items-center gap-1.5">
                     <Bell className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-400">
-                      قسط <span className="font-semibold">{p.name}</span> — {dueDateLabel(d)} · {fmt(p.monthlyPayment)} د.ع
+                      <span className="font-semibold">{p.name}</span> — {dueDateLabel(d)} · {fmt(p.monthlyPayment)} د.ع
                     </p>
                   </div>
                 );
@@ -559,7 +551,6 @@ export default function InstallmentPage() {
             </div>
           )}
 
-          {/* قائمة الخطط */}
           {isLoading && (
             <div className="flex flex-col gap-2 animate-pulse">
               {[1,2].map(i => <div key={i} className="h-36 bg-muted rounded-2xl" />)}
@@ -577,27 +568,41 @@ export default function InstallmentPage() {
             </div>
           )}
 
-          {plans.map(plan => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
+          {/* خطط نشطة — مرتبة: متأخرة أولاً، ثم الأقرب استحقاقاً */}
+          {activePlans.map(plan => (
+            <PlanCard key={plan.id} plan={plan}
               onPay={() => {
                 const newCount = plan.paidCount + 1;
                 payMutation.mutate({ id: plan.id, paid: newCount, done: newCount >= plan.months });
               }}
-              onDelete={() => setToDelete(plan)}
-            />
+              onDelete={() => setToDelete(plan)} />
           ))}
+
+          {/* خطط مكتملة — في الأسفل */}
+          {completedPlans.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-px bg-border" />
+                <p className="text-[10px] text-muted-foreground px-2">مكتملة ({completedPlans.length})</p>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              {completedPlans.map(plan => (
+                <PlanCard key={plan.id} plan={plan}
+                  onPay={() => {}}
+                  onDelete={() => setToDelete(plan)} />
+              ))}
+            </>
+          )}
         </div>
       )}
 
-      {/* ── Sheets & Dialogs ── */}
-      {showSave && (
-        <SaveSheet
-          monthly={monthly} total={total.value} down={down.value}
-          original={origPrice.value} months={mths}
-          onClose={() => setShowSave(false)}
-          onSave={handleSavePlan}
+      {/* Sheet الجدولة */}
+      {showSchedule && (
+        <ScheduleSheet
+          monthly={monthly}
+          name={productName.trim() || 'منتج'}
+          onClose={() => setShowSchedule(false)}
+          onSave={handleScheduleSave}
         />
       )}
 
