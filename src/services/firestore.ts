@@ -18,7 +18,7 @@ import {
     arrayUnion,
     arrayRemove,
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 // ─── Path helper: household or personal ────────────────────────────────────
@@ -687,6 +687,48 @@ export const getReferralCount = async (uid: string): Promise<number> => {
     const q = query(collection(db, 'referrals'), where('referrerUid', '==', uid));
     const snap = await getDocs(q);
     return snap.size;
+};
+
+// =================================
+// Debts Service
+// =================================
+
+export const getDebts = async (uid: string): Promise<Debt[]> => {
+    if (!db) return [];
+    const debtsCol = collection(db, 'users', uid, 'debts');
+    const q = query(debtsCol, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+        const data = d.data();
+        return {
+            id: d.id,
+            uid,
+            name: data.name,
+            amount: data.amount,
+            direction: data.direction,
+            reason: data.reason,
+            date: data.date,
+            isSettled: data.isSettled ?? false,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+        } as Debt;
+    });
+};
+
+export const addDebt = async (uid: string, data: Omit<Debt, 'id' | 'uid' | 'createdAt'>): Promise<string> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const debtsCol = collection(db, 'users', uid, 'debts');
+    const ref = await addDoc(debtsCol, { ...data, createdAt: serverTimestamp() });
+    return ref.id;
+};
+
+export const settleDebt = async (uid: string, debtId: string): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: true });
+};
+
+export const deleteDebt = async (uid: string, debtId: string): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'users', uid, 'debts', debtId));
 };
 
 export const addFeedback = async (uid: string, feedback: { subject: string; details: string; email?: string }) => {

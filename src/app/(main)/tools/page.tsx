@@ -1,0 +1,98 @@
+'use client';
+
+import Link from 'next/link';
+
+const TOOLS = [
+  {
+    href: '/tools/currency',
+    label: 'حاسبة العملات',
+    sub: 'IQD · USD · AED · SAR',
+    icon: '$',
+    gradient: 'linear-gradient(135deg, #60b8ff 0%, #1a6fd4 100%)',
+    shimmer: 'linear-gradient(135deg, #7ecfff 0%, #3080e8 100%)',
+  },
+  {
+    href: '/tools/worth-it',
+    label: 'هل يستحق؟',
+    sub: 'أيام العمل والنسب',
+    icon: '⚡',
+    gradient: 'linear-gradient(135deg, #b47fff 0%, #5b21b6 100%)',
+    shimmer: 'linear-gradient(135deg, #c99fff 0%, #7034d0 100%)',
+  },
+  {
+    href: '/tools/split-bill',
+    label: 'قسّم الفاتورة',
+    sub: 'مشاركة عبر واتساب',
+    icon: '🍽',
+    gradient: 'linear-gradient(135deg, #34d399 0%, #047857 100%)',
+    shimmer: 'linear-gradient(135deg, #4fe8ad 0%, #159066 100%)',
+  },
+  {
+    href: '/tools/installment',
+    label: 'حاسبة التقسيط',
+    sub: 'نقد أم تقسيط؟',
+    icon: '📊',
+    gradient: 'linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)',
+    shimmer: 'linear-gradient(135deg, #56d0ff 0%, #1580c0 100%)',
+  },
+  {
+    href: '/tools/habit-cost',
+    label: 'كم تكلفني عادتي؟',
+    sub: 'شهري · سنوي · 5 سنوات',
+    icon: '☕',
+    gradient: 'linear-gradient(135deg, #facc15 0%, #b45309 100%)',
+    shimmer: 'linear-gradient(135deg, #fde047 0%, #ca6a10 100%)',
+  },
+  {
+    href: '/tools/wedding',
+    label: 'حاسبة الزواج',
+    sub: 'توزيع الميزانية',
+    icon: '💍',
+    gradient: 'linear-gradient(135deg, #f472b6 0%, #9d174d 100%)',
+    shimmer: 'linear-gradient(135deg, #f990cb 0%, #b52060 100%)',
+  },
+  {
+    href: '/tools/debts',
+    label: 'مدير الديون',
+    sub: 'لك وعليك',
+    icon: '🤝',
+    gradient: 'linear-gradient(135deg, #fb923c 0%, #b45309 100%)',
+    shimmer: 'linear-gradient(135deg, #ffa55a 0%, #ca6a10 100%)',
+  },
+];
+
+export default function ToolsPage() {
+  return (
+    <div className="pb-24">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-foreground">الأدوات المالية</h1>
+        <p className="text-sm text-muted-foreground mt-1">أدوات سريعة لقرارات أذكى</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {TOOLS.map(tool => (
+          <Link
+            key={tool.href}
+            href={tool.href}
+            className="block active:scale-[0.97] transition-transform"
+          >
+            <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none"
+                style={{ background: tool.gradient }}
+              >
+                <span style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
+                  {tool.icon}
+                </span>
+              </div>
+              <div>
+                <p className="font-semibold text-sm text-foreground leading-tight">{tool.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{tool.sub}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

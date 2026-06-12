@@ -119,3 +119,15 @@ export type EarnedBadge = {
   id: string;
   earnedAt: string; // ISO string
 };
+
+export type Debt = {
+  id: string;
+  uid: string;
+  name: string;
+  amount: number;
+  direction: 'to-me' | 'from-me';
+  reason?: string;
+  date: string;
+  isSettled: boolean;
+  createdAt: string;
+};
