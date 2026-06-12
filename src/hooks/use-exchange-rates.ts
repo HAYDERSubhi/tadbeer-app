@@ -7,6 +7,7 @@ export type Rates = Record<string, number>;
 type Cache = { rates: Rates; updatedAt: number };
 
 const CACHE_KEY = 'tadbeer_exchange_rates';
+const IQD_MARKET_KEY = 'tadbeer_iqd_market_rate';
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
@@ -22,6 +23,17 @@ const FALLBACK_RATES: Rates = {
   KWD: 0.307,
   EGP: 30.9,
 };
+
+export function getIQDMarketRate(): number {
+  try {
+    const v = localStorage.getItem(IQD_MARKET_KEY);
+    return v ? parseFloat(v) : 1480;
+  } catch { return 1480; }
+}
+
+export function saveIQDMarketRate(rate: number) {
+  try { localStorage.setItem(IQD_MARKET_KEY, String(rate)); } catch {}
+}
 
 function readCache(): Cache | null {
   try {
