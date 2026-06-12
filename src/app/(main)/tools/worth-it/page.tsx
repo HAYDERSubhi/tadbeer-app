@@ -96,7 +96,7 @@ export default function WorthItPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-lg font-bold">هل يستحق؟</h1>
-          <p className="text-[11px] text-muted-foreground">ماذا يساوي هذا المبلغ من حياتك؟</p>
+          <p className="text-[11px] text-muted-foreground">ماذا يساوي هذا المبلغ من ميزانيتك ودخلك؟</p>
         </div>
         {noData && (
           <Link href={INCOME_URL}
