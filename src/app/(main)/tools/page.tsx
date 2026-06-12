@@ -53,7 +53,7 @@ const TOOLS = [
   },
   {
     href: '/tools/debts',
-    label: 'مدير الديون',
+    label: 'دفتر الديون',
     sub: 'لك وعليك',
     icon: '🤝',
     gradient: 'linear-gradient(135deg, #fb923c 0%, #b45309 100%)',

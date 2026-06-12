@@ -137,8 +137,13 @@ function AddSheet({ onClose, onSave }: {
 
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">المبلغ (د.ع) *</label>
-              <input value={amount} onChange={e => setAmount(e.target.value)}
-                type="number" inputMode="numeric" placeholder="أدخل المبلغ"
+              <input
+                value={amount ? parseInt(amount.replace(/,/g,'')||'0').toLocaleString('en-US') : ''}
+                onChange={e => {
+                  const raw = e.target.value.replace(/,/g,'').replace(/[^\d]/g,'');
+                  setAmount(raw);
+                }}
+                inputMode="numeric" placeholder="أدخل المبلغ"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
             </div>
 
@@ -404,7 +409,7 @@ export default function DebtsPage() {
           <ChevronRight className="h-6 w-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">مدير الديون</h1>
+          <h1 className="text-lg font-bold">دفتر الديون</h1>
           <p className="text-[11px] text-muted-foreground">تتبّع ما أقرضته وما اقترضته</p>
         </div>
         <button onClick={() => setShowAdd(true)}
