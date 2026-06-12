@@ -106,6 +106,14 @@ export default function WorthItPage() {
     setAmount(p => (p === '0' && k !== '.') ? k : p + k);
   }
 
+  // عرض الرقم بفواصل الآلاف مع الحفاظ على الجزء العشري كما هو
+  function displayAmount(raw: string): string {
+    if (!raw) return '0';
+    const [intPart, decPart] = raw.split('.');
+    const formatted = parseInt(intPart || '0').toLocaleString('en-US');
+    return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
+  }
+
   return (
     <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto overflow-hidden">
 
@@ -145,8 +153,8 @@ export default function WorthItPage() {
         <p className="text-xs text-muted-foreground mb-1">سعر المنتج</p>
         <div className="flex items-baseline gap-2 justify-end">
           <span className="text-muted-foreground text-lg font-medium">د.ع</span>
-          <span className={`font-bold leading-none text-5xl ${amount ? 'text-foreground' : 'text-muted-foreground/25'}`}>
-            {amount || '0'}
+          <span className={`font-bold leading-none ${displayAmount(amount).length > 9 ? 'text-3xl' : 'text-5xl'} ${amount ? 'text-foreground' : 'text-muted-foreground/25'}`}>
+            {displayAmount(amount)}
           </span>
         </div>
       </div>
