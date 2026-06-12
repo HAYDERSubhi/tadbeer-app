@@ -317,13 +317,9 @@ function DebtCard({ debt, onSettle, onDeleteRequest }: {
             </button>
           )}
           <button onClick={() => onSettle(debt.id)}
-            className={`flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border ${
-              isToMe
-                ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800'
-                : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
-            }`}>
+            className="flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
             <Check className="h-3 w-3" />
-            {isToMe ? 'استحصلت' : 'سدّدت'}
+            {isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
           </button>
           <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
             <Trash2 className="h-3.5 w-3.5" />
