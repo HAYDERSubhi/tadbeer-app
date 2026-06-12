@@ -723,7 +723,7 @@ export const addDebt = async (uid: string, data: Omit<Debt, 'id' | 'uid' | 'crea
 
 export const settleDebt = async (uid: string, debtId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
-    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: true });
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: true, settledAt: new Date().toISOString() });
 };
 
 export const deleteDebt = async (uid: string, debtId: string): Promise<void> => {

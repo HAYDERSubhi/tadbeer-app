@@ -128,6 +128,9 @@ export type Debt = {
   direction: 'to-me' | 'from-me';
   reason?: string;
   date: string;
+  dueDate?: string;
+  phone?: string;
   isSettled: boolean;
+  settledAt?: string;
   createdAt: string;
 };
