@@ -37,10 +37,11 @@ function displayAmount(raw: string): string {
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
-// شريط نسبة مئوية يدعم RTL
+// شريط يمتلئ من اليمين لليسار (RTL)
 function Bar({ pct, lo, hi }: { pct: number; lo: number; hi: number }) {
   return (
-    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" dir="ltr">
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
+      style={{ transform: 'scaleX(-1)' }}>
       <div
         className={`h-full rounded-full transition-all duration-500 ${barColor(pct, lo, hi)}`}
         style={{ width: `${Math.min(pct, 100)}%` }}
