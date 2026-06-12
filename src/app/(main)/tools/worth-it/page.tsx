@@ -133,19 +133,18 @@ export default function WorthItPage() {
         </div>
       </div>
 
-      {/* ── النتائج: بطاقتان جنباً لجنب ── */}
-      <div className="flex-1 px-1 min-h-0 overflow-y-auto flex flex-col gap-2 pb-2">
+      {/* ── النتائج ── */}
+      <div className="flex-1 px-1 min-h-0 flex flex-col gap-1.5 pb-1">
 
         {showResults && (
-          <>
-            {/* صف: قراءتان من الميزانية والدخل */}
-            <div className="flex gap-2">
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
 
-              {/* قراءة ١: الميزانية */}
+            {/* صف ١: ميزانية + دخل */}
+            <div className="flex divide-x divide-x-reverse divide-border">
               {hasBudget && (
-                <div className="flex-1 bg-card border border-border rounded-2xl px-3 py-3 flex flex-col gap-1.5">
+                <div className="flex-1 px-3 py-2.5 flex flex-col gap-1">
                   <p className="text-[10px] text-muted-foreground">من الميزانية</p>
-                  <p className={`text-xl font-bold leading-tight ${textColor(budgetPct, 25, 75)}`}>
+                  <p className={`text-lg font-bold leading-tight ${textColor(budgetPct, 25, 75)}`}>
                     {humanDuration(budgetMonths)}
                   </p>
                   <Bar pct={budgetPct} lo={25} hi={75} />
@@ -159,12 +158,10 @@ export default function WorthItPage() {
                   </div>
                 </div>
               )}
-
-              {/* قراءة ٢: الدخل */}
               {hasIncome && (
-                <div className="flex-1 bg-card border border-border rounded-2xl px-3 py-3 flex flex-col gap-1.5">
+                <div className="flex-1 px-3 py-2.5 flex flex-col gap-1">
                   <p className="text-[10px] text-muted-foreground">من الدخل</p>
-                  <p className={`text-xl font-bold leading-tight ${textColor(incomePct, 10, 30)}`}>
+                  <p className={`text-lg font-bold leading-tight ${textColor(incomePct, 10, 30)}`}>
                     {humanDuration(incomeMonths)}
                   </p>
                   <Bar pct={incomePct} lo={10} hi={30} />
@@ -180,19 +177,22 @@ export default function WorthItPage() {
               )}
             </div>
 
-            {/* بطاقة: أيام وساعات العمل */}
+            {/* فاصل */}
+            {hasIncome && <div className="border-t border-border mx-3" />}
+
+            {/* صف ٢: وقت العمل */}
             {hasIncome && (
-              <div className="bg-card border border-border rounded-2xl px-4 py-3">
+              <div className="px-3 py-2.5">
                 <p className="text-[10px] text-muted-foreground mb-2">من وقت عملك</p>
-                <div className="flex gap-3">
-                  <div className="flex-1 bg-muted/40 rounded-xl p-2.5 text-center">
-                    <p className="font-bold text-xl text-foreground">
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-muted/40 rounded-xl py-2 text-center">
+                    <p className="font-bold text-xl text-foreground leading-tight">
                       {workDays < 0.1 ? '< 1' : workDays < 10 ? workDays.toFixed(1) : Math.round(workDays).toLocaleString('en-US')}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">يوم عمل</p>
                   </div>
-                  <div className="flex-1 bg-muted/40 rounded-xl p-2.5 text-center">
-                    <p className="font-bold text-xl text-foreground">
+                  <div className="flex-1 bg-muted/40 rounded-xl py-2 text-center">
+                    <p className="font-bold text-xl text-foreground leading-tight">
                       {workHours < 1 ? '< 1' : Math.round(workHours).toLocaleString('en-US')}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">ساعة عمل</p>
@@ -200,7 +200,7 @@ export default function WorthItPage() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* placeholder */}
