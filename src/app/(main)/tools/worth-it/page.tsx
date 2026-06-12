@@ -53,10 +53,16 @@ function Bar({ pct, lo, hi }: { pct: number; lo: number; hi: number }) {
 const INCOME_URL = '/settings#settings-profile';
 
 export default function WorthItPage() {
-  const { userSettings, isLoading } = useAppData();
+  const { userSettings, incomes, isLoading } = useAppData();
   const [amount, setAmount] = useState('');
 
-  const monthlyIncome = userSettings?.profile?.monthlyIncome ?? 0;
+  // الدخل من مصادر الدخل المتكررة مباشرة — profile.monthlyIncome قد لا يكون متزامناً
+  const recurringIncome = (incomes ?? [])
+    .filter(i => i.type === 'recurring')
+    .reduce((sum, i) => sum + i.amount, 0);
+  const monthlyIncome = recurringIncome > 0
+    ? recurringIncome
+    : (userSettings?.profile?.monthlyIncome ?? 0);
   const totalBudget   = userSettings?.budget?.totalBudget ?? 0;
 
   const price = parseFloat(amount) || 0;
