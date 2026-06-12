@@ -134,7 +134,7 @@ export default function WorthItPage() {
       </div>
 
       {/* ── النتائج: بطاقتان جنباً لجنب ── */}
-      <div className="flex-1 px-1 min-h-0 flex flex-col gap-2">
+      <div className="flex-1 px-1 min-h-0 overflow-y-auto flex flex-col gap-2 pb-2">
 
         {showResults && (
           <>
