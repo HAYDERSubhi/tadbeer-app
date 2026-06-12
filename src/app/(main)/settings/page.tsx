@@ -1494,53 +1494,6 @@ export default function SettingsPage() {
             </div>
         </AccordionItemWrapper>
 
-        {/* ===== Bank Card Section ===== */}
-        <AccordionItemWrapper
-            value="item-bank"
-            icon={CreditCard}
-            title="استيراد رسائل البطاقة"
-        >
-          <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              حوّل رسائل SMS البنكية إلى مصاريف بضغطة واحدة — يدعم Qi Card، البنك الأهلي، Tabadul، Zain Cash.
-            </p>
-
-            {/* How it works */}
-            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-              <p className="text-xs font-semibold">كيف تعمل؟</p>
-              <ol className="space-y-1.5 text-xs text-muted-foreground">
-                {[
-                  'افتح تطبيق الرسائل وانسخ رسالة البنك',
-                  'الصقها في صفحة الاستيراد',
-                  'يتعرف عليها الذكاء الاصطناعي ويستخرج المبلغ والفئة',
-                  'راجع وأضفها بضغطة واحدة',
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-primary/10 text-primary text-[9px] font-bold shrink-0 mt-0.5">{i + 1}</span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            {/* Example SMS */}
-            <div className="rounded-md bg-background border p-2.5">
-              <p className="text-[10px] text-muted-foreground mb-1.5">مثال على رسالة بنكية:</p>
-              <p className="text-xs font-mono text-foreground leading-relaxed">
-                📩 تمت عملية شراء بمبلغ <span className="font-bold text-primary">25,000 د.ع</span> من متجر ABC<br/>
-                الرصيد المتبقي: 975,000 د.ع
-              </p>
-            </div>
-
-            <Button asChild className="w-full h-10 text-sm font-semibold">
-              <Link href="/import">
-                <CreditCard className="ml-2 h-4 w-4" />
-                فتح صفحة استيراد الرسائل
-                <ArrowLeft className="mr-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </AccordionItemWrapper>
 
          <AccordionItemWrapper
             value="item-4"

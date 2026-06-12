@@ -568,36 +568,38 @@ export default function DashboardPage() {
 
       <Card id="expense-input-card" className="overflow-hidden">
         <CardContent className="py-2 px-4 space-y-3">
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <Pencil className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {/* ── يدوي ── */}
+            <Link href="/add-expense" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-3 rounded-xl group hover:bg-muted/50 transition-colors">
+                <span className="flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <Pencil className="w-7 h-7" />
                 </span>
-                <p className="font-semibold text-xs">يدوي</p>
+                <p className="font-semibold text-sm">يدوي</p>
             </Link>
-            
+
+            {/* ── صوت ── */}
             <div
-              onClick={(isVoiceLoading) ? undefined : handleToggleVoiceRecording}
+              onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording}
               className={cn(
-                "flex flex-col items-center justify-center gap-2 p-2 rounded-lg group transition-colors",
+                "flex flex-col items-center justify-center gap-2 p-3 rounded-xl group transition-colors",
                 isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
               )}
             >
               <span className={cn(
-                "flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg transition-all duration-200",
+                "flex items-center justify-center w-16 h-16 rounded-xl transition-all duration-200",
                 isVoiceRecording
                   ? "bg-destructive/15 text-destructive ring-2 ring-destructive/40 ring-offset-background ring-offset-1"
                   : "bg-primary/10 text-primary group-hover:bg-primary/20"
               )}>
                 {isVoiceLoading ? (
-                  <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin" />
+                  <Loader2 className="w-7 h-7 animate-spin" />
                 ) : isVoiceRecording ? (
-                  <VoiceWaveBars level={audioLevel} className="w-7 h-7 sm:w-8 sm:h-8" />
+                  <VoiceWaveBars level={audioLevel} className="w-8 h-8" />
                 ) : (
-                  <Mic className="w-6 h-6 sm:w-7 sm:h-7" />
+                  <Mic className="w-7 h-7" />
                 )}
               </span>
-              <p className="font-semibold text-xs tabular-nums">
+              <p className="font-semibold text-sm tabular-nums">
                 {isVoiceLoading
                   ? 'تحليل...'
                   : isVoiceRecording
@@ -630,18 +632,12 @@ export default function DashboardPage() {
               )}
             </VoiceReviewComponent>
 
-            <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <FileScan className="w-6 h-6 sm:w-7 sm:h-7" />
+            {/* ── فاتورة ── */}
+            <Link href="/receipts" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-3 rounded-xl group hover:bg-muted/50 transition-colors">
+                <span className="flex items-center justify-center w-16 h-16 rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <FileScan className="w-7 h-7" />
                 </span>
-                <p className="font-semibold text-xs">فاتورة</p>
-            </Link>
-            
-            <Link href="/import" className="flex flex-col items-center justify-center gap-2 cursor-pointer p-2 rounded-lg group hover:bg-muted/50 transition-colors">
-                <span className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                    <CreditCard className="w-6 h-6 sm:w-7 sm:h-7" />
-                </span>
-                <p className="font-semibold text-xs">بطاقة</p>
+                <p className="font-semibold text-sm">فاتورة</p>
             </Link>
           </div>
 
