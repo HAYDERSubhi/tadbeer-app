@@ -103,6 +103,7 @@ export default function DashboardPage() {
   const isVoiceRecordingRef = useRef(false);
   const recordingTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingStartRef   = useRef<number>(0);
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
@@ -182,6 +183,7 @@ export default function DashboardPage() {
     }
 
     // ── START ─────────────────────────────────────────────────────────────────
+    setVoiceExpenseData(null); // clear stale data from previous recording
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -202,6 +204,7 @@ export default function DashboardPage() {
       : new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current   = [];
+    recordingStartRef.current = Date.now();
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -210,7 +213,13 @@ export default function DashboardPage() {
     mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
 
-      if (audioChunksRef.current.length === 0) {
+      const durationMs = Date.now() - recordingStartRef.current;
+      const blob = new Blob(audioChunksRef.current, {
+        type: (mediaRecorder.mimeType || 'audio/webm').split(';')[0],
+      });
+
+      // Guard: no chunks at all
+      if (audioChunksRef.current.length === 0 || blob.size === 0) {
         toast({
           title: 'التسجيل فارغ',
           description: 'لم يتم التقاط أي صوت. تأكد من عمل الميكروفون وحاول مجدداً.',
@@ -219,8 +228,25 @@ export default function DashboardPage() {
         return;
       }
 
-      const recordedMime = (mediaRecorder.mimeType || 'audio/webm').split(';')[0];
-      const blob = new Blob(audioChunksRef.current, { type: recordedMime });
+      // Guard: recording too short (< 1.2s) — likely accidental tap, not real speech
+      if (durationMs < 1200) {
+        toast({
+          title: 'التسجيل قصير جداً',
+          description: 'تحدث لمدة أطول ثم أوقف التسجيل.',
+        });
+        return;
+      }
+
+      // Guard: blob too small — silence or near-silence produces < 2 KB
+      if (blob.size < 2000) {
+        toast({
+          title: 'لم يُكتشف صوت',
+          description: 'لم تتضمن المقطع أي كلام واضح. حاول مجدداً.',
+        });
+        return;
+      }
+
+      const recordedMime = blob.type;
       setIsVoiceLoading(true);
 
       try {
