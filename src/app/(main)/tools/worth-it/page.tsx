@@ -7,85 +7,70 @@ import { useAppData } from '@/hooks/use-app-data';
 
 const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫'];
 
-function fmt(n: number) {
-  return Math.round(n).toLocaleString('ar-IQ');
-}
-
 type Verdict = 'comfortable' | 'consider' | 'careful';
 
-function getVerdict(incomePercent: number): Verdict {
-  if (incomePercent <= 10) return 'comfortable';
-  if (incomePercent <= 30) return 'consider';
+function getVerdict(pct: number): Verdict {
+  if (pct <= 10) return 'comfortable';
+  if (pct <= 30) return 'consider';
   return 'careful';
 }
 
-const VERDICT_CONFIG = {
+const VC = {
   comfortable: {
-    icon: '✅',
-    label: 'يستحق',
-    desc: 'سعره مريح نسبة لدخلك',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/40',
-    border: 'border-emerald-200 dark:border-emerald-800',
-    text: 'text-emerald-700 dark:text-emerald-400',
+    icon: '✅', label: 'يستحق', desc: 'سعره مريح نسبة لدخلك',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: 'border-emerald-200 dark:border-emerald-800', text: 'text-emerald-700 dark:text-emerald-400',
   },
   consider: {
-    icon: '🤔',
-    label: 'فكّر مرتين',
-    desc: 'يمكن تحمّله لكن ليس قراراً سهلاً',
-    bg: 'bg-amber-50 dark:bg-amber-950/40',
-    border: 'border-amber-200 dark:border-amber-800',
-    text: 'text-amber-700 dark:text-amber-400',
+    icon: '🤔', label: 'فكّر مرتين', desc: 'يمكن تحمّله لكن ليس قراراً سهلاً',
+    bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-700 dark:text-amber-400',
   },
   careful: {
-    icon: '⚠️',
-    label: 'انتبه',
-    desc: 'ثقيل على ميزانيتك الشهرية',
-    bg: 'bg-red-50 dark:bg-red-950/40',
-    border: 'border-red-200 dark:border-red-800',
-    text: 'text-red-700 dark:text-red-400',
+    icon: '⚠️', label: 'انتبه', desc: 'ثقيل على ميزانيتك الشهرية',
+    bg: 'bg-red-50 dark:bg-red-950/40', border: 'border-red-200 dark:border-red-800', text: 'text-red-700 dark:text-red-400',
   },
 };
 
+function Bar({ pct, color }: { pct: number; color: string }) {
+  return (
+    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+      <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+    </div>
+  );
+}
+
+// رابط مباشر لقسم الدخل في الإعدادات
+const INCOME_SETTINGS_URL = '/settings#settings-profile';
+
 export default function WorthItPage() {
-  const { userSettings } = useAppData();
+  const { userSettings, isLoading } = useAppData();
   const [amount, setAmount] = useState('');
 
   const monthlyIncome   = userSettings?.profile?.monthlyIncome ?? 0;
   const totalBudget     = userSettings?.budget?.totalBudget ?? 0;
-  // entertainment budget: 15% of total budget as reasonable default
   const entertainBudget = totalBudget * 0.15;
 
   const price = parseFloat(amount) || 0;
-  const hasIncome = monthlyIncome > 0;
 
-  // ── Calculations ──
-  const dailyIncome    = monthlyIncome / 22;
-  const workDays       = dailyIncome > 0 ? price / dailyIncome : 0;
-  const workHours      = workDays * 8;
-  const incomePercent  = monthlyIncome > 0 ? (price / monthlyIncome) * 100 : 0;
-  const budgetPercent  = totalBudget > 0 ? (price / totalBudget) * 100 : 0;
-  const entertainPct   = entertainBudget > 0 ? (price / entertainBudget) * 100 : 0;
+  // لا نحكم بغياب الدخل أثناء التحميل
+  const dataReady   = !isLoading;
+  const hasIncome   = dataReady && monthlyIncome > 0;
+  const noIncome    = dataReady && monthlyIncome === 0;
 
-  const verdict = price > 0 && hasIncome ? getVerdict(incomePercent) : null;
-  const vc = verdict ? VERDICT_CONFIG[verdict] : null;
+  const dailyIncome   = monthlyIncome / 22;
+  const workDays      = dailyIncome > 0 ? price / dailyIncome : 0;
+  const workHours     = workDays * 8;
+  const incomePct     = monthlyIncome > 0 ? (price / monthlyIncome) * 100 : 0;
+  const budgetPct     = totalBudget > 0   ? (price / totalBudget) * 100  : 0;
+  const entertainPct  = entertainBudget > 0 ? (price / entertainBudget) * 100 : 0;
+
+  const verdict = price > 0 && hasIncome ? getVerdict(incomePct) : null;
+  const vc = verdict ? VC[verdict] : null;
 
   function handleKey(k: string) {
     if (k === '⌫') { setAmount(p => p.slice(0, -1)); return; }
     if (k === '.' && amount.includes('.')) return;
     if (amount.length >= 12) return;
     setAmount(p => (p === '0' && k !== '.') ? k : p + k);
-  }
-
-  function Bar({ pct, color }: { pct: number; color: string }) {
-    const capped = Math.min(pct, 100);
-    return (
-      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${capped}%` }}
-        />
-      </div>
-    );
   }
 
   return (
@@ -100,24 +85,30 @@ export default function WorthItPage() {
           <h1 className="text-lg font-bold">هل يستحق؟</h1>
           <p className="text-[11px] text-muted-foreground">حوّل السعر إلى أيام عمل ونسب</p>
         </div>
-        {!hasIncome && (
-          <Link href="/settings" className="flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1.5">
+        {/* زر مباشر لقسم الدخل — يظهر فقط لو لا يوجد دخل */}
+        {noIncome && (
+          <Link href={INCOME_SETTINGS_URL}
+            className="flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1.5 shrink-0">
             <Settings className="h-3 w-3" />
-            أضف راتبك
+            سجّل دخلك
           </Link>
         )}
       </div>
 
-      {/* ── No income warning ── */}
-      {!hasIncome && (
+      {/* ── تنبيه غياب الدخل — بعد التحميل فقط ── */}
+      {noIncome && (
         <div className="mx-1 mb-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 shrink-0">
           <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-            لم يُسجَّل راتب شهري بعد. أضفه من <Link href="/settings" className="underline font-semibold">الإعدادات</Link> لتحصل على نتائج مخصصة.
+            لم يُسجَّل دخل شهري بعد.{' '}
+            <Link href={INCOME_SETTINGS_URL} className="underline font-semibold">
+              أضف مصادر دخلك
+            </Link>{' '}
+            لتحصل على نتائج مخصصة لوضعك الفعلي.
           </p>
         </div>
       )}
 
-      {/* ── Amount input ── */}
+      {/* ── حقل السعر ── */}
       <div className="mx-1 mb-3 bg-card border border-border rounded-2xl px-4 py-3 shrink-0">
         <p className="text-xs text-muted-foreground mb-1">سعر المنتج</p>
         <div className="flex items-baseline gap-2 justify-end">
@@ -128,10 +119,10 @@ export default function WorthItPage() {
         </div>
       </div>
 
-      {/* ── Results ── */}
+      {/* ── النتائج ── */}
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0">
 
-        {/* Verdict banner */}
+        {/* الحكم */}
         {vc && price > 0 && (
           <div className={`rounded-2xl border px-4 py-3 flex items-center gap-3 ${vc.bg} ${vc.border}`}>
             <span className="text-3xl">{vc.icon}</span>
@@ -142,7 +133,7 @@ export default function WorthItPage() {
           </div>
         )}
 
-        {/* Work days card */}
+        {/* أيام وساعات العمل */}
         {hasIncome && (
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
             <p className="text-xs text-muted-foreground mb-2">يعادل من وقتك</p>
@@ -163,66 +154,68 @@ export default function WorthItPage() {
           </div>
         )}
 
-        {/* Percentages */}
+        {/* النسب المئوية */}
         {hasIncome && (
           <div className="bg-card border border-border rounded-2xl px-4 py-3 flex flex-col gap-3">
-            <p className="text-xs text-muted-foreground">نسبة من ميزانيتك</p>
+            <p className="text-xs text-muted-foreground">نسبة من دخلك الشهري</p>
+            <div className="flex flex-col gap-3">
 
-            <div className="flex flex-col gap-2.5">
-              {/* Income */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-muted-foreground">من الراتب الشهري</span>
-                  <span className={`text-xs font-bold ${incomePercent > 30 ? 'text-red-500' : incomePercent > 10 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                    {price > 0 ? `${incomePercent.toFixed(1)}%` : '—'}
+                  <span className="text-xs text-muted-foreground">من الدخل الشهري</span>
+                  <span className={`text-xs font-bold ${incomePct > 30 ? 'text-red-500' : incomePct > 10 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                    {price > 0 ? `${incomePct.toFixed(1)}%` : '—'}
                   </span>
                 </div>
-                <Bar pct={incomePercent}
-                  color={incomePercent > 30 ? 'bg-red-400' : incomePercent > 10 ? 'bg-amber-400' : 'bg-emerald-500'} />
+                <Bar pct={incomePct} color={incomePct > 30 ? 'bg-red-400' : incomePct > 10 ? 'bg-amber-400' : 'bg-emerald-500'} />
                 {price > 0 && (
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    الراتب: {fmt(monthlyIncome)} د.ع
+                    دخلك الشهري: {Math.round(monthlyIncome).toLocaleString('ar-IQ')} د.ع
                   </p>
                 )}
               </div>
 
-              {/* Monthly budget */}
               {totalBudget > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs text-muted-foreground">من ميزانية الشهر</span>
-                    <span className={`text-xs font-bold ${budgetPercent > 50 ? 'text-red-500' : budgetPercent > 20 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                      {price > 0 ? `${budgetPercent.toFixed(1)}%` : '—'}
+                    <span className={`text-xs font-bold ${budgetPct > 50 ? 'text-red-500' : budgetPct > 20 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                      {price > 0 ? `${budgetPct.toFixed(1)}%` : '—'}
                     </span>
                   </div>
-                  <Bar pct={budgetPercent}
-                    color={budgetPercent > 50 ? 'bg-red-400' : budgetPercent > 20 ? 'bg-amber-400' : 'bg-emerald-500'} />
+                  <Bar pct={budgetPct} color={budgetPct > 50 ? 'bg-red-400' : budgetPct > 20 ? 'bg-amber-400' : 'bg-emerald-500'} />
                 </div>
               )}
 
-              {/* Entertainment */}
               {entertainBudget > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs text-muted-foreground">من ميزانية الترفيه</span>
                     <span className={`text-xs font-bold ${entertainPct > 100 ? 'text-red-500' : entertainPct > 50 ? 'text-amber-500' : 'text-emerald-600'}`}>
-                      {price > 0 ? `${Math.min(entertainPct, 999).toFixed(0)}%` : '—'}
+                      {price > 0 ? `${Math.min(entertainPct,999).toFixed(0)}%` : '—'}
                     </span>
                   </div>
-                  <Bar pct={entertainPct}
-                    color={entertainPct > 100 ? 'bg-red-400' : entertainPct > 50 ? 'bg-amber-400' : 'bg-emerald-500'} />
+                  <Bar pct={entertainPct} color={entertainPct > 100 ? 'bg-red-400' : entertainPct > 50 ? 'bg-amber-400' : 'bg-emerald-500'} />
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Placeholder when no amount */}
+        {/* placeholder */}
         {!price && hasIncome && (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <p className="text-4xl mb-3">💭</p>
             <p className="text-sm text-muted-foreground">أدخل سعر أي منتج تفكر بشرائه</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">وسنخبرك كم يساوي من وقتك وراتبك</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">وسنخبرك كم يساوي من وقتك ودخلك</p>
+          </div>
+        )}
+
+        {/* skeleton أثناء التحميل */}
+        {isLoading && (
+          <div className="flex flex-col gap-2 animate-pulse">
+            <div className="h-16 bg-muted rounded-2xl" />
+            <div className="h-24 bg-muted rounded-2xl" />
           </div>
         )}
       </div>
