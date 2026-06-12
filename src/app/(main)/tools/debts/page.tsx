@@ -83,10 +83,10 @@ function AddSheet({ onClose, onSave }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end">
+    <div className="fixed inset-0 z-50 flex items-end pb-16">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10
-                      flex flex-col max-h-[90dvh]">
+                      flex flex-col max-h-[80dvh]">
 
         {/* handle + header — ثابتان */}
         <div className="shrink-0 px-5 pt-3 pb-2">
@@ -177,7 +177,7 @@ function AddSheet({ onClose, onSave }: {
         </div>
 
         {/* زر الحفظ — ثابت في الأسفل */}
-        <div className="shrink-0 px-5 pt-2 pb-20 border-t border-border bg-background">
+        <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background">
           <button onClick={handleSave}
             disabled={!name.trim() || !amount}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all">
@@ -196,7 +196,7 @@ function DeleteConfirm({ debt, onConfirm, onCancel }: {
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 pb-16">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div className="relative bg-background rounded-2xl border border-border px-5 py-5 w-full max-w-xs z-10">
         <div className="flex items-center gap-3 mb-3">
