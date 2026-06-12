@@ -390,6 +390,8 @@ export default function InstallmentPage() {
               <input
                 value={months}
                 onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
+                onFocus={e => e.target.select()}
+                onBlur={() => { if (!months) setMonths('12'); }}
                 inputMode="numeric"
                 placeholder="مثال: 12"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
