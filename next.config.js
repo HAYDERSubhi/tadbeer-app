@@ -3,18 +3,27 @@
 
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   swcMinify: true,
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
-    // Take control immediately when a new SW version is installed,
-    // instead of waiting for all tabs to close. This ensures users
-    // always get fresh code as soon as a new deployment lands.
     skipWaiting: true,
     clientsClaim: true,
+    // HTML navigation requests: always try network first so updates arrive immediately.
+    runtimeCaching: [
+      {
+        urlPattern: ({ request }: { request: Request }) => request.mode === 'navigate',
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'pages-cache',
+          networkTimeoutSeconds: 5,
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
+    ],
   },
   // --- START of PWA manifest options ---
   id: "app.tadbeer.web",
