@@ -15,7 +15,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
     // HTML navigation requests: always try network first so updates arrive immediately.
     runtimeCaching: [
       {
-        urlPattern: ({ request }: { request: Request }) => request.mode === 'navigate',
+        urlPattern: ({ request }) => request.mode === 'navigate',
         handler: 'NetworkFirst',
         options: {
           cacheName: 'pages-cache',
