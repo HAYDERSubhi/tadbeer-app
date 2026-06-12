@@ -37,11 +37,10 @@ function displayAmount(raw: string): string {
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
-// شريط يمتلئ من اليمين لليسار (RTL)
+// شريط يمتلئ من اليمين لليسار — اتجاه RTL الافتراضي يكفي
 function Bar({ pct, lo, hi }: { pct: number; lo: number; hi: number }) {
   return (
-    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden"
-      style={{ transform: 'scaleX(-1)' }}>
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
       <div
         className={`h-full rounded-full transition-all duration-500 ${barColor(pct, lo, hi)}`}
         style={{ width: `${Math.min(pct, 100)}%` }}
@@ -123,7 +122,7 @@ export default function WorthItPage() {
 
       {/* ── حقل السعر ── */}
       <div className="mx-1 mb-2 bg-card border border-border rounded-2xl px-4 py-3 shrink-0">
-        <p className="text-xs text-muted-foreground mb-1">سعر المنتج</p>
+        <p className="text-xs text-muted-foreground mb-1">سعر منتج/خدمة</p>
         <div className="flex items-baseline gap-2 justify-end">
           <span className="text-muted-foreground text-base font-medium">د.ع</span>
           <span className={`font-bold leading-none transition-all ${
