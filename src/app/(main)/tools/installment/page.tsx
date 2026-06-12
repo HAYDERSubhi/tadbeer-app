@@ -241,13 +241,13 @@ export default function InstallmentPage() {
   const total     = useAmountField();
   const down      = useAmountField();
   const origPrice = useAmountField();
-  const [months, setMonths]          = useState('12');
+  const [months, setMonths]          = useState('');
   const [productName, setProductName] = useState('');
 
   // حسابات فورية
   const net      = Math.max(0, total.value - down.value);
-  const mths     = parseInt(months) || 1;
-  const monthly  = net > 0 ? Math.round(net / mths) : 0;
+  const mths     = parseInt(months) || 0;
+  const monthly  = net > 0 && mths > 0 ? Math.round(net / mths) : 0;
   const extraCost = origPrice.value > 0 ? Math.max(0, total.value - origPrice.value) : 0;
   const extraPct  = origPrice.value > 0 ? (extraCost / origPrice.value) * 100 : 0;
 
@@ -375,8 +375,6 @@ export default function InstallmentPage() {
               <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط (شهر) *</label>
               <input value={months}
                 onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
-                onFocus={e => e.target.select()}
-                onBlur={() => { if (!months) setMonths('12'); }}
                 inputMode="numeric" placeholder="مثال: 12"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
             </div>
@@ -421,8 +419,8 @@ export default function InstallmentPage() {
             </div>
           </div>
 
-          {/* النتائج */}
-          {total.value > 0 && (
+          {/* النتائج — تظهر فقط إذا أُدخل المبلغ وعدد الأشهر */}
+          {total.value > 0 && mths > 0 && (
             <>
               {/* القسط الشهري */}
               <div className="bg-card border border-border rounded-2xl px-4 py-3">
@@ -499,7 +497,7 @@ export default function InstallmentPage() {
             </>
           )}
 
-          {total.value === 0 && (
+          {(total.value === 0 || mths === 0) && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <p className="text-4xl mb-3">🧮</p>
               <p className="text-sm text-muted-foreground">أدخل إجمالي سعر التقسيط وعدد الأشهر</p>
