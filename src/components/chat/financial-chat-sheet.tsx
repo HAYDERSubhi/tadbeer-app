@@ -104,8 +104,8 @@ export function FinancialChatSheet() {
   const { format: formatCurrency } = useCurrency();
   const pathname = usePathname();
 
-  // Hide the floating button on pages where the user is actively entering data
-  const HIDDEN_PATHS = ['/add-expense', '/add-expense/'];
+  // Hide the floating button on data-entry pages and all financial tools pages
+  const HIDDEN_PATHS = ['/add-expense', '/add-expense/', '/tools'];
   const isHidden = HIDDEN_PATHS.some(p => pathname === p || pathname?.startsWith(p));
 
   const [open, setOpen] = useState(false);
