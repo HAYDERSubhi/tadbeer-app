@@ -343,14 +343,14 @@ export default function InstallmentPage() {
             tab === 'calc' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
           }`}>
           <Calculator className="h-3.5 w-3.5" />
-          الحاسبة
+          حساب القسط
         </button>
         <button onClick={() => setTab('plans')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
             tab === 'plans' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
           }`}>
           <BookOpen className="h-3.5 w-3.5" />
-          خططي
+          أقساطي
           {activePlans.length > 0 && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${tab === 'plans' ? 'bg-primary-foreground/20' : 'bg-muted'}`}>
               {activePlans.length}
@@ -387,24 +387,12 @@ export default function InstallmentPage() {
             {/* عدد الأشهر — إلزامي */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط (شهر) *</label>
-              <div className="flex gap-1.5 flex-wrap">
-                {[6,12,18,24,36,48].map(m => (
-                  <button key={m} onClick={() => setMonths(String(m))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      months === String(m)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground border border-border'
-                    }`}>
-                    {m}
-                  </button>
-                ))}
-                <input
-                  value={months}
-                  onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
-                  inputMode="numeric"
-                  placeholder="أخرى"
-                  className="w-16 bg-muted/50 border border-border rounded-lg px-2 py-1.5 text-xs text-center outline-none focus:border-primary" />
-              </div>
+              <input
+                value={months}
+                onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
+                inputMode="numeric"
+                placeholder="مثال: 12"
+                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
             </div>
 
             {/* دفعة أولى — اختياري */}
