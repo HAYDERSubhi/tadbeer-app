@@ -377,7 +377,7 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من الدخل الشهري</span>
                           <span className={`text-xs font-bold ${textColor(incomePct,10,30)}`}>{incomePct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
                           <div className={`h-full rounded-full ${barColor(incomePct,10,30)}`} style={{width:`${Math.min(incomePct,100)}%`}} />
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">دخلك: {fmt(monthlyIncome)} د.ع</p>
@@ -389,7 +389,7 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من ميزانية الشهر</span>
                           <span className={`text-xs font-bold ${textColor(budgetPct,25,75)}`}>{budgetPct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
                           <div className={`h-full rounded-full ${barColor(budgetPct,25,75)}`} style={{width:`${Math.min(budgetPct,100)}%`}} />
                         </div>
                       </div>
@@ -481,7 +481,7 @@ export default function InstallmentPage() {
               </div>
               <p className="text-2xl font-bold">{fmt(totalMonthly)} <span className="text-sm font-normal text-muted-foreground">د.ع / شهر</span></p>
               {monthlyIncome > 0 && (
-                <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden" style={{transform:'scaleX(-1)'}}>
+                <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
                   <div className={`h-full rounded-full ${barColor(totalIncomePct,20,40)}`} style={{width:`${Math.min(totalIncomePct,100)}%`}} />
                 </div>
               )}
