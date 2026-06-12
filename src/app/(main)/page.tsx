@@ -677,6 +677,34 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* ── الأدوات المالية ── */}
+      <Card className="overflow-hidden">
+        <CardContent className="py-4 px-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-foreground">الأدوات المالية</p>
+            <Link href="/tools" className="text-xs text-primary hover:underline">عرض الكل</Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+            {[
+              { href: '/tools/currency',     label: 'العملات',   icon: '💱', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)' },
+              { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
+              { href: '/tools/split-bill',   label: 'الفاتورة',  icon: '🍽', bg: 'linear-gradient(135deg,#34d399,#047857)' },
+              { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
+              { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
+              { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
+              { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
+            ].map(t => (
+              <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm" style={{ background: t.bg }}>
+                  {t.icon}
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground">{t.label}</span>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold">
