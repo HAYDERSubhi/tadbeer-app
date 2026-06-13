@@ -33,6 +33,7 @@ import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
 import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
+import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 
@@ -72,6 +73,12 @@ const tourSteps = [
     title: 'إضافة المصروفات',
     content: 'استخدم هذه الأزرار لإضافة مصروفاتك بسهولة عبر الكتابة، الصوت، أو مسح الفواتير.',
     placement: 'bottom',
+  },
+  {
+    selector: '#financial-tools-card',
+    title: 'الأدوات المالية الذكية 🧮',
+    content: 'هنا كنزك: حاسبة العملات، هل يستحق؟، التقسيط، دفتر الديون، وأداة «سلفتنا» لإدارة السلف الدوّارة بسهولة. اضغط «عرض الكل» لاستكشافها.',
+    placement: 'top',
   },
   {
     selector: '#main-navigation',
@@ -535,7 +542,9 @@ export default function DashboardPage() {
     <div className="space-y-3 pb-24">
       <OnboardingSheet />
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
-      
+
+      <GuestUpgradeBanner />
+
       <UpcomingBillsCard />
 
       {/* Budget Alert */}
@@ -678,7 +687,7 @@ export default function DashboardPage() {
       </Card>
 
       {/* ── الأدوات المالية ── */}
-      <Card className="overflow-hidden">
+      <Card id="financial-tools-card" className="overflow-hidden">
         <CardContent className="py-4 px-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-foreground">الأدوات المالية</p>

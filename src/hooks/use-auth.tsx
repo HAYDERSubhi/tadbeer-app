@@ -12,7 +12,8 @@ import {
   Auth,
   signInWithPopup,
   UserCredential,
-  signInAnonymously
+  signInAnonymously,
+  linkWithPopup
 } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '@/lib/firebase';
 import { addExpense } from '@/services/firestore';
@@ -27,6 +28,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<UserCredential>;
   signInAsGuest: () => Promise<UserCredential>;
   signOutUser: () => Promise<void>;
+  linkGuestWithGoogle: () => Promise<UserCredential>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,15 +101,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signOut(auth);
   }
 
-  const value = useMemo(() => ({ 
-    user, 
-    loading, 
+  // يحوّل حساب الزائر (المجهول) إلى حساب Google دائم — يحافظ على نفس uid وكل البيانات
+  const linkGuestWithGoogle = (): Promise<UserCredential> => {
+    if (!auth?.currentUser || !googleProvider) {
+      return Promise.reject(new Error("لا يوجد مستخدم زائر لربطه."));
+    }
+    return linkWithPopup(auth.currentUser, googleProvider);
+  }
+
+  const value = useMemo(() => ({
+    user,
+    loading,
     authError,
     signInWithEmailPassword,
     signUpWithEmailPassword,
     signInWithGoogle,
     signInAsGuest,
     signOutUser,
+    linkGuestWithGoogle,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, loading, authError]);
 

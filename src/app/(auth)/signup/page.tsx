@@ -120,8 +120,11 @@ export default function SignupPage() {
   const handleGuestSignIn = async () => {
     setIsGuestLoading(true);
     try {
-      await signInAsGuest();
-      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك مؤقتة على هذا الجهاز فقط.' });
+      const cred = await signInAsGuest();
+      if (cred?.user) {
+        await Promise.all(sampleExpenses.map(exp => addExpense(cred.user.uid, exp)));
+      }
+      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك مؤقتة على هذا الجهاز فقط. أضفنا لك مصاريف تجريبية للبداية.' });
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });

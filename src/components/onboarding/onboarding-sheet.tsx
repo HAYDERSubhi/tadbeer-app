@@ -68,12 +68,16 @@ export default function OnboardingSheet() {
   /* show only once, only for users who haven't set income yet */
   useEffect(() => {
     if (!user) return;
-    const done = localStorage.getItem(ONBOARDING_KEY);
-    if (done) return;
+    if (localStorage.getItem(ONBOARDING_KEY)) return;
+    // مستخدم عائد لديه دخل مسجّل فعلاً (جهاز جديد/بعد مسح الكاش) → لا تُظهر المعالج
+    if ((userSettings?.profile?.monthlyIncome ?? 0) > 0) {
+      localStorage.setItem(ONBOARDING_KEY, "done");
+      return;
+    }
     // Wait a moment so the dashboard loads first
     const t = setTimeout(() => setOpen(true), 800);
     return () => clearTimeout(t);
-  }, [user]);
+  }, [user, userSettings]);
 
   /* pre-fill if user already has some data */
   useEffect(() => {
@@ -375,9 +379,11 @@ export default function OnboardingSheet() {
                   <Users className="h-4 w-4 text-primary shrink-0" />
                   <p className="text-xs text-muted-foreground">
                     أسرة مكوّنة من{" "}
-                    <span className="font-bold text-foreground">{adults + children} أشخاص</span>
-                    {" "}({adults} {adults === 1 ? "بالغ" : "بالغين"}
-                    {children > 0 ? ` و${children} ${children === 1 ? "طفل" : "أطفال"}` : ""})
+                    <span className="font-bold text-foreground">
+                      {adults + children === 1 ? "شخص واحد" : adults + children === 2 ? "شخصين" : `${adults + children} أشخاص`}
+                    </span>
+                    {" "}({adults === 1 ? "بالغ واحد" : adults === 2 ? "بالغين" : `${adults} بالغين`}
+                    {children > 0 ? ` و${children === 1 ? "طفل واحد" : children === 2 ? "طفلين" : `${children} أطفال`}` : ""})
                   </p>
                 </div>
               </div>
