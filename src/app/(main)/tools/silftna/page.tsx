@@ -8,14 +8,16 @@ import {
 } from '@/services/firestore';
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
+  swapCycles, clearanceReport,
 } from '@/lib/silftna';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
-  Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ChevronLeft,
+  Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ArrowLeftRight, FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import type {
   Silftna, SilftnaMember, SilftnaPeriod, SilftnaMethod, SilftnaPaymentStatus,
+  SilftnaMemberStatus,
 } from '@/types';
 
 // ── مساعدات ───────────────────────────────────────────────────
@@ -28,6 +30,16 @@ const PERIOD_LABEL: Record<SilftnaPeriod, string> = {
 const METHOD_LABEL: Record<SilftnaMethod, string> = {
   lottery: 'قرعة', registration: 'حسب التسجيل', manual: 'ترتيب يدوي',
 };
+
+const MEMBER_STATUS: Record<SilftnaMemberStatus, { label: string; cls: string }> = {
+  'active':    { label: 'فعّال',    cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
+  'late':      { label: 'متأخر',    cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+  'at-risk':   { label: 'في المخاطر', cls: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+  'withdrawn': { label: 'منسحب',    cls: 'bg-muted text-muted-foreground' },
+  'excluded':  { label: 'مستبعَد',  cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+  'completed': { label: 'مكتمل',    cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+};
+const STATUS_CYCLE: SilftnaMemberStatus[] = ['active', 'late', 'at-risk', 'withdrawn', 'excluded'];
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -134,9 +146,10 @@ export default function SilftnaPage() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-lg ${
                   s.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                   : s.status === 'active' ? 'bg-primary/10 text-primary'
+                  : s.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                   : 'bg-muted text-muted-foreground'
                 }`}>
-                  {s.status === 'completed' ? 'مكتملة' : s.status === 'active' ? 'نشطة' : 'مسودّة'}
+                  {s.status === 'completed' ? 'مكتملة' : s.status === 'active' ? 'نشطة' : s.status === 'cancelled' ? 'ملغاة' : 'مسودّة'}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -424,6 +437,9 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<'schedule' | 'payments' | 'members'>('schedule');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [swapMode, setSwapMode] = useState(false);
+  const [swapFirst, setSwapFirst] = useState<number | null>(null);
+  const [showClearance, setShowClearance] = useState(false);
 
   const { data: s, isLoading } = useQuery({
     queryKey: ['silftna', user?.uid, id],
@@ -471,6 +487,33 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
     return s!.payments.find(p => p.memberId === memberId && p.cycleIndex === cycleIndex)?.status ?? 'unpaid';
   }
 
+  // ── تبديل الأدوار ──
+  function handleCycleTap(cycleIndex: number, delivered: boolean) {
+    if (!swapMode || delivered) return;
+    if (swapFirst === null) { setSwapFirst(cycleIndex); return; }
+    if (swapFirst === cycleIndex) { setSwapFirst(null); return; }
+    patchMutation.mutate({ schedule: swapCycles(s!.schedule, swapFirst, cycleIndex) });
+    setSwapFirst(null);
+    setSwapMode(false);
+  }
+
+  // ── تغيير حالة العضو (يدوياً) ──
+  function cycleMemberStatus(memberId: string) {
+    const members = s!.members.map(m => {
+      if (m.id !== memberId) return m;
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(m.status as SilftnaMemberStatus) + 1) % STATUS_CYCLE.length];
+      return { ...m, status: next };
+    });
+    patchMutation.mutate({ members });
+  }
+
+  // ── إلغاء السلفة (مع تقرير تصفية) ──
+  function cancelSilftna() {
+    patchMutation.mutate({ status: 'cancelled' });
+    setShowClearance(false);
+  }
+  const clearance = clearanceReport(s!);
+
   const TABS = [
     { key: 'schedule' as const, label: 'الجدول', icon: Calendar },
     { key: 'payments' as const, label: 'الدفعات', icon: Wallet },
@@ -517,11 +560,30 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
 
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-4">
         {/* ── الجدول ── */}
+        {tab === 'schedule' && s.status !== 'cancelled' && (
+          <div className="flex items-center justify-between gap-2 shrink-0 mb-1">
+            <button onClick={() => { setSwapMode(v => !v); setSwapFirst(null); }}
+              className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-xl border transition-all ${
+                swapMode ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+              }`}>
+              <ArrowLeftRight className="h-3.5 w-3.5" /> {swapMode ? 'اختر دورتين للتبديل' : 'تبديل الأدوار'}
+            </button>
+            {swapMode && <button onClick={() => { setSwapMode(false); setSwapFirst(null); }} className="text-[11px] text-muted-foreground">إلغاء</button>}
+          </div>
+        )}
         {tab === 'schedule' && s.schedule.map(c => {
           const m = memberById(c.memberId);
           const isCurrent = currentCycle?.index === c.index;
+          const isSwapSel = swapFirst === c.index;
+          const swappable = swapMode && !c.delivered;
           return (
-            <div key={c.index} className={`bg-card border rounded-2xl px-4 py-3 ${isCurrent ? 'border-primary' : c.delivered ? 'border-emerald-300 dark:border-emerald-700' : 'border-border'}`}>
+            <div key={c.index}
+              onClick={() => handleCycleTap(c.index, c.delivered)}
+              className={`bg-card border rounded-2xl px-4 py-3 transition-all ${
+                isSwapSel ? 'border-primary ring-2 ring-primary/30'
+                : isCurrent ? 'border-primary'
+                : c.delivered ? 'border-emerald-300 dark:border-emerald-700' : 'border-border'
+              } ${swappable ? 'cursor-pointer active:scale-[0.99]' : ''} ${swapMode && c.delivered ? 'opacity-40' : ''}`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold shrink-0">{c.index}</span>
@@ -543,20 +605,22 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
                 ) : (
                   <span className="text-[10px] text-muted-foreground">قادمة</span>
                 )}
-                <div className="flex items-center gap-1.5">
-                  {m?.phone && (
-                    <button onClick={() => openWA(m.phone, waLaunch(s, m, c.index, c.date, c.amount))}
-                      className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" /> إشعار
-                    </button>
-                  )}
-                  {!c.delivered && (
-                    <button onClick={() => deliverCycle(c.index)}
-                      className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary">
-                      سجّل التسليم
-                    </button>
-                  )}
-                </div>
+                {!swapMode && (
+                  <div className="flex items-center gap-1.5">
+                    {m?.phone && (
+                      <button onClick={(e) => { e.stopPropagation(); openWA(m.phone, waLaunch(s, m, c.index, c.date, c.amount)); }}
+                        className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" /> إشعار
+                      </button>
+                    )}
+                    {!c.delivered && s.status !== 'cancelled' && (
+                      <button onClick={(e) => { e.stopPropagation(); deliverCycle(c.index); }}
+                        className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary">
+                        سجّل التسليم
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -612,28 +676,93 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
         )}
 
         {/* ── الأعضاء ── */}
-        {tab === 'members' && s.members.map(m => {
-          const receiveCount = s.schedule.filter(c => c.memberId === m.id).length;
-          return (
-            <div key={m.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">{m.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
-                  {m.phone && ' · لديه واتساب'}
-                </p>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                {fmt(memberDuePerCycle(s.installment, m))} د.ع/دورة
-              </span>
-            </div>
-          );
-        })}
+        {tab === 'members' && (
+          <>
+            {s.members.map(m => {
+              const receiveCount = s.schedule.filter(c => c.memberId === m.id).length;
+              const meta = MEMBER_STATUS[m.status as SilftnaMemberStatus] ?? MEMBER_STATUS.active;
+              return (
+                <div key={m.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold truncate">{m.name}</p>
+                      <button onClick={() => cycleMemberStatus(m.id)} className={`text-[9px] px-1.5 py-0.5 rounded-md shrink-0 ${meta.cls}`}>
+                        {meta.label}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
+                      {m.phone && ' · لديه واتساب'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-muted text-muted-foreground shrink-0">
+                    {fmt(memberDuePerCycle(s.installment, m))} د.ع/دورة
+                  </span>
+                </div>
+              );
+            })}
+            <p className="text-[10px] text-muted-foreground text-center mt-1">اضغط على شارة الحالة لتغييرها</p>
+
+            {/* تصفية/إلغاء السلفة */}
+            {s.status !== 'cancelled' && (
+              <button onClick={() => setShowClearance(true)}
+                className="mt-2 w-full py-2.5 rounded-2xl border border-destructive/40 text-destructive text-xs font-medium flex items-center justify-center gap-2">
+                <FileText className="h-3.5 w-3.5" /> تصفية وإلغاء السلفة
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       {confirmDelete && (
         <ConfirmDialog title="حذف السلفة؟" body={`سيتم حذف "${s.name}" وكل سجلاتها نهائياً.`} confirmLabel="حذف"
           onConfirm={() => deleteMutation.mutate()} onCancel={() => setConfirmDelete(false)} />
+      )}
+
+      {/* ── تقرير التصفية ── */}
+      {showClearance && (
+        <div className="fixed inset-0 z-50 flex items-end pb-16">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowClearance(false)} />
+          <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col max-h-[80dvh]">
+            <div className="shrink-0 px-5 pt-3 pb-2">
+              <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold">تقرير التصفية</h2>
+                  <p className="text-[11px] text-muted-foreground">من له ومن عليه عند الإلغاء</p>
+                </div>
+                <button onClick={() => setShowClearance(false)} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-2">
+              <div className="bg-muted/30 rounded-xl px-3 py-2 mb-2 flex text-[10px] font-semibold text-muted-foreground">
+                <span className="flex-1">العضو</span>
+                <span className="w-20 text-center">دفع</span>
+                <span className="w-20 text-center">استلم</span>
+                <span className="w-24 text-center">الصافي</span>
+              </div>
+              {clearance.map(row => (
+                <div key={row.memberId} className="flex items-center px-3 py-2 border-b border-border text-[11px]">
+                  <span className="flex-1 font-medium truncate">{row.name}</span>
+                  <span className="w-20 text-center text-muted-foreground">{fmt(row.paid)}</span>
+                  <span className="w-20 text-center text-muted-foreground">{fmt(row.received)}</span>
+                  <span className={`w-24 text-center font-bold ${row.net > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.net < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                    {row.net > 0 ? `له ${fmt(row.net)}` : row.net < 0 ? `عليه ${fmt(-row.net)}` : '—'}
+                  </span>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
+                «له» = دفع أكثر مما استلم (يُستحق له فرق). «عليه» = استلم أكثر مما دفع (مطلوب منه فرق). استخدم هذا الجدول لإجراء تسوية مالية عادلة بين الأعضاء.
+              </p>
+            </div>
+
+            <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background flex gap-2">
+              <button onClick={() => setShowClearance(false)} className="flex-1 py-3 rounded-2xl border border-border text-sm text-muted-foreground">رجوع</button>
+              <button onClick={cancelSilftna} className="flex-1 py-3 rounded-2xl bg-destructive text-destructive-foreground text-sm font-semibold">تأكيد الإلغاء</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

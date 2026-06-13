@@ -77,6 +77,32 @@ export function generateSchedule(
   }));
 }
 
+// ── تبديل مستلِمَي دورتين (للدورات غير المُسلَّمة فقط) ──
+export function swapCycles(schedule: SilftnaCycle[], indexA: number, indexB: number): SilftnaCycle[] {
+  const a = schedule.find(c => c.index === indexA);
+  const b = schedule.find(c => c.index === indexB);
+  if (!a || !b || a.delivered || b.delivered) return schedule; // حارس: لا تبديل لدورة مُسلَّمة
+  return schedule.map(c => {
+    if (c.index === indexA) return { ...c, memberId: b.memberId };
+    if (c.index === indexB) return { ...c, memberId: a.memberId };
+    return c;
+  });
+}
+
+// ── تقرير التصفية: من دفع كم، من استلم كم، والصافي لكل عضو ──
+export type ClearanceRow = { memberId: string; name: string; paid: number; received: number; net: number };
+export function clearanceReport(s: Silftna): ClearanceRow[] {
+  return s.members.map(m => {
+    const paid = s.payments
+      .filter(p => p.memberId === m.id)
+      .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+    const received = s.schedule
+      .filter(c => c.delivered && c.memberId === m.id)
+      .reduce((sum, c) => sum + c.amount, 0);
+    return { memberId: m.id, name: m.name, paid, received, net: paid - received };
+  });
+}
+
 // ── إجماليات للوحة المدير ──
 export function silftnaTotals(s: Silftna) {
   const shares = totalShares(s.members);
