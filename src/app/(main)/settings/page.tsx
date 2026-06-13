@@ -1132,7 +1132,7 @@ export default function SettingsPage() {
                  <Alert variant="destructive" className="border-0 border-t rounded-t-none">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitleComponent className="text-sm">بياناتك غير محفوظة!</AlertTitleComponent>
-                    <AlertDescriptionComponent className="text-xs">للمزامنة بين أجهزتك، يرجى تسجيل الخروج وإنشاء حساب دائم.</AlertDescriptionComponent>
+                    <AlertDescriptionComponent className="text-xs">احفظ حسابك من الصفحة الرئيسية للاحتفاظ ببياناتك ومزامنتها — دون فقدان ما أدخلته.</AlertDescriptionComponent>
                 </Alert>
              </CardFooter>
         )}
@@ -1141,36 +1141,6 @@ export default function SettingsPage() {
       {/* All settings as uniform accordion */}
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
 
-        {/* Planner / Goals */}
-        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات">
-          <div className="text-center space-y-3">
-            <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك المالية</p>
-            <Link href="/planner">
-              <Button className="w-full gap-2 h-9 text-sm">
-                <Target className="h-4 w-4" />
-                الذهاب إلى الأهداف
-              </Button>
-            </Link>
-          </div>
-        </AccordionItemWrapper>
-
-        {/* Achievements */}
-        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات">
-          <div className="text-center space-y-3">
-            <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك لاستخدام تدبير</p>
-            <Link href="/achievements">
-              <Button className="w-full gap-2 h-9 text-sm" variant="outline">
-                <Trophy className="h-4 w-4 text-amber-500" />
-                عرض الإنجازات والشارات
-              </Button>
-            </Link>
-          </div>
-        </AccordionItemWrapper>
-
-        {/* Family / Household — now a proper accordion section */}
-        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي">
-          <HouseholdManager embedded />
-        </AccordionItemWrapper>
         <AccordionItemWrapper
           value="item-1"
           icon={Palette}
@@ -1565,6 +1535,37 @@ export default function SettingsPage() {
              </div>
         </AccordionItemWrapper>
          
+        {/* Planner / Goals */}
+        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات">
+          <div className="text-center space-y-3">
+            <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك المالية</p>
+            <Link href="/planner">
+              <Button className="w-full gap-2 h-9 text-sm">
+                <Target className="h-4 w-4" />
+                الذهاب إلى الأهداف
+              </Button>
+            </Link>
+          </div>
+        </AccordionItemWrapper>
+
+        {/* Achievements */}
+        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات">
+          <div className="text-center space-y-3">
+            <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك لاستخدام تدبير</p>
+            <Link href="/achievements">
+              <Button className="w-full gap-2 h-9 text-sm" variant="outline">
+                <Trophy className="h-4 w-4 text-amber-500" />
+                عرض الإنجازات والشارات
+              </Button>
+            </Link>
+          </div>
+        </AccordionItemWrapper>
+
+        {/* Family / Household — now a proper accordion section */}
+        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي">
+          <HouseholdManager embedded />
+        </AccordionItemWrapper>
+
         <AccordionItemWrapper
             value="item-5"
             icon={Info}
