@@ -22,15 +22,6 @@ const TOOLS = [
     shimmer: 'linear-gradient(135deg, #c99fff 0%, #7034d0 100%)',
   },
   {
-    href: '/tools/split-bill',
-    label: 'قسّم الفاتورة',
-    sub: 'مشاركة عبر واتساب',
-    icon: '🍽',
-    image: null,
-    gradient: 'linear-gradient(135deg, #34d399 0%, #047857 100%)',
-    shimmer: 'linear-gradient(135deg, #4fe8ad 0%, #159066 100%)',
-  },
-  {
     href: '/tools/installment',
     label: 'حاسبة التقسيط',
     sub: 'نقد أم تقسيط؟',
