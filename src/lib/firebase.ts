@@ -38,6 +38,9 @@ if (
     app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
     // Enable offline persistence via IndexedDB — works across tabs
     db = initializeFirestore(app, {
+      // يتجاهل الحقول ذات القيمة undefined بدل رفض الكتابة كاملةً —
+      // ضروري للحقول الاختيارية (هاتف/سبب/سعر نقدي...) في الديون والتقسيط وسلفتنا
+      ignoreUndefinedProperties: true,
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
