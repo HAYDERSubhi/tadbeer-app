@@ -103,7 +103,7 @@ export default function HabitCostPage() {
           <ChevronRight className="h-6 w-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">كم تكلفني عادتي؟</h1>
+          <h1 className="text-lg font-bold">كم تكلفني عاداتي؟</h1>
           <p className="text-[11px] text-muted-foreground">تكلفة عادة متكررة على المدى الطويل</p>
         </div>
       </div>

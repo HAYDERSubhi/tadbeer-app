@@ -32,7 +32,7 @@ const TOOLS = [
   },
   {
     href: '/tools/habit-cost',
-    label: 'كم تكلفني عادتي؟',
+    label: 'كم تكلفني عاداتي؟',
     sub: 'شهري · سنوي · 5 سنوات',
     icon: '☕',
     image: '/tools/habit-cost.png',
