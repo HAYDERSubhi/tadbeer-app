@@ -165,3 +165,63 @@ export type WeddingPlan = {
   tier: WeddingTier | null; // آخر مستوى مُطبَّق
   updatedAt: string;
 };
+
+// ═══════════════ سلفتنا — الجمعية الدوارة ═══════════════
+// المبدأ الحاكم: المدير قائم بذاته؛ انضمام الأعضاء إثراء اختياري لا يُعطّل أي خاصية.
+// المرحلة 1: كل شيء يُدار بالمدير تحت users/{uid}/silftna/{id}
+
+export type SilftnaPeriod = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+export type SilftnaMethod = 'lottery' | 'registration' | 'manual';
+export type SilftnaStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+export type SilftnaMemberStatus = 'active' | 'late' | 'at-risk' | 'withdrawn' | 'excluded' | 'completed';
+export type SilftnaPaymentStatus = 'unpaid' | 'partial' | 'paid';
+
+// عضو في الجمعية (يديره المدير؛ uid اختياري إن انضم بالتطبيق لاحقاً)
+export type SilftnaMember = {
+  id: string;            // معرّف داخلي ثابت
+  name: string;          // مطلوب
+  phone?: string;        // لإشعارات واتساب
+  shares: number;        // 1 افتراضياً؛ يُرفع في السهم المتعدد
+  status: SilftnaMemberStatus;
+  uid?: string;          // يُملأ إن انضم العضو بالتطبيق (مستقبلاً)
+  note?: string;         // ملاحظة للمدير فقط
+};
+
+// دورة في الجدول (خانة استلام واحدة — صاحب الأسهم المتعددة يملك أكثر من خانة)
+export type SilftnaCycle = {
+  index: number;         // رقم الدورة (1..مجموع الأسهم)
+  memberId: string;      // المستلم في هذه الدورة
+  amount: number;        // المبلغ المستلَم = القسط × مجموع الأسهم
+  date: string;          // تاريخ الاستلام المحسوب (ISO yyyy-mm-dd)
+  delivered: boolean;    // هل سُلِّمت السلفة لهذا المستلم؟
+};
+
+// دفعة عضو في دورة معيّنة
+export type SilftnaPayment = {
+  memberId: string;
+  cycleIndex: number;
+  status: SilftnaPaymentStatus;
+  paidAmount: number;    // المبلغ المسدَّد فعلاً (للدفع الجزئي)
+  method?: string;       // نقدي / تحويل / زين كاش ...
+  proofUrl?: string;     // إثبات (مرحلة لاحقة)
+  recordedAt: string;
+};
+
+export type Silftna = {
+  id: string;
+  uid: string;           // مالك/مدير الجمعية
+  name: string;
+  installment: number;   // قيمة القسط الواحد
+  currency: string;      // IQD افتراضياً
+  period: SilftnaPeriod;
+  startDate: string;     // تاريخ أول دفعة (ISO)
+  method: SilftnaMethod; // طريقة تحديد الأدوار
+  reservePercent: number;// نسبة الصندوق الاحتياطي (0 = معطّل)
+  inviteCode?: string;   // لانضمام الأعضاء بالتطبيق لاحقاً
+  status: SilftnaStatus;
+  members: SilftnaMember[];
+  schedule: SilftnaCycle[];     // يُولَّد عند اعتماد الأدوار
+  payments: SilftnaPayment[];   // سجل الدفعات
+  createdAt: string;
+  updatedAt: string;
+};
