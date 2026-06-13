@@ -7,7 +7,8 @@ const TOOLS = [
     href: '/tools/currency',
     label: 'حاسبة العملات',
     sub: 'IQD · USD · AED · SAR',
-    icon: '$',
+    icon: null,
+    image: '/tools/currency.png',
     gradient: 'linear-gradient(135deg, #60b8ff 0%, #1a6fd4 100%)',
     shimmer: 'linear-gradient(135deg, #7ecfff 0%, #3080e8 100%)',
   },
@@ -16,6 +17,7 @@ const TOOLS = [
     label: 'هل يستحق؟',
     sub: 'أيام العمل والنسب',
     icon: '⚡',
+    image: null,
     gradient: 'linear-gradient(135deg, #b47fff 0%, #5b21b6 100%)',
     shimmer: 'linear-gradient(135deg, #c99fff 0%, #7034d0 100%)',
   },
@@ -24,6 +26,7 @@ const TOOLS = [
     label: 'قسّم الفاتورة',
     sub: 'مشاركة عبر واتساب',
     icon: '🍽',
+    image: null,
     gradient: 'linear-gradient(135deg, #34d399 0%, #047857 100%)',
     shimmer: 'linear-gradient(135deg, #4fe8ad 0%, #159066 100%)',
   },
@@ -32,6 +35,7 @@ const TOOLS = [
     label: 'حاسبة التقسيط',
     sub: 'نقد أم تقسيط؟',
     icon: '📊',
+    image: null,
     gradient: 'linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)',
     shimmer: 'linear-gradient(135deg, #56d0ff 0%, #1580c0 100%)',
   },
@@ -40,6 +44,7 @@ const TOOLS = [
     label: 'كم تكلفني عادتي؟',
     sub: 'شهري · سنوي · 5 سنوات',
     icon: '☕',
+    image: null,
     gradient: 'linear-gradient(135deg, #facc15 0%, #b45309 100%)',
     shimmer: 'linear-gradient(135deg, #fde047 0%, #ca6a10 100%)',
   },
@@ -48,6 +53,7 @@ const TOOLS = [
     label: 'حاسبة الزواج',
     sub: 'توزيع الميزانية',
     icon: '💍',
+    image: null,
     gradient: 'linear-gradient(135deg, #f472b6 0%, #9d174d 100%)',
     shimmer: 'linear-gradient(135deg, #f990cb 0%, #b52060 100%)',
   },
@@ -56,6 +62,7 @@ const TOOLS = [
     label: 'دفتر الديون',
     sub: 'لك وعليك',
     icon: '🤝',
+    image: null,
     gradient: 'linear-gradient(135deg, #fb923c 0%, #b45309 100%)',
     shimmer: 'linear-gradient(135deg, #ffa55a 0%, #ca6a10 100%)',
   },
@@ -78,12 +85,16 @@ export default function ToolsPage() {
           >
             <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none"
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none overflow-hidden"
                 style={{ background: tool.gradient }}
               >
-                <span style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
-                  {tool.icon}
-                </span>
+                {tool.image ? (
+                  <img src={tool.image} alt={tool.label} className="w-10 h-10 object-contain" />
+                ) : (
+                  <span style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
+                    {tool.icon}
+                  </span>
+                )}
               </div>
               <div>
                 <p className="font-semibold text-sm text-foreground leading-tight">{tool.label}</p>
