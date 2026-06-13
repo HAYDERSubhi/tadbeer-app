@@ -8,11 +8,12 @@ import {
 } from '@/services/firestore';
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
-  swapCycles, clearanceReport,
+  swapCycles, clearanceReport, silftnaDashboard,
 } from '@/lib/silftna';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
   Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ArrowLeftRight, FileText,
+  LayoutDashboard, TrendingUp, Bell,
 } from 'lucide-react';
 import Link from 'next/link';
 import type {
@@ -431,11 +432,114 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
   );
 }
 
+// ═══════════════════════ لوحة المدير ═══════════════════════
+function Dashboard({ s }: { s: Silftna }) {
+  const d = silftnaDashboard(s);
+  const memberById = (mid: string) => s.members.find(m => m.id === mid);
+
+  return (
+    <>
+      {/* نسبة إنجاز السلفة */}
+      <div className="bg-card border border-border rounded-2xl px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">إنجاز السلفة</span>
+          <span className="text-sm font-bold text-primary">{d.progress}%</span>
+        </div>
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden flex justify-end">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${d.progress}%` }} />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5">{d.delivered} من {d.cycles} دورة مكتملة</p>
+      </div>
+
+      {/* جُمع / وُزِّع */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-muted-foreground mb-1">إجمالي ما جُمع</p>
+          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{fmt(d.totalCollected)}</p>
+          <p className="text-[9px] text-muted-foreground">د.ع</p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-muted-foreground mb-1">إجمالي ما وُزِّع</p>
+          <p className="text-base font-bold">{fmt(d.totalDistributed)}</p>
+          <p className="text-[9px] text-muted-foreground">د.ع</p>
+        </div>
+      </div>
+
+      {/* الدورة الحالية */}
+      {d.current ? (
+        <div className="bg-card border border-primary/40 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground">المستلم القادم</p>
+              <p className="text-sm font-bold">{d.nextRecipientName}</p>
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] text-muted-foreground">دورة {d.current.index} · {fmtDate(d.current.date)}</p>
+              <p className="text-sm font-bold">{fmt(d.current.amount)} د.ع</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-muted-foreground">جمع هذه الدورة</span>
+            <span className="text-[10px] font-bold">{d.paidCount}/{d.membersCount} عضو · {d.cycleProgress}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.cycleProgress}%` }} />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">🎉 اكتملت كل الدورات</p>
+        </div>
+      )}
+
+      {/* المتأخرون */}
+      {d.overdue.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Bell className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">متأخرون عن الدورة الحالية ({d.overdue.length})</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {d.overdue.map(m => (
+              <div key={m.id} className="flex items-center justify-between">
+                <span className="text-xs">{m.name}</span>
+                {m.phone && d.current && (
+                  <button onClick={() => openWA(m.phone, waReminder(s, d.current!.index, d.current!.date, memberDuePerCycle(s.installment, m)))}
+                    className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
+                    <MessageCircle className="h-3 w-3" /> تذكير
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* الأكثر التزاماً */}
+      {d.committed.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <p className="text-xs font-bold">الأكثر التزاماً</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {d.committed.map(m => (
+              <span key={m.id} className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-lg">
+                {m.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ═══════════════════════ تفاصيل السلفة ═══════════════════════
 function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'schedule' | 'payments' | 'members'>('schedule');
+  const [tab, setTab] = useState<'dashboard' | 'schedule' | 'payments' | 'members'>('dashboard');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [swapMode, setSwapMode] = useState(false);
   const [swapFirst, setSwapFirst] = useState<number | null>(null);
@@ -515,9 +619,10 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const clearance = clearanceReport(s!);
 
   const TABS = [
-    { key: 'schedule' as const, label: 'الجدول', icon: Calendar },
-    { key: 'payments' as const, label: 'الدفعات', icon: Wallet },
-    { key: 'members'  as const, label: 'الأعضاء', icon: Users },
+    { key: 'dashboard' as const, label: 'اللوحة', icon: LayoutDashboard },
+    { key: 'schedule'  as const, label: 'الجدول', icon: Calendar },
+    { key: 'payments'  as const, label: 'الدفعات', icon: Wallet },
+    { key: 'members'   as const, label: 'الأعضاء', icon: Users },
   ];
 
   return (
@@ -532,33 +637,20 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
         <button onClick={() => setConfirmDelete(true)} className="text-muted-foreground/40 hover:text-destructive p-1"><Trash2 className="h-4 w-4" /></button>
       </div>
 
-      {/* ملخص سريع */}
-      <div className="grid grid-cols-3 gap-2 px-1 mb-2 shrink-0">
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold">{fmt(t.perCycle)}</p>
-          <p className="text-[9px] text-muted-foreground">المبلغ/دورة</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold text-primary">{t.progress}%</p>
-          <p className="text-[9px] text-muted-foreground">{t.delivered}/{t.cycles} دورة</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold">{s.members.length}</p>
-          <p className="text-[9px] text-muted-foreground">عضو</p>
-        </div>
-      </div>
-
       {/* تبويبات */}
       <div className="flex gap-1.5 px-1 mb-2 shrink-0">
         {TABS.map(T => (
           <button key={T.key} onClick={() => setTab(T.key)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium transition-all ${tab === T.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl text-[10px] font-medium transition-all ${tab === T.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
             <T.icon className="h-3.5 w-3.5" /> {T.label}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-4">
+        {/* ── اللوحة ── */}
+        {tab === 'dashboard' && <Dashboard s={s} />}
+
         {/* ── الجدول ── */}
         {tab === 'schedule' && s.status !== 'cancelled' && (
           <div className="flex items-center justify-between gap-2 shrink-0 mb-1">

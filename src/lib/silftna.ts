@@ -120,3 +120,61 @@ export function silftnaTotals(s: Silftna) {
     collectedThisRound,
   };
 }
+
+// ── الدورة الحالية (أول دورة غير مُسلَّمة) ──
+export function currentCycleOf(s: Silftna) {
+  return s.schedule.find(c => !c.delivered) ?? null;
+}
+
+// ── لوحة المدير الإحصائية الشاملة ──
+export function silftnaDashboard(s: Silftna) {
+  const t = silftnaTotals(s);
+  const current = currentCycleOf(s);
+
+  // إجمالي ما جُمِع وما وُزِّع طوال السلفة
+  const totalCollected = s.payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+  const totalDistributed = s.schedule.filter(c => c.delivered).reduce((sum, c) => sum + c.amount, 0);
+
+  // حالة الدورة الحالية: من دفع كاملاً
+  let paidCount = 0, dueThisCycle = 0, collectedThisCycle = 0;
+  if (current) {
+    for (const m of s.members) {
+      const due = installmentDue(s.installment, m);
+      dueThisCycle += due;
+      const pay = s.payments.find(p => p.memberId === m.id && p.cycleIndex === current.index);
+      collectedThisCycle += pay?.paidAmount ?? 0;
+      if (pay?.status === 'paid') paidCount++;
+    }
+  }
+  const cycleProgress = dueThisCycle > 0 ? Math.round((collectedThisCycle / dueThisCycle) * 100) : 0;
+
+  // المتأخرون: الدورة الحالية مستحقة (مرّ تاريخها) ولم يدفعوا كاملاً
+  const today = new Date().setHours(0, 0, 0, 0);
+  const overdue = current && new Date(current.date).setHours(0, 0, 0, 0) <= today
+    ? s.members.filter(m => {
+        const pay = s.payments.find(p => p.memberId === m.id && p.cycleIndex === current.index);
+        return (pay?.status ?? 'unpaid') !== 'paid';
+      })
+    : [];
+
+  // الأكثر التزاماً: دفعوا «كاملاً» كل الدورات الماضية (المُسلَّمة)
+  const pastIndices = s.schedule.filter(c => c.delivered).map(c => c.index);
+  const committed = pastIndices.length === 0 ? [] : s.members.filter(m =>
+    pastIndices.every(ci => s.payments.find(p => p.memberId === m.id && p.cycleIndex === ci)?.status === 'paid')
+  );
+
+  return {
+    ...t,
+    current,
+    nextRecipientName: current ? (s.members.find(m => m.id === current.memberId)?.name ?? '—') : null,
+    totalCollected,
+    totalDistributed,
+    paidCount,
+    membersCount: s.members.length,
+    cycleProgress,
+    overdue,
+    committed,
+  };
+}
+
+function installmentDue(installment: number, m: SilftnaMember) { return installment * Math.max(1, m.shares || 1); }
