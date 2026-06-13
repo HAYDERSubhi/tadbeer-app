@@ -18,7 +18,7 @@ import {
     arrayUnion,
     arrayRemove,
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan, Silftna } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 // ─── Path helper: household or personal ────────────────────────────────────
@@ -772,6 +772,37 @@ export const getWeddingPlan = async (uid: string): Promise<WeddingPlan | null> =
 export const saveWeddingPlan = async (uid: string, plan: WeddingPlan): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await setDoc(doc(db, 'users', uid, 'wedding', 'plan'), plan);
+};
+
+// ── سلفتنا (سلف دوّارة — مستندات تحت users/{uid}/silftna) ──────────
+export const getSilftnaList = async (uid: string): Promise<Silftna[]> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const snap = await getDocs(collection(db, 'users', uid, 'silftna'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Silftna))
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+};
+
+export const getSilftna = async (uid: string, id: string): Promise<Silftna | null> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const snap = await getDoc(doc(db, 'users', uid, 'silftna', id));
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Silftna) : null;
+};
+
+export const addSilftna = async (uid: string, data: Omit<Silftna, 'id' | 'uid' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const now = new Date().toISOString();
+    const ref = await addDoc(collection(db, 'users', uid, 'silftna'), { ...data, uid, createdAt: now, updatedAt: now });
+    return ref.id;
+};
+
+export const updateSilftna = async (uid: string, id: string, patch: Partial<Silftna>): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await updateDoc(doc(db, 'users', uid, 'silftna', id), { ...patch, updatedAt: new Date().toISOString() });
+};
+
+export const deleteSilftna = async (uid: string, id: string): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'users', uid, 'silftna', id));
 };
 
 export const deleteDebt = async (uid: string, debtId: string): Promise<void> => {
