@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
-import { getDebts, addDebt, settleDebt, deleteDebt } from '@/services/firestore';
+import { getDebts, addDebt, settleDebt, unsettleDebt, deleteDebt } from '@/services/firestore';
 import { ChevronRight, Plus, MessageCircle, Check, Trash2, Bell, X, ChevronDown, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import type { Debt } from '@/types';
@@ -157,7 +157,7 @@ function AddSheet({ onClose, onSave }: {
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">تاريخ الاستحقاق (اختياري)</label>
               <input value={dueDate} onChange={e => setDueDate(e.target.value)}
-                type="date" min={new Date().toISOString().split('T')[0]}
+                type="date"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm outline-none focus:border-primary" />
             </div>
 
@@ -169,15 +169,28 @@ function AddSheet({ onClose, onSave }: {
               <ChevronDown className={`h-3 w-3 transition-transform ${showPhone ? 'rotate-180' : ''}`} />
             </button>
 
-            {showPhone && (
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب (مع رمز الدولة)</label>
-                <input value={phone} onChange={e => setPhone(e.target.value)}
-                  type="tel" placeholder="9647701234567"
-                  className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm outline-none focus:border-primary" dir="ltr" />
-                <p className="text-[10px] text-muted-foreground mt-1">بدون + في البداية · مثال: 9647701234567</p>
-              </div>
-            )}
+            {showPhone && (() => {
+              const digits = phone.replace(/\D/g, '');
+              // رقم محلي محتمل: يبدأ بصفر أو قصير جداً (بلا رمز دولة)
+              const looksLocal = digits.length > 0 && (digits.startsWith('0') || digits.length < 10);
+              return (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب (مع رمز الدولة)</label>
+                  <input value={phone} onChange={e => setPhone(e.target.value)}
+                    type="tel" placeholder="9647701234567"
+                    className={`w-full bg-muted/50 border rounded-xl px-3 py-3 text-sm outline-none ${
+                      looksLocal ? 'border-amber-400 focus:border-amber-500' : 'border-border focus:border-primary'
+                    }`} dir="ltr" />
+                  {looksLocal ? (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                      ⚠ الرقم يبدو محلياً. أضف رمز الدولة بدل الصفر (مثال: 9647701234567) وإلا لن يعمل الرابط.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground mt-1">بدون + في البداية · مثال: 9647701234567</p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -222,11 +235,14 @@ function DeleteConfirm({ debt, onConfirm, onCancel }: {
 }
 
 // ── Debt Card ──────────────────────────────────────────────────
-function DebtCard({ debt, onSettle, onDeleteRequest }: {
+function DebtCard({ debt, onSettle, onUnsettle, onDeleteRequest }: {
   debt: Debt;
   onSettle: (id: string) => void;
+  onUnsettle: (id: string) => void;
   onDeleteRequest: (debt: Debt) => void;
 }) {
+  // تأكيد قبل التسوية لمنع الضغط الخاطئ
+  const [confirmSettle, setConfirmSettle] = useState(false);
   const days = debt.dueDate ? daysUntil(debt.dueDate) : null;
   const isOverdue  = days !== null && days < 0;
   const isDueSoon  = days !== null && days >= 0 && days <= 7;
@@ -263,7 +279,10 @@ function DebtCard({ debt, onSettle, onDeleteRequest }: {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">{fmt(debt.amount)} د.ع</span>
-          <Check className="h-4 w-4 text-emerald-500" />
+          <button onClick={() => onUnsettle(debt.id)}
+            className="text-[10px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5 transition-colors">
+            تراجع
+          </button>
           <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -301,36 +320,54 @@ function DebtCard({ debt, onSettle, onDeleteRequest }: {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {debt.dueDate ? (
-            <>
-              <Bell className={`h-3 w-3 shrink-0 ${dueText}`} />
-              <span className={`text-[11px] font-medium ${dueText}`}>{dueDateLabel()}</span>
-            </>
-          ) : (
-            <span className="text-[11px] text-muted-foreground/50">بدون موعد</span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {debt.phone && (
-            <button onClick={() => openWhatsApp(debt)}
-              className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-2 py-1.5 active:scale-95 transition-transform">
-              <MessageCircle className="h-3 w-3" />
-              واتساب
+      {confirmSettle ? (
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-[11px] text-muted-foreground">
+            {isToMe ? 'تأكيد استحصال المبلغ؟' : 'تأكيد سداد المبلغ؟'}
+          </span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setConfirmSettle(false)}
+              className="text-[11px] rounded-lg px-3 py-1.5 border border-border text-muted-foreground">
+              إلغاء
             </button>
-          )}
-          <button onClick={() => onSettle(debt.id)}
-            className="flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
-            <Check className="h-3 w-3" />
-            {isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
-          </button>
-          <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+            <button onClick={() => { setConfirmSettle(false); onSettle(debt.id); }}
+              className="text-[11px] rounded-lg px-3 py-1.5 bg-primary text-primary-foreground font-semibold">
+              تأكيد
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            {debt.dueDate ? (
+              <>
+                <Bell className={`h-3 w-3 shrink-0 ${dueText}`} />
+                <span className={`text-[11px] font-medium ${dueText}`}>{dueDateLabel()}</span>
+              </>
+            ) : (
+              <span className="text-[11px] text-muted-foreground/50">بدون موعد</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {debt.phone && (
+              <button onClick={() => openWhatsApp(debt)}
+                className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg px-2 py-1.5 active:scale-95 transition-transform">
+                <MessageCircle className="h-3 w-3" />
+                واتساب
+              </button>
+            )}
+            <button onClick={() => setConfirmSettle(true)}
+              className="flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
+              <Check className="h-3 w-3" />
+              {isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
+            </button>
+            <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -356,6 +393,11 @@ export default function DebtsPage() {
 
   const settleMutation = useMutation({
     mutationFn: (id: string) => settleDebt(user!.uid, id),
+    onSuccess:  () => qc.invalidateQueries({ queryKey: ['debts', user?.uid] }),
+  });
+
+  const unsettleMutation = useMutation({
+    mutationFn: (id: string) => unsettleDebt(user!.uid, id),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['debts', user?.uid] }),
   });
 
@@ -513,6 +555,7 @@ export default function DebtsPage() {
             key={debt.id}
             debt={debt}
             onSettle={id => settleMutation.mutate(id)}
+            onUnsettle={id => unsettleMutation.mutate(id)}
             onDeleteRequest={d => setToDelete(d)}
           />
         ))}

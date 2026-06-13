@@ -37,10 +37,10 @@ function displayAmount(raw: string): string {
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
-// شريط يمتلئ من اليمين لليسار — اتجاه RTL الافتراضي يكفي
+// شريط يمتلئ من اليمين لليسار — flex justify-end يضمن الاتجاه الصحيح في RTL
 function Bar({ pct, lo, hi }: { pct: number; lo: number; hi: number }) {
   return (
-    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
       <div
         className={`h-full rounded-full transition-all duration-500 ${barColor(pct, lo, hi)}`}
         style={{ width: `${Math.min(pct, 100)}%` }}
@@ -183,7 +183,7 @@ export default function WorthItPage() {
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <p className="text-4xl mb-3">💭</p>
             <p className="text-sm text-muted-foreground">أدخل سعر أي منتج تفكر بشرائه</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">وسنخبرك ماذا يساوي من حياتك</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">وسنخبرك ماذا يساوي من ميزانيتك ودخلك</p>
           </div>
         )}
 

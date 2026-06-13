@@ -757,6 +757,11 @@ export const settleDebt = async (uid: string, debtId: string): Promise<void> => 
     await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: true, settledAt: new Date().toISOString() });
 };
 
+export const unsettleDebt = async (uid: string, debtId: string): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: false, settledAt: null });
+};
+
 export const deleteDebt = async (uid: string, debtId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await deleteDoc(doc(db, 'users', uid, 'debts', debtId));
