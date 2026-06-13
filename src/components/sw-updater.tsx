@@ -2,17 +2,26 @@
 
 import { useEffect } from 'react';
 
-// يُعيد تحميل الصفحة تلقائياً فور استلام Service Worker جديد للتحكم.
-// هذا يضمن وصول التحديثات فوراً بدون تدخل يدوي من المستخدم.
 export function SWUpdater() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    const handleControllerChange = () => {
-      window.location.reload();
+    // إعادة تحميل فور استلام SW جديد للتحكم
+    const handleControllerChange = () => window.location.reload();
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    // طلب التحقق من تحديثات SW فوراً عند كل فتح للتطبيق
+    const checkForUpdate = () => {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        if (reg) reg.update();
+      });
     };
 
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    checkForUpdate(); // فحص فوري عند التحميل
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdate();
+    });
+
     return () => {
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
