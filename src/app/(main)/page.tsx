@@ -691,7 +691,7 @@ export default function DashboardPage() {
               { href: '/tools/split-bill',   label: 'الفاتورة',  icon: '🍽', bg: 'linear-gradient(135deg,#34d399,#047857)' },
               { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
               { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
-              { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
+              { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
               { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
             ].map(t => (

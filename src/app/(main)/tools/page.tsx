@@ -53,7 +53,7 @@ const TOOLS = [
     label: 'حاسبة الزواج',
     sub: 'توزيع الميزانية',
     icon: '💍',
-    image: null,
+    image: '/tools/wedding.png',
     gradient: 'linear-gradient(135deg, #f472b6 0%, #9d174d 100%)',
     shimmer: 'linear-gradient(135deg, #f990cb 0%, #b52060 100%)',
   },
