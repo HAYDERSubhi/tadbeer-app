@@ -222,6 +222,15 @@ export type Silftna = {
   members: SilftnaMember[];
   schedule: SilftnaCycle[];     // يُولَّد عند اعتماد الأدوار
   payments: SilftnaPayment[];   // سجل الدفعات
+  reserveSpends?: SilftnaReserveSpend[]; // مصروفات الصندوق الاحتياطي
   createdAt: string;
   updatedAt: string;
+};
+
+// صرف من الصندوق الاحتياطي
+export type SilftnaReserveSpend = {
+  id: string;
+  amount: number;
+  reason: string;
+  date: string;
 };

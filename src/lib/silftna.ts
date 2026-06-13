@@ -126,6 +126,17 @@ export function currentCycleOf(s: Silftna) {
   return s.schedule.find(c => !c.delivered) ?? null;
 }
 
+// ── الصندوق الاحتياطي: المتراكم − المصروف = الرصيد ──
+export function reserveStats(s: Silftna) {
+  const pct = s.reservePercent || 0;
+  // يتراكم بنسبة من كل مبلغ مسدَّد فعلاً
+  const accrued = pct > 0
+    ? Math.round(s.payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0) * pct / 100)
+    : 0;
+  const spent = (s.reserveSpends ?? []).reduce((sum, x) => sum + (x.amount || 0), 0);
+  return { enabled: pct > 0, pct, accrued, spent, balance: accrued - spent };
+}
+
 // ── لوحة المدير الإحصائية الشاملة ──
 export function silftnaDashboard(s: Silftna) {
   const t = silftnaTotals(s);

@@ -8,7 +8,7 @@ import {
 } from '@/services/firestore';
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
-  swapCycles, clearanceReport, silftnaDashboard,
+  swapCycles, clearanceReport, silftnaDashboard, reserveStats,
 } from '@/lib/silftna';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
@@ -184,6 +184,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
   const [period, setPeriod] = useState<SilftnaPeriod>('monthly');
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [method, setMethod] = useState<SilftnaMethod>('lottery');
+  const [reservePercent, setReservePercent] = useState(0);
   const installment = parseAmt(installmentRaw);
 
   // الخطوة 2: الأعضاء
@@ -235,7 +236,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
     const schedule = generateSchedule(members, order, installment, startDate, period);
     addMutation.mutate({
       name: name.trim(), installment, currency: 'IQD', period, startDate, method,
-      reservePercent: 0, status: 'active', members, schedule, payments: [],
+      reservePercent, status: 'active', members, schedule, payments: [], reserveSpends: [],
     });
   }
 
@@ -305,6 +306,20 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
                     <button key={m} onClick={() => setMethod(m)}
                       className={`py-2 rounded-lg text-[11px] font-medium transition-all ${method === m ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                       {METHOD_LABEL[m]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  الصندوق الاحتياطي
+                  <span className="mr-1 text-[10px] opacity-60">(نسبة تُضاف على كل قسط — 0 = معطّل)</span>
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[0, 1, 2, 3, 5].map(p => (
+                    <button key={p} onClick={() => setReservePercent(p)}
+                      className={`py-2 rounded-lg text-[11px] font-medium transition-all ${reservePercent === p ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      {p === 0 ? 'بدون' : `${p}%`}
                     </button>
                   ))}
                 </div>
@@ -433,9 +448,19 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
 }
 
 // ═══════════════════════ لوحة المدير ═══════════════════════
-function Dashboard({ s }: { s: Silftna }) {
+function Dashboard({ s, onSpendReserve }: { s: Silftna; onSpendReserve: (amount: number, reason: string) => void }) {
   const d = silftnaDashboard(s);
-  const memberById = (mid: string) => s.members.find(m => m.id === mid);
+  const reserve = reserveStats(s);
+  const [spendOpen, setSpendOpen] = useState(false);
+  const [spendAmt, setSpendAmt] = useState('');
+  const [spendReason, setSpendReason] = useState('');
+
+  function doSpend() {
+    const amt = parseAmt(spendAmt);
+    if (amt <= 0 || amt > reserve.balance) return;
+    onSpendReserve(amt, spendReason);
+    setSpendAmt(''); setSpendReason(''); setSpendOpen(false);
+  }
 
   return (
     <>
@@ -531,6 +556,60 @@ function Dashboard({ s }: { s: Silftna }) {
           </div>
         </div>
       )}
+
+      {/* الصندوق الاحتياطي */}
+      {reserve.enabled && (
+        <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs font-bold text-violet-700 dark:text-violet-400">الصندوق الاحتياطي</p>
+              <p className="text-[10px] text-muted-foreground">{reserve.pct}% من كل دفعة</p>
+            </div>
+            <div className="text-left">
+              <p className="text-lg font-bold text-violet-700 dark:text-violet-400">{fmt(reserve.balance)}</p>
+              <p className="text-[9px] text-muted-foreground">الرصيد · د.ع</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
+            <span>تراكم: {fmt(reserve.accrued)}</span>
+            <span>مصروف: {fmt(reserve.spent)}</span>
+          </div>
+
+          {!spendOpen ? (
+            <button onClick={() => setSpendOpen(true)} disabled={reserve.balance <= 0}
+              className="w-full py-2 rounded-xl border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400 text-xs font-medium disabled:opacity-40">
+              تسجيل صرف من الصندوق
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <input value={fmtInput(parseAmt(spendAmt))} onChange={e => setSpendAmt(e.target.value)} inputMode="numeric" placeholder="المبلغ"
+                  className="w-full bg-background border border-border rounded-lg pl-7 pr-2 py-2 text-xs text-right outline-none focus:border-violet-500" />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">د.ع</span>
+              </div>
+              <input value={spendReason} onChange={e => setSpendReason(e.target.value)} placeholder="السبب (تعويض، تأخير، طوارئ...)"
+                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-xs text-right outline-none focus:border-violet-500" />
+              <div className="flex gap-2">
+                <button onClick={() => { setSpendOpen(false); setSpendAmt(''); setSpendReason(''); }}
+                  className="flex-1 py-2 rounded-lg border border-border text-xs text-muted-foreground">إلغاء</button>
+                <button onClick={doSpend} disabled={parseAmt(spendAmt) <= 0 || parseAmt(spendAmt) > reserve.balance}
+                  className="flex-1 py-2 rounded-lg bg-violet-600 text-white text-xs font-semibold disabled:opacity-40">صرف</button>
+              </div>
+            </div>
+          )}
+
+          {(s.reserveSpends ?? []).length > 0 && (
+            <div className="mt-2 pt-2 border-t border-violet-200 dark:border-violet-800 flex flex-col gap-1">
+              {(s.reserveSpends ?? []).slice(-3).reverse().map(sp => (
+                <div key={sp.id} className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground truncate">{sp.reason}</span>
+                  <span className="text-violet-700 dark:text-violet-400 font-medium shrink-0">−{fmt(sp.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -618,6 +697,12 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   }
   const clearance = clearanceReport(s!);
 
+  // ── صرف من الصندوق الاحتياطي ──
+  function spendReserve(amount: number, reason: string) {
+    const spend = { id: uid4(), amount, reason: reason.trim() || 'صرف', date: new Date().toISOString() };
+    patchMutation.mutate({ reserveSpends: [...(s!.reserveSpends ?? []), spend] });
+  }
+
   const TABS = [
     { key: 'dashboard' as const, label: 'اللوحة', icon: LayoutDashboard },
     { key: 'schedule'  as const, label: 'الجدول', icon: Calendar },
@@ -649,7 +734,7 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
 
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-4">
         {/* ── اللوحة ── */}
-        {tab === 'dashboard' && <Dashboard s={s} />}
+        {tab === 'dashboard' && <Dashboard s={s} onSpendReserve={spendReserve} />}
 
         {/* ── الجدول ── */}
         {tab === 'schedule' && s.status !== 'cancelled' && (
