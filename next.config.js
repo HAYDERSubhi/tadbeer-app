@@ -7,20 +7,20 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   swcMinify: true,
-  disable: true,
+  disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
     skipWaiting: true,
     clientsClaim: true,
-    // HTML navigation requests: always try network first so updates arrive immediately.
+    // كل الطلبات: NetworkFirst — الشبكة أولاً دائماً، الـ cache للطوارئ فقط
     runtimeCaching: [
       {
-        urlPattern: ({ request }) => request.mode === 'navigate',
+        urlPattern: /.*/,
         handler: 'NetworkFirst',
         options: {
-          cacheName: 'pages-cache',
-          networkTimeoutSeconds: 5,
-          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
+          cacheName: 'tadbeer-v2',
+          networkTimeoutSeconds: 4,
+          expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 },
         },
       },
     ],
