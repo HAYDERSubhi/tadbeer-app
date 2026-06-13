@@ -689,7 +689,7 @@ export default function DashboardPage() {
               { href: '/tools/currency',     label: 'العملات',   icon: '💱', image: '/tools/currency.png', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)' },
               { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
               { href: '/tools/split-bill',   label: 'الفاتورة',  icon: '🍽', bg: 'linear-gradient(135deg,#34d399,#047857)' },
-              { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
+              { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
               { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
               { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },

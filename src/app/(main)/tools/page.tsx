@@ -35,7 +35,7 @@ const TOOLS = [
     label: 'حاسبة التقسيط',
     sub: 'نقد أم تقسيط؟',
     icon: '📊',
-    image: null,
+    image: '/tools/installment.png',
     gradient: 'linear-gradient(135deg, #38bdf8 0%, #0369a1 100%)',
     shimmer: 'linear-gradient(135deg, #56d0ff 0%, #1580c0 100%)',
   },
