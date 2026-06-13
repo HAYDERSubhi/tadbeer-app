@@ -194,6 +194,8 @@ export type SilftnaCycle = {
   amount: number;        // المبلغ المستلَم = القسط × مجموع الأسهم
   date: string;          // تاريخ الاستلام المحسوب (ISO yyyy-mm-dd)
   delivered: boolean;    // هل سُلِّمت السلفة لهذا المستلم؟
+  deliveredAt?: string;  // وقت التسليم الدقيق (توثيق)
+  signatureUrl?: string; // توقيع المستلم الإلكتروني (إقرار الاستلام)
 };
 
 // دفعة عضو في دورة معيّنة
@@ -222,6 +224,15 @@ export type Silftna = {
   members: SilftnaMember[];
   schedule: SilftnaCycle[];     // يُولَّد عند اعتماد الأدوار
   payments: SilftnaPayment[];   // سجل الدفعات
+  reserveSpends?: SilftnaReserveSpend[]; // مصروفات الصندوق الاحتياطي
   createdAt: string;
   updatedAt: string;
+};
+
+// صرف من الصندوق الاحتياطي
+export type SilftnaReserveSpend = {
+  id: string;
+  amount: number;
+  reason: string;
+  date: string;
 };

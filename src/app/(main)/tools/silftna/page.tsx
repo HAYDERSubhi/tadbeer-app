@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -8,14 +8,19 @@ import {
 } from '@/services/firestore';
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
+  swapCycles, clearanceReport, silftnaDashboard, reserveStats,
+  silftnaReportText, silftnaCSV, memberTrust,
 } from '@/lib/silftna';
+import { uploadSilftnaProof, uploadSilftnaSignature } from '@/services/storage';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
-  Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ChevronLeft,
+  Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ArrowLeftRight, FileText,
+  LayoutDashboard, TrendingUp, Bell, Camera, PenLine, ShieldCheck, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import type {
   Silftna, SilftnaMember, SilftnaPeriod, SilftnaMethod, SilftnaPaymentStatus,
+  SilftnaMemberStatus, SilftnaCycle,
 } from '@/types';
 
 // ── مساعدات ───────────────────────────────────────────────────
@@ -28,6 +33,16 @@ const PERIOD_LABEL: Record<SilftnaPeriod, string> = {
 const METHOD_LABEL: Record<SilftnaMethod, string> = {
   lottery: 'قرعة', registration: 'حسب التسجيل', manual: 'ترتيب يدوي',
 };
+
+const MEMBER_STATUS: Record<SilftnaMemberStatus, { label: string; cls: string }> = {
+  'active':    { label: 'فعّال',    cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
+  'late':      { label: 'متأخر',    cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
+  'at-risk':   { label: 'في المخاطر', cls: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' },
+  'withdrawn': { label: 'منسحب',    cls: 'bg-muted text-muted-foreground' },
+  'excluded':  { label: 'مستبعَد',  cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+  'completed': { label: 'مكتمل',    cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+};
+const STATUS_CYCLE: SilftnaMemberStatus[] = ['active', 'late', 'at-risk', 'withdrawn', 'excluded'];
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -48,6 +63,98 @@ function waDelivered(s: Silftna, m: SilftnaMember, amount: number) {
 function openWA(phone: string | undefined, text: string) {
   const p = phone?.replace(/\D/g, '');
   window.open(p ? `https://wa.me/${p}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ضغط صورة إلى JPEG بحجم معقول قبل الرفع (توفير المساحة)
+function compressImage(file: File, maxDim = 1100, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const r = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * r); height = Math.round(height * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('فشل الضغط')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('صورة غير صالحة')); };
+    img.src = url;
+  });
+}
+
+// ═══════════════ لوحة التوقيع باللمس ═══════════════
+function SignatureSheet({ title, subtitle, onClose, onConfirm }: {
+  title: string; subtitle: string; onClose: () => void; onConfirm: (sig: Blob | null) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawing = useRef(false);
+  const [hasInk, setHasInk] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function pos(e: React.PointerEvent) {
+    const c = canvasRef.current!; const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+  }
+  function start(e: React.PointerEvent) {
+    drawing.current = true; setHasInk(true);
+    const ctx = canvasRef.current!.getContext('2d')!;
+    const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  }
+  function move(e: React.PointerEvent) {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current!.getContext('2d')!;
+    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+    const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  function end() { drawing.current = false; }
+  function clear() {
+    const c = canvasRef.current!; c.getContext('2d')!.clearRect(0, 0, c.width, c.height); setHasInk(false);
+  }
+  function confirm(withSig: boolean) {
+    if (!withSig) { onConfirm(null); return; }
+    setSaving(true);
+    canvasRef.current!.toBlob(b => onConfirm(b), 'image/png');
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end pb-16">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col">
+        <div className="shrink-0 px-5 pt-3 pb-2">
+          <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold">{title}</h2>
+              <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+            </div>
+            <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+          </div>
+        </div>
+        <div className="px-5 pb-3">
+          <p className="text-[11px] text-muted-foreground mb-1">وقّع هنا للإقرار بالاستلام (اختياري)</p>
+          <div className="rounded-2xl border-2 border-dashed border-border bg-muted/20 overflow-hidden">
+            <canvas ref={canvasRef} width={600} height={220}
+              onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end}
+              className="w-full touch-none" style={{ height: 180 }} />
+          </div>
+          <button onClick={clear} className="text-[11px] text-muted-foreground mt-1">مسح التوقيع</button>
+        </div>
+        <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background flex gap-2">
+          <button onClick={() => confirm(false)} disabled={saving}
+            className="flex-1 py-3 rounded-2xl border border-border text-sm text-muted-foreground">تأكيد بدون توقيع</button>
+          <button onClick={() => confirm(true)} disabled={!hasInk || saving}
+            className="flex-1 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} تأكيد التسليم
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ═══════════════ تأكيد الحذف ═══════════════
@@ -134,9 +241,10 @@ export default function SilftnaPage() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-lg ${
                   s.status === 'completed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                   : s.status === 'active' ? 'bg-primary/10 text-primary'
+                  : s.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                   : 'bg-muted text-muted-foreground'
                 }`}>
-                  {s.status === 'completed' ? 'مكتملة' : s.status === 'active' ? 'نشطة' : 'مسودّة'}
+                  {s.status === 'completed' ? 'مكتملة' : s.status === 'active' ? 'نشطة' : s.status === 'cancelled' ? 'ملغاة' : 'مسودّة'}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -170,6 +278,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
   const [period, setPeriod] = useState<SilftnaPeriod>('monthly');
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [method, setMethod] = useState<SilftnaMethod>('lottery');
+  const [reservePercent, setReservePercent] = useState(0);
   const installment = parseAmt(installmentRaw);
 
   // الخطوة 2: الأعضاء
@@ -221,7 +330,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
     const schedule = generateSchedule(members, order, installment, startDate, period);
     addMutation.mutate({
       name: name.trim(), installment, currency: 'IQD', period, startDate, method,
-      reservePercent: 0, status: 'active', members, schedule, payments: [],
+      reservePercent, status: 'active', members, schedule, payments: [], reserveSpends: [],
     });
   }
 
@@ -291,6 +400,20 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
                     <button key={m} onClick={() => setMethod(m)}
                       className={`py-2 rounded-lg text-[11px] font-medium transition-all ${method === m ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                       {METHOD_LABEL[m]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  الصندوق الاحتياطي
+                  <span className="mr-1 text-[10px] opacity-60">(نسبة تُضاف على كل قسط — 0 = معطّل)</span>
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[0, 1, 2, 3, 5].map(p => (
+                    <button key={p} onClick={() => setReservePercent(p)}
+                      className={`py-2 rounded-lg text-[11px] font-medium transition-all ${reservePercent === p ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      {p === 0 ? 'بدون' : `${p}%`}
                     </button>
                   ))}
                 </div>
@@ -418,12 +541,207 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
   );
 }
 
+// ═══════════════════════ لوحة المدير ═══════════════════════
+function Dashboard({ s, onSpendReserve }: { s: Silftna; onSpendReserve: (amount: number, reason: string) => void }) {
+  const d = silftnaDashboard(s);
+  const reserve = reserveStats(s);
+  const [spendOpen, setSpendOpen] = useState(false);
+  const [spendAmt, setSpendAmt] = useState('');
+  const [spendReason, setSpendReason] = useState('');
+
+  function doSpend() {
+    const amt = parseAmt(spendAmt);
+    if (amt <= 0 || amt > reserve.balance) return;
+    onSpendReserve(amt, spendReason);
+    setSpendAmt(''); setSpendReason(''); setSpendOpen(false);
+  }
+
+  function downloadCSV() {
+    const blob = new Blob([silftnaCSV(s)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `سلفة-${s.name}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <>
+      {/* نسبة إنجاز السلفة */}
+      <div className="bg-card border border-border rounded-2xl px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">إنجاز السلفة</span>
+          <span className="text-sm font-bold text-primary">{d.progress}%</span>
+        </div>
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden flex justify-end">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${d.progress}%` }} />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5">{d.delivered} من {d.cycles} دورة مكتملة</p>
+      </div>
+
+      {/* جُمع / وُزِّع */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-muted-foreground mb-1">إجمالي ما جُمع</p>
+          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{fmt(d.totalCollected)}</p>
+          <p className="text-[9px] text-muted-foreground">د.ع</p>
+        </div>
+        <div className="bg-card border border-border rounded-2xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-muted-foreground mb-1">إجمالي ما وُزِّع</p>
+          <p className="text-base font-bold">{fmt(d.totalDistributed)}</p>
+          <p className="text-[9px] text-muted-foreground">د.ع</p>
+        </div>
+      </div>
+
+      {/* الدورة الحالية */}
+      {d.current ? (
+        <div className="bg-card border border-primary/40 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground">المستلم القادم</p>
+              <p className="text-sm font-bold">{d.nextRecipientName}</p>
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] text-muted-foreground">دورة {d.current.index} · {fmtDate(d.current.date)}</p>
+              <p className="text-sm font-bold">{fmt(d.current.amount)} د.ع</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-muted-foreground">جمع هذه الدورة</span>
+            <span className="text-[10px] font-bold">{d.paidCount}/{d.membersCount} عضو · {d.cycleProgress}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
+            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${d.cycleProgress}%` }} />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">🎉 اكتملت كل الدورات</p>
+        </div>
+      )}
+
+      {/* المتأخرون */}
+      {d.overdue.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Bell className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">متأخرون عن الدورة الحالية ({d.overdue.length})</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {d.overdue.map(m => (
+              <div key={m.id} className="flex items-center justify-between">
+                <span className="text-xs">{m.name}</span>
+                {m.phone && d.current && (
+                  <button onClick={() => openWA(m.phone, waReminder(s, d.current!.index, d.current!.date, memberDuePerCycle(s.installment, m)))}
+                    className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
+                    <MessageCircle className="h-3 w-3" /> تذكير
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* الأكثر التزاماً */}
+      {d.committed.length > 0 && (
+        <div className="bg-card border border-border rounded-2xl px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <p className="text-xs font-bold">الأكثر التزاماً</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {d.committed.map(m => (
+              <span key={m.id} className="text-[11px] bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-lg">
+                {m.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* الصندوق الاحتياطي */}
+      {reserve.enabled && (
+        <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs font-bold text-violet-700 dark:text-violet-400">الصندوق الاحتياطي</p>
+              <p className="text-[10px] text-muted-foreground">{reserve.pct}% من كل دفعة</p>
+            </div>
+            <div className="text-left">
+              <p className="text-lg font-bold text-violet-700 dark:text-violet-400">{fmt(reserve.balance)}</p>
+              <p className="text-[9px] text-muted-foreground">الرصيد · د.ع</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
+            <span>تراكم: {fmt(reserve.accrued)}</span>
+            <span>مصروف: {fmt(reserve.spent)}</span>
+          </div>
+
+          {!spendOpen ? (
+            <button onClick={() => setSpendOpen(true)} disabled={reserve.balance <= 0}
+              className="w-full py-2 rounded-xl border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400 text-xs font-medium disabled:opacity-40">
+              تسجيل صرف من الصندوق
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <input value={fmtInput(parseAmt(spendAmt))} onChange={e => setSpendAmt(e.target.value)} inputMode="numeric" placeholder="المبلغ"
+                  className="w-full bg-background border border-border rounded-lg pl-7 pr-2 py-2 text-xs text-right outline-none focus:border-violet-500" />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">د.ع</span>
+              </div>
+              <input value={spendReason} onChange={e => setSpendReason(e.target.value)} placeholder="السبب (تعويض، تأخير، طوارئ...)"
+                className="w-full bg-background border border-border rounded-lg px-2 py-2 text-xs text-right outline-none focus:border-violet-500" />
+              <div className="flex gap-2">
+                <button onClick={() => { setSpendOpen(false); setSpendAmt(''); setSpendReason(''); }}
+                  className="flex-1 py-2 rounded-lg border border-border text-xs text-muted-foreground">إلغاء</button>
+                <button onClick={doSpend} disabled={parseAmt(spendAmt) <= 0 || parseAmt(spendAmt) > reserve.balance}
+                  className="flex-1 py-2 rounded-lg bg-violet-600 text-white text-xs font-semibold disabled:opacity-40">صرف</button>
+              </div>
+            </div>
+          )}
+
+          {(s.reserveSpends ?? []).length > 0 && (
+            <div className="mt-2 pt-2 border-t border-violet-200 dark:border-violet-800 flex flex-col gap-1">
+              {(s.reserveSpends ?? []).slice(-3).reverse().map(sp => (
+                <div key={sp.id} className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground truncate">{sp.reason}</span>
+                  <span className="text-violet-700 dark:text-violet-400 font-medium shrink-0">−{fmt(sp.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* التقارير */}
+      <div className="flex gap-2">
+        <button onClick={() => openWA(undefined, silftnaReportText(s))}
+          className="flex-1 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]">
+          <MessageCircle className="h-3.5 w-3.5" /> مشاركة التقرير
+        </button>
+        <button onClick={downloadCSV}
+          className="flex-1 py-2.5 rounded-2xl border border-border text-muted-foreground text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]">
+          <FileText className="h-3.5 w-3.5" /> تصدير Excel
+        </button>
+      </div>
+    </>
+  );
+}
+
 // ═══════════════════════ تفاصيل السلفة ═══════════════════════
 function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'schedule' | 'payments' | 'members'>('schedule');
+  const [tab, setTab] = useState<'dashboard' | 'schedule' | 'payments' | 'members'>('dashboard');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [swapMode, setSwapMode] = useState(false);
+  const [swapFirst, setSwapFirst] = useState<number | null>(null);
+  const [showClearance, setShowClearance] = useState(false);
+  const [deliverTarget, setDeliverTarget] = useState<SilftnaCycle | null>(null);
+  const [uploadingProof, setUploadingProof] = useState<string | null>(null);
+  const proofInputRef = useRef<HTMLInputElement | null>(null);
+  const proofTarget = useRef<{ memberId: string; cycleIndex: number } | null>(null);
 
   const { data: s, isLoading } = useQuery({
     queryKey: ['silftna', user?.uid, id],
@@ -453,11 +771,42 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const memberById = (mid: string) => s.members.find(m => m.id === mid);
   const currentCycle = s.schedule.find(c => !c.delivered) ?? null;
 
-  // ── تسليم السلفة لمستلم دورة ──
-  function deliverCycle(cycleIndex: number) {
-    const schedule = s!.schedule.map(c => c.index === cycleIndex ? { ...c, delivered: true } : c);
-    const allDone = schedule.every(c => c.delivered);
+  // ── تسليم السلفة: يفتح لوحة التوقيع للإقرار ──
+  async function confirmDelivery(sig: Blob | null) {
+    const c = deliverTarget!;
+    let signatureUrl: string | undefined;
+    if (sig) { try { signatureUrl = await uploadSilftnaSignature(user!.uid, id, sig); } catch {} }
+    const schedule = s!.schedule.map(x => x.index === c.index
+      ? { ...x, delivered: true, deliveredAt: new Date().toISOString(), ...(signatureUrl ? { signatureUrl } : {}) }
+      : x);
+    const allDone = schedule.every(x => x.delivered);
     patchMutation.mutate({ schedule, status: allDone ? 'completed' : 'active' });
+    setDeliverTarget(null);
+  }
+
+  // ── إرفاق إثبات دفع (صورة) ──
+  function pickProof(memberId: string, cycleIndex: number) {
+    proofTarget.current = { memberId, cycleIndex };
+    proofInputRef.current?.click();
+  }
+  async function onProofSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const tgt = proofTarget.current;
+    if (!file || !tgt) return;
+    setUploadingProof(tgt.memberId);
+    try {
+      const blob = await compressImage(file);
+      const url = await uploadSilftnaProof(user!.uid, id, blob);
+      const due = memberDuePerCycle(s!.installment, memberById(tgt.memberId)!);
+      const existing = s!.payments.find(p => p.memberId === tgt.memberId && p.cycleIndex === tgt.cycleIndex);
+      const others = s!.payments.filter(p => !(p.memberId === tgt.memberId && p.cycleIndex === tgt.cycleIndex));
+      const base = existing ?? { memberId: tgt.memberId, cycleIndex: tgt.cycleIndex, status: 'paid' as SilftnaPaymentStatus, paidAmount: due, recordedAt: new Date().toISOString() };
+      patchMutation.mutate({ payments: [...others, { ...base, proofUrl: url }] });
+    } catch {} finally { setUploadingProof(null); proofTarget.current = null; }
+  }
+  function proofOf(memberId: string, cycleIndex: number): string | undefined {
+    return s!.payments.find(p => p.memberId === memberId && p.cycleIndex === cycleIndex)?.proofUrl;
   }
 
   // ── تحديث حالة دفع عضو في الدورة الحالية ──
@@ -471,10 +820,44 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
     return s!.payments.find(p => p.memberId === memberId && p.cycleIndex === cycleIndex)?.status ?? 'unpaid';
   }
 
+  // ── تبديل الأدوار ──
+  function handleCycleTap(cycleIndex: number, delivered: boolean) {
+    if (!swapMode || delivered) return;
+    if (swapFirst === null) { setSwapFirst(cycleIndex); return; }
+    if (swapFirst === cycleIndex) { setSwapFirst(null); return; }
+    patchMutation.mutate({ schedule: swapCycles(s!.schedule, swapFirst, cycleIndex) });
+    setSwapFirst(null);
+    setSwapMode(false);
+  }
+
+  // ── تغيير حالة العضو (يدوياً) ──
+  function cycleMemberStatus(memberId: string) {
+    const members = s!.members.map(m => {
+      if (m.id !== memberId) return m;
+      const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(m.status as SilftnaMemberStatus) + 1) % STATUS_CYCLE.length];
+      return { ...m, status: next };
+    });
+    patchMutation.mutate({ members });
+  }
+
+  // ── إلغاء السلفة (مع تقرير تصفية) ──
+  function cancelSilftna() {
+    patchMutation.mutate({ status: 'cancelled' });
+    setShowClearance(false);
+  }
+  const clearance = clearanceReport(s!);
+
+  // ── صرف من الصندوق الاحتياطي ──
+  function spendReserve(amount: number, reason: string) {
+    const spend = { id: uid4(), amount, reason: reason.trim() || 'صرف', date: new Date().toISOString() };
+    patchMutation.mutate({ reserveSpends: [...(s!.reserveSpends ?? []), spend] });
+  }
+
   const TABS = [
-    { key: 'schedule' as const, label: 'الجدول', icon: Calendar },
-    { key: 'payments' as const, label: 'الدفعات', icon: Wallet },
-    { key: 'members'  as const, label: 'الأعضاء', icon: Users },
+    { key: 'dashboard' as const, label: 'اللوحة', icon: LayoutDashboard },
+    { key: 'schedule'  as const, label: 'الجدول', icon: Calendar },
+    { key: 'payments'  as const, label: 'الدفعات', icon: Wallet },
+    { key: 'members'   as const, label: 'الأعضاء', icon: Users },
   ];
 
   return (
@@ -489,39 +872,45 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
         <button onClick={() => setConfirmDelete(true)} className="text-muted-foreground/40 hover:text-destructive p-1"><Trash2 className="h-4 w-4" /></button>
       </div>
 
-      {/* ملخص سريع */}
-      <div className="grid grid-cols-3 gap-2 px-1 mb-2 shrink-0">
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold">{fmt(t.perCycle)}</p>
-          <p className="text-[9px] text-muted-foreground">المبلغ/دورة</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold text-primary">{t.progress}%</p>
-          <p className="text-[9px] text-muted-foreground">{t.delivered}/{t.cycles} دورة</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl px-2 py-2 text-center">
-          <p className="text-sm font-bold">{s.members.length}</p>
-          <p className="text-[9px] text-muted-foreground">عضو</p>
-        </div>
-      </div>
-
       {/* تبويبات */}
       <div className="flex gap-1.5 px-1 mb-2 shrink-0">
         {TABS.map(T => (
           <button key={T.key} onClick={() => setTab(T.key)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-xs font-medium transition-all ${tab === T.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 rounded-xl text-[10px] font-medium transition-all ${tab === T.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
             <T.icon className="h-3.5 w-3.5" /> {T.label}
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-4">
+        {/* ── اللوحة ── */}
+        {tab === 'dashboard' && <Dashboard s={s} onSpendReserve={spendReserve} />}
+
         {/* ── الجدول ── */}
+        {tab === 'schedule' && s.status !== 'cancelled' && (
+          <div className="flex items-center justify-between gap-2 shrink-0 mb-1">
+            <button onClick={() => { setSwapMode(v => !v); setSwapFirst(null); }}
+              className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-xl border transition-all ${
+                swapMode ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+              }`}>
+              <ArrowLeftRight className="h-3.5 w-3.5" /> {swapMode ? 'اختر دورتين للتبديل' : 'تبديل الأدوار'}
+            </button>
+            {swapMode && <button onClick={() => { setSwapMode(false); setSwapFirst(null); }} className="text-[11px] text-muted-foreground">إلغاء</button>}
+          </div>
+        )}
         {tab === 'schedule' && s.schedule.map(c => {
           const m = memberById(c.memberId);
           const isCurrent = currentCycle?.index === c.index;
+          const isSwapSel = swapFirst === c.index;
+          const swappable = swapMode && !c.delivered;
           return (
-            <div key={c.index} className={`bg-card border rounded-2xl px-4 py-3 ${isCurrent ? 'border-primary' : c.delivered ? 'border-emerald-300 dark:border-emerald-700' : 'border-border'}`}>
+            <div key={c.index}
+              onClick={() => handleCycleTap(c.index, c.delivered)}
+              className={`bg-card border rounded-2xl px-4 py-3 transition-all ${
+                isSwapSel ? 'border-primary ring-2 ring-primary/30'
+                : isCurrent ? 'border-primary'
+                : c.delivered ? 'border-emerald-300 dark:border-emerald-700' : 'border-border'
+              } ${swappable ? 'cursor-pointer active:scale-[0.99]' : ''} ${swapMode && c.delivered ? 'opacity-40' : ''}`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold shrink-0">{c.index}</span>
@@ -537,26 +926,35 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
               </div>
               <div className="flex items-center justify-between mt-2">
                 {c.delivered ? (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check className="h-3 w-3" /> سُلِّمت</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> سُلِّمت
+                    {c.signatureUrl && (
+                      <a href={c.signatureUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-0.5 text-primary mr-1">
+                        <PenLine className="h-2.5 w-2.5" /> موقّعة
+                      </a>
+                    )}
+                  </span>
                 ) : isCurrent ? (
                   <span className="text-[10px] text-primary font-medium">الدورة الحالية</span>
                 ) : (
                   <span className="text-[10px] text-muted-foreground">قادمة</span>
                 )}
-                <div className="flex items-center gap-1.5">
-                  {m?.phone && (
-                    <button onClick={() => openWA(m.phone, waLaunch(s, m, c.index, c.date, c.amount))}
-                      className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" /> إشعار
-                    </button>
-                  )}
-                  {!c.delivered && (
-                    <button onClick={() => deliverCycle(c.index)}
-                      className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary">
-                      سجّل التسليم
-                    </button>
-                  )}
-                </div>
+                {!swapMode && (
+                  <div className="flex items-center gap-1.5">
+                    {m?.phone && (
+                      <button onClick={(e) => { e.stopPropagation(); openWA(m.phone, waLaunch(s, m, c.index, c.date, c.amount)); }}
+                        className="text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg px-2 py-1 flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" /> إشعار
+                      </button>
+                    )}
+                    {!c.delivered && s.status !== 'cancelled' && (
+                      <button onClick={(e) => { e.stopPropagation(); setDeliverTarget(c); }}
+                        className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary flex items-center gap-1">
+                        <PenLine className="h-3 w-3" /> سجّل التسليم
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -599,6 +997,23 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
                         </button>
                       ))}
                     </div>
+
+                    {/* إثبات الدفع */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {proofOf(m.id, currentCycle.index) ? (
+                        <a href={proofOf(m.id, currentCycle.index)} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                          <img src={proofOf(m.id, currentCycle.index)} alt="إثبات" className="w-8 h-8 rounded-lg object-cover border border-border" />
+                          عرض الإثبات
+                        </a>
+                      ) : (
+                        <button onClick={() => pickProof(m.id, currentCycle.index)} disabled={uploadingProof === m.id}
+                          className="flex items-center gap-1 text-[10px] text-muted-foreground border border-border rounded-lg px-2 py-1 disabled:opacity-50">
+                          {uploadingProof === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                          {uploadingProof === m.id ? 'جارٍ الرفع...' : 'إرفاق إثبات'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -612,28 +1027,111 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
         )}
 
         {/* ── الأعضاء ── */}
-        {tab === 'members' && s.members.map(m => {
-          const receiveCount = s.schedule.filter(c => c.memberId === m.id).length;
-          return (
-            <div key={m.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold">{m.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
-                  {m.phone && ' · لديه واتساب'}
-                </p>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                {fmt(memberDuePerCycle(s.installment, m))} د.ع/دورة
-              </span>
-            </div>
-          );
-        })}
+        {tab === 'members' && (
+          <>
+            {s.members.map(m => {
+              const receiveCount = s.schedule.filter(c => c.memberId === m.id).length;
+              const meta = MEMBER_STATUS[m.status as SilftnaMemberStatus] ?? MEMBER_STATUS.active;
+              return (
+                <div key={m.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-sm font-semibold truncate">{m.name}</p>
+                      <button onClick={() => cycleMemberStatus(m.id)} className={`text-[9px] px-1.5 py-0.5 rounded-md shrink-0 ${meta.cls}`}>
+                        {meta.label}
+                      </button>
+                      {(() => { const tr = memberTrust(s, m.id); return (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-md shrink-0 flex items-center gap-0.5 ${tr.cls}`}>
+                          <ShieldCheck className="h-2.5 w-2.5" /> {tr.label} {tr.score}
+                        </span>
+                      ); })()}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
+                      {m.phone && ' · لديه واتساب'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-lg bg-muted text-muted-foreground shrink-0">
+                    {fmt(memberDuePerCycle(s.installment, m))} د.ع/دورة
+                  </span>
+                </div>
+              );
+            })}
+            <p className="text-[10px] text-muted-foreground text-center mt-1">اضغط على شارة الحالة لتغييرها</p>
+
+            {/* تصفية/إلغاء السلفة */}
+            {s.status !== 'cancelled' && (
+              <button onClick={() => setShowClearance(true)}
+                className="mt-2 w-full py-2.5 rounded-2xl border border-destructive/40 text-destructive text-xs font-medium flex items-center justify-center gap-2">
+                <FileText className="h-3.5 w-3.5" /> تصفية وإلغاء السلفة
+              </button>
+            )}
+          </>
+        )}
       </div>
+
+      {/* حقل رفع الإثبات (مخفي) */}
+      <input ref={proofInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onProofSelected} />
+
+      {/* لوحة التوقيع عند التسليم */}
+      {deliverTarget && (
+        <SignatureSheet
+          title="إقرار استلام السلفة"
+          subtitle={`${memberById(deliverTarget.memberId)?.name ?? ''} · ${fmt(deliverTarget.amount)} د.ع`}
+          onClose={() => setDeliverTarget(null)}
+          onConfirm={confirmDelivery}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmDialog title="حذف السلفة؟" body={`سيتم حذف "${s.name}" وكل سجلاتها نهائياً.`} confirmLabel="حذف"
           onConfirm={() => deleteMutation.mutate()} onCancel={() => setConfirmDelete(false)} />
+      )}
+
+      {/* ── تقرير التصفية ── */}
+      {showClearance && (
+        <div className="fixed inset-0 z-50 flex items-end pb-16">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowClearance(false)} />
+          <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col max-h-[80dvh]">
+            <div className="shrink-0 px-5 pt-3 pb-2">
+              <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold">تقرير التصفية</h2>
+                  <p className="text-[11px] text-muted-foreground">من له ومن عليه عند الإلغاء</p>
+                </div>
+                <button onClick={() => setShowClearance(false)} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 pb-2">
+              <div className="bg-muted/30 rounded-xl px-3 py-2 mb-2 flex text-[10px] font-semibold text-muted-foreground">
+                <span className="flex-1">العضو</span>
+                <span className="w-20 text-center">دفع</span>
+                <span className="w-20 text-center">استلم</span>
+                <span className="w-24 text-center">الصافي</span>
+              </div>
+              {clearance.map(row => (
+                <div key={row.memberId} className="flex items-center px-3 py-2 border-b border-border text-[11px]">
+                  <span className="flex-1 font-medium truncate">{row.name}</span>
+                  <span className="w-20 text-center text-muted-foreground">{fmt(row.paid)}</span>
+                  <span className="w-20 text-center text-muted-foreground">{fmt(row.received)}</span>
+                  <span className={`w-24 text-center font-bold ${row.net > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.net < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                    {row.net > 0 ? `له ${fmt(row.net)}` : row.net < 0 ? `عليه ${fmt(-row.net)}` : '—'}
+                  </span>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
+                «له» = دفع أكثر مما استلم (يُستحق له فرق). «عليه» = استلم أكثر مما دفع (مطلوب منه فرق). استخدم هذا الجدول لإجراء تسوية مالية عادلة بين الأعضاء.
+              </p>
+            </div>
+
+            <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background flex gap-2">
+              <button onClick={() => setShowClearance(false)} className="flex-1 py-3 rounded-2xl border border-border text-sm text-muted-foreground">رجوع</button>
+              <button onClick={cancelSilftna} className="flex-1 py-3 rounded-2xl bg-destructive text-destructive-foreground text-sm font-semibold">تأكيد الإلغاء</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
