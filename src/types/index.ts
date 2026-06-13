@@ -194,6 +194,8 @@ export type SilftnaCycle = {
   amount: number;        // المبلغ المستلَم = القسط × مجموع الأسهم
   date: string;          // تاريخ الاستلام المحسوب (ISO yyyy-mm-dd)
   delivered: boolean;    // هل سُلِّمت السلفة لهذا المستلم؟
+  deliveredAt?: string;  // وقت التسليم الدقيق (توثيق)
+  signatureUrl?: string; // توقيع المستلم الإلكتروني (إقرار الاستلام)
 };
 
 // دفعة عضو في دورة معيّنة

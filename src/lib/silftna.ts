@@ -126,6 +126,37 @@ export function currentCycleOf(s: Silftna) {
   return s.schedule.find(c => !c.delivered) ?? null;
 }
 
+// ── نقاط الثقة لعضو (تُحسب تلقائياً من سلوك الدفع، 0..100) ──
+export function memberTrust(s: Silftna, memberId: string): { score: number; label: string; cls: string } {
+  const m = s.members.find(x => x.id === memberId);
+  const pastIndices = s.schedule.filter(c => c.delivered).map(c => c.index);
+  const current = currentCycleOf(s);
+  const today = new Date().setHours(0, 0, 0, 0);
+
+  let score = 100;
+  for (const ci of pastIndices) {
+    const st = s.payments.find(p => p.memberId === memberId && p.cycleIndex === ci)?.status ?? 'unpaid';
+    if (st === 'unpaid')  score -= 20;
+    else if (st === 'partial') score -= 10;
+  }
+  // الدورة الحالية متأخرة وغير مدفوعة
+  if (current && new Date(current.date).setHours(0,0,0,0) <= today) {
+    const st = s.payments.find(p => p.memberId === memberId && p.cycleIndex === current.index)?.status ?? 'unpaid';
+    if (st === 'unpaid')  score -= 10;
+    else if (st === 'partial') score -= 5;
+  }
+  if (m?.status === 'excluded')  score -= 30;
+  if (m?.status === 'withdrawn') score -= 15;
+
+  score = Math.max(0, Math.min(100, score));
+  const label = score >= 85 ? 'موثوق' : score >= 60 ? 'جيد' : score >= 40 ? 'متوسط' : 'ضعيف';
+  const cls = score >= 85 ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30'
+    : score >= 60 ? 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
+    : score >= 40 ? 'text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30'
+    : 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30';
+  return { score, label, cls };
+}
+
 // ── الصندوق الاحتياطي: المتراكم − المصروف = الرصيد ──
 export function reserveStats(s: Silftna) {
   const pct = s.reservePercent || 0;

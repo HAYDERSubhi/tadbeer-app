@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -9,17 +9,18 @@ import {
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
   swapCycles, clearanceReport, silftnaDashboard, reserveStats,
-  silftnaReportText, silftnaCSV,
+  silftnaReportText, silftnaCSV, memberTrust,
 } from '@/lib/silftna';
+import { uploadSilftnaProof, uploadSilftnaSignature } from '@/services/storage';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
   Check, MessageCircle, Calendar, Wallet, AlertTriangle, Crown, ArrowLeftRight, FileText,
-  LayoutDashboard, TrendingUp, Bell,
+  LayoutDashboard, TrendingUp, Bell, Camera, PenLine, ShieldCheck, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import type {
   Silftna, SilftnaMember, SilftnaPeriod, SilftnaMethod, SilftnaPaymentStatus,
-  SilftnaMemberStatus,
+  SilftnaMemberStatus, SilftnaCycle,
 } from '@/types';
 
 // ── مساعدات ───────────────────────────────────────────────────
@@ -62,6 +63,98 @@ function waDelivered(s: Silftna, m: SilftnaMember, amount: number) {
 function openWA(phone: string | undefined, text: string) {
   const p = phone?.replace(/\D/g, '');
   window.open(p ? `https://wa.me/${p}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+// ضغط صورة إلى JPEG بحجم معقول قبل الرفع (توفير المساحة)
+function compressImage(file: File, maxDim = 1100, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const r = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * r); height = Math.round(height * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('فشل الضغط')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('صورة غير صالحة')); };
+    img.src = url;
+  });
+}
+
+// ═══════════════ لوحة التوقيع باللمس ═══════════════
+function SignatureSheet({ title, subtitle, onClose, onConfirm }: {
+  title: string; subtitle: string; onClose: () => void; onConfirm: (sig: Blob | null) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawing = useRef(false);
+  const [hasInk, setHasInk] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function pos(e: React.PointerEvent) {
+    const c = canvasRef.current!; const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+  }
+  function start(e: React.PointerEvent) {
+    drawing.current = true; setHasInk(true);
+    const ctx = canvasRef.current!.getContext('2d')!;
+    const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y);
+  }
+  function move(e: React.PointerEvent) {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current!.getContext('2d')!;
+    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+    const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  function end() { drawing.current = false; }
+  function clear() {
+    const c = canvasRef.current!; c.getContext('2d')!.clearRect(0, 0, c.width, c.height); setHasInk(false);
+  }
+  function confirm(withSig: boolean) {
+    if (!withSig) { onConfirm(null); return; }
+    setSaving(true);
+    canvasRef.current!.toBlob(b => onConfirm(b), 'image/png');
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end pb-16">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-md mx-auto bg-background rounded-t-3xl border-t border-border z-10 flex flex-col">
+        <div className="shrink-0 px-5 pt-3 pb-2">
+          <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold">{title}</h2>
+              <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+            </div>
+            <button onClick={onClose} className="p-1 text-muted-foreground"><X className="h-5 w-5" /></button>
+          </div>
+        </div>
+        <div className="px-5 pb-3">
+          <p className="text-[11px] text-muted-foreground mb-1">وقّع هنا للإقرار بالاستلام (اختياري)</p>
+          <div className="rounded-2xl border-2 border-dashed border-border bg-muted/20 overflow-hidden">
+            <canvas ref={canvasRef} width={600} height={220}
+              onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end}
+              className="w-full touch-none" style={{ height: 180 }} />
+          </div>
+          <button onClick={clear} className="text-[11px] text-muted-foreground mt-1">مسح التوقيع</button>
+        </div>
+        <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background flex gap-2">
+          <button onClick={() => confirm(false)} disabled={saving}
+            className="flex-1 py-3 rounded-2xl border border-border text-sm text-muted-foreground">تأكيد بدون توقيع</button>
+          <button onClick={() => confirm(true)} disabled={!hasInk || saving}
+            className="flex-1 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2">
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} تأكيد التسليم
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ═══════════════ تأكيد الحذف ═══════════════
@@ -645,6 +738,10 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const [swapMode, setSwapMode] = useState(false);
   const [swapFirst, setSwapFirst] = useState<number | null>(null);
   const [showClearance, setShowClearance] = useState(false);
+  const [deliverTarget, setDeliverTarget] = useState<SilftnaCycle | null>(null);
+  const [uploadingProof, setUploadingProof] = useState<string | null>(null);
+  const proofInputRef = useRef<HTMLInputElement | null>(null);
+  const proofTarget = useRef<{ memberId: string; cycleIndex: number } | null>(null);
 
   const { data: s, isLoading } = useQuery({
     queryKey: ['silftna', user?.uid, id],
@@ -674,11 +771,42 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
   const memberById = (mid: string) => s.members.find(m => m.id === mid);
   const currentCycle = s.schedule.find(c => !c.delivered) ?? null;
 
-  // ── تسليم السلفة لمستلم دورة ──
-  function deliverCycle(cycleIndex: number) {
-    const schedule = s!.schedule.map(c => c.index === cycleIndex ? { ...c, delivered: true } : c);
-    const allDone = schedule.every(c => c.delivered);
+  // ── تسليم السلفة: يفتح لوحة التوقيع للإقرار ──
+  async function confirmDelivery(sig: Blob | null) {
+    const c = deliverTarget!;
+    let signatureUrl: string | undefined;
+    if (sig) { try { signatureUrl = await uploadSilftnaSignature(user!.uid, id, sig); } catch {} }
+    const schedule = s!.schedule.map(x => x.index === c.index
+      ? { ...x, delivered: true, deliveredAt: new Date().toISOString(), ...(signatureUrl ? { signatureUrl } : {}) }
+      : x);
+    const allDone = schedule.every(x => x.delivered);
     patchMutation.mutate({ schedule, status: allDone ? 'completed' : 'active' });
+    setDeliverTarget(null);
+  }
+
+  // ── إرفاق إثبات دفع (صورة) ──
+  function pickProof(memberId: string, cycleIndex: number) {
+    proofTarget.current = { memberId, cycleIndex };
+    proofInputRef.current?.click();
+  }
+  async function onProofSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    const tgt = proofTarget.current;
+    if (!file || !tgt) return;
+    setUploadingProof(tgt.memberId);
+    try {
+      const blob = await compressImage(file);
+      const url = await uploadSilftnaProof(user!.uid, id, blob);
+      const due = memberDuePerCycle(s!.installment, memberById(tgt.memberId)!);
+      const existing = s!.payments.find(p => p.memberId === tgt.memberId && p.cycleIndex === tgt.cycleIndex);
+      const others = s!.payments.filter(p => !(p.memberId === tgt.memberId && p.cycleIndex === tgt.cycleIndex));
+      const base = existing ?? { memberId: tgt.memberId, cycleIndex: tgt.cycleIndex, status: 'paid' as SilftnaPaymentStatus, paidAmount: due, recordedAt: new Date().toISOString() };
+      patchMutation.mutate({ payments: [...others, { ...base, proofUrl: url }] });
+    } catch {} finally { setUploadingProof(null); proofTarget.current = null; }
+  }
+  function proofOf(memberId: string, cycleIndex: number): string | undefined {
+    return s!.payments.find(p => p.memberId === memberId && p.cycleIndex === cycleIndex)?.proofUrl;
   }
 
   // ── تحديث حالة دفع عضو في الدورة الحالية ──
@@ -798,7 +926,14 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
               </div>
               <div className="flex items-center justify-between mt-2">
                 {c.delivered ? (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><Check className="h-3 w-3" /> سُلِّمت</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> سُلِّمت
+                    {c.signatureUrl && (
+                      <a href={c.signatureUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-0.5 text-primary mr-1">
+                        <PenLine className="h-2.5 w-2.5" /> موقّعة
+                      </a>
+                    )}
+                  </span>
                 ) : isCurrent ? (
                   <span className="text-[10px] text-primary font-medium">الدورة الحالية</span>
                 ) : (
@@ -813,9 +948,9 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
                       </button>
                     )}
                     {!c.delivered && s.status !== 'cancelled' && (
-                      <button onClick={(e) => { e.stopPropagation(); deliverCycle(c.index); }}
-                        className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary">
-                        سجّل التسليم
+                      <button onClick={(e) => { e.stopPropagation(); setDeliverTarget(c); }}
+                        className="text-[10px] border border-border rounded-lg px-2 py-1 text-muted-foreground hover:border-primary hover:text-primary flex items-center gap-1">
+                        <PenLine className="h-3 w-3" /> سجّل التسليم
                       </button>
                     )}
                   </div>
@@ -862,6 +997,23 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
                         </button>
                       ))}
                     </div>
+
+                    {/* إثبات الدفع */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {proofOf(m.id, currentCycle.index) ? (
+                        <a href={proofOf(m.id, currentCycle.index)} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400">
+                          <img src={proofOf(m.id, currentCycle.index)} alt="إثبات" className="w-8 h-8 rounded-lg object-cover border border-border" />
+                          عرض الإثبات
+                        </a>
+                      ) : (
+                        <button onClick={() => pickProof(m.id, currentCycle.index)} disabled={uploadingProof === m.id}
+                          className="flex items-center gap-1 text-[10px] text-muted-foreground border border-border rounded-lg px-2 py-1 disabled:opacity-50">
+                          {uploadingProof === m.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                          {uploadingProof === m.id ? 'جارٍ الرفع...' : 'إرفاق إثبات'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -883,11 +1035,16 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
               return (
                 <div key={m.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-semibold truncate">{m.name}</p>
                       <button onClick={() => cycleMemberStatus(m.id)} className={`text-[9px] px-1.5 py-0.5 rounded-md shrink-0 ${meta.cls}`}>
                         {meta.label}
                       </button>
+                      {(() => { const tr = memberTrust(s, m.id); return (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-md shrink-0 flex items-center gap-0.5 ${tr.cls}`}>
+                          <ShieldCheck className="h-2.5 w-2.5" /> {tr.label} {tr.score}
+                        </span>
+                      ); })()}
                     </div>
                     <p className="text-[10px] text-muted-foreground">
                       {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
@@ -912,6 +1069,19 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
           </>
         )}
       </div>
+
+      {/* حقل رفع الإثبات (مخفي) */}
+      <input ref={proofInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onProofSelected} />
+
+      {/* لوحة التوقيع عند التسليم */}
+      {deliverTarget && (
+        <SignatureSheet
+          title="إقرار استلام السلفة"
+          subtitle={`${memberById(deliverTarget.memberId)?.name ?? ''} · ${fmt(deliverTarget.amount)} د.ع`}
+          onClose={() => setDeliverTarget(null)}
+          onConfirm={confirmDelivery}
+        />
+      )}
 
       {confirmDelete && (
         <ConfirmDialog title="حذف السلفة؟" body={`سيتم حذف "${s.name}" وكل سجلاتها نهائياً.`} confirmLabel="حذف"
