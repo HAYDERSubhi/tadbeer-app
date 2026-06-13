@@ -12,15 +12,16 @@ const withPWA = require("@ducanh2912/next-pwa").default({
     disableDevLogs: true,
     skipWaiting: true,
     clientsClaim: true,
-    // كل الطلبات: NetworkFirst — الشبكة أولاً دائماً، الـ cache للطوارئ فقط
+    // صفحات HTML: الشبكة أولاً ليصل التحديث فوراً.
+    // ملفات Next.js الثابتة لها بصمة hash في أسمائها فتُحدَّث تلقائياً.
     runtimeCaching: [
       {
-        urlPattern: /.*/,
+        urlPattern: ({ request }) => request.mode === 'navigate',
         handler: 'NetworkFirst',
         options: {
-          cacheName: 'tadbeer-v2',
-          networkTimeoutSeconds: 4,
-          expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 },
+          cacheName: 'pages-cache',
+          networkTimeoutSeconds: 5,
+          expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
     ],
