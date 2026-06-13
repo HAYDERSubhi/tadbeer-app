@@ -1,0 +1,17 @@
+rules_version = '2';
+
+// قواعد Firebase Storage — كل مستخدم يصل لملفاته فقط تحت users/{uid}
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ملفات المستخدم الشخصية (وصولات، إثباتات سلفتنا، التواقيع...)
+    match /users/{uid}/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == uid
+        // حدّ أقصى 10 ميغابايت للملف، وصور فقط عند الكتابة
+        && (request.resource == null
+            || (request.resource.size < 10 * 1024 * 1024
+                && request.resource.contentType.matches('image/.*')));
+    }
+  }
+}
