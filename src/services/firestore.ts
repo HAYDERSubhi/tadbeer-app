@@ -18,7 +18,7 @@ import {
     arrayUnion,
     arrayRemove,
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt } from '@/types';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 // ─── Path helper: household or personal ────────────────────────────────────
@@ -760,6 +760,18 @@ export const settleDebt = async (uid: string, debtId: string): Promise<void> => 
 export const unsettleDebt = async (uid: string, debtId: string): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
     await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: false, settledAt: null });
+};
+
+// ── خطة الزواج (مستند واحد لكل مستخدم) ──────────────────────────
+export const getWeddingPlan = async (uid: string): Promise<WeddingPlan | null> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const snap = await getDoc(doc(db, 'users', uid, 'wedding', 'plan'));
+    return snap.exists() ? (snap.data() as WeddingPlan) : null;
+};
+
+export const saveWeddingPlan = async (uid: string, plan: WeddingPlan): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await setDoc(doc(db, 'users', uid, 'wedding', 'plan'), plan);
 };
 
 export const deleteDebt = async (uid: string, debtId: string): Promise<void> => {

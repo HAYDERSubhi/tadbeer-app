@@ -150,3 +150,18 @@ export type Debt = {
   settledAt?: string;
   createdAt: string;
 };
+
+export type WeddingResponsibility = 'groom' | 'bride' | 'shared';
+export type WeddingTier = 'economy' | 'medium' | 'luxury';
+
+// خطة زواج واحدة لكل مستخدم (محفوظة في users/{uid}/wedding/plan)
+export type WeddingPlan = {
+  amounts: Record<string, number>;                         // المبلغ المخطّط لكل بند
+  responsibilities: Record<string, WeddingResponsibility>; // من يدفع كل بند
+  disabled: Record<string, boolean>;                       // البنود المُستبعَدة
+  guests: number;        // عدد المدعوين (للبوفيه)
+  perGuest: number;      // تكلفة الفرد للبوفيه
+  gifts: number;         // النقوط/النثرية المتوقعة
+  tier: WeddingTier | null; // آخر مستوى مُطبَّق
+  updatedAt: string;
+};
