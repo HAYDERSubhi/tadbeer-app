@@ -66,6 +66,15 @@ const TOOLS = [
     gradient: 'linear-gradient(135deg, #fb923c 0%, #b45309 100%)',
     shimmer: 'linear-gradient(135deg, #ffa55a 0%, #ca6a10 100%)',
   },
+  {
+    href: '/tools/silftna',
+    label: 'سلفتنا',
+    sub: 'السلف الدوّارة',
+    icon: '🔄',
+    image: null,
+    gradient: 'linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)',
+    shimmer: 'linear-gradient(135deg, #5eead4 0%, #14b8a6 100%)',
+  },
 ];
 
 export default function ToolsPage() {

@@ -693,6 +693,7 @@ export default function DashboardPage() {
               { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
               { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
+              { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
             ].map(t => (
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm overflow-hidden" style={{ background: t.bg }}>
