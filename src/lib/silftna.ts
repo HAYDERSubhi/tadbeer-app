@@ -137,6 +137,48 @@ export function reserveStats(s: Silftna) {
   return { enabled: pct > 0, pct, accrued, spent, balance: accrued - spent };
 }
 
+// ── تسميات عربية مساعدة للتقارير ──
+const PERIOD_AR: Record<SilftnaPeriod, string> = { daily: 'يومي', weekly: 'أسبوعي', biweekly: 'نصف شهري', monthly: 'شهري' };
+function arDate(iso: string) {
+  try { return new Date(iso).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  catch { return iso; }
+}
+function arNum(n: number) { return Math.round(n).toLocaleString('en-US'); }
+
+// ── تقرير نصّي شامل قابل للمشاركة (واتساب/نسخ) ──
+export function silftnaReportText(s: Silftna): string {
+  const t = silftnaTotals(s);
+  const reserve = reserveStats(s);
+  const lines: string[] = [];
+  lines.push(`📋 تقرير سلفة "${s.name}"`);
+  lines.push('');
+  lines.push(`القسط: ${arNum(s.installment)} د.ع · الدورية: ${PERIOD_AR[s.period]}`);
+  lines.push(`الأعضاء: ${s.members.length} · الدورات: ${t.cycles} · المبلغ/دورة: ${arNum(t.perCycle)} د.ع`);
+  lines.push(`الإنجاز: ${t.delivered}/${t.cycles} دورة (${t.progress}%)`);
+  if (reserve.enabled) lines.push(`الصندوق الاحتياطي: رصيد ${arNum(reserve.balance)} د.ع (${reserve.pct}%)`);
+  lines.push('');
+  lines.push('— جدول الاستلام —');
+  for (const c of s.schedule) {
+    const m = s.members.find(x => x.id === c.memberId);
+    const mark = c.delivered ? '✅' : '⏳';
+    lines.push(`${mark} دورة ${c.index}: ${m?.name ?? '—'} · ${arDate(c.date)} · ${arNum(c.amount)} د.ع`);
+  }
+  lines.push('');
+  lines.push('عبر تطبيق تدبير — سلفتنا');
+  return lines.join('\n');
+}
+
+// ── تصدير الجدول CSV (يفتح في Excel) ──
+export function silftnaCSV(s: Silftna): string {
+  const rows = [['الدورة', 'المستلم', 'المبلغ', 'التاريخ', 'الحالة']];
+  for (const c of s.schedule) {
+    const m = s.members.find(x => x.id === c.memberId);
+    rows.push([String(c.index), m?.name ?? '', String(c.amount), c.date, c.delivered ? 'مُسلَّمة' : 'قادمة']);
+  }
+  // BOM لدعم العربية في Excel
+  return '﻿' + rows.map(r => r.map(f => `"${f.replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+
 // ── لوحة المدير الإحصائية الشاملة ──
 export function silftnaDashboard(s: Silftna) {
   const t = silftnaTotals(s);

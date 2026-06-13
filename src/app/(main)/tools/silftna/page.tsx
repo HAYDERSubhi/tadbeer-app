@@ -9,6 +9,7 @@ import {
 import {
   totalShares, cycleAmount, memberDuePerCycle, generateSchedule, silftnaTotals,
   swapCycles, clearanceReport, silftnaDashboard, reserveStats,
+  silftnaReportText, silftnaCSV,
 } from '@/lib/silftna';
 import {
   ChevronRight, Plus, Users, Trash2, X, ArrowUp, ArrowDown, Shuffle,
@@ -462,6 +463,15 @@ function Dashboard({ s, onSpendReserve }: { s: Silftna; onSpendReserve: (amount:
     setSpendAmt(''); setSpendReason(''); setSpendOpen(false);
   }
 
+  function downloadCSV() {
+    const blob = new Blob([silftnaCSV(s)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `سلفة-${s.name}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <>
       {/* نسبة إنجاز السلفة */}
@@ -610,6 +620,18 @@ function Dashboard({ s, onSpendReserve }: { s: Silftna; onSpendReserve: (amount:
           )}
         </div>
       )}
+
+      {/* التقارير */}
+      <div className="flex gap-2">
+        <button onClick={() => openWA(undefined, silftnaReportText(s))}
+          className="flex-1 py-2.5 rounded-2xl bg-emerald-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]">
+          <MessageCircle className="h-3.5 w-3.5" /> مشاركة التقرير
+        </button>
+        <button onClick={downloadCSV}
+          className="flex-1 py-2.5 rounded-2xl border border-border text-muted-foreground text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98]">
+          <FileText className="h-3.5 w-3.5" /> تصدير Excel
+        </button>
+      </div>
     </>
   );
 }
