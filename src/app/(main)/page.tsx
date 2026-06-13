@@ -696,13 +696,13 @@ export default function DashboardPage() {
           <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
             {[
               { href: '/tools/currency',     label: 'العملات',   icon: '💱', image: '/tools/currency.png', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)' },
-              { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
+              { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', image: '/tools/worth-it.png', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
               { href: '/tools/split-bill',   label: 'الفاتورة',  icon: '🍽', bg: 'linear-gradient(135deg,#34d399,#047857)' },
               { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
-              { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
+              { href: '/tools/habit-cost',   label: 'عادتي',     icon: '☕', image: '/tools/habit-cost.png', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
               { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
-              { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
-              { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
+              { href: '/tools/debts',        label: 'الديون',    icon: '🤝', image: '/tools/debts.png', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
+              { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', image: '/tools/silftna.png', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
             ].map(t => (
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm overflow-hidden" style={{ background: t.bg }}>
