@@ -686,7 +686,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
             {[
-              { href: '/tools/currency',     label: 'العملات',   icon: '💱', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)' },
+              { href: '/tools/currency',     label: 'العملات',   icon: '💱', image: '/tools/currency.png', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)' },
               { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
               { href: '/tools/split-bill',   label: 'الفاتورة',  icon: '🍽', bg: 'linear-gradient(135deg,#34d399,#047857)' },
               { href: '/tools/installment',  label: 'التقسيط',   icon: '📊', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
@@ -695,8 +695,12 @@ export default function DashboardPage() {
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
             ].map(t => (
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm" style={{ background: t.bg }}>
-                  {t.icon}
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm overflow-hidden" style={{ background: t.bg }}>
+                  {t.image ? (
+                    <img src={t.image} alt={t.label} className="w-11 h-11 object-contain" />
+                  ) : (
+                    t.icon
+                  )}
                 </div>
                 <span className="text-[11px] font-medium text-muted-foreground">{t.label}</span>
               </Link>
