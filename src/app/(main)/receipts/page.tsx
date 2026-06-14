@@ -362,9 +362,9 @@ export default function DetailedReceiptPage() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[70vw] h-[72vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
         </div>
-        <div className="absolute bottom-28 left-0 right-0 text-center px-6">
-          <p className="text-white text-xs opacity-90">ضع الفاتورة كاملةً داخل الإطار</p>
-          <p className="text-white text-[10px] opacity-70 mt-1">فاتورة طويلة؟ صوّرها على دفعتين (أعلى ثم أسفل) — يجمعها التطبيق تلقائياً</p>
+        <div className="absolute bottom-48 left-0 right-0 text-center px-6 pointer-events-none">
+          <p className="text-white text-sm font-medium opacity-95 drop-shadow">ضع الفاتورة كاملةً داخل الإطار</p>
+          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">فاتورة طويلة؟ صوّرها على دفعتين</p>
         </div>
       </div>
       <footer className="absolute bottom-0 left-0 right-0 p-6 flex justify-center z-10 bg-gradient-to-t from-black/60 to-transparent pb-24">
@@ -461,25 +461,27 @@ export default function DetailedReceiptPage() {
                   const q = qualityMeta[img.quality];
                   const QIcon = q.icon;
                   return (
-                    <div key={img.id} className="relative group w-20 h-28">
-                      <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-border">
-                        <Image src={img.src} alt="فاتورة" fill className="object-cover" />
+                    <div key={img.id} className="flex flex-col items-center gap-1">
+                      <div className="relative w-20 h-28">
+                        <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-border">
+                          <Image src={img.src} alt="فاتورة" fill className="object-cover" />
+                        </div>
+                        {/* Quality badge */}
+                        <div className={cn("absolute top-1 right-1 flex items-center gap-0.5 bg-white/90 dark:bg-black/70 rounded px-1 py-0.5", q.color)}>
+                          <QIcon className={cn("h-3 w-3", img.quality === 'checking' && "animate-spin")} />
+                          <span className="text-[9px] font-semibold">{q.label}</span>
+                        </div>
                       </div>
-                      {/* Quality badge */}
-                      <div className={cn("absolute top-1 right-1 flex items-center gap-0.5 bg-white/90 dark:bg-black/70 rounded px-1 py-0.5", q.color)}>
-                        <QIcon className={cn("h-3 w-3", img.quality === 'checking' && "animate-spin")} />
-                        <span className="text-[9px] font-semibold">{q.label}</span>
-                      </div>
-                      {/* Hover actions */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col gap-1 items-center justify-end pb-1">
-                        <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full"
+                      {/* Action buttons — always visible for touch */}
+                      <div className="flex gap-1">
+                        <button className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center active:scale-90 transition-transform"
                           onClick={() => { setImageToCrop(img); setViewState('cropping'); }}>
-                          <Crop className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="destructive" size="icon" className="h-7 w-7 rounded-full"
+                          <Crop className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                        <button className="h-8 w-8 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center active:scale-90 transition-transform"
                           onClick={() => setImages(prev => prev.filter(i => i.id !== img.id))}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </button>
                       </div>
                     </div>
                   );
