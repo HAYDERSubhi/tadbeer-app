@@ -112,6 +112,7 @@ export default function DashboardPage() {
   const recordingTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingStartRef   = useRef<number>(0);
+  const maxAudioLevelRef    = useRef<number>(0); // أعلى مستوى صوت أثناء التسجيل
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
@@ -173,7 +174,9 @@ export default function DashboardPage() {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
-        setAudioLevel(Math.min(1, avg * 5));
+        const level = Math.min(1, avg * 5);
+        setAudioLevel(level);
+        if (level > maxAudioLevelRef.current) maxAudioLevelRef.current = level;
         rafRef.current = requestAnimationFrame(tick);
       };
       tick();
@@ -213,6 +216,7 @@ export default function DashboardPage() {
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current   = [];
     recordingStartRef.current = Date.now();
+    maxAudioLevelRef.current  = 0; // إعادة تهيئة عند كل تسجيل جديد
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -250,6 +254,16 @@ export default function DashboardPage() {
         toast({
           title: 'لم يُكتشف صوت',
           description: 'لم تتضمن المقطع أي كلام واضح. حاول مجدداً.',
+        });
+        return;
+      }
+
+      // Guard: الصمت الحقيقي — مستوى الصوت لم يتجاوز العتبة طوال التسجيل.
+      // الكودك ينتج بيانات حتى بدون صوت لذا لا نعتمد على blob.size وحده.
+      if (maxAudioLevelRef.current < 0.04) {
+        toast({
+          title: 'لم نسمع أي كلام',
+          description: 'تأكد من أن الميكروفون يعمل وتحدث بوضوح.',
         });
         return;
       }
