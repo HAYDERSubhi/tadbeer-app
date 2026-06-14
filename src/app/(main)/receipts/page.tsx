@@ -162,6 +162,13 @@ export default function DetailedReceiptPage() {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  // نسبة الاقتصاص — قابلة للتغيير لتناسب الفواتير الطويلة (P3)
+  const [cropAspect, setCropAspect] = useState(3 / 4);
+  const ASPECT_PRESETS: { label: string; value: number }[] = [
+    { label: 'قصيرة', value: 3 / 4 },
+    { label: 'طويلة', value: 1 / 2 },
+    { label: 'ممتدّة', value: 9 / 21 },
+  ];
 
   const categoryMapForAI = useMemo(() =>
     categories.reduce((acc, cat) => { acc[cat.id] = cat.name; return acc; }, {} as Record<string, string>),
@@ -351,13 +358,14 @@ export default function DetailedReceiptPage() {
       <div className="flex-1 relative">
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={photoRef} className="hidden" />
-        {/* Framing guide */}
+        {/* Framing guide — إطار طويل يناسب الفواتير الحرارية الطويلة (P2) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[75vw] h-[55vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
+          <div className="w-[70vw] h-[72vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
         </div>
-        <p className="absolute bottom-28 left-0 right-0 text-center text-white text-xs opacity-80">
-          ضع الفاتورة داخل الإطار الأبيض
-        </p>
+        <div className="absolute bottom-28 left-0 right-0 text-center px-6">
+          <p className="text-white text-xs opacity-90">ضع الفاتورة كاملةً داخل الإطار</p>
+          <p className="text-white text-[10px] opacity-70 mt-1">فاتورة طويلة؟ صوّرها على دفعتين (أعلى ثم أسفل) — يجمعها التطبيق تلقائياً</p>
+        </div>
       </div>
       <footer className="absolute bottom-0 left-0 right-0 p-6 flex justify-center z-10 bg-gradient-to-t from-black/60 to-transparent pb-24">
         <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 flex items-center justify-center transition-transform active:scale-95">
@@ -375,10 +383,24 @@ export default function DetailedReceiptPage() {
         <Button variant="ghost" size="icon" onClick={() => { setImageToCrop(null); setViewState('initial'); }}><X /></Button>
       </header>
       <div className="flex-1 relative bg-muted/50">
-        <Cropper image={imageToCrop.src} crop={crop} zoom={zoom} aspect={3 / 4}
+        <Cropper image={imageToCrop.src} crop={crop} zoom={zoom} aspect={cropAspect}
           onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} showGrid />
       </div>
       <div className="p-4 border-t space-y-4 pb-24">
+        {/* اختيار شكل الاقتصاص حسب طول الفاتورة (P3) */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground shrink-0">شكل الفاتورة:</span>
+          <div className="flex gap-1.5 flex-1">
+            {ASPECT_PRESETS.map(p => (
+              <button key={p.label} onClick={() => setCropAspect(p.value)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  Math.abs(cropAspect - p.value) < 0.001 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
           <Slider value={[zoom]} onValueChange={([v]) => setZoom(v)} min={1} max={3} step={0.1} />
