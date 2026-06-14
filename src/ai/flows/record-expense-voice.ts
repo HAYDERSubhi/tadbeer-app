@@ -23,6 +23,8 @@ const RecordExpenseWithVoiceOutputSchema = z.object({
   date: z.string().describe('Date in YYYY-MM-DD format. Default to today if not mentioned.'),
   // nullable() so Gemini returning null (instead of omitting) doesn't break validation.
   description: z.string().nullable().optional().describe('Short Arabic description of the expense.'),
+  // النص المُفرّغ كما سمعه النموذج — يُعرض للمستخدم ليتحقّق من فهم AI (P5).
+  transcript: z.string().nullable().optional().describe('The exact words transcribed from the audio, verbatim in Arabic.'),
 });
 export type RecordExpenseWithVoiceOutput = z.infer<typeof RecordExpenseWithVoiceOutputSchema>;
 
@@ -104,7 +106,8 @@ ${categoriesList}
 - amount يجب أن يكون رقم صحيح (مثال: 50000 وليس "خمسين ألف")
 - category يجب أن يكون أحد الـ IDs بالضبط
 - date بصيغة YYYY-MM-DD، والافتراضي هو ${todayISO}
-- description اسم المصروف بالعربية (اكتب ما سمعته بدقة، لا تخمّن)`;
+- description اسم المصروف بالعربية (اكتب ما سمعته بدقة، لا تخمّن)
+- transcript: اكتب **النص الكامل الحرفي** كما نطقه المستخدم بالضبط (كل الكلمات التي سمعتها) — ليتمكّن المستخدم من التحقّق`;
 
     // Extract MIME type from data URI
     const mimeMatch = input.voiceRecordingDataUri.match(/^data:([^;]+)/);
