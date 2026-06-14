@@ -61,6 +61,35 @@ const dataURItoBlob = (dataURI: string) => {
   return new Blob([ab], { type: mimeString });
 };
 
+/**
+ * يضغط صورة data URI قبل إرسالها للتحليل:
+ * يصغّر الحافة الأطول إلى maxDim ويحوّلها JPEG بجودة معقولة.
+ * يقلّص حجم الرفع من ~4MB إلى ~400KB مع إبقاء نص الفاتورة مقروءاً —
+ * يعالج بطء/تعليق التحليل واستهلاك الإنترنت (P1/H4).
+ */
+const compressDataUri = (src: string, maxDim = 2000, quality = 0.82): Promise<string> =>
+  new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const r = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * r);
+        height = Math.round(height * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(src); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+      catch { resolve(src); }
+    };
+    img.onerror = () => resolve(src); // فشل التحميل → أرسل الأصل بدل الانهيار
+    img.src = src;
+  });
+
 /** Runs a quick brightness + contrast check on a data URI image. */
 const checkImageQuality = (src: string): Promise<ImageQuality> =>
   new Promise((resolve) => {
@@ -217,15 +246,25 @@ export default function DetailedReceiptPage() {
     }
     setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]);
     try {
-      // Use data URIs directly — no storage upload needed.
-      // /api/receipt route has maxDuration=60 (server actions are capped at
-      // 10s on Vercel, which multi-image analysis exceeds).
+      // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
+      const compressedImages = await Promise.all(images.map(i => compressDataUri(i.src)));
+
+      // مهلة client-side: تُلغي الطلب إن تجاوز 75 ثانية بدل التعليق اللانهائي.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 75000);
+
       setProcessingStep('analyzing');
-      const res = await fetch('/api/receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiptImages: images.map(i => i.src), categories: categoryMapForAI }),
-      });
+      let res: Response;
+      try {
+        res = await fetch('/api/receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receiptImages: compressedImages, categories: categoryMapForAI }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const response: { ok: boolean; data?: AnalyzeDetailedReceiptOutput; error?: string } = await res.json();
       if (!response.ok || !response.data) throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
@@ -243,6 +282,12 @@ export default function DetailedReceiptPage() {
       setProcessingStep(null);
     } catch (e: any) {
       console.error('Receipt analysis error:', e);
+      // انتهاء المهلة (إلغاء الطلب) → رسالة واضحة بدل تعليق صامت
+      if (e?.name === 'AbortError') {
+        setError('استغرق التحليل وقتاً أطول من المتوقع. تأكد من قوة الإنترنت وأن الفاتورة واضحة، ثم حاول مجدداً.');
+        setProcessingStep(null);
+        return;
+      }
       const detail = e instanceof Error ? e.message : String(e);
       setError(
         detail && detail.length < 120
