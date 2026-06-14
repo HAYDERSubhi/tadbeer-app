@@ -697,6 +697,17 @@ export default function DashboardPage() {
               <p className="text-xs text-muted-foreground">جاري التسجيل... اضغط مرة أخرى عند الانتهاء</p>
             </div>
           )}
+
+          {/* AI processing indicator — P9 */}
+          {isVoiceLoading && (
+            <div className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2.5 animate-in fade-in slide-in-from-bottom-1">
+              <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-foreground leading-tight">الذكاء الاصطناعي يحلل تسجيلك</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">قد يستغرق حتى 20 ثانية — لا تغلق التطبيق</p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
