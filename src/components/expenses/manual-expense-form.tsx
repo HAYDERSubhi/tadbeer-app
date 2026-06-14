@@ -45,7 +45,9 @@ import {
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
-  amount: z.coerce.number().min(1, { message: 'المبلغ يجب أن يكون أكبر من صفر' }),
+  amount: z.coerce.number()
+    .min(1,           { message: 'المبلغ يجب أن يكون أكبر من صفر' })
+    .max(500_000_000, { message: 'المبلغ كبير جداً — تحقق من الرقم قبل الحفظ' }),
   category: z.string().min(1, { message: 'الفئة مطلوبة' }),
   date: z.date({ required_error: 'التاريخ مطلوب' }),
   isOutOfBudget: z.boolean().optional(),
