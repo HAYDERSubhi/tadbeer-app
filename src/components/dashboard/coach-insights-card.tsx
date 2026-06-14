@@ -98,7 +98,7 @@ export function CoachInsightsCard({
     return `coach-stats-${selectedPeriod}-${budget}-${hash}`;
   }, [coachInput, selectedPeriod, budget, filteredExpenses]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['coach-stats', cacheKey],
     queryFn: () => fetchCoach(coachInput!),
     enabled: !!coachInput,
@@ -158,6 +158,9 @@ export function CoachInsightsCard({
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <p className="text-xs text-muted-foreground">تعذّر الاتصال بالمدرب الذكي.</p>
+            {error instanceof Error && (
+              <p className="text-[10px] text-destructive/70 max-w-xs break-words">{error.message}</p>
+            )}
             <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetch()}>
               إعادة المحاولة
             </Button>
