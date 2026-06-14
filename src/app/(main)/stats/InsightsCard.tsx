@@ -4,8 +4,18 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bot, TrendingDown, TrendingUp, Wallet, PieChart, AlertCircle, RefreshCw } from "lucide-react";
-import { analyzeSpendingPatternsAction } from '@/app/actions';
-import type { AnalyzeSpendingPatternsInput } from '@/ai/flows/analyze-spending-patterns';
+import type { AnalyzeSpendingPatternsInput, AnalyzeSpendingPatternsResult } from '@/ai/flows/analyze-spending-patterns';
+
+async function fetchAnalysis(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsResult> {
+  const res = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const json: { ok: boolean; data?: AnalyzeSpendingPatternsResult; error?: string } = await res.json();
+  if (!json.ok || !json.data) throw new Error(json.error ?? 'خطأ من الخادم');
+  return json.data;
+}
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
@@ -96,7 +106,7 @@ export function InsightsCard({
 
   const { data: analysis, isLoading, isError, refetch } = useQuery({
     queryKey: ['spending-analysis', cacheKey],
-    queryFn: () => analyzeSpendingPatternsAction(analysisInput!),
+    queryFn: () => fetchAnalysis(analysisInput!),
     enabled: !!analysisInput && !!cacheKey,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
