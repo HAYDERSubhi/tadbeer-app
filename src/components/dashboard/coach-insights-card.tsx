@@ -10,8 +10,18 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
-import { financialCoachAction } from '@/app/actions';
-import type { FinancialCoachInput } from '@/ai/flows/financial-coach';
+import type { FinancialCoachInput, FinancialCoachOutput } from '@/ai/flows/financial-coach';
+
+async function fetchCoach(input: FinancialCoachInput): Promise<FinancialCoachOutput> {
+  const res = await fetch('/api/coach', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const json: { ok: boolean; data?: FinancialCoachOutput; error?: string } = await res.json();
+  if (!json.ok || !json.data) throw new Error(json.error ?? 'خطأ من الخادم');
+  return json.data;
+}
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO } from 'date-fns';
 
@@ -90,7 +100,7 @@ export function CoachInsightsCard({
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['coach-stats', cacheKey],
-    queryFn: () => financialCoachAction(coachInput!),
+    queryFn: () => fetchCoach(coachInput!),
     enabled: !!coachInput,
     staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 60,
