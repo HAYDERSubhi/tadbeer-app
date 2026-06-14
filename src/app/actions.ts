@@ -32,11 +32,6 @@ import {
   type RecordExpenseWithVoiceInput,
   type RecordExpenseWithVoiceOutput,
 } from '@/ai/flows/record-expense-voice';
-import {
-  parseBankSms,
-  type ParseBankSmsInput,
-  type ParseBankSmsOutput,
-} from '@/ai/flows/parse-bank-sms';
 
 /**
  * A Server Action to securely call the financialCoach AI flow from the client.
@@ -104,27 +99,6 @@ export async function recordExpenseWithVoiceAction(
   }
 }
 
-/**
- * A Server Action to parse a bank SMS / notification into a structured expense.
- * Returns a discriminated result so the real error survives production builds.
- */
-export type BankSmsActionResult =
-  | { ok: true; data: ParseBankSmsOutput }
-  | { ok: false; error: string };
-
-export async function parseBankSmsAction(
-  input: ParseBankSmsInput
-): Promise<BankSmsActionResult> {
-  try {
-    const data = await parseBankSms(input);
-    return { ok: true, data };
-  } catch (error) {
-    console.error('Error in parseBankSmsAction:', error);
-    const message =
-      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-    return { ok: false, error: message };
-  }
-}
 
 /**
  * A Server Action to securely call the analyzeSpendingPatterns AI flow from the client.
