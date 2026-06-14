@@ -50,20 +50,17 @@ export type AnalyzeSpendingPatternsOutput = z.infer<typeof AnalyzeSpendingPatter
 export type AnalyzeSpendingPatternsResult = AnalyzeSpendingPatternsOutput | null;
 
 
-export async function analyzeSpendingPatterns(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsOutput | null> {
-  // Return null (not a dummy object) so the caller can distinguish "no data" from a real result.
-  if (input.expenses.length === 0) return null;
-  return analyzeSpendingPatternsFlow(input);
-}
-
+const AnalyzeSpendingPatternsPromptInputSchema = AnalyzeSpendingPatternsInputSchema.extend({
+  isColloquial: z.boolean(),
+});
 
 const prompt = ai.definePrompt({
   name: 'analyzeSpendingPatternsPrompt',
-  input: {schema: AnalyzeSpendingPatternsInputSchema},
+  input: {schema: AnalyzeSpendingPatternsPromptInputSchema},
   output: {schema: AnalyzeSpendingPatternsOutputSchema},
   prompt: `You are a data analyst AI for a personal finance app. Analyze the user's spending and provide objective, data-driven insights. Do NOT give advice or coaching language — state facts only. All responses must be in Arabic.
 
-**Tone:** {{#if (eq appTone "colloquial")}}Use friendly Iraqi dialect (عامية عراقية). Short and warm.{{else}}Use professional Modern Standard Arabic (فصحى).{{/if}}
+**Tone:** {{#if isColloquial}}Use friendly Iraqi dialect (عامية عراقية). Short and warm.{{else}}Use professional Modern Standard Arabic (فصحى).{{/if}}
 
 ---
 **Current Period:** {{periodDescription}}
@@ -105,9 +102,15 @@ const analyzeSpendingPatternsFlow = ai.defineFlow(
     outputSchema: AnalyzeSpendingPatternsOutputSchema,
   },
   async (input) => {
-    const {output} = await prompt(input, {
-      config: { thinkingConfig: { thinkingBudget: 0 } },
-    });
+    const {output} = await prompt(
+      { ...input, isColloquial: input.appTone === 'colloquial' },
+      { config: { thinkingConfig: { thinkingBudget: 0 } } },
+    );
     return output!;
   }
 );
+
+export async function analyzeSpendingPatterns(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsOutput | null> {
+  if (input.expenses.length === 0) return null;
+  return analyzeSpendingPatternsFlow(input);
+}
