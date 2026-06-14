@@ -158,8 +158,8 @@ export function CoachInsightsCard({
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <p className="text-xs text-muted-foreground">تعذّر الاتصال بالمدرب الذكي.</p>
-            {error instanceof Error && (
-              <p className="text-[10px] text-destructive/70 max-w-xs break-words">{error.message}</p>
+            {error && (
+              <p className="text-[10px] text-destructive/70 max-w-xs break-words">{String(error)}</p>
             )}
             <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetch()}>
               إعادة المحاولة
