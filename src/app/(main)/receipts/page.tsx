@@ -61,6 +61,35 @@ const dataURItoBlob = (dataURI: string) => {
   return new Blob([ab], { type: mimeString });
 };
 
+/**
+ * يضغط صورة data URI قبل إرسالها للتحليل:
+ * يصغّر الحافة الأطول إلى maxDim ويحوّلها JPEG بجودة معقولة.
+ * يقلّص حجم الرفع من ~4MB إلى ~400KB مع إبقاء نص الفاتورة مقروءاً —
+ * يعالج بطء/تعليق التحليل واستهلاك الإنترنت (P1/H4).
+ */
+const compressDataUri = (src: string, maxDim = 2000, quality = 0.82): Promise<string> =>
+  new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const r = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * r);
+        height = Math.round(height * r);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(src); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+      catch { resolve(src); }
+    };
+    img.onerror = () => resolve(src); // فشل التحميل → أرسل الأصل بدل الانهيار
+    img.src = src;
+  });
+
 /** Runs a quick brightness + contrast check on a data URI image. */
 const checkImageQuality = (src: string): Promise<ImageQuality> =>
   new Promise((resolve) => {
@@ -133,6 +162,13 @@ export default function DetailedReceiptPage() {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  // نسبة الاقتصاص — قابلة للتغيير لتناسب الفواتير الطويلة (P3)
+  const [cropAspect, setCropAspect] = useState(3 / 4);
+  const ASPECT_PRESETS: { label: string; value: number }[] = [
+    { label: 'قصيرة', value: 3 / 4 },
+    { label: 'طويلة', value: 1 / 2 },
+    { label: 'ممتدّة', value: 9 / 21 },
+  ];
 
   const categoryMapForAI = useMemo(() =>
     categories.reduce((acc, cat) => { acc[cat.id] = cat.name; return acc; }, {} as Record<string, string>),
@@ -217,15 +253,25 @@ export default function DetailedReceiptPage() {
     }
     setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]);
     try {
-      // Use data URIs directly — no storage upload needed.
-      // /api/receipt route has maxDuration=60 (server actions are capped at
-      // 10s on Vercel, which multi-image analysis exceeds).
+      // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
+      const compressedImages = await Promise.all(images.map(i => compressDataUri(i.src)));
+
+      // مهلة client-side: تُلغي الطلب إن تجاوز 75 ثانية بدل التعليق اللانهائي.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 75000);
+
       setProcessingStep('analyzing');
-      const res = await fetch('/api/receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiptImages: images.map(i => i.src), categories: categoryMapForAI }),
-      });
+      let res: Response;
+      try {
+        res = await fetch('/api/receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ receiptImages: compressedImages, categories: categoryMapForAI }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const response: { ok: boolean; data?: AnalyzeDetailedReceiptOutput; error?: string } = await res.json();
       if (!response.ok || !response.data) throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
@@ -243,6 +289,12 @@ export default function DetailedReceiptPage() {
       setProcessingStep(null);
     } catch (e: any) {
       console.error('Receipt analysis error:', e);
+      // انتهاء المهلة (إلغاء الطلب) → رسالة واضحة بدل تعليق صامت
+      if (e?.name === 'AbortError') {
+        setError('استغرق التحليل وقتاً أطول من المتوقع. تأكد من قوة الإنترنت وأن الفاتورة واضحة، ثم حاول مجدداً.');
+        setProcessingStep(null);
+        return;
+      }
       const detail = e instanceof Error ? e.message : String(e);
       setError(
         detail && detail.length < 120
@@ -306,13 +358,14 @@ export default function DetailedReceiptPage() {
       <div className="flex-1 relative">
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={photoRef} className="hidden" />
-        {/* Framing guide */}
+        {/* Framing guide — إطار طويل يناسب الفواتير الحرارية الطويلة (P2) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[75vw] h-[55vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
+          <div className="w-[70vw] h-[72vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
         </div>
-        <p className="absolute bottom-28 left-0 right-0 text-center text-white text-xs opacity-80">
-          ضع الفاتورة داخل الإطار الأبيض
-        </p>
+        <div className="absolute bottom-48 left-0 right-0 text-center px-6 pointer-events-none">
+          <p className="text-white text-sm font-medium opacity-95 drop-shadow">ضع الفاتورة كاملةً داخل الإطار</p>
+          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">فاتورة طويلة؟ صوّرها على دفعتين</p>
+        </div>
       </div>
       <footer className="absolute bottom-0 left-0 right-0 p-6 flex justify-center z-10 bg-gradient-to-t from-black/60 to-transparent pb-24">
         <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 flex items-center justify-center transition-transform active:scale-95">
@@ -330,10 +383,24 @@ export default function DetailedReceiptPage() {
         <Button variant="ghost" size="icon" onClick={() => { setImageToCrop(null); setViewState('initial'); }}><X /></Button>
       </header>
       <div className="flex-1 relative bg-muted/50">
-        <Cropper image={imageToCrop.src} crop={crop} zoom={zoom} aspect={3 / 4}
+        <Cropper image={imageToCrop.src} crop={crop} zoom={zoom} aspect={cropAspect}
           onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} showGrid />
       </div>
       <div className="p-4 border-t space-y-4 pb-24">
+        {/* اختيار شكل الاقتصاص حسب طول الفاتورة (P3) */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground shrink-0">شكل الفاتورة:</span>
+          <div className="flex gap-1.5 flex-1">
+            {ASPECT_PRESETS.map(p => (
+              <button key={p.label} onClick={() => setCropAspect(p.value)}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  Math.abs(cropAspect - p.value) < 0.001 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
           <Slider value={[zoom]} onValueChange={([v]) => setZoom(v)} min={1} max={3} step={0.1} />
@@ -394,25 +461,27 @@ export default function DetailedReceiptPage() {
                   const q = qualityMeta[img.quality];
                   const QIcon = q.icon;
                   return (
-                    <div key={img.id} className="relative group w-20 h-28">
-                      <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-border">
-                        <Image src={img.src} alt="فاتورة" fill className="object-cover" />
+                    <div key={img.id} className="flex flex-col items-center gap-1">
+                      <div className="relative w-20 h-28">
+                        <div className="relative w-full h-full rounded-lg overflow-hidden border-2 border-border">
+                          <Image src={img.src} alt="فاتورة" fill className="object-cover" />
+                        </div>
+                        {/* Quality badge */}
+                        <div className={cn("absolute top-1 right-1 flex items-center gap-0.5 bg-white/90 dark:bg-black/70 rounded px-1 py-0.5", q.color)}>
+                          <QIcon className={cn("h-3 w-3", img.quality === 'checking' && "animate-spin")} />
+                          <span className="text-[9px] font-semibold">{q.label}</span>
+                        </div>
                       </div>
-                      {/* Quality badge */}
-                      <div className={cn("absolute top-1 right-1 flex items-center gap-0.5 bg-white/90 dark:bg-black/70 rounded px-1 py-0.5", q.color)}>
-                        <QIcon className={cn("h-3 w-3", img.quality === 'checking' && "animate-spin")} />
-                        <span className="text-[9px] font-semibold">{q.label}</span>
-                      </div>
-                      {/* Hover actions */}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col gap-1 items-center justify-end pb-1">
-                        <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full"
+                      {/* Action buttons — always visible for touch */}
+                      <div className="flex gap-1">
+                        <button className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center active:scale-90 transition-transform"
                           onClick={() => { setImageToCrop(img); setViewState('cropping'); }}>
-                          <Crop className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="destructive" size="icon" className="h-7 w-7 rounded-full"
+                          <Crop className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                        <button className="h-8 w-8 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center active:scale-90 transition-transform"
                           onClick={() => setImages(prev => prev.filter(i => i.id !== img.id))}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </button>
                       </div>
                     </div>
                   );

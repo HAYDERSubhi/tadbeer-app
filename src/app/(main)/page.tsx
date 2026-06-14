@@ -100,6 +100,7 @@ export default function DashboardPage() {
 
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
+  const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null); // النص المُفرّغ (P5)
   
   // --- Voice Recording State & Refs ---
   const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
@@ -282,13 +283,14 @@ export default function DashboardPage() {
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        const response: { ok: boolean; data?: { amount: number; category: string; date: string; description?: string | null }; error?: string } = await res.json();
+        const response: { ok: boolean; data?: { amount: number; category: string; date: string; description?: string | null; transcript?: string | null }; error?: string } = await res.json();
 
         if (!response.ok) {
           throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
         }
 
         const result = response.data!;
+        setVoiceTranscript(result.transcript ?? null);
         setVoiceExpenseData({
           title:    result.description ?? undefined,
           amount:   result.amount,
@@ -650,6 +652,12 @@ export default function DashboardPage() {
                     <SheetTitle>مراجعة المصروف الصوتي</SheetTitle>
                     <SheetDescription>راجع المصروف الذي تم تحليله من صوتك واحفظه.</SheetDescription>
                   </SheetHeader>
+                  {voiceTranscript && (
+                    <div className="mt-2 mb-1 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
+                      <p className="text-xs text-foreground leading-relaxed">«{voiceTranscript}»</p>
+                    </div>
+                  )}
                   <ManualExpenseForm
                     key={JSON.stringify(voiceExpenseData)}
                     setOpen={setIsVoiceReviewOpen}
@@ -658,6 +666,12 @@ export default function DashboardPage() {
                 </SheetContent>
               ) : (
                 <DialogContent>
+                  {voiceTranscript && (
+                    <div className="rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
+                      <p className="text-xs text-foreground leading-relaxed">«{voiceTranscript}»</p>
+                    </div>
+                  )}
                   <ManualExpenseForm
                     key={JSON.stringify(voiceExpenseData)}
                     setOpen={setIsVoiceReviewOpen}

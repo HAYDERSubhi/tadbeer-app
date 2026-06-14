@@ -230,7 +230,22 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="amount">المبلغ (د.ع)</Label>
-          <Input id="amount" type="number" inputMode="decimal" {...form.register('amount')} placeholder="25000" />
+          <Controller
+            name="amount"
+            control={form.control}
+            render={({ field }) => (
+              <Input
+                id="amount"
+                inputMode="numeric"
+                placeholder="25,000"
+                value={field.value ? Number(field.value).toLocaleString('en-US') : ''}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/,/g, '').replace(/\D/g, '');
+                  field.onChange(raw ? Number(raw) : 0);
+                }}
+              />
+            )}
+          />
           {form.formState.errors.amount && <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>}
         </div>
 
