@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, Fragment } from 'react';
+import { useMemo, useState, Fragment, useEffect } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus } from "lucide-react";
@@ -53,6 +53,7 @@ export default function AllExpensesPage() {
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'category'>('date');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const EditComponent = isMobile ? Sheet : Dialog;
 
@@ -103,6 +104,9 @@ export default function AllExpensesPage() {
   );
 
   const hasFilters = searchQuery !== '' || selectedCategory !== 'all';
+
+  // إعادة تعيين العرض عند تغيير الفلتر أو الترتيب
+  useEffect(() => { setVisibleCount(50); }, [searchQuery, selectedCategory, sortBy, sortDir]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -352,8 +356,9 @@ export default function AllExpensesPage() {
               )}
             </div>
           ) : (
+            <>
             <ul className="divide-y divide-border">
-              {filteredExpenses.map((expense) => {
+              {filteredExpenses.slice(0, visibleCount).map((expense) => {
                 const categoryInfo = categoryMap[expense.category];
                 const isSelected = selectedIds.has(expense.id);
                 return (
@@ -442,6 +447,19 @@ export default function AllExpensesPage() {
                 );
               })}
             </ul>
+            {filteredExpenses.length > visibleCount && (
+              <div className="p-3 border-t text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-primary w-full h-9"
+                  onClick={() => setVisibleCount(c => c + 50)}
+                >
+                  تحميل المزيد ({filteredExpenses.length - visibleCount} متبقٍ)
+                </Button>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>

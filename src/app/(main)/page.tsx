@@ -809,7 +809,7 @@ export default function DashboardPage() {
           <CardFooter className="p-2 border-t">
             <Button variant="ghost" asChild className="w-full h-9 text-xs text-primary">
               <Link href="/expenses">
-                عرض كل المصاريف ({allSortedExpenses.length})
+                عرض كل المصاريف
                 <ChevronLeft className="mr-1 h-3 w-3" />
               </Link>
             </Button>
