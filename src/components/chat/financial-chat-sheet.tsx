@@ -191,24 +191,7 @@ export function FinancialChatSheet() {
       });
     }
 
-    // 3. Days without expense
-    const sorted = [...expenses].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    if (sorted.length > 0) {
-      try {
-        const daysSince = differenceInCalendarDays(now, parseISO(sorted[0].date));
-        if (daysSince >= 4) {
-          alerts.push({
-            type: 'info',
-            icon: <Info className="h-4 w-4 text-blue-500 shrink-0" />,
-            message: `مرّت ${daysSince} أيام بدون تسجيل مصروف — هل هناك مصاريف فائتة؟`,
-          });
-        }
-      } catch { /* ignore */ }
-    }
-
-    // 4. Month start — show last month summary (days 1-3)
+    // 3. Month start — show last month summary (days 1-3)
     if (now.getDate() <= 3 && thisMonthExpenses.length === 0) {
       const lastMonthExpenses = expenses.filter(e => {
         try {
