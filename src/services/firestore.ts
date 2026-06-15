@@ -522,9 +522,10 @@ export const createHousehold = async (
     });
 
     // 2. Copy user's existing data to household
-    const [expenses, goals, settingsSnap] = await Promise.all([
+    const [expenses, goals, incomes, settingsSnap] = await Promise.all([
         getDocs(collection(db, 'users', uid, 'expenses')),
         getDocs(collection(db, 'users', uid, 'goals')),
+        getDocs(collection(db, 'users', uid, 'incomes')),
         getDoc(doc(db, 'users', uid, 'settings', 'main')),
     ]);
 
@@ -543,6 +544,7 @@ export const createHousehold = async (
     await Promise.all([
         migrateSnap(expenses, 'expenses'),
         migrateSnap(goals, 'goals'),
+        migrateSnap(incomes, 'incomes'),
     ]);
 
     // Copy settings (shared portion) to household
@@ -601,7 +603,7 @@ export const leaveHousehold = async (uid: string, household: Household): Promise
         // Last member — delete the whole household
         const hhRef = doc(db, 'households', household.id);
         // Delete sub-collections expenses + goals + settings
-        for (const col of ['expenses', 'goals']) {
+        for (const col of ['expenses', 'goals', 'incomes']) {
             const snap = await getDocs(collection(db, 'households', household.id, col));
             const batch = writeBatch(db);
             snap.docs.forEach(d => batch.delete(d.ref));
