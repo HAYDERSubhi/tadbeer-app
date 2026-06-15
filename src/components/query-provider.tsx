@@ -11,6 +11,9 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         // 5-minute stale window: long enough to avoid pointless background
         // refetches, short enough to pick up changes in a live session.
         staleTime: 1000 * 60 * 5,
+        // Keep cached data in memory for 30 min before disposal (default is 5 min).
+        // Prevents unnecessary Firestore refetches when PWA users switch tabs.
+        gcTime: 1000 * 60 * 30,
         // Don't refetch when the user switches back to the tab/window —
         // mutations already invalidate the cache explicitly.
         refetchOnWindowFocus: false,
