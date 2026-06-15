@@ -545,11 +545,49 @@ export default function DashboardPage() {
   if (!pageReady) {
     return (
       <div className="space-y-3 pb-24 animate-in fade-in duration-200">
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-40 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-56 w-full rounded-2xl" />
+        {/* Budget card skeleton */}
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="h-7 w-36" />
+          <Skeleton className="h-2 w-full rounded-full" />
+          <div className="flex justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+        {/* Input card skeleton */}
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <div className="flex gap-2">
+            <Skeleton className="h-11 flex-1 rounded-xl" />
+            <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
+            <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
+          </div>
+        </div>
+        {/* Recent expenses skeleton */}
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+              <Skeleton className="h-4 w-16 shrink-0" />
+            </div>
+          ))}
+        </div>
+        {/* Loading hint */}
+        <p className="text-center text-xs text-muted-foreground pt-1 animate-pulse">
+          جاري تحميل بياناتك...
+        </p>
       </div>
     );
   }
