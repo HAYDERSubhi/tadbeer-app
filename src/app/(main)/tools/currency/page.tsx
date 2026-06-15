@@ -78,7 +78,7 @@ export default function CurrencyPage() {
   const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫'];
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-4.5rem)] max-w-md mx-auto">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
