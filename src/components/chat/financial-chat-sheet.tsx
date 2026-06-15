@@ -12,22 +12,22 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import {
   Bot,
   Send,
   Loader2,
   X,
   AlertTriangle,
-  Info,
   TrendingDown,
   ChevronRight,
+  Copy,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
-// financialChatAction replaced by direct /api/chat fetch — see handleSend below.
-import { format, isThisMonth, parseISO, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
+import { format, isThisMonth, parseISO, differenceInCalendarMonths } from 'date-fns';
 import { useCurrency } from '@/hooks/use-currency';
 
 /* ─────────────────────────────── Types ─────────────────────────────── */
@@ -35,6 +35,8 @@ import { useCurrency } from '@/hooks/use-currency';
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  timestamp?: number;
+  isError?: boolean;
 }
 
 interface ProactiveAlert {
@@ -53,9 +55,18 @@ const BASE_SUGGESTIONS = [
 ];
 const GOALS_SUGGESTION = 'ما وضع أهدافي؟';
 
+/* ─────────────────────────────── Helpers ────────────────────────────── */
+
+function formatMsgTime(ts?: number): string {
+  if (!ts) return '';
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return 'الآن';
+  if (diff < 3600) return `قبل ${Math.floor(diff / 60)} د`;
+  try { return format(new Date(ts), 'HH:mm'); } catch { return ''; }
+}
+
 /* ── Lightweight markdown renderer (no extra dependency) ──
-   Handles: **bold**, numbered lists, bullet lists, line breaks.
-   Used for AI replies only — user messages render as plain text. */
+   Handles: **bold**, numbered lists, bullet lists, line breaks. */
 function renderMarkdown(text: string): React.ReactNode {
   const paragraphs = text.split(/\n{2,}/);
   return paragraphs.map((para, pi) => {
@@ -104,7 +115,6 @@ export function FinancialChatSheet() {
   const { format: formatCurrency } = useCurrency();
   const pathname = usePathname();
 
-  // Hide the floating button on data-entry pages and all financial tools pages
   const HIDDEN_PATHS = ['/add-expense', '/add-expense/', '/tools'];
   const isHidden = HIDDEN_PATHS.some(p => pathname === p || pathname?.startsWith(p));
 
@@ -119,8 +129,9 @@ export function FinancialChatSheet() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [alertsDismissed, setAlertsDismissed] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [lastSentText, setLastSentText] = useState('');
 
-  // Persist conversation across sheet open/close within the same browser session
   useEffect(() => {
     try { sessionStorage.setItem('advisor_messages', JSON.stringify(messages)); } catch { /* quota */ }
   }, [messages]);
@@ -129,7 +140,7 @@ export function FinancialChatSheet() {
   const inputRef = useRef<HTMLInputElement>(null);
   const sheetContentRef = useRef<HTMLDivElement>(null);
 
-  /* ── Respond to keyboard open/close via visualViewport ── */
+  /* ── Keyboard resize ── */
   const updateSheetHeight = useCallback(() => {
     const vp = window.visualViewport;
     const vh = vp ? vp.height + vp.offsetTop : window.innerHeight;
@@ -142,7 +153,6 @@ export function FinancialChatSheet() {
 
   useEffect(() => {
     if (!open) return;
-    // Small delay to let the sheet fully render before measuring
     const t = setTimeout(updateSheetHeight, 50);
     window.visualViewport?.addEventListener('resize', updateSheetHeight);
     return () => {
@@ -151,14 +161,11 @@ export function FinancialChatSheet() {
     };
   }, [open, updateSheetHeight]);
 
-  /* ── Auto-scroll to bottom on new message ── */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isSending]);
 
-  /* ── Do NOT auto-focus on open — prevents keyboard from hiding content ── */
-
-  /* ── Proactive alerts (computed client-side, no AI call) ── */
+  /* ── Proactive alerts ── */
   const proactiveAlerts = useMemo((): ProactiveAlert[] => {
     if (isLoading || !expenses.length) return [];
 
@@ -166,14 +173,12 @@ export function FinancialChatSheet() {
     const totalBudget = userSettings?.budget?.totalBudget || 0;
     const now = new Date();
 
-    // Current month expenses
     const thisMonthExpenses = expenses.filter(e => {
       try { return isThisMonth(parseISO(e.date)); } catch { return false; }
     });
     const totalSpent = thisMonthExpenses.reduce((s, e) => s + e.amount, 0);
     const usagePercent = totalBudget ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
-    // 1. Budget over 75%
     if (totalBudget && usagePercent >= 75 && usagePercent < 100) {
       alerts.push({
         type: 'warning',
@@ -182,7 +187,6 @@ export function FinancialChatSheet() {
       });
     }
 
-    // 2. Budget exceeded
     if (totalBudget && totalSpent > totalBudget) {
       alerts.push({
         type: 'warning',
@@ -191,7 +195,6 @@ export function FinancialChatSheet() {
       });
     }
 
-    // 3. Month start — show last month summary (days 1-3)
     if (now.getDate() <= 3 && thisMonthExpenses.length === 0) {
       const lastMonthExpenses = expenses.filter(e => {
         try {
@@ -216,7 +219,7 @@ export function FinancialChatSheet() {
 
   const badgeCount = alertsDismissed ? 0 : proactiveAlerts.length;
 
-  /* ── Compact financial context for AI ── */
+  /* ── Financial context for AI (unchanged logic) ── */
   const financialContext = useMemo(() => {
     if (isLoading) return '{}';
 
@@ -228,14 +231,12 @@ export function FinancialChatSheet() {
     const totalSpent = thisMonthExpenses.reduce((s, e) => s + e.amount, 0);
     const totalBudget = userSettings?.budget?.totalBudget || 0;
 
-    // Spending by category name
     const byCategory: Record<string, number> = {};
     thisMonthExpenses.forEach(e => {
       const name = categoryMap[e.category]?.name || e.category;
       byCategory[name] = (byCategory[name] || 0) + e.amount;
     });
 
-    // Previous month — full breakdown by category (not just total)
     const prevMonthExpenses = expenses.filter(e => {
       try {
         const d = parseISO(e.date);
@@ -251,7 +252,6 @@ export function FinancialChatSheet() {
       prevByCategory[name] = (prevByCategory[name] || 0) + e.amount;
     });
 
-    // Recent 10 expenses (increased from 5 for richer context)
     const recent = [...expenses]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 10)
@@ -262,7 +262,6 @@ export function FinancialChatSheet() {
         date: e.date.slice(0, 10),
       }));
 
-    // Goals summary
     const goalsSummary = goals.map(g => {
       const monthsLeft = differenceInCalendarMonths(new Date(g.targetDate), now);
       return {
@@ -273,7 +272,6 @@ export function FinancialChatSheet() {
       };
     });
 
-    // Category budgets (named, not by ID) — needed to answer "كم ميزانيتي للأكل؟"
     const categoryBudgetsNamed: Record<string, number> = {};
     Object.entries(userSettings?.categoryBudgets || {}).forEach(([id, amt]) => {
       const name = categoryMap[id]?.name || id;
@@ -302,18 +300,15 @@ export function FinancialChatSheet() {
     const content = (text ?? input).trim();
     if (!content || isSending) return;
 
-    const userMsg: ChatMessage = { role: 'user', content };
+    const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now() };
     const updatedMessages = [...messages, userMsg];
 
     setMessages(updatedMessages);
     setInput('');
+    setLastSentText(content);
     setIsSending(true);
 
     try {
-      // Use the dedicated /api/chat route instead of a server action so that
-      // `export const maxDuration = 60` in route.ts is honoured directly by
-      // Vercel — server actions inherit timeout from the layout hierarchy which
-      // is unreliable when the closest layout is a Client Component.
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -324,32 +319,45 @@ export function FinancialChatSheet() {
         }),
       });
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const result: { ok: boolean; data?: { reply: string }; error?: string } =
         await res.json();
 
       if (result.ok && result.data?.reply) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result.data!.reply }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: result.data!.reply, timestamp: Date.now() }]);
       } else {
         setMessages(prev => [
           ...prev,
-          { role: 'assistant', content: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.' },
+          { role: 'assistant', content: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.', timestamp: Date.now(), isError: true },
         ]);
       }
     } catch (err) {
-      // Network error, timeout, or any other fetch failure — always unblock UI.
       console.error('[FinancialChat] fetch error:', err);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.' },
+        { role: 'assistant', content: 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.', timestamp: Date.now(), isError: true },
       ]);
     } finally {
-      // ALWAYS unblock — prevents the UI from freezing in loading state.
       setIsSending(false);
     }
+  };
+
+  /* ── Retry last failed message ── */
+  const handleRetry = () => {
+    if (!lastSentText || isSending) return;
+    setMessages(prev => {
+      const last = prev[prev.length - 1];
+      return last?.isError ? prev.slice(0, -1) : prev;
+    });
+    setTimeout(() => handleSend(lastSentText), 0);
+  };
+
+  /* ── Copy AI message ── */
+  const handleCopy = (text: string, idx: number) => {
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -361,43 +369,36 @@ export function FinancialChatSheet() {
 
   const handleOpen = () => {
     setOpen(true);
-    setAlertsDismissed(true); // dismiss badge when opened
+    setAlertsDismissed(true);
   };
 
   const isEmpty = messages.length === 0;
 
   const handleClearConversation = () => {
     setMessages([]);
+    setLastSentText('');
     try { sessionStorage.removeItem('advisor_messages'); } catch { /* ignore */ }
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   return (
     <>
-      {/* ── Floating Action Button — not rendered on data-entry pages ── */}
+      {/* ── Floating Action Button ── */}
       {!isHidden && (
         <button
           onClick={handleOpen}
           aria-label="مستشار الجيب"
           className={cn(
-            // Position — sits just above the nav bar, left side to avoid conflict with any right-side FABs
             'fixed bottom-20 left-4 z-40',
-            // Size & shape
             'h-13 w-13 rounded-full shadow-lg',
-            // Gold shimmer
             'animate-gold-shimmer',
-            // Inner layout
             'flex items-center justify-center',
-            // Interaction
             'transition-transform duration-200 active:scale-95',
-            // Remove default button styles
             'border-0 outline-none focus-visible:ring-2 focus-visible:ring-yellow-400'
           )}
           style={{ width: 52, height: 52 }}
         >
           <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
-
-          {/* Badge */}
           {badgeCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
               {badgeCount}
@@ -411,7 +412,8 @@ export function FinancialChatSheet() {
         <SheetContent
           ref={sheetContentRef}
           side="bottom"
-          className="rounded-t-2xl p-0 flex flex-col gap-0"
+          // [&>button:last-child]:hidden hides the shadcn built-in X (duplicate of our header X)
+          className="rounded-t-2xl p-0 flex flex-col gap-0 [&>button:last-child]:hidden"
           style={{ height: '88dvh', maxHeight: '88dvh' }}
         >
           {/* Header */}
@@ -426,7 +428,6 @@ export function FinancialChatSheet() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              {/* Clear conversation — only when there's history */}
               {!isEmpty && (
                 <Button
                   variant="ghost"
@@ -439,6 +440,7 @@ export function FinancialChatSheet() {
                   محادثة جديدة
                 </Button>
               )}
+              {/* Single X — closes the sheet */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -454,7 +456,7 @@ export function FinancialChatSheet() {
           <ScrollArea className="flex-1 px-4 py-3">
             <div className="space-y-3">
 
-              {/* Proactive alerts (shown when no conversation yet) */}
+              {/* Proactive alerts */}
               {!alertsDismissed && proactiveAlerts.length > 0 && (
                 <div className="space-y-2 mb-2">
                   {proactiveAlerts.map((alert, i) => (
@@ -488,7 +490,7 @@ export function FinancialChatSheet() {
                         <button
                           key={s}
                           onClick={() => handleSend(s)}
-                          className="text-[11px] px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-muted transition-colors text-center leading-snug"
+                          className="text-[11px] px-3 py-2.5 rounded-xl border border-border bg-background active:bg-muted transition-colors text-center leading-snug"
                         >
                           {s}
                         </button>
@@ -500,30 +502,71 @@ export function FinancialChatSheet() {
 
               {/* Conversation messages */}
               {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex items-end gap-2',
-                    // RTL: user = right side (justify-end), AI = left side (justify-start)
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  {msg.role === 'assistant' && (
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full animate-gold-shimmer shadow mt-0.5">
-                      <Bot className="h-3 w-3 text-white" />
-                    </div>
-                  )}
+                <div key={i} className="space-y-0.5">
                   <div
                     className={cn(
-                      'rounded-2xl px-4 py-2.5 text-xs leading-relaxed max-w-[82%]',
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-sm'
-                        : 'bg-muted text-foreground rounded-bl-sm'
+                      'flex items-end gap-2',
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
                     )}
                   >
-                    {msg.role === 'assistant'
-                      ? renderMarkdown(msg.content)
-                      : msg.content}
+                    {msg.role === 'assistant' && (
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full animate-gold-shimmer shadow mt-0.5">
+                        <Bot className="h-3 w-3 text-white" />
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        'rounded-2xl px-4 py-2.5 text-xs leading-relaxed max-w-[82%]',
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : msg.isError
+                            ? 'bg-red-50 dark:bg-red-900/20 text-muted-foreground rounded-bl-sm border border-red-200 dark:border-red-800'
+                            : 'bg-muted text-foreground rounded-bl-sm'
+                      )}
+                    >
+                      {msg.role === 'assistant'
+                        ? renderMarkdown(msg.content)
+                        : msg.content}
+                    </div>
+                  </div>
+
+                  {/* Timestamp + copy/retry row */}
+                  <div
+                    className={cn(
+                      'flex items-center gap-2 px-1',
+                      msg.role === 'user' ? 'justify-end' : 'justify-start pl-8'
+                    )}
+                  >
+                    <span className="text-[9px] text-muted-foreground/60">
+                      {formatMsgTime(msg.timestamp)}
+                    </span>
+
+                    {/* Copy button — AI messages only, not errors */}
+                    {msg.role === 'assistant' && !msg.isError && (
+                      <button
+                        onClick={() => handleCopy(msg.content, i)}
+                        className="text-muted-foreground/50 active:text-muted-foreground transition-colors"
+                        aria-label="نسخ"
+                      >
+                        {copiedIdx === i
+                          ? <Check className="h-3 w-3 text-green-500" />
+                          : <Copy className="h-3 w-3" />
+                        }
+                      </button>
+                    )}
+
+                    {/* Retry button — last error message only */}
+                    {msg.isError && i === messages.length - 1 && (
+                      <button
+                        onClick={handleRetry}
+                        disabled={isSending}
+                        className="flex items-center gap-1 text-[9px] text-primary active:opacity-70 transition-opacity disabled:opacity-40"
+                        aria-label="إعادة المحاولة"
+                      >
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        إعادة المحاولة
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -547,6 +590,22 @@ export function FinancialChatSheet() {
               <div ref={bottomRef} />
             </div>
           </ScrollArea>
+
+          {/* Quick suggestions strip — appears after first message */}
+          {!isEmpty && (
+            <div className="shrink-0 border-t px-3 py-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {QUICK_SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => handleSend(s)}
+                  disabled={isSending}
+                  className="whitespace-nowrap text-[10px] px-3 py-1.5 rounded-full border border-border bg-background active:bg-muted transition-colors shrink-0 text-muted-foreground disabled:opacity-40"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Input bar */}
           <div className="shrink-0 border-t px-4 py-3 flex gap-2 items-center bg-background">
