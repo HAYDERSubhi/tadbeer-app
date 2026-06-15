@@ -124,11 +124,12 @@ export default function CurrencyPage() {
           </div>
 
           {/* Market rate row */}
-          {rateType === 'market' && (
-            <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2">
-              {editingRate ? (
+          {/* Rate info — compact single line */}
+          <div className="flex items-center justify-between px-1 py-0.5">
+            {rateType === 'market' && (
+              editingRate ? (
                 <div className="flex items-center gap-2 flex-1">
-                  <span className="text-xs text-muted-foreground shrink-0">1$ =</span>
+                  <span className="text-xs text-muted-foreground shrink-0">🏪 1$ =</span>
                   <input
                     type="number" inputMode="numeric"
                     value={editValue}
@@ -142,33 +143,23 @@ export default function CurrencyPage() {
                   <button onClick={() => setEditingRate(false)} className="text-muted-foreground"><X className="h-4 w-4"/></button>
                 </div>
               ) : (
-                <>
-                  <div>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">سعر السوق المحلي</p>
-                    <p className="text-sm font-bold text-foreground">
-                      1$ = {marketRate.toLocaleString('ar-IQ')} <span className="text-xs font-normal text-muted-foreground">د.ع</span>
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-xs text-muted-foreground">🏪 سعر السوق:</span>
+                  <span className="text-xs font-bold text-foreground">1$ = {marketRate.toLocaleString('ar-IQ')} د.ع</span>
                   <button onClick={() => { setEditValue(String(marketRate)); setEditingRate(true); }}
-                    className="flex items-center gap-1 text-xs text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5">
+                    className="flex items-center gap-0.5 text-[10px] text-primary mr-auto">
                     <Pencil className="h-3 w-3"/>تعديل
                   </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {rateType === 'official' && (
-            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl px-3 py-2">
-              <span className="text-lg">🏦</span>
-              <div>
-                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">السعر الرسمي للبنك المركزي</p>
-                <p className="text-sm font-bold text-foreground">
-                  1$ = {(rates['IQD'] ?? 1310).toLocaleString('ar-IQ')} <span className="text-xs font-normal text-muted-foreground">د.ع</span>
-                </p>
+                </div>
+              )
+            )}
+            {rateType === 'official' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">🏦 السعر الرسمي:</span>
+                <span className="text-xs font-bold text-foreground">1$ = {(rates['IQD'] ?? 1310).toLocaleString('ar-IQ')} د.ع</span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
@@ -189,7 +180,7 @@ export default function CurrencyPage() {
       </div>
 
       {/* ── Results ── */}
-      <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0">
+      <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-[140px]">
         {others.map(c => {
           const val = num > 0 ? convertWithRate(num, from, c.code) : null;
           return (
@@ -215,11 +206,11 @@ export default function CurrencyPage() {
       </div>
 
       {/* ── Numpad ── */}
-      <div className="shrink-0 bg-background border-t border-border px-2 pt-2 pb-2">
-        <div className="grid grid-cols-3 gap-1.5" dir="ltr">
+      <div className="shrink-0 bg-background border-t border-border px-2 pt-1.5 pb-1.5">
+        <div className="grid grid-cols-3 gap-1" dir="ltr">
           {keys.map((k, i) => (
             <button key={i} onClick={() => handleKey(k)}
-              className={`h-12 rounded-xl text-lg font-semibold transition-all active:scale-95 ${
+              className={`h-11 rounded-xl text-lg font-semibold transition-all active:scale-95 ${
                 k === '⌫'
                   ? 'bg-muted/60 text-muted-foreground'
                   : 'bg-card border border-border text-foreground hover:bg-muted/50'
