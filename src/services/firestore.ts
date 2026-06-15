@@ -50,7 +50,7 @@ export const getExpenses = async (
     // Without startDate we fetch all documents (needed by stats/expenses pages).
     const q = options?.startDate
         ? query(expensesCol, where('date', '>=', Timestamp.fromDate(options.startDate)), orderBy('date', 'desc'))
-        : expensesCol;
+        : query(expensesCol, orderBy('date', 'desc'));
 
     const expenseSnapshot = await getDocs(q);
     const expenses: Expense[] = [];
