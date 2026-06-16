@@ -37,7 +37,19 @@ export function PullToRefresh() {
 
   useEffect(() => {
     const onStart = (e: TouchEvent) => {
-      if (refreshingRef.current || window.scrollY > 0) return;
+      if (refreshingRef.current) return;
+
+      // If the touch starts inside a scrollable child container (e.g. currency page
+      // inner div with overflow-y:auto), let that element scroll normally — PTR should
+      // only fire when the *window* itself is at the top.
+      let el = e.target as HTMLElement | null;
+      while (el && el !== document.documentElement) {
+        const ov = getComputedStyle(el).overflowY;
+        if ((ov === 'auto' || ov === 'scroll') && el.scrollHeight > el.clientHeight) return;
+        el = el.parentElement;
+      }
+
+      if (window.scrollY > 0) return;
       startYRef.current = e.touches[0].clientY;
     };
 
