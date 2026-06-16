@@ -37,13 +37,13 @@ function displayAmount(raw: string): string {
   return decPart !== undefined ? `${formatted}.${decPart}` : formatted;
 }
 
-// شريط يمتلئ من اليمين لليسار — flex justify-end يضمن الاتجاه الصحيح في RTL
+// شريط يمتلئ من اليمين لليسار — origin-right + scaleX يضمن الاتجاه الصحيح في RTL
 function Bar({ pct, lo, hi }: { pct: number; lo: number; hi: number }) {
   return (
-    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
       <div
-        className={`h-full rounded-full transition-all duration-500 ${barColor(pct, lo, hi)}`}
-        style={{ width: `${Math.min(pct, 100)}%` }}
+        className={`h-full w-full rounded-full transition-all duration-500 origin-right ${barColor(pct, lo, hi)}`}
+        style={{ transform: `scaleX(${Math.min(pct, 100) / 100})` }}
       />
     </div>
   );
@@ -175,6 +175,17 @@ export default function WorthItPage() {
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* رسالة التجاوز */}
+        {showResults && (budgetPct > 100 || incomePct > 100) && (
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5 text-xs text-red-600 dark:text-red-400 leading-relaxed">
+            {budgetPct > 100 && incomePct > 100
+              ? '⚠️ هذا السعر يتجاوز ميزانيتك المتبقية ودخلك الشهري كاملاً'
+              : budgetPct > 100
+              ? '⚠️ هذا السعر يتجاوز ميزانيتك المتبقية لهذا الشهر'
+              : '⚠️ هذا السعر يتجاوز دخلك الشهري بالكامل'}
           </div>
         )}
 
