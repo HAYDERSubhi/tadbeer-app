@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, WifiOff, Pencil, Check, X } from 'lucide-react';
+import { ChevronRight, WifiOff, Pencil, Check, X, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate, getIQDMarketRateSavedAt } from '@/hooks/use-exchange-rates';
 
@@ -37,6 +37,7 @@ export default function CurrencyPage() {
   const [amount, setAmount]     = useState('');
   const [from, setFrom]         = useState('IQD');
   const [rateType, setRateType] = useState<'official' | 'market'>('market');
+  const [showSourceInfo, setShowSourceInfo] = useState(false);
   const [marketRate, setMarketRate]     = useState(1480);
   const [marketRateSavedAt, setMarketRateSavedAt] = useState<number | null>(null);
   const [editingRate, setEditingRate]   = useState(false);
@@ -91,17 +92,41 @@ export default function CurrencyPage() {
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-0">
 
         {/* ── Header ── */}
-        <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
-          <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ChevronRight className="h-6 w-6" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold leading-tight">حاسبة العملات</h1>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-              {offline && <WifiOff className="h-3 w-3" />}
-              {loading ? 'جاري التحديث...' : offline ? 'بدون إنترنت — أسعار محفوظة' : isStaleCache ? `⚠️ الأسعار قديمة — آخر تحديث ${fmtTime(updatedAt!)}` : updatedAt ? `آخر تحديث ${fmtTime(updatedAt)}` : ''}
-            </p>
+        <div className="px-1 pt-1 pb-2 shrink-0">
+          <div className="flex items-center gap-3">
+            <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="h-6 w-6" />
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-lg font-bold leading-tight">حاسبة العملات</h1>
+              <div className="flex items-center gap-1">
+                {offline && <WifiOff className="h-3 w-3 text-muted-foreground" />}
+                <p className="text-[11px] text-muted-foreground">
+                  {loading ? 'جاري التحديث...' : offline ? 'بدون إنترنت — أسعار محفوظة' : isStaleCache ? `⚠️ الأسعار قديمة — آخر تحديث ${fmtTime(updatedAt!)}` : updatedAt ? `آخر تحديث ${fmtTime(updatedAt)}` : ''}
+                </p>
+                {!loading && (
+                  <button
+                    onClick={() => setShowSourceInfo(v => !v)}
+                    className="text-muted-foreground/60 active:text-primary transition-colors p-0.5"
+                    aria-label="معلومات المصدر"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* بطاقة معلومات المصدر */}
+          {showSourceInfo && (
+            <div className="mt-2 mx-0 bg-muted/60 border border-border rounded-xl px-3 py-2.5 text-[11px] text-muted-foreground leading-relaxed">
+              <p className="font-semibold text-foreground mb-1">مصدر الأسعار</p>
+              <p>• الأسعار الرسمية من <span className="font-medium text-foreground">ExchangeRate-API</span> — تتجمع من البنوك المركزية وأسواق الصرف الدولية</p>
+              <p>• للعراق: سعر البنك المركزي العراقي (رسمي) فقط — سعر السوق يُدخله المستخدم يدوياً</p>
+              <p>• تتحدث الأسعار مرة واحدة كل 24 ساعة</p>
+              <p className="mt-1.5 text-[10px] text-muted-foreground/70">الأسعار استرشادية للاطلاع فقط · غير مخصصة للتداول الرسمي</p>
+            </div>
+          )}
         </div>
 
         {/* ── Currency selector ── */}
@@ -213,11 +238,6 @@ export default function CurrencyPage() {
             );
           })}
         </div>
-
-        {/* ── Disclaimer ── */}
-        <p className="text-[10px] text-muted-foreground/60 text-center px-4 py-2 shrink-0">
-          الأسعار استرشادية للاطلاع فقط · ليست للتداول المالي الرسمي
-        </p>
 
       </div>{/* ══ نهاية القسم العلوي ══ */}
 
