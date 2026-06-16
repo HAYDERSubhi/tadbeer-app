@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, WifiOff, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
-import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate } from '@/hooks/use-exchange-rates';
+import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate, getIQDMarketRateSavedAt } from '@/hooks/use-exchange-rates';
 
 const CURRENCIES = [
   { code: 'IQD', name: 'دينار عراقي',   symbol: 'د.ع', flag: '🇮🇶' },
@@ -17,6 +17,7 @@ const CURRENCIES = [
 function fmt(n: number, code: string): string {
   if (!n) return '—';
   if (code === 'IQD') return Math.round(n).toLocaleString('ar-IQ');
+  if (n > 0 && n < 0.01) return n.toLocaleString('ar-IQ', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
   return n.toLocaleString('ar-IQ', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -36,13 +37,21 @@ export default function CurrencyPage() {
   const [amount, setAmount]     = useState('');
   const [from, setFrom]         = useState('IQD');
   const [rateType, setRateType] = useState<'official' | 'market'>('market');
-  const [marketRate, setMarketRate]   = useState(1480);
-  const [editingRate, setEditingRate] = useState(false);
-  const [editValue, setEditValue]     = useState('');
+  const [marketRate, setMarketRate]     = useState(1480);
+  const [marketRateSavedAt, setMarketRateSavedAt] = useState<number | null>(null);
+  const [editingRate, setEditingRate]   = useState(false);
+  const [editValue, setEditValue]       = useState('');
 
-  useEffect(() => { setMarketRate(getIQDMarketRate()); }, []);
+  useEffect(() => {
+    setMarketRate(getIQDMarketRate());
+    setMarketRateSavedAt(getIQDMarketRateSavedAt());
+  }, []);
 
   const num = parseFloat(amount) || 0;
+  const TWO_DAYS = 48 * 60 * 60 * 1000;
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const isStaleCache = !offline && updatedAt != null && (Date.now() - updatedAt) > TWO_DAYS;
+  const isStaleMarketRate = marketRateSavedAt != null && (Date.now() - marketRateSavedAt) > SEVEN_DAYS;
   const fromCur = CURRENCIES.find(c => c.code === from)!;
   const others  = CURRENCIES.filter(c => c.code !== from);
   const iqdInvolved = from === 'IQD' || others.some(c => c.code === 'IQD');
@@ -64,7 +73,11 @@ export default function CurrencyPage() {
 
   function confirmMarketRate() {
     const v = parseFloat(editValue);
-    if (v > 100) { saveIQDMarketRate(v); setMarketRate(v); }
+    if (v > 100 && v < 10_000_000) {
+      saveIQDMarketRate(v);
+      setMarketRate(v);
+      setMarketRateSavedAt(Date.now());
+    }
     setEditingRate(false);
   }
 
@@ -86,7 +99,7 @@ export default function CurrencyPage() {
             <h1 className="text-lg font-bold leading-tight">حاسبة العملات</h1>
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               {offline && <WifiOff className="h-3 w-3" />}
-              {loading ? 'جاري التحديث...' : offline ? 'بدون إنترنت' : updatedAt ? `آخر تحديث ${fmtTime(updatedAt)}` : ''}
+              {loading ? 'جاري التحديث...' : offline ? 'بدون إنترنت — أسعار محفوظة' : isStaleCache ? `⚠️ الأسعار قديمة — آخر تحديث ${fmtTime(updatedAt!)}` : updatedAt ? `آخر تحديث ${fmtTime(updatedAt)}` : ''}
             </p>
           </div>
         </div>
@@ -141,6 +154,7 @@ export default function CurrencyPage() {
                   <div className="flex items-center gap-2 flex-1">
                     <span className="text-xs text-muted-foreground">🏪 سعر السوق:</span>
                     <span className="text-xs font-bold text-foreground">1$ = {marketRate.toLocaleString('ar-IQ')} د.ع</span>
+                    {isStaleMarketRate && <span className="text-[10px] text-amber-500">⚠️ قديم</span>}
                     <button onClick={() => { setEditValue(String(marketRate)); setEditingRate(true); }}
                       className="flex items-center gap-0.5 text-[10px] text-primary mr-auto">
                       <Pencil className="h-3 w-3"/>تعديل
@@ -199,6 +213,11 @@ export default function CurrencyPage() {
             );
           })}
         </div>
+
+        {/* ── Disclaimer ── */}
+        <p className="text-[10px] text-muted-foreground/60 text-center px-4 py-2 shrink-0">
+          الأسعار استرشادية للاطلاع فقط · ليست للتداول المالي الرسمي
+        </p>
 
       </div>{/* ══ نهاية القسم العلوي ══ */}
 

@@ -8,6 +8,7 @@ type Cache = { rates: Rates; updatedAt: number };
 
 const CACHE_KEY = 'tadbeer_exchange_rates';
 const IQD_MARKET_KEY = 'tadbeer_iqd_market_rate';
+const IQD_MARKET_AT_KEY = 'tadbeer_iqd_market_rate_at';
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const API_URL = 'https://open.er-api.com/v6/latest/USD';
 
@@ -19,7 +20,7 @@ const FALLBACK_RATES: Rates = {
   SAR: 3.75,
   EUR: 0.92,
   GBP: 0.79,
-  TRY: 32.5,
+  TRY: 38.5,
   KWD: 0.307,
   EGP: 30.9,
 };
@@ -31,8 +32,15 @@ export function getIQDMarketRate(): number {
   } catch { return 1480; }
 }
 
+export function getIQDMarketRateSavedAt(): number | null {
+  try { const v = localStorage.getItem(IQD_MARKET_AT_KEY); return v ? parseInt(v) : null; } catch { return null; }
+}
+
 export function saveIQDMarketRate(rate: number) {
-  try { localStorage.setItem(IQD_MARKET_KEY, String(rate)); } catch {}
+  try {
+    localStorage.setItem(IQD_MARKET_KEY, String(rate));
+    localStorage.setItem(IQD_MARKET_AT_KEY, String(Date.now()));
+  } catch {}
 }
 
 function readCache(): Cache | null {
