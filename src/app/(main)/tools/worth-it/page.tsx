@@ -87,7 +87,7 @@ export default function WorthItPage() {
   const displayLen  = displayAmount(amount).length;
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 px-1 pt-1 pb-3 shrink-0">
@@ -132,7 +132,7 @@ export default function WorthItPage() {
       </div>
 
       {/* ── النتائج ── */}
-      <div className="flex-1 px-1 min-h-0 flex flex-col gap-1.5 pb-1">
+      <div className="flex-1 px-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 pb-1">
 
         {showResults && (
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -182,9 +182,9 @@ export default function WorthItPage() {
         {showResults && (budgetPct > 100 || incomePct > 100) && (
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5 text-xs text-red-600 dark:text-red-400 leading-relaxed">
             {budgetPct > 100 && incomePct > 100
-              ? '⚠️ هذا السعر يتجاوز ميزانيتك المتبقية ودخلك الشهري كاملاً'
+              ? '⚠️ هذا السعر يتجاوز ميزانيتك ودخلك الشهري بالكامل'
               : budgetPct > 100
-              ? '⚠️ هذا السعر يتجاوز ميزانيتك المتبقية لهذا الشهر'
+              ? '⚠️ هذا السعر يتجاوز ميزانيتك الشهرية'
               : '⚠️ هذا السعر يتجاوز دخلك الشهري بالكامل'}
           </div>
         )}
