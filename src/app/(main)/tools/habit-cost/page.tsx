@@ -9,11 +9,9 @@ const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫'];
 
 type Period = 'day' | 'week' | 'month';
 
-// مرّات في السنة لكل وحدة تكرار — تطابق توقّع المستخدم
 const PER_YEAR: Record<Period, number> = { day: 365, week: 52, month: 12 };
 const PERIOD_LABEL: Record<Period, string> = { day: 'يومياً', week: 'أسبوعياً', month: 'شهرياً' };
 
-// عادات جاهزة لإدخال سريع بلا كتابة — كل عادة بوحدة تكرار منطقية
 const PRESETS: { id: string; emoji: string; label: string; period: Period; times: number }[] = [
   { id: 'coffee',  emoji: '☕', label: 'قهوة',          period: 'day',   times: 1 },
   { id: 'cig',     emoji: '🚬', label: 'سجائر',         period: 'day',   times: 1 },
@@ -47,6 +45,14 @@ function textColor(pct: number, lo: number, hi: number) {
   return 'text-red-500';
 }
 
+// لون الرقم السنوي بحسب نسبته من الدخل السنوي
+function yearlyTextColor(yearlyPct: number, hasIncome: boolean) {
+  if (!hasIncome) return 'text-foreground';
+  if (yearlyPct <= 5)  return 'text-emerald-600 dark:text-emerald-400';
+  if (yearlyPct <= 15) return 'text-amber-500';
+  return 'text-red-500';
+}
+
 const INCOME_URL = '/settings#settings-profile';
 
 export default function HabitCostPage() {
@@ -59,13 +65,12 @@ export default function HabitCostPage() {
 
   const cost = parseFloat(amount) || 0;
 
-  // الحساب: نشتقّ التكلفة السنوية مباشرة من وحدة التكرار لتطابق التوقّع
   const yearly  = cost * times * PER_YEAR[period];
   const monthly = yearly / 12;
   const fiveY   = yearly * 5;
   const tenY    = yearly * 10;
+  const halfSaving = yearly / 2;
 
-  // مقارنة بالدخل والميزانية (مثل بقية الأدوات)
   const recurringIncome = (incomes ?? []).filter(i => i.type === 'recurring').reduce((s,i) => s + i.amount, 0);
   const monthlyIncome   = recurringIncome > 0 ? recurringIncome : (userSettings?.profile?.monthlyIncome ?? 0);
   const totalBudget     = userSettings?.budget?.totalBudget ?? 0;
@@ -74,8 +79,10 @@ export default function HabitCostPage() {
   const hasIncome = dataReady && monthlyIncome > 0;
   const hasBudget = dataReady && totalBudget > 0;
 
-  const incomePct = hasIncome ? (monthly / monthlyIncome) * 100 : 0;
-  const budgetPct = hasBudget ? (monthly / totalBudget)   * 100 : 0;
+  const yearlyIncome = monthlyIncome * 12;
+  const yearlyPct    = hasIncome ? (yearly / yearlyIncome) * 100 : 0;
+  const incomePct    = hasIncome ? (monthly / monthlyIncome) * 100 : 0;
+  const budgetPct    = hasBudget ? (monthly / totalBudget)   * 100 : 0;
 
   const showResults = cost > 0;
 
@@ -95,7 +102,7 @@ export default function HabitCostPage() {
   const displayLen = displayAmount(amount).length;
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
@@ -138,7 +145,6 @@ export default function HabitCostPage() {
       {/* ── التكرار ── */}
       <div className="mx-1 mb-2 bg-card border border-border rounded-2xl px-4 py-2.5 shrink-0">
         <div className="flex items-center justify-between gap-3">
-          {/* عدد المرات */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">كم مرة؟</span>
             <div className="flex items-center gap-2">
@@ -154,7 +160,6 @@ export default function HabitCostPage() {
             </div>
           </div>
 
-          {/* الوحدة */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-xl p-1">
             {(['day','week','month'] as Period[]).map(u => (
               <button key={u} onClick={() => setPeriod(u)}
@@ -189,10 +194,15 @@ export default function HabitCostPage() {
             {/* البطل: التكلفة السنوية */}
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
               <p className="text-xs text-muted-foreground mb-1">تكلفتها خلال سنة</p>
-              <p className="text-4xl font-bold leading-none">
+              <p className={`text-4xl font-bold leading-none ${yearlyTextColor(yearlyPct, hasIncome)}`}>
                 {fmt(yearly)}
                 <span className="text-base font-normal text-muted-foreground mr-2">د.ع</span>
               </p>
+              {hasIncome && (
+                <p className={`text-[11px] mt-1.5 font-medium ${yearlyTextColor(yearlyPct, hasIncome)}`}>
+                  {yearlyPct.toFixed(1)}% من دخلك السنوي
+                </p>
+              )}
             </div>
 
             {/* شبكة الإسقاطات */}
@@ -211,6 +221,14 @@ export default function HabitCostPage() {
               </div>
             </div>
 
+            {/* ماذا لو؟ — سطر التوفير */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-3">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                💡 لو قللت هذه العادة نصفها، ستوفر{' '}
+                <span className="font-bold">{fmt(halfSaving)} د.ع</span> سنوياً
+              </p>
+            </div>
+
             {/* مقارنة بالدخل والميزانية */}
             {(hasIncome || hasBudget) && (
               <div className="bg-card border border-border rounded-2xl px-4 py-3">
@@ -222,9 +240,11 @@ export default function HabitCostPage() {
                         <span className="text-xs text-muted-foreground">دخلك الشهري</span>
                         <span className={`text-xs font-bold ${textColor(incomePct, 5, 15)}`}>{incomePct.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
-                        <div className={`h-full rounded-full ${barColor(incomePct, 5, 15)}`}
-                          style={{ width: `${Math.min(incomePct, 100)}%` }} />
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full w-full rounded-full origin-right transition-all duration-500 ${barColor(incomePct, 5, 15)}`}
+                          style={{ transform: `scaleX(${Math.min(incomePct, 100) / 100})` }}
+                        />
                       </div>
                     </div>
                   )}
@@ -234,9 +254,11 @@ export default function HabitCostPage() {
                         <span className="text-xs text-muted-foreground">ميزانيتك الشهرية</span>
                         <span className={`text-xs font-bold ${textColor(budgetPct, 10, 25)}`}>{budgetPct.toFixed(1)}%</span>
                       </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
-                        <div className={`h-full rounded-full ${barColor(budgetPct, 10, 25)}`}
-                          style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full w-full rounded-full origin-right transition-all duration-500 ${barColor(budgetPct, 10, 25)}`}
+                          style={{ transform: `scaleX(${Math.min(budgetPct, 100) / 100})` }}
+                        />
                       </div>
                     </div>
                   )}
