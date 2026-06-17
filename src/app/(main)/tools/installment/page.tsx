@@ -8,7 +8,7 @@ import {
   getInstallmentPlans, addInstallmentPlan,
   payInstallment, deleteInstallmentPlan,
 } from '@/services/firestore';
-import { ChevronRight, Plus, Check, Trash2, Bell, AlertTriangle, BookOpen, Calculator, ChevronDown } from 'lucide-react';
+import { ChevronRight, Plus, Check, Trash2, Bell, AlertTriangle, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import type { InstallmentPlan } from '@/types';
 
@@ -232,8 +232,6 @@ export default function InstallmentPage() {
 
   const [tab, setTab]           = useState<'calc' | 'plans'>('plans');
   const [toDelete, setToDelete] = useState<InstallmentPlan | null>(null);
-  // FIX #4: قسم الحفظ مطوي افتراضياً
-  const [showSave, setShowSave] = useState(false);
 
   const total     = useAmountField();
   const down      = useAmountField();
@@ -366,11 +364,21 @@ export default function InstallmentPage() {
 
       {/* ══════ تبويب الحاسبة ══════ */}
       {tab === 'calc' && (
-        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
+        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-4">
 
+          {/* ── بطاقة البيانات الموحدة ── */}
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
             <p className="text-xs font-semibold text-muted-foreground mb-3">بيانات التقسيط</p>
 
+            {/* ١. اسم المنتج — أول حقل */}
+            <div className="mb-3">
+              <label className="text-xs text-muted-foreground mb-1 block">اسم المنتج *</label>
+              <input value={productName} onChange={e => setProductName(e.target.value)}
+                placeholder="مثال: سيارة، لابتوب، ثلاجة..."
+                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
+            </div>
+
+            {/* ٢. إجمالي سعر التقسيط */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 إجمالي سعر التقسيط *
@@ -384,6 +392,7 @@ export default function InstallmentPage() {
               </div>
             </div>
 
+            {/* ٣. عدد الأقساط */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط (شهر) *</label>
               <input value={months} onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
@@ -392,6 +401,7 @@ export default function InstallmentPage() {
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
             </div>
 
+            {/* ٤. الدفعة الأولى */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 الدفعة الأولى
@@ -404,7 +414,8 @@ export default function InstallmentPage() {
               </div>
             </div>
 
-            <div>
+            {/* ٥. السعر نقداً */}
+            <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
                 السعر نقداً
                 <span className="mr-1 text-[10px] opacity-60">(اختياري — لمقارنة التكلفة)</span>
@@ -416,20 +427,25 @@ export default function InstallmentPage() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
               </div>
             </div>
+
+            {/* ٦. تاريخ أول قسط */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                تاريخ أول قسط
+                <span className="mr-1 text-[10px] opacity-60">(يوم الاستحقاق يُحدد تلقائياً)</span>
+              </label>
+              <input value={startDate} onChange={e => setStartDate(e.target.value)}
+                type="date"
+                className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm outline-none focus:border-primary" />
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                يوم الاستحقاق: يوم {paymentDay} من كل شهر
+              </p>
+            </div>
           </div>
 
-          {/* placeholder */}
-          {!resultsReady && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <p className="text-4xl mb-3">🧮</p>
-              <p className="text-sm text-muted-foreground">أدخل إجمالي سعر التقسيط وعدد الأشهر</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">ستظهر النتائج فوراً</p>
-            </div>
-          )}
-
+          {/* ── النتائج الفورية ── */}
           {resultsReady && (
             <>
-              {/* القسط الشهري */}
               <div className="bg-card border border-border rounded-2xl px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-2">القسط الشهري</p>
                 <p className="text-4xl font-bold text-foreground leading-none">
@@ -443,7 +459,6 @@ export default function InstallmentPage() {
                 )}
               </div>
 
-              {/* تأثير على الدخل والميزانية */}
               {(monthlyIncome > 0 || totalBudget > 0) && (
                 <div className="bg-card border border-border rounded-2xl px-4 py-3">
                   <p className="text-xs text-muted-foreground mb-3">تأثير القسط على وضعك</p>
@@ -477,7 +492,6 @@ export default function InstallmentPage() {
                 </div>
               )}
 
-              {/* مقارنة نقد vs تقسيط */}
               {origPrice.value > 0 && extraCost > 0 && (
                 <div className="bg-card border border-border rounded-2xl px-4 py-3">
                   <p className="text-xs text-muted-foreground mb-2">نقداً مقابل تقسيطاً</p>
@@ -495,48 +509,18 @@ export default function InstallmentPage() {
                   </div>
                 </div>
               )}
-
-              {/* FIX #4: زر فتح/طي قسم الحفظ */}
-              <button onClick={() => setShowSave(v => !v)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-primary/40 text-primary text-xs font-medium active:scale-[0.98] transition-all">
-                <Plus className="h-3.5 w-3.5" />
-                حفظ كخطة متتبعة
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSave ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showSave && (
-                <div className="bg-card border border-border rounded-2xl px-4 py-3">
-                  <div className="mb-3">
-                    <label className="text-xs text-muted-foreground mb-1 block">اسم المنتج *</label>
-                    <input value={productName} onChange={e => setProductName(e.target.value)}
-                      placeholder="مثال: سيارة، لابتوب، ثلاجة..."
-                      className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="text-xs text-muted-foreground mb-1 block">
-                      تاريخ أول قسط
-                      <span className="mr-1 text-[10px] opacity-60">(يوم الاستحقاق يُحدد تلقائياً)</span>
-                    </label>
-                    <input value={startDate} onChange={e => setStartDate(e.target.value)}
-                      type="date"
-                      className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm outline-none focus:border-primary" />
-                    <p className="text-[10px] text-muted-foreground mt-1.5">
-                      يوم الاستحقاق: يوم {paymentDay} من كل شهر
-                    </p>
-                  </div>
-
-                  <button
-                    disabled={!canSave || addMutation.isPending}
-                    onClick={handleSave}
-                    className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    {addMutation.isPending ? 'جاري الحفظ...' : 'حفظ الخطة'}
-                  </button>
-                </div>
-              )}
             </>
           )}
+
+          {/* ── زر الحفظ الوحيد ── */}
+          <button
+            disabled={!canSave || addMutation.isPending}
+            onClick={handleSave}
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+            <Plus className="h-4 w-4" />
+            {addMutation.isPending ? 'جاري الحفظ...' : 'حفظ الخطة'}
+          </button>
+
         </div>
       )}
 
