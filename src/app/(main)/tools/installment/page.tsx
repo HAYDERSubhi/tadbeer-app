@@ -289,7 +289,6 @@ export default function InstallmentPage() {
     mutationFn: (id: string) => deleteInstallmentPlan(user!.uid, id),
     onSuccess:  () => {
       qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] });
-      setToDelete(null);
     },
   });
 
@@ -616,7 +615,7 @@ export default function InstallmentPage() {
       {toDelete && (
         <DeleteConfirm
           name={toDelete.name}
-          onConfirm={() => delMutation.mutate(toDelete.id)}
+          onConfirm={() => { const id = toDelete.id; setToDelete(null); delMutation.mutate(id); }}
           onCancel={() => setToDelete(null)}
         />
       )}
