@@ -29,7 +29,8 @@ function useAmountField() {
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     setRaw(e.target.value.replace(/,/g, '').replace(/\D/g, ''));
   }
-  return { value: parseAmt(raw), display, onChange };
+  function reset() { setRaw(''); }
+  return { value: parseAmt(raw), display, onChange, reset };
 }
 
 // FIX #1: getUTCDate بدل getDate لتجنب خطأ offset التوقيت
@@ -268,7 +269,12 @@ export default function InstallmentPage() {
       addInstallmentPlan(user!.uid, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['installmentPlans', user?.uid] });
-      setShowSave(false);
+      setProductName('');
+      setMonths('');
+      setStartDate(defaultStartDate());
+      total.reset();
+      down.reset();
+      origPrice.reset();
       setTab('plans');
     },
   });
@@ -518,7 +524,7 @@ export default function InstallmentPage() {
             onClick={handleSave}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
             <Plus className="h-4 w-4" />
-            {addMutation.isPending ? 'جاري الحفظ...' : 'حفظ الخطة'}
+            {addMutation.isPending ? 'جاري الحفظ...' : 'حفظ القسط'}
           </button>
 
         </div>
