@@ -23,7 +23,7 @@ const TOOLS = [
   },
   {
     href: '/tools/installment',
-    label: 'حاسبة التقسيط',
+    label: 'أقساطي',
     sub: 'نقد أم تقسيط؟',
     icon: '📊',
     image: '/tools/installment.png',

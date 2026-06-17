@@ -340,7 +340,7 @@ export default function InstallmentPage() {
           <ChevronRight className="h-6 w-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">حاسبة التقسيط</h1>
+          <h1 className="text-lg font-bold">أقساطي</h1>
           <p className="text-[11px] text-muted-foreground">احسب قسطك وتتبّع أقساطك</p>
         </div>
       </div>
