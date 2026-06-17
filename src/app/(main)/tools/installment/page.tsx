@@ -595,7 +595,7 @@ export default function InstallmentPage() {
           {!isLoading && plans.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-4xl mb-3">📋</p>
-              <p className="text-sm text-muted-foreground">لا توجد خطط محفوظة</p>
+              <p className="text-sm text-muted-foreground">لا توجد أقساط محفوظة</p>
             </div>
           )}
 
