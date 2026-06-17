@@ -347,8 +347,8 @@ export default function InstallmentPage() {
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
             tab === 'calc' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
           }`}>
-          <Calculator className="h-3.5 w-3.5" />
-          حساب القسط
+          <Plus className="h-3.5 w-3.5" />
+          إضافة قسط جديد
         </button>
         <button onClick={() => setTab('plans')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
@@ -544,12 +544,6 @@ export default function InstallmentPage() {
       {tab === 'plans' && (
         <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
 
-          <button onClick={() => setTab('calc')}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-all shrink-0">
-            <Plus className="h-4 w-4" />
-            إضافة قسط جديد
-          </button>
-
           {activePlans.length > 0 && (
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
@@ -602,10 +596,6 @@ export default function InstallmentPage() {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-4xl mb-3">📋</p>
               <p className="text-sm text-muted-foreground">لا توجد خطط محفوظة</p>
-              <button onClick={() => setTab('calc')}
-                className="mt-3 text-xs text-primary border border-primary/30 rounded-xl px-4 py-2">
-                ابدأ بالحاسبة
-              </button>
             </div>
           )}
 
