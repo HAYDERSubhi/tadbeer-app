@@ -118,6 +118,10 @@ function PlanCard({ plan, onPay, onDelete }: {
 
   const nextDate  = !plan.isCompleted ? nextPaymentDate(plan) : null;
   const days      = nextDate ? daysUntil(nextDate) : null;
+  const nextDateFormatted = nextDate
+    ? (() => { const [y,m,d] = nextDate.split('-').map(Number);
+        return new Date(Date.UTC(y,m-1,d)).toLocaleDateString('ar-IQ',{day:'numeric',month:'long'}); })()
+    : null;
   const isOverdue = days !== null && days < 0;
   const isToday   = days === 0;
   const isDueSoon = days !== null && days > 0 && days <= 7;
@@ -136,6 +140,9 @@ function PlanCard({ plan, onPay, onDelete }: {
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {plan.months} قسط · يوم {plan.paymentDay} من كل شهر
           </p>
+          {nextDateFormatted && (
+            <p className="text-[10px] text-muted-foreground/70 mt-0.5">القسط القادم: {nextDateFormatted}</p>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {plan.isCompleted ? (
@@ -223,7 +230,7 @@ export default function InstallmentPage() {
   const { userSettings, incomes } = useAppData();
   const qc         = useQueryClient();
 
-  const [tab, setTab]           = useState<'calc' | 'plans'>('calc');
+  const [tab, setTab]           = useState<'calc' | 'plans'>('plans');
   const [toDelete, setToDelete] = useState<InstallmentPlan | null>(null);
   // FIX #4: قسم الحفظ مطوي افتراضياً
   const [showSave, setShowSave] = useState(false);
@@ -321,7 +328,7 @@ export default function InstallmentPage() {
   const resultsReady = total.value > 0 && mths > 0;
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-10rem)] max-w-md mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
@@ -447,9 +454,9 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من الدخل الشهري</span>
                           <span className={`text-xs font-bold ${textColor(incomePct,10,30)}`}>{incomePct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
-                          <div className={`h-full rounded-full ${barColor(incomePct,10,30)}`}
-                            style={{width:`${Math.min(incomePct,100)}%`}} />
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full w-full rounded-full origin-right transition-all duration-500 ${barColor(incomePct,10,30)}`}
+                            style={{transform:`scaleX(${Math.min(incomePct,100)/100})`}} />
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">دخلك: {fmt(monthlyIncome)} د.ع</p>
                       </div>
@@ -460,9 +467,9 @@ export default function InstallmentPage() {
                           <span className="text-xs text-muted-foreground">من ميزانية الشهر</span>
                           <span className={`text-xs font-bold ${textColor(budgetPct,25,75)}`}>{budgetPct.toFixed(1)}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
-                          <div className={`h-full rounded-full ${barColor(budgetPct,25,75)}`}
-                            style={{width:`${Math.min(budgetPct,100)}%`}} />
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full w-full rounded-full origin-right transition-all duration-500 ${barColor(budgetPct,25,75)}`}
+                            style={{transform:`scaleX(${Math.min(budgetPct,100)/100})`}} />
                         </div>
                       </div>
                     )}
@@ -537,6 +544,12 @@ export default function InstallmentPage() {
       {tab === 'plans' && (
         <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
 
+          <button onClick={() => setTab('calc')}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-all shrink-0">
+            <Plus className="h-4 w-4" />
+            إضافة قسط جديد
+          </button>
+
           {activePlans.length > 0 && (
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
               <div className="flex items-center justify-between mb-2">
@@ -552,9 +565,9 @@ export default function InstallmentPage() {
                 <span className="text-sm font-normal text-muted-foreground mr-1">د.ع / شهر</span>
               </p>
               {monthlyIncome > 0 && (
-                <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden flex justify-end">
-                  <div className={`h-full rounded-full ${barColor(totalIncomePct,20,40)}`}
-                    style={{width:`${Math.min(totalIncomePct,100)}%`}} />
+                <div className="mt-2 w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full w-full rounded-full origin-right transition-all duration-500 ${barColor(totalIncomePct,20,40)}`}
+                    style={{transform:`scaleX(${Math.min(totalIncomePct,100)/100})`}} />
                 </div>
               )}
               <p className="text-[10px] text-muted-foreground mt-1.5">
