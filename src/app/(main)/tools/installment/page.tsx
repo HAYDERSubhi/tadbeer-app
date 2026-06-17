@@ -343,13 +343,6 @@ export default function InstallmentPage() {
 
       {/* تبويبان */}
       <div className="flex gap-1.5 px-1 mb-2 shrink-0">
-        <button onClick={() => setTab('calc')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
-            tab === 'calc' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
-          }`}>
-          <Plus className="h-3.5 w-3.5" />
-          إضافة قسط جديد
-        </button>
         <button onClick={() => setTab('plans')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
             tab === 'plans' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
@@ -361,6 +354,13 @@ export default function InstallmentPage() {
               {activePlans.length}
             </span>
           )}
+        </button>
+        <button onClick={() => setTab('calc')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
+            tab === 'calc' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
+          }`}>
+          <Plus className="h-3.5 w-3.5" />
+          إضافة قسط جديد
         </button>
       </div>
 
