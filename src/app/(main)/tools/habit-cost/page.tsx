@@ -10,18 +10,6 @@ const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫'];
 type Period = 'day' | 'week' | 'month';
 
 const PER_YEAR: Record<Period, number> = { day: 365, week: 52, month: 12 };
-const PERIOD_LABEL: Record<Period, string> = { day: 'يومياً', week: 'أسبوعياً', month: 'شهرياً' };
-
-const PRESETS: { id: string; emoji: string; label: string; period: Period; times: number }[] = [
-  { id: 'coffee',  emoji: '☕', label: 'قهوة',          period: 'day',   times: 1 },
-  { id: 'cig',     emoji: '🚬', label: 'سجائر',         period: 'day',   times: 1 },
-  { id: 'energy',  emoji: '⚡', label: 'مشروب طاقة',    period: 'day',   times: 1 },
-  { id: 'soda',    emoji: '🥤', label: 'مشروبات غازية', period: 'day',   times: 1 },
-  { id: 'fast',    emoji: '🍔', label: 'وجبات سريعة',   period: 'week',  times: 2 },
-  { id: 'taxi',    emoji: '🚕', label: 'تكسي',          period: 'day',   times: 2 },
-  { id: 'subs',    emoji: '📱', label: 'اشتراكات',      period: 'month', times: 1 },
-  { id: 'other',   emoji: '🛒', label: 'أخرى',          period: 'day',   times: 1 },
-];
 
 function fmt(n: number): string {
   return Math.round(n).toLocaleString('en-US');
@@ -58,10 +46,9 @@ const INCOME_URL = '/settings#settings-profile';
 export default function HabitCostPage() {
   const { userSettings, incomes, isLoading } = useAppData();
 
-  const [preset, setPreset] = useState(PRESETS[0]);
   const [amount, setAmount] = useState('');
-  const [times,  setTimes]  = useState(PRESETS[0].times);
-  const [period, setPeriod] = useState<Period>(PRESETS[0].period);
+  const [times,  setTimes]  = useState(1);
+  const [period, setPeriod] = useState<Period>('day');
 
   const cost = parseFloat(amount) || 0;
 
@@ -93,12 +80,6 @@ export default function HabitCostPage() {
     setAmount(p => (p === '0' && k !== '.') ? k : p + k);
   }
 
-  function selectPreset(p: typeof PRESETS[number]) {
-    setPreset(p);
-    setTimes(p.times);
-    setPeriod(p.period);
-  }
-
   const displayLen = displayAmount(amount).length;
 
   return (
@@ -115,30 +96,18 @@ export default function HabitCostPage() {
         </div>
       </div>
 
-      {/* ── اختيار العادة ── */}
-      <div className="flex gap-2 px-1 pb-2 overflow-x-auto scrollbar-hide shrink-0">
-        {PRESETS.map(p => (
-          <button key={p.id} onClick={() => selectPreset(p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border shrink-0 ${
-              preset.id === p.id
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-border text-muted-foreground bg-card hover:border-primary/50'
-            }`}>
-            <span>{p.emoji}</span><span>{p.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* ── تكلفة المرة الواحدة ── */}
-      <div className="mx-1 mb-2 bg-card border border-border rounded-2xl px-4 py-3 shrink-0">
-        <p className="text-xs text-muted-foreground mb-1">تكلفة المرة الواحدة</p>
-        <div className="flex items-baseline gap-2 justify-end">
-          <span className="text-muted-foreground text-base font-medium">د.ع</span>
-          <span className={`font-bold leading-none transition-all ${
-            displayLen > 9 ? 'text-3xl' : 'text-5xl'
-          } ${amount ? 'text-foreground' : 'text-muted-foreground/25'}`}>
-            {displayAmount(amount)}
-          </span>
+      <div className="mx-1 mb-2 bg-card border border-border rounded-2xl px-4 py-2 shrink-0">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">تكلفة المرة الواحدة</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className={`font-bold leading-none transition-all ${
+              displayLen > 9 ? 'text-xl' : 'text-3xl'
+            } ${amount ? 'text-foreground' : 'text-muted-foreground/25'}`}>
+              {displayAmount(amount)}
+            </span>
+            <span className="text-muted-foreground text-sm font-medium">د.ع</span>
+          </div>
         </div>
       </div>
 
@@ -171,11 +140,6 @@ export default function HabitCostPage() {
             ))}
           </div>
         </div>
-        {cost > 0 && (
-          <p className="text-[10px] text-muted-foreground mt-2 text-center">
-            {preset.emoji} {times} {times === 1 ? 'مرة' : 'مرات'} {PERIOD_LABEL[period]} = {fmt(yearly)} د.ع سنوياً
-          </p>
-        )}
       </div>
 
       {/* ── النتائج ── */}
@@ -183,7 +147,7 @@ export default function HabitCostPage() {
 
         {!showResults && (
           <div className="flex flex-col items-center justify-center py-6 text-center">
-            <p className="text-4xl mb-3">{preset.emoji}</p>
+            <p className="text-4xl mb-3">💸</p>
             <p className="text-sm text-muted-foreground">أدخل تكلفة المرة الواحدة</p>
             <p className="text-xs text-muted-foreground/60 mt-1">وسنحسب تكلفتها على المدى الطويل</p>
           </div>
