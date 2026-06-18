@@ -78,8 +78,8 @@ export const maxDuration = 30;
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#F8FAFC' },
-    { media: '(prefers-color-scheme: dark)', color: '#121C1C' },
+    { media: '(prefers-color-scheme: light)', color: '#14A39A' },
+    { media: '(prefers-color-scheme: dark)', color: '#14A39A' },
   ],
   width: 'device-width',
   initialScale: 1,
