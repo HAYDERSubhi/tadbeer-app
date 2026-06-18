@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Target, Settings, BarChart3, WalletCards, Wrench } from 'lucide-react';
+import { Home, Target, BarChart3, WalletCards, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -11,7 +11,6 @@ const navItems = [
   { href: '/stats',    label: 'إحصائيات',  icon: BarChart3 },
   { href: '/tools',    label: 'أدوات',     icon: Wrench },
   { href: '/planner',  label: 'الأهداف',   icon: Target },
-  { href: '/settings', label: 'إعدادات',   icon: Settings },
 ];
 
 export default function PageNavigation() {
@@ -19,7 +18,7 @@ export default function PageNavigation() {
 
   return (
     <nav id="main-navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto grid h-16 max-w-md grid-cols-6 items-center px-1">
+      <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center px-1">
         {navItems.map((item) => {
           const isActive =
             (item.href === '/' && pathname === '/') ||

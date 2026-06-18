@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -72,6 +72,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { useCurrency } from '@/hooks/use-currency';
+import { useTheme } from 'next-themes';
 import { HouseholdManager } from '@/components/family/household-manager';
 
 
@@ -374,6 +375,7 @@ export default function SettingsPage() {
   const { userSettings, expenses, incomes, householdId } = useAppData();
   const { categories, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
+  const { theme, setTheme } = useTheme();
 
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
@@ -1199,7 +1201,29 @@ export default function SettingsPage() {
              </div>
             
             <Separator />
-            
+
+            <div>
+              <h3 className="font-medium mb-3 text-sm">المظهر</h3>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center gap-3">
+                  {theme === 'dark'
+                    ? <Moon className="h-4 w-4 text-muted-foreground" />
+                    : <Sun className="h-4 w-4 text-muted-foreground" />}
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">الوضع الليلي</Label>
+                    <p className="text-xs text-muted-foreground">تبديل بين الوضع الفاتح والداكن.</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
+                  aria-label="تبديل الوضع الليلي"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
             <div>
               <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
               <div className="flex items-center justify-between rounded-lg border p-3">
