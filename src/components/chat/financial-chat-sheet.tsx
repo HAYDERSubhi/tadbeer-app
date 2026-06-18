@@ -390,15 +390,30 @@ export function FinancialChatSheet() {
           aria-label="مستشار الجيب"
           className={cn(
             'fixed bottom-20 left-4 z-40',
-            'h-13 w-13 rounded-full shadow-lg',
-            'animate-gold-shimmer',
+            'rounded-full',
+            'animate-gold-shimmer fab-glow',
             'flex items-center justify-center',
             'transition-transform duration-200 active:scale-95',
-            'border-0 outline-none focus-visible:ring-2 focus-visible:ring-yellow-400'
+            'border-0 outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
           )}
           style={{ width: 52, height: 52 }}
         >
-          <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
+          <span className="relative flex items-center justify-center w-full h-full">
+            {/* حالة ١: أيقونة الروبوت */}
+            <span className="fab-icon-robot absolute inset-0 flex items-center justify-center">
+              <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
+            </span>
+            {/* حالة ٢: شعار النخلة */}
+            <span className="fab-icon-palm absolute inset-0 flex items-center justify-center">
+              <img
+                src="/logo.png"
+                alt=""
+                aria-hidden="true"
+                className="h-7 w-7 object-contain"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+            </span>
+          </span>
           {badgeCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow">
               {badgeCount}

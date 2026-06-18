@@ -138,6 +138,33 @@
   filter: brightness(1.15);
 }
 
+/* ── FAB icon cross-fade: robot ↔ palm tree (5s cycle) ── */
+@keyframes fab-icon-robot {
+  0%,  30% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0; transform: scale(0.65); }
+  80%      { opacity: 0; transform: scale(0.65); }
+  100%     { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fab-icon-palm {
+  0%,  30% { opacity: 0; transform: scale(0.65); }
+  50%      { opacity: 1; transform: scale(1); }
+  80%,100% { opacity: 0; transform: scale(0.65); }
+}
+
+/* glow pulse synced with each stable phase */
+@keyframes fab-glow {
+  0%       { box-shadow: 0 4px 14px rgba(20,184,166,0.45), 0 2px 6px rgba(0,0,0,0.15); }
+  12%, 22% { box-shadow: 0 4px 24px rgba(20,184,166,0.80), 0 0 22px rgba(20,184,166,0.40); }
+  50%      { box-shadow: 0 4px 14px rgba(20,184,166,0.45), 0 2px 6px rgba(0,0,0,0.15); }
+  62%, 72% { box-shadow: 0 4px 24px rgba(20,184,166,0.80), 0 0 22px rgba(20,184,166,0.40); }
+  100%     { box-shadow: 0 4px 14px rgba(20,184,166,0.45), 0 2px 6px rgba(0,0,0,0.15); }
+}
+
+.fab-icon-robot { animation: fab-icon-robot 5s ease-in-out infinite; }
+.fab-icon-palm  { animation: fab-icon-palm  5s ease-in-out infinite; }
+.fab-glow       { animation: fab-glow       5s ease-in-out infinite; }
+
 /* --- الشفرة الحاسمة لإصلاح الطباعة --- */
 @media print {
   /* 1. إخفاء كل عناصر الواجهة التي لا تنتمي للمستند */
