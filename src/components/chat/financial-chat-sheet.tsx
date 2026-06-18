@@ -401,7 +401,7 @@ export function FinancialChatSheet() {
           <span className="relative flex items-center justify-center w-full h-full">
             {/* حالة ١: أيقونة الروبوت */}
             <span className="fab-icon-robot absolute inset-0 flex items-center justify-center">
-              <Bot className="h-6 w-6 text-white drop-shadow" strokeWidth={2.2} />
+              <Bot className="h-8 w-8 text-white drop-shadow" strokeWidth={2} />
             </span>
             {/* حالة ٢: شعار النخلة */}
             <span className="fab-icon-palm absolute inset-0 flex items-center justify-center">
@@ -409,7 +409,7 @@ export function FinancialChatSheet() {
                 src="/logo.png"
                 alt=""
                 aria-hidden="true"
-                className="h-7 w-7 object-contain"
+                className="h-10 w-10 object-contain"
                 style={{ filter: 'brightness(0) invert(1)' }}
               />
             </span>
