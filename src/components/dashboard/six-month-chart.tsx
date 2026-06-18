@@ -107,7 +107,7 @@ export function SixMonthChart() {
         <ResponsiveContainer width="100%" height={180}>
           <BarChart
             data={chartData}
-            margin={{ top: 8, right: 4, left: -20, bottom: 0 }}
+            margin={{ top: 8, right: -16, left: 4, bottom: 0 }}
             barCategoryGap="30%"
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -115,9 +115,11 @@ export function SixMonthChart() {
               dataKey="name"
               tickLine={false}
               axisLine={false}
+              reversed={true}
               tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
             />
             <YAxis
+              orientation="right"
               tickLine={false}
               axisLine={false}
               tickFormatter={v =>
