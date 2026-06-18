@@ -4,11 +4,20 @@
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import React from 'react';
+import React, { useState } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
+import { InstallBanner } from './install-banner';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  usePWAInstall();
+  const { canInstall, requestInstall } = usePWAInstall();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const handleInstall = async () => {
+    setBannerDismissed(true);
+    await requestInstall();
+  };
+
+  const showBanner = canInstall && !bannerDismissed;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -43,6 +52,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {children}
 
+      {showBanner && (
+        <InstallBanner
+          onInstall={handleInstall}
+          onDismiss={() => setBannerDismissed(true)}
+        />
+      )}
     </div>
   );
 }
