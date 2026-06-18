@@ -108,7 +108,7 @@
   }
 }
 
-/* ── Gold shimmer animation for the chat FAB button ── */
+/* ── Teal shimmer animation for the chat FAB button ── */
 @keyframes gold-shimmer {
   0%   { background-position: 0% 50%; }
   50%  { background-position: 100% 50%; }
@@ -118,13 +118,13 @@
 .animate-gold-shimmer {
   background: linear-gradient(
     120deg,
-    #92600a 0%,
-    #f5c518 25%,
-    #ffd700 45%,
-    #f5c518 55%,
-    #daa520 75%,
-    #f5c518 90%,
-    #92600a 100%
+    #0d7a73 0%,
+    #14A39A 25%,
+    #1AB2A7 45%,
+    #14A39A 55%,
+    #0f8f87 75%,
+    #1AB2A7 90%,
+    #0d7a73 100%
   );
   background-size: 300% 300%;
   animation: gold-shimmer 2.8s ease-in-out infinite;
