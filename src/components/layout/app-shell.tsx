@@ -39,7 +39,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" asChild>
             <Link href="/settings" aria-label="الإعدادات">
-              <Settings className="h-5 w-5" />
+              <Settings className="h-5 w-5" strokeWidth={2.75} />
             </Link>
           </Button>
         </div>
