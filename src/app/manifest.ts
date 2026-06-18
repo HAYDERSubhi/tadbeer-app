@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     // Match the app's light background so the OS splash screen blends in.
-    background_color: '#F8FAFC',
-    theme_color: '#14A39A',
+    background_color: '#14B8A5',
+    theme_color: '#14B8A5',
     dir: 'rtl',
     lang: 'ar',
     orientation: 'portrait',
