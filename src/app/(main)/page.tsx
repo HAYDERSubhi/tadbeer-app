@@ -776,7 +776,7 @@ export default function DashboardPage() {
               { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', image: '/tools/worth-it.png', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)' },
               { href: '/tools/installment',  label: 'أقساطي',    icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
               { href: '/tools/habit-cost',   label: 'عاداتي',    icon: '☕', image: '/tools/habit-cost.png', bg: 'linear-gradient(135deg,#facc15,#b45309)' },
-              { href: '/tools/wedding',      label: 'الزواج',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
+              { href: '/tools/wedding',      label: 'زواجي',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', image: '/tools/debts.png', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
               { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', image: '/tools/silftna.png', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
             ].map(t => (

@@ -41,7 +41,7 @@ const TOOLS = [
   },
   {
     href: '/tools/wedding',
-    label: 'حاسبة الزواج',
+    label: 'حاسبة زواجي',
     sub: 'توزيع الميزانية',
     icon: '💍',
     image: '/tools/wedding.png',

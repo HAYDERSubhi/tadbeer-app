@@ -195,7 +195,7 @@ export default function WeddingPage() {
 
   function share() {
     const lines = [
-      '🎉 خطة تكاليف الزواج',
+      '🎉 خطة تكاليف زواجي',
       '',
       `الإجمالي: ${fmt(total)} د.ع`,
       gifts > 0 ? `النقوط المتوقعة: -${fmt(gifts)} د.ع` : '',
@@ -229,7 +229,7 @@ export default function WeddingPage() {
           <ChevronRight className="h-6 w-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-lg font-bold">حاسبة الزواج</h1>
+          <h1 className="text-lg font-bold">حاسبة زواجي</h1>
           <p className="text-[11px] text-muted-foreground flex items-center gap-1">
             خطّط ميزانية زواجك
             {saveState === 'saving' && <span className="text-amber-500">· جارٍ الحفظ</span>}
