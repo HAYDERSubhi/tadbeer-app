@@ -83,6 +83,9 @@
   * {
     @apply border-border;
   }
+  html {
+    background-color: hsl(var(--primary));
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-tajawal), 'Tajawal', sans-serif;
