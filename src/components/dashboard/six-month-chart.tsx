@@ -144,12 +144,6 @@ export function SixMonthChart() {
                 stroke="hsl(var(--destructive))"
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
-                label={{
-                  value: 'الميزانية',
-                  position: 'insideTopLeft',
-                  fontSize: 9,
-                  fill: 'hsl(var(--destructive))',
-                }}
               />
             )}
             <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={40}>
