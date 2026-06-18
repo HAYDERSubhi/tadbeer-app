@@ -32,7 +32,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   display: "standalone",
   orientation: "portrait",
   // White splash screen background so the icon doesn't appear on black.
-  background_color: "#F8FAFC",
+  background_color: "#14B8A5",
   // Teal theme matches the app primary color.
   theme_color: "#14A39A",
   short_name: "تدبير",
