@@ -20,18 +20,5 @@ export default function manifest(): MetadataRoute.Manifest {
       // caused the Android splash screen to show a large black square.
       // Android will now use icon-512x512.png (any) on the #F8FAFC background.
     ],
-    // Web Share Target: lets the installed PWA appear in Android's share sheet.
-    // When the user shares a bank SMS/notification, Android opens /import with
-    // the text in the query string, which we parse into an expense.
-    share_target: {
-      action: '/import',
-      method: 'GET',
-      enctype: 'application/x-www-form-urlencoded',
-      params: {
-        title: 'title',
-        text: 'text',
-        url: 'url',
-      },
-    },
   };
 }

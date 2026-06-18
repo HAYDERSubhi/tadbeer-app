@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import React, { useState } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { InstallBanner } from './install-banner';
+import { IosInstallBanner } from './ios-install-banner';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { canInstall, requestInstall } = usePWAInstall();
@@ -58,6 +59,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onDismiss={() => setBannerDismissed(true)}
         />
       )}
+      {!showBanner && <IosInstallBanner />}
     </div>
   );
 }
