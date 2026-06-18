@@ -103,7 +103,7 @@ export default function BudgetSummaryCard({
                                     style={{ right: '0', width: `${timeFillWidth}%` }}
                                 />
                                 {/* Centered spend label */}
-                                <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-xs mix-blend-difference pointer-events-none">
+                                <div className="absolute inset-0 flex items-center justify-center text-foreground font-bold text-xs pointer-events-none">
                                     إنفاق {spentPercentage.toFixed(0)}%
                                 </div>
                             </div>
