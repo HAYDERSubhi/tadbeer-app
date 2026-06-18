@@ -12,7 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 w-full bg-primary shadow-sm">
+      <header className="sticky top-0 z-50 w-full bg-primary shadow-sm" style={{ marginTop: '-1px', paddingTop: '1px' }}>
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
             <div style={{
