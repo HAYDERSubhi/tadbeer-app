@@ -95,7 +95,7 @@ export function SixMonthChart() {
   return (
     <Card>
       <CardHeader className="py-3">
-        <CardTitle className="flex items-center gap-2 text-xs font-semibold">
+        <CardTitle className="flex items-center gap-2 text-sm">
           <TrendingUp className="h-4 w-4 text-primary" />
           مقارنة آخر 6 أشهر
         </CardTitle>
@@ -183,8 +183,7 @@ export function SixMonthChart() {
           </div>
           {budget > 0 && (
             <div className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-[2px] bg-destructive rounded-full" style={{ borderTop: '2px dashed' }} />
-              <span className="inline-block w-3 border-t-2 border-dashed border-destructive" />
+              <span className="inline-block w-5 border-t-2 border-dashed border-destructive" />
               تجاوز الميزانية
             </div>
           )}

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   PieChart as RechartsPieChart, Pie, LineChart, Line,
+  BarChart as RechartsBarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, Label,
 } from 'recharts';
 import type { ChartConfig } from "@/components/ui/chart";
@@ -449,40 +450,46 @@ export default function StatisticsPage() {
                 </CardHeader>
                 <CardContent className="pb-4 px-2">
                   <ChartContainer config={chartConfig} className="w-full h-[200px]">
-                    <LineChart data={merged} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                    <RechartsBarChart data={merged} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} barCategoryGap="25%">
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 9 }} tickMargin={6} />
                       <YAxis tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
                       <RechartsTooltip
+                        cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
                         content={({ active, payload, label }) => {
                           if (!active || !payload?.length) return null;
-                          const nz = payload.filter(p => (p.value as number) > 0).sort((a, b) => (b.value as number) - (a.value as number));
+                          const nz = [...payload].filter(p => (p.value as number) > 0).reverse();
                           if (!nz.length) return null;
+                          const total = nz.reduce((s, p) => s + (p.value as number), 0);
                           return (
                             <div className="p-2 rounded-lg border bg-background/95 shadow-lg text-xs min-w-[130px]">
                               <p className="font-bold border-b pb-1 mb-1">{label}</p>
                               {nz.map(p => (
                                 <div key={String(p.dataKey)} className="flex justify-between gap-2">
-                                  <span style={{ color: p.color }} className="font-medium truncate">{chartConfig[p.dataKey as string]?.label ?? p.dataKey}</span>
+                                  <span style={{ color: p.fill }} className="font-medium truncate">{chartConfig[p.dataKey as string]?.label ?? p.dataKey}</span>
                                   <span className="text-muted-foreground shrink-0">{formatCurrency(p.value as number)}</span>
                                 </div>
                               ))}
+                              <div className="flex justify-between gap-2 border-t pt-1 mt-1">
+                                <span className="font-semibold">الإجمالي</span>
+                                <span className="font-semibold shrink-0">{formatCurrency(total)}</span>
+                              </div>
                             </div>
                           );
                         }}
                       />
                       {categoryTrends.map(ct => (
-                        <Line key={ct.categoryId} type="monotone" dataKey={ct.categoryId}
-                          stroke={chartConfig[ct.categoryId]?.color} strokeWidth={2}
-                          dot={{ r: 2, fill: chartConfig[ct.categoryId]?.color, strokeWidth: 0 }}
-                          activeDot={{ r: 4 }} />
+                        <Bar key={ct.categoryId} dataKey={ct.categoryId} stackId="stack"
+                          fill={chartConfig[ct.categoryId]?.color}
+                          radius={categoryTrends.indexOf(ct) === categoryTrends.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                          maxBarSize={36} />
                       ))}
-                    </LineChart>
+                    </RechartsBarChart>
                   </ChartContainer>
                   <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3 justify-center">
                     {categoryTrends.map(ct => (
                       <div key={ct.categoryId} className="flex items-center gap-1.5 text-xs">
-                        <span className="w-2.5 h-1.5 rounded-full shrink-0" style={{ background: chartConfig[ct.categoryId]?.color }} />
+                        <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: chartConfig[ct.categoryId]?.color }} />
                         <span className="text-muted-foreground">{ct.categoryName}</span>
                         <span className="font-semibold">{formatCurrency(ct.total)}</span>
                       </div>
