@@ -199,9 +199,6 @@ export default function StatisticsPage() {
         </CardContent>
       </Card>
 
-      {/* ── مخطط الستة أشهر (سياق تاريخي عام) ── */}
-      <SixMonthChart />
-
       {/* ── بعد هذا كل شيء خاص بالفترة المختارة ── */}
       {!statsData ? (
         <div className="space-y-4">
@@ -499,6 +496,9 @@ export default function StatisticsPage() {
               </Card>
             );
           })()}
+
+          {/* ── مقارنة آخر 6 أشهر (سياق تاريخي) ── */}
+          <SixMonthChart />
 
           {/* ── التحليل الذكي ── */}
           <InsightsCard
