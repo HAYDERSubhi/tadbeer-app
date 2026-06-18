@@ -144,7 +144,7 @@ export function SixMonthChart() {
                 strokeWidth={1.5}
                 label={{
                   value: 'الميزانية',
-                  position: 'insideTopRight',
+                  position: 'insideTopLeft',
                   fontSize: 9,
                   fill: 'hsl(var(--destructive))',
                 }}
