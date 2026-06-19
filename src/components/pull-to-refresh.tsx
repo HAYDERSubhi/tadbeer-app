@@ -114,11 +114,11 @@ export function PullToRefresh() {
     >
       {/* Frosted-glass pill — adapts to light/dark, no harsh white box */}
       <div
-        className="relative flex items-center justify-center rounded-full backdrop-blur-md shadow-md"
+        className="relative flex items-center justify-center rounded-full shadow-md"
         style={{
           width: SIZE,
           height: SIZE,
-          background: 'color-mix(in srgb, var(--background, #fff) 75%, transparent)',
+          background: '#14B8A5',
           opacity: pullY > 2 || refreshing ? 1 : 0,
           transition: 'opacity 0.15s',
         }}
@@ -133,19 +133,19 @@ export function PullToRefresh() {
             animation: refreshing ? 'ptr-spin 0.9s linear infinite' : 'none',
           }}
         >
-          {/* Faint track — appears as arc starts drawing */}
+          {/* Faint track */}
           <circle
             cx={CX} cy={CX} r={RADIUS}
             fill="none"
-            stroke="currentColor"
+            stroke="white"
             strokeWidth="1.5"
-            strokeOpacity={0.12 * progress}
+            strokeOpacity={0.3 * progress}
           />
-          {/* The arc being drawn — stroke-dashoffset shrinks with pull progress */}
+          {/* The arc being drawn */}
           <circle
             cx={CX} cy={CX} r={RADIUS}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke="white"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
@@ -155,7 +155,7 @@ export function PullToRefresh() {
           />
         </svg>
 
-        {/* Logo — fades in as the arc nears completion */}
+        {/* Logo — white version */}
         <img
           src="/logo.png"
           alt=""
@@ -166,8 +166,7 @@ export function PullToRefresh() {
             objectFit: 'contain',
             opacity: progress * 0.9,
             transition: 'opacity 0.1s',
-            // Blend white PNG background away — works on light & semi-transparent surfaces
-            mixBlendMode: 'multiply',
+            filter: 'brightness(0) invert(1)',
           }}
         />
       </div>
