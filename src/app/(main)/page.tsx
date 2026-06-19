@@ -145,11 +145,13 @@ export default function DashboardPage() {
 
   // --- Voice Recording: MediaRecorder → Gemini (reliable on all mobile browsers) ---
 
-  const stopAudioVisualization = () => {
+  const stopAudioVisualization = async () => {
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    audioContextRef.current?.close().catch(() => {});
-    audioContextRef.current = null;
     analyserRef.current = null;
+    if (audioContextRef.current) {
+      try { await audioContextRef.current.close(); } catch { /* ignore */ }
+      audioContextRef.current = null;
+    }
     setAudioLevel(0);
   };
 
@@ -157,6 +159,13 @@ export default function DashboardPage() {
     if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
     if (autoStopTimerRef.current)  { clearTimeout(autoStopTimerRef.current);   autoStopTimerRef.current  = null; }
     setRecordingSeconds(0);
+  };
+
+  const safeStopMediaRecorder = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state === 'recording') {
+      try { mr.stop(); } catch { /* ignore race on iOS */ }
+    }
   };
 
   const startAudioVisualization = async (stream: MediaStream) => {
@@ -189,7 +198,7 @@ export default function DashboardPage() {
       setRecordingState(false);
       stopAudioVisualization();
       stopRecordingTimers();
-      mediaRecorderRef.current?.stop(); // triggers onstop → API → Gemini
+      safeStopMediaRecorder(); // triggers onstop → API → Gemini
       return;
     }
 
@@ -286,14 +295,22 @@ export default function DashboardPage() {
 
         // Use /api/voice route (isolated maxDuration=60) instead of server action
         // to avoid Vercel's 10s default timeout on server actions.
-        const res = await fetch('/api/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            voiceRecordingDataUri: audioDataUri,
-            categories: categoryMapForAI,
-          }),
-        });
+        const voiceAbortController = new AbortController();
+        const voiceTimeoutId = setTimeout(() => voiceAbortController.abort(), 35_000);
+        let res: Response;
+        try {
+          res = await fetch('/api/voice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              voiceRecordingDataUri: audioDataUri,
+              categories: categoryMapForAI,
+            }),
+            signal: voiceAbortController.signal,
+          });
+        } finally {
+          clearTimeout(voiceTimeoutId);
+        }
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -343,7 +360,7 @@ export default function DashboardPage() {
       setRecordingState(false);
       stopAudioVisualization();
       stopRecordingTimers();
-      mediaRecorderRef.current?.stop();
+      safeStopMediaRecorder();
     }, 60_000);
   };
 
