@@ -36,7 +36,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   // Redirect to login once auth settles and there's no user.
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/login');
+      router.push('/landing');
     }
   }, [user, loading, router]);
 
