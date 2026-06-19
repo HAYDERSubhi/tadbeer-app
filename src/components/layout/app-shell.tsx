@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Settings } from 'lucide-react';
+import { Settings, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import React, { useState } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
@@ -40,11 +40,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             />
             <span className="text-white">تدبير</span>
           </Link>
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" asChild>
-            <Link href="/settings" aria-label="الإعدادات">
-              <Settings className="h-5 w-5" strokeWidth={2.75} />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              aria-label="مشاركة التطبيق"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'تدبير — تطبيقك المالي الذكي',
+                    text: '🌴 جرّب تدبير — تطبيق إدارة المصاريف الذكي\n\nتتبّع إنفاقك، حدّد ميزانيتك، وحقّق أهدافك المالية بسهولة وبالعربية 💰',
+                    url: 'https://www.tadbeer.app',
+                  }).catch(() => {});
+                } else {
+                  navigator.clipboard?.writeText('https://www.tadbeer.app').catch(() => {});
+                }
+              }}
+            >
+              <Share2 className="h-5 w-5" strokeWidth={2.75} />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" asChild>
+              <Link href="/settings" aria-label="الإعدادات">
+                <Settings className="h-5 w-5" strokeWidth={2.75} />
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
