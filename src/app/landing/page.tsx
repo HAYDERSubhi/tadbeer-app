@@ -121,7 +121,7 @@ export default function LandingPage() {
           href="/login"
           className="block bg-primary text-white font-semibold text-base px-10 py-4 rounded-full w-full max-w-xs mx-auto"
         >
-          ابدأ مجاناً — بدون بطاقة
+          ابدأ مجاناً — سجّل الآن
         </Link>
         <p className="text-xs text-muted-foreground mt-3">يعمل على الجوال والحاسوب · بدون تثبيت</p>
       </section>
