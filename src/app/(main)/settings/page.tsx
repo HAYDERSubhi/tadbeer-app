@@ -583,7 +583,29 @@ export default function SettingsPage() {
   const handleDailyReminderChange = async (checked: boolean) => {
     setDailyReminderEnabled(checked);
     if (checked && typeof window !== 'undefined' && 'Notification' in window) {
-      await Notification.requestPermission();
+      const permission = await Notification.requestPermission();
+      // Register Web Push subscription after user grants permission
+      if (permission === 'granted' && 'serviceWorker' in navigator && 'PushManager' in window && user) {
+        try {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          if (vapidKey) {
+            const reg = await navigator.serviceWorker.ready;
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+              const rawData = atob(base64);
+              const key = Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+              sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+            }
+            await fetch('/api/push/subscribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ subscription: sub.toJSON(), userId: user.uid }),
+            });
+          }
+        } catch { /* push not supported — silent fail */ }
+      }
     }
     updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked } });
   };

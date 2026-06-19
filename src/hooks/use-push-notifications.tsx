@@ -12,6 +12,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// Silently registers push subscription if permission already granted.
+// Permission request itself happens in settings toggle (user gesture required).
 export function usePushNotifications() {
   const { user } = useAuth();
   const registered = useRef(false);
@@ -21,38 +23,28 @@ export function usePushNotifications() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (!VAPID_PUBLIC_KEY) return;
+    if (Notification.permission !== 'granted') return; // only if already granted
 
     const register = async () => {
       try {
-        // Request notification permission first
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') return;
-
         const reg = await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
-
         if (!sub) {
           sub = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
           });
         }
-
-        // Save subscription to Firestore via API
         await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ subscription: sub.toJSON(), userId: user.uid }),
         });
-
         registered.current = true;
-      } catch {
-        // Push not supported or user declined — silent fail
-      }
+      } catch { /* silent fail */ }
     };
 
-    // Delay to not block initial load
-    const timer = setTimeout(register, 3000);
+    const timer = setTimeout(register, 2000);
     return () => clearTimeout(timer);
   }, [user]);
 }
