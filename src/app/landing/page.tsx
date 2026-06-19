@@ -51,7 +51,7 @@ export default function LandingPage() {
       <section className="bg-primary/5 px-6 py-10 flex justify-center">
         <div className="relative w-52">
           <img
-            src="/screenshots/screenshot-home.png"
+            src="/screenshots/screenshot-home.jpg"
             alt="واجهة تطبيق تدبير"
             className="w-full rounded-2xl shadow-lg border border-border"
             style={{ maxHeight: 420, objectFit: 'cover', objectPosition: 'top' }}
@@ -89,9 +89,9 @@ export default function LandingPage() {
         <h2 className="text-xl font-semibold text-foreground mb-5">شاهد التطبيق بنفسك</h2>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {[
-            { src: '/screenshots/screenshot-stats.png', label: 'إحصائيات شهرية' },
-            { src: '/screenshots/screenshot-chat.png', label: 'مستشار الجيب' },
-            { src: '/screenshots/screenshot-home.png', label: 'الرئيسية' },
+            { src: '/screenshots/screenshot-stats.jpg', label: 'إحصائيات شهرية' },
+            { src: '/screenshots/screenshot-chat.jpg', label: 'مستشار الجيب' },
+            { src: '/screenshots/screenshot-settings.jpg', label: 'الإعدادات' },
           ].map((s) => (
             <div key={s.label} className="flex-shrink-0 w-36">
               <img
