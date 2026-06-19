@@ -139,9 +139,9 @@ export function PullToRefresh() {
             fill="none"
             stroke="white"
             strokeWidth="1.5"
-            strokeOpacity={0.3 * progress}
+            strokeOpacity={refreshing ? 0.2 : 0.3 * progress}
           />
-          {/* The arc being drawn */}
+          {/* Arc: grows with pull, then spins as a partial arc during refresh */}
           <circle
             cx={CX} cy={CX} r={RADIUS}
             fill="none"
@@ -149,13 +149,13 @@ export function PullToRefresh() {
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={arcOffset}
+            strokeDashoffset={refreshing ? CIRCUMFERENCE * 0.25 : arcOffset}
             transform={`rotate(-90 ${CX} ${CX})`}
             style={{ transition: refreshing ? 'none' : 'stroke-dashoffset 0.04s linear' }}
           />
         </svg>
 
-        {/* Logo — white version */}
+        {/* Logo — always visible */}
         <img
           src="/logo.png"
           alt=""
@@ -164,8 +164,7 @@ export function PullToRefresh() {
             width: SIZE - 18,
             height: SIZE - 18,
             objectFit: 'contain',
-            opacity: progress * 0.9,
-            transition: 'opacity 0.1s',
+            opacity: 1,
             filter: 'brightness(0) invert(1)',
           }}
         />
