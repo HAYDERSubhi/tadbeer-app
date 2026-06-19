@@ -8,10 +8,13 @@ import React, { useState } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import { InstallBanner } from './install-banner';
 import { IosInstallBanner } from './ios-install-banner';
+import { LoggingStreakBanner } from '@/components/dashboard/logging-streak-banner';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { canInstall, requestInstall } = usePWAInstall();
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  usePushNotifications();
 
   const handleInstall = async () => {
     setBannerDismissed(true);
@@ -44,6 +47,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
       </header>
+
+      <LoggingStreakBanner />
 
       {children}
 

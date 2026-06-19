@@ -3,6 +3,7 @@
 
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
+  customWorkerSrc: "worker",
   cacheOnFrontEndNav: false,
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,

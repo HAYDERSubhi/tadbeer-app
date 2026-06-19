@@ -50,36 +50,56 @@ export function useSmartNotifications() {
     requestPermission();
   }, [userSettings?.notifications?.dailyReminderEnabled]);
 
-  /* ── Daily reminder: if app opened after 20h silence ── */
+  /* ── Daily reminder: schedule for 8 PM if no expense logged today ── */
   useEffect(() => {
     if (!userSettings?.notifications?.dailyReminderEnabled) return;
     if (typeof window === 'undefined') return;
 
-    const lastStr = localStorage.getItem(LAST_REMINDER_KEY);
     const now = new Date();
-
-    if (lastStr) {
-      const last = new Date(lastStr);
-      if (differenceInHours(now, last) < 20) return;
-    }
-
-    // Check if there's any expense today
     const todayStr = format(now, 'yyyy-MM-dd');
-    const hasTodayExpense = expenses.some(e => e.date.startsWith(todayStr));
+    const reminderKey = `${LAST_REMINDER_KEY}-${todayStr}`;
 
-    if (!hasTodayExpense) {
+    // Only schedule once per day
+    if (localStorage.getItem(reminderKey)) return;
+
+    const scheduleReminder = () => {
+      const hasTodayExpense = expenses.some(e => {
+        try { return e.date.startsWith(todayStr); } catch { return false; }
+      });
+      if (hasTodayExpense) {
+        localStorage.setItem(reminderKey, 'logged');
+        return;
+      }
       requestPermission().then(granted => {
-        if (granted) {
+        if (!granted) return;
+        // Re-check right before sending
+        const stillNoExpense = !expenses.some(e => {
+          try { return e.date.startsWith(todayStr); } catch { return false; }
+        });
+        if (stillNoExpense) {
           sendNotification(
             '📝 تذكير يومي — تدبير',
-            'لم تسجّل أي مصروف اليوم. خذ دقيقة لتتبع إنفاقك!'
+            'لم تسجّل أي مصروف اليوم. خذ دقيقة لتتبع إنفاقك! 💰'
           );
-          localStorage.setItem(LAST_REMINDER_KEY, now.toISOString());
         }
+        localStorage.setItem(reminderKey, 'sent');
       });
+    };
+
+    const target = new Date(now);
+    target.setHours(20, 0, 0, 0); // 8 PM local time
+
+    const msUntil8pm = target.getTime() - now.getTime();
+
+    if (msUntil8pm > 0) {
+      // Schedule for 8 PM
+      const timer = setTimeout(scheduleReminder, msUntil8pm);
+      return () => clearTimeout(timer);
     } else {
-      localStorage.setItem(LAST_REMINDER_KEY, now.toISOString());
+      // Already past 8 PM — fire immediately if not done yet
+      scheduleReminder();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expenses, userSettings?.notifications?.dailyReminderEnabled]);
 
   /* ── Monthly summary: first day of month ── */
