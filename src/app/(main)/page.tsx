@@ -800,7 +800,7 @@ export default function DashboardPage() {
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden ${t.image ? '' : 'shadow-sm'}`} style={{ background: t.image ? 'transparent' : t.bg }}>
                   {t.image ? (
-                    <img src={t.image} alt={t.label} className="w-full h-full object-contain" />
+                    <img src={t.image} alt={t.label} className="w-full h-full object-contain scale-[1.15]" />
                   ) : (
                     t.icon
                   )}
