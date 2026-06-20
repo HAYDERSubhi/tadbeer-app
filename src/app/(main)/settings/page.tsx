@@ -1093,17 +1093,20 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, value, children, sectionId }: { icon: React.ElementType, title: string, value: string, children: React.ReactNode, sectionId?: string }) => (
+  const AccordionItemWrapper = ({ icon, title, subtitle, value, children, sectionId }: { icon: React.ElementType, title: string, subtitle?: string, value: string, children: React.ReactNode, sectionId?: string }) => (
     <AccordionItem value={value} className="border-b-0" id={sectionId}>
       <Card>
         <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium" onClick={() => setOpenAccordionItems(prev => prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value])}>
           <CardHeader className="w-full py-3">
               <div className="flex items-center justify-between gap-2 w-full">
                   <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-primary/10 rounded-md text-primary">
+                      <div className="p-1.5 bg-primary/10 rounded-md text-primary shrink-0">
                           {React.createElement(icon, { className: "h-4 w-4" })}
                       </div>
-                      <h3 className="font-semibold text-sm">{title}</h3>
+                      <div className="text-right">
+                          <h3 className="font-semibold text-sm">{title}</h3>
+                          {subtitle && <p className="text-[11px] text-muted-foreground font-normal mt-0.5">{subtitle}</p>}
+                      </div>
                   </div>
               </div>
           </CardHeader>
@@ -1122,7 +1125,7 @@ export default function SettingsPage() {
   const FormDialog = Sheet;
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-28">
 
       {/* Account card — always visible, not collapsible */}
       <Card>
@@ -1132,7 +1135,7 @@ export default function SettingsPage() {
                     <Users className="h-5 w-5" />
                 </div>
                 <div>
-                    <p className="font-semibold truncate max-w-[150px] sm:max-w-xs text-sm">{isAnonymous ? "حساب زائر" : user?.email}</p>
+                    <p className="font-semibold truncate max-w-[150px] sm:max-w-xs text-sm" dir={isAnonymous ? undefined : "ltr"}>{isAnonymous ? "حساب زائر" : user?.email}</p>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="link" className="p-0 h-auto text-xs text-destructive hover:no-underline flex items-center gap-1">
@@ -1169,6 +1172,7 @@ export default function SettingsPage() {
           value="item-1"
           icon={Palette}
           title="المظهر والإشعارات"
+          subtitle="العملة، الشخصية، المظهر، التذكير"
           sectionId="settings-appearance"
         >
           <div className="space-y-6">
@@ -1277,6 +1281,7 @@ export default function SettingsPage() {
           value="item-2"
           icon={Users}
           title="الملف الشخصي والدخل"
+          subtitle="مصادر دخلك وأفراد أسرتك"
           sectionId="settings-profile"
         >
             {/* Income Section */}
@@ -1375,7 +1380,7 @@ export default function SettingsPage() {
                 </div>
                 <Button onClick={handleSaveProfile} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
                     {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-                    حفظ الملف الشخصي
+                    حفظ التغييرات
                 </Button>
             </div>
         </AccordionItemWrapper>
@@ -1384,6 +1389,7 @@ export default function SettingsPage() {
             value="item-3"
             icon={SlidersHorizontal}
             title="الميزانية والدفعات الدورية"
+            subtitle="الميزانية وميزانيات الفئات والدفعات الثابتة"
             sectionId="settings-budget"
         >
              {/* Budget & Goals */}
@@ -1459,7 +1465,7 @@ export default function SettingsPage() {
             <Separator />
             <Button onClick={handleSaveBudgetSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
                 {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-                حفظ تغييرات الميزانية
+                حفظ التغييرات
             </Button>
         </AccordionItemWrapper>
 
@@ -1468,6 +1474,7 @@ export default function SettingsPage() {
             value="item-3b"
             icon={Tag}
             title="إدارة الفئات"
+            subtitle="أضف وعدّل فئات مصاريفك"
             sectionId="settings-categories"
         >
             <div className="space-y-4">
@@ -1515,6 +1522,7 @@ export default function SettingsPage() {
             value="item-4"
             icon={DatabaseZap}
             title="إدارة البيانات"
+            subtitle="تصدير، استيراد، ونسخ احتياطية"
         >
              <div>
                <h4 className="font-medium text-sm mb-1">تصدير / استيراد مصاريف</h4>
@@ -1582,7 +1590,7 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
          
         {/* Planner / Goals */}
-        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات">
+        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات" subtitle="خطط التوفير وأهدافك المالية">
           <div className="text-center space-y-3">
             <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك المالية</p>
             <Link href="/planner">
@@ -1595,7 +1603,7 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
         {/* Achievements */}
-        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات">
+        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات" subtitle="شاراتك وإنجازاتك في تدبير">
           <div className="text-center space-y-3">
             <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك لاستخدام تدبير</p>
             <Link href="/achievements">
@@ -1608,14 +1616,15 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
         {/* Family / Household — now a proper accordion section */}
-        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي">
+        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي" subtitle="شارك حسابك مع أفراد العائلة">
           <HouseholdManager embedded />
         </AccordionItemWrapper>
 
         <AccordionItemWrapper
             value="item-5"
             icon={Info}
-            title={`حول التطبيق - إصدار ${packageInfo.version}`}
+            title="حول التطبيق"
+          subtitle={`الإصدار ${packageInfo.version} · ملاحظات واقتراحات`}
             sectionId="settings-support"
         >
           <div className="space-y-4">

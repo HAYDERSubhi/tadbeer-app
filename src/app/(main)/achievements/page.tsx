@@ -78,7 +78,7 @@ export default function AchievementsPage() {
                 <CardContent className="p-4">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium">تقدمك</span>
-                        <span className="text-sm font-bold text-primary">{earnedCount} / {totalCount}</span>
+                        <span className="text-sm font-bold text-primary">{earnedCount} من {totalCount}</span>
                     </div>
                     <Progress value={(earnedCount / totalCount) * 100} className="h-2" />
                     <p className="text-xs text-muted-foreground mt-2 text-center">
