@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, MessageSquare, Send, Lightbulb, Bug, Heart } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -119,7 +119,135 @@ const recurringPaymentSchema = z.object({
 
 type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
+const feedbackSchema = z.object({
+  type: z.enum(['suggestion', 'bug', 'compliment', 'other']),
+  subject: z.string(),
+  details: z.string().min(1, { message: 'التفاصيل مطلوبة' }),
+});
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
+// --- Feedback Dialog Component ---
+const FEEDBACK_TYPES = [
+  { value: 'suggestion', label: 'اقتراح ميزة', icon: Lightbulb, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800' },
+  { value: 'bug',        label: 'مشكلة تقنية', icon: Bug,       color: 'text-red-500',   bg: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800' },
+  { value: 'compliment', label: 'إطراء',        icon: Heart,     color: 'text-pink-500',  bg: 'bg-pink-50 dark:bg-pink-950/30 border-pink-200 dark:border-pink-800' },
+  { value: 'other',      label: 'أخرى',         icon: MessageSquare, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' },
+] as const;
+
+const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean; setIsOpen: (v: boolean) => void; isMobile: boolean }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [sent, setSent] = useState(false);
+
+  const form = useForm<FeedbackFormData>({
+    resolver: zodResolver(feedbackSchema),
+    defaultValues: { type: 'suggestion', subject: '', details: '' },
+  });
+
+  const selectedType = form.watch('type');
+
+  const feedbackMutation = useMutation({
+    mutationFn: async (data: FeedbackFormData) => {
+      if (!user) throw new Error('يرجى تسجيل الدخول');
+      const token = await user.getIdToken();
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: data.type, subject: data.subject.trim() || 'بدون موضوع', details: data.details.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'فشل الإرسال');
+    },
+    onSuccess: () => setSent(true),
+    onError: (e: Error) => toast({ title: 'خطأ', description: e.message, variant: 'destructive' }),
+  });
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setTimeout(() => { setSent(false); form.reset(); }, 300);
+  };
+
+  const DialogComponent = isMobile ? Sheet : Dialog;
+  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+
+  return (
+    <DialogComponent open={isOpen} onOpenChange={handleClose}>
+      <DialogContentComponent className={isMobile ? 'flex flex-col' : ''}>
+        {sent ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Send className="h-7 w-7 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-bold text-base">شكراً لك!</p>
+              <p className="text-xs text-muted-foreground">وصلتنا ملاحظتك وسنعمل على مراجعتها</p>
+            </div>
+            <Button onClick={handleClose} className="mt-2 h-9 text-xs">إغلاق</Button>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-sm flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                شاركنا رأيك
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                ملاحظتك تصلنا مباشرة وتساعدنا على تحسين تدبير
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={form.handleSubmit((d) => feedbackMutation.mutate(d))} className="space-y-4 py-2">
+              {/* Type selector */}
+              <div className="grid grid-cols-2 gap-2">
+                {FEEDBACK_TYPES.map(({ value, label, icon: Icon, color, bg }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => form.setValue('type', value)}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border p-2.5 text-xs font-medium transition-all',
+                      selectedType === value ? bg : 'border-border bg-muted/30 text-muted-foreground'
+                    )}
+                  >
+                    <Icon className={cn('h-3.5 w-3.5 shrink-0', selectedType === value ? color : '')} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Subject */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">الموضوع <span className="text-muted-foreground">(اختياري)</span></Label>
+                <Input {...form.register('subject')} placeholder="عنوان مختصر..." className="h-9 text-xs" />
+              </div>
+
+              {/* Details */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">التفاصيل <span className="text-destructive">*</span></Label>
+                <Textarea
+                  {...form.register('details')}
+                  placeholder="اشرح فكرتك أو المشكلة بأكبر قدر من التفاصيل..."
+                  className="min-h-[100px] text-xs resize-none"
+                />
+                {form.formState.errors.details && (
+                  <p className="text-xs text-destructive">{form.formState.errors.details.message}</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button type="button" variant="ghost" onClick={handleClose} className="flex-1 h-9 text-xs">إلغاء</Button>
+                <Button type="submit" disabled={feedbackMutation.isPending} className="flex-1 h-9 text-xs gap-1.5">
+                  {feedbackMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  إرسال
+                </Button>
+              </div>
+            </form>
+          </>
+        )}
+      </DialogContentComponent>
+    </DialogComponent>
+  );
+};
 
 // --- Mapping Dialog Component ---
 const MappingDialog = ({
@@ -321,6 +449,7 @@ export default function SettingsPage() {
   const [editingIncomeScope, setEditingIncomeScope] = useState<'personal' | 'household' | undefined>(undefined);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [isDataResetOpen, setIsDataResetOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -1591,6 +1720,22 @@ export default function SettingsPage() {
               <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
               <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
             </div>
+
+            <Button
+              variant="outline"
+              className="w-full text-xs h-9 gap-2"
+              onClick={() => setIsFeedbackOpen(true)}
+            >
+              <MessageSquare className="h-4 w-4" />
+              شاركنا رأيك أو اقترح ميزة
+            </Button>
+
+            <FeedbackDialog
+              isOpen={isFeedbackOpen}
+              setIsOpen={setIsFeedbackOpen}
+              isMobile={isMobile}
+            />
+
             <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
