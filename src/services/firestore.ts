@@ -58,8 +58,10 @@ export const getExpenses = async (
         const data = doc.data();
         expenses.push({
             id: doc.id,
-            uid,
             ...data,
+            // Preserve the stored creator uid; fall back to the reader's uid for
+            // legacy docs that predate creator-stamping.
+            uid: (data.uid as string) || uid,
             date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
             updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
@@ -74,6 +76,7 @@ export const addExpense = async (uid: string, expenseData: Omit<Expense, 'id' | 
     const expensesCol = collection(db, p1, p2, 'expenses');
     const docRef = await addDoc(expensesCol, {
         ...expenseData,
+        uid, // record who entered it (used to return data on household leave)
         date: new Date(expenseData.date), // Store as Firestore Timestamp
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -125,6 +128,7 @@ export const addExpensesBatch = async (
             const newDocRef = doc(expensesCol); // auto-generated ID
             batch.set(newDocRef, {
                 ...expenseData,
+                uid, // record who entered it (used to return data on household leave)
                 date: new Date(expenseData.date),
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
@@ -168,8 +172,10 @@ export const getGoals = async (uid: string, householdId?: string | null): Promis
         const data = doc.data();
         goals.push({
             id: doc.id,
-            uid,
             ...data,
+            // Preserve the stored creator uid; fall back to the reader's uid for
+            // legacy docs that predate creator-stamping.
+            uid: (data.uid as string) || uid,
             targetDate: data.targetDate instanceof Timestamp ? data.targetDate.toDate().toISOString() : (data.targetDate ? String(data.targetDate) : new Date().toISOString()),
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
         } as Goal);
@@ -183,6 +189,7 @@ export const addGoal = async (uid: string, goalData: Omit<Goal, 'id' | 'createdA
     const goalsCol = collection(db, p1, p2, 'goals');
     const docRef = await addDoc(goalsCol, {
         ...goalData,
+        uid, // record who created it (used to return data on household leave)
         targetDate: new Date(goalData.targetDate),
         createdAt: serverTimestamp(),
     });
@@ -499,6 +506,49 @@ export const getHousehold = async (householdId: string): Promise<Household | nul
     };
 };
 
+// ─── Safe move of a subcollection between two paths ─────────────────────────
+// Copies every doc (preserving its id, stamping a creator uid when missing)
+// to the destination, then — only after the copy fully succeeds — deletes the
+// originals. "Copy first, delete after" guarantees no data is ever lost if the
+// operation is interrupted; preserving doc ids makes a retry idempotent
+// (re-writing the same id overwrites instead of duplicating).
+//   - filterUid: when set, only docs whose stored uid matches are moved
+//                (un-attributed docs are left behind — treated as the owner's).
+//   - stampUid:  when set, written docs get uid := existing || stampUid.
+const _moveSubcollection = async (
+    from: [string, string],
+    to: [string, string],
+    col: string,
+    opts?: { filterUid?: string; stampUid?: string }
+): Promise<number> => {
+    if (!db) return 0;
+    const snap = await getDocs(collection(db, from[0], from[1], col));
+    let docs = snap.docs;
+    if (opts?.filterUid) docs = docs.filter(d => d.data().uid === opts.filterUid);
+    if (docs.length === 0) return 0;
+
+    const SIZE = 400;
+    // 1) copy to destination (preserve id, stamp uid if missing)
+    for (let i = 0; i < docs.length; i += SIZE) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + SIZE).forEach(d => {
+            const data = d.data();
+            batch.set(
+                doc(db!, to[0], to[1], col, d.id),
+                opts?.stampUid ? { ...data, uid: data.uid || opts.stampUid } : data
+            );
+        });
+        await batch.commit();
+    }
+    // 2) delete originals (only reached if every copy chunk committed)
+    for (let i = 0; i < docs.length; i += SIZE) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + SIZE).forEach(d => batch.delete(doc(db!, from[0], from[1], col, d.id)));
+        await batch.commit();
+    }
+    return docs.length;
+};
+
 export const createHousehold = async (
     uid: string,
     displayName: string,
@@ -521,30 +571,15 @@ export const createHousehold = async (
         createdAt: serverTimestamp(),
     });
 
-    // 2. Copy user's existing data to household
-    const [expenses, goals, incomes, settingsSnap] = await Promise.all([
-        getDocs(collection(db, 'users', uid, 'expenses')),
-        getDocs(collection(db, 'users', uid, 'goals')),
-        getDocs(collection(db, 'users', uid, 'incomes')),
-        getDoc(doc(db, 'users', uid, 'settings', 'main')),
-    ]);
-
-    const BATCH_SIZE = 400;
-    const migrateSnap = async (snap: typeof expenses, col: string) => {
-        const items = snap.docs;
-        for (let i = 0; i < items.length; i += BATCH_SIZE) {
-            const batch = writeBatch(db!);
-            items.slice(i, i + BATCH_SIZE).forEach(d => {
-                batch.set(doc(db!, 'households', hhRef.id, col, d.id), d.data());
-            });
-            await batch.commit();
-        }
-    };
+    // 2. MOVE the creator's existing data into the shared household bucket.
+    // Each doc is stamped with the owner's uid so it can be returned to them
+    // if they later leave. Move (not copy) prevents the stale-duplicate bug.
+    const settingsSnap = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
 
     await Promise.all([
-        migrateSnap(expenses, 'expenses'),
-        migrateSnap(goals, 'goals'),
-        migrateSnap(incomes, 'incomes'),
+        _moveSubcollection(['users', uid], ['households', hhRef.id], 'expenses', { stampUid: uid }),
+        _moveSubcollection(['users', uid], ['households', hhRef.id], 'goals', { stampUid: uid }),
+        _moveSubcollection(['users', uid], ['households', hhRef.id], 'incomes', { stampUid: uid }),
     ]);
 
     // Copy settings (shared portion) to household
@@ -581,8 +616,17 @@ export const joinHouseholdByCode = async (
 
     const member: HouseholdMember = { uid, displayName, email, role: 'member', joinedAt: new Date().toISOString() };
 
-    // Add to members array + memberUids
+    // Add to members array + memberUids FIRST — membership is what the security
+    // rules check before allowing writes to the household sub-collections.
     await updateDoc(hhDoc.ref, { members: arrayUnion(member), memberUids: arrayUnion(uid) });
+
+    // MOVE the joiner's existing personal data into the shared bucket so the
+    // whole family sees their history. Stamped with their uid to return on leave.
+    await Promise.all([
+        _moveSubcollection(['users', uid], ['households', hhId], 'expenses', { stampUid: uid }),
+        _moveSubcollection(['users', uid], ['households', hhId], 'goals', { stampUid: uid }),
+        _moveSubcollection(['users', uid], ['households', hhId], 'incomes', { stampUid: uid }),
+    ]);
 
     // Link user to household
     await setDoc(doc(db, 'users', uid, 'settings', 'main'), { householdId: hhId }, { merge: true });
@@ -600,18 +644,18 @@ export const leaveHousehold = async (uid: string, household: Household): Promise
     }
 
     if (isOwner && household.members.length <= 1) {
-        // Last member — delete the whole household
-        const hhRef = doc(db, 'households', household.id);
-        // Delete sub-collections expenses + goals + settings
+        // Last member leaving — return ALL household data to the owner's personal
+        // path (un-attributed docs included), THEN delete the empty household.
         for (const col of ['expenses', 'goals', 'incomes']) {
-            const snap = await getDocs(collection(db, 'households', household.id, col));
-            const batch = writeBatch(db);
-            snap.docs.forEach(d => batch.delete(d.ref));
-            if (snap.docs.length > 0) await batch.commit();
+            await _moveSubcollection(['households', household.id], ['users', uid], col);
         }
-        await deleteDoc(hhRef);
+        await deleteDoc(doc(db, 'households', household.id));
     } else {
-        // Just remove member from array
+        // A member leaving — take back only the data they themselves entered
+        // (matched by stored uid), while still a member so the rules allow it.
+        for (const col of ['expenses', 'goals', 'incomes']) {
+            await _moveSubcollection(['households', household.id], ['users', uid], col, { filterUid: uid });
+        }
         const member = household.members.find(m => m.uid === uid);
         if (member) {
             await updateDoc(doc(db, 'households', household.id), {

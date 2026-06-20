@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import {
     createHousehold,
-    joinHouseholdByCode,
     leaveHousehold,
     removeMemberFromHousehold,
 } from '@/services/firestore';
@@ -57,13 +56,20 @@ function NoHousehold() {
     });
 
     const joinMutation = useMutation({
-        mutationFn: () =>
-            joinHouseholdByCode(
-                user!.uid,
-                user!.displayName || 'مستخدم',
-                user!.email || '',
-                inviteCode.trim()
-            ),
+        // Joining happens via a server endpoint: the security rules forbid a
+        // non-member from reading/updating the household, so the join is done
+        // with admin privileges after verifying the user's identity token.
+        mutationFn: async () => {
+            const token = await user!.getIdToken();
+            const res = await fetch('/api/household/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ code: inviteCode.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل الانضمام إلى العائلة');
+            return data;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
             queryClient.invalidateQueries({ queryKey: ['household'] });
