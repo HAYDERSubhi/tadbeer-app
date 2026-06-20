@@ -856,13 +856,13 @@ export const deleteDebt = async (uid: string, debtId: string): Promise<void> => 
     await deleteDoc(doc(db, 'users', uid, 'debts', debtId));
 };
 
-export const addFeedback = async (uid: string, feedback: { subject: string; details: string; email?: string }) => {
+export const addFeedback = async (uid: string, feedback: { type?: string; subject: string; details: string; email?: string }) => {
     if (!db) throw new Error("Firestore is not initialized");
-    // Feedback is stored in a top-level collection, but we still link it to the user
     const feedbackCol = collection(db, 'feedback');
     await addDoc(feedbackCol, {
         ...feedback,
-        uid: uid,
+        uid,
+        sentAt: new Date().toISOString(),
         createdAt: serverTimestamp(),
     });
 };

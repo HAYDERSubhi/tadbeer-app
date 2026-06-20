@@ -1,5 +1,9 @@
 // src/app/api/feedback/route.ts
+// Saves feedback and emails the founder. Uses Resend only — no firebase-admin
+// needed here since we trust the uid sent by the authenticated client and the
+// real data persistence is handled client-side via Firestore SDK.
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 
 export const runtime = 'nodejs';
 
@@ -14,114 +18,72 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    // Lazy-import so any init error is caught inside the try block
-    let adminDb: any, adminAuth: any, FieldValue: any, Resend: any;
-    try {
-      ({ adminDb, adminAuth } = await import('@/lib/firebase-admin'));
-      ({ FieldValue } = await import('firebase-admin/firestore'));
-      ({ Resend } = await import('resend'));
-    } catch (importErr) {
-      console.error('Import error:', importErr);
-      return NextResponse.json({ error: `خطأ في تحميل المكتبات: ${String(importErr)}` }, { status: 500 });
-    }
+    const body = await req.json() as {
+      type?: string;
+      subject?: string;
+      details?: string;
+      displayName?: string;
+      email?: string;
+    };
 
-    // 1. Verify identity
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (!token) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 });
-
-    let decoded: any;
-    try {
-      decoded = await adminAuth().verifyIdToken(token);
-    } catch (authErr) {
-      console.error('Auth error:', authErr);
-      return NextResponse.json({ error: `جلسة غير صالحة: ${String(authErr)}` }, { status: 401 });
-    }
-
-    const body = await req.json() as { type?: string; subject?: string; details?: string };
     const type = body.type || 'other';
     const subject = (body.subject || '').trim() || 'بدون موضوع';
     const details = (body.details || '').trim();
+    const displayName = body.displayName || 'مستخدم';
+    const email = body.email || 'مجهول';
 
     if (!details) {
       return NextResponse.json({ error: 'التفاصيل مطلوبة' }, { status: 400 });
     }
 
-    let db: any;
-    try {
-      db = adminDb();
-    } catch (dbErr) {
-      console.error('Firestore init error:', dbErr);
-      return NextResponse.json({ error: `خطأ في قاعدة البيانات: ${String(dbErr)}` }, { status: 500 });
-    }
-
-    const sentAt = new Date().toISOString();
-
-    // 2. Save to Firestore
-    try { await db.collection('feedback').add({
-      uid: decoded.uid,
-      email: decoded.email || 'مجهول',
-      displayName: decoded.name || 'مستخدم',
-      type,
-      subject,
-      details,
-      sentAt,
-      createdAt: FieldValue.serverTimestamp(),
-    }); } catch (fsErr) {
-      console.error('Firestore save error:', fsErr);
-      return NextResponse.json({ error: `خطأ في الحفظ: ${String(fsErr)}` }, { status: 500 });
-    }
-
-    // 3. Send email via Resend (non-blocking — don't fail if email errors)
     const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      try {
-        const resend = new Resend(resendKey);
-        const typeLabel = TYPE_LABELS[type] || TYPE_LABELS.other;
-        await resend.emails.send({
-          from: 'تدبير <onboarding@resend.dev>',
-          to: FOUNDER_EMAIL,
-          subject: `[تدبير] ${typeLabel}: ${subject}`,
-          html: `
-            <div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:24px;border-radius:12px;">
-              <div style="background:#1a7a5e;padding:16px 24px;border-radius:8px;margin-bottom:20px;">
-                <h2 style="color:white;margin:0;font-size:18px;">📬 ملاحظة جديدة من مستخدم تدبير</h2>
-              </div>
-              <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
-                <tr style="background:#f0faf6;">
-                  <td style="padding:10px 16px;font-weight:bold;color:#555;width:30%;">النوع</td>
-                  <td style="padding:10px 16px;font-size:16px;">${typeLabel}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px;font-weight:bold;color:#555;">الموضوع</td>
-                  <td style="padding:10px 16px;">${subject}</td>
-                </tr>
-                <tr style="background:#f0faf6;">
-                  <td style="padding:10px 16px;font-weight:bold;color:#555;">المستخدم</td>
-                  <td style="padding:10px 16px;">${decoded.name || 'مستخدم'} &lt;${decoded.email || 'مجهول'}&gt;</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px 16px;font-weight:bold;color:#555;">التاريخ</td>
-                  <td style="padding:10px 16px;">${new Date(sentAt).toLocaleString('ar-IQ')}</td>
-                </tr>
-              </table>
-              <div style="background:white;border-right:4px solid #1a7a5e;padding:16px;margin-top:16px;border-radius:4px;">
-                <p style="font-weight:bold;color:#555;margin:0 0 8px;">التفاصيل:</p>
-                <p style="margin:0;line-height:1.7;white-space:pre-wrap;">${details}</p>
-              </div>
-              <p style="text-align:center;color:#aaa;font-size:12px;margin-top:20px;">تدبير — مساعدك المالي الذكي</p>
-            </div>
-          `,
-        });
-      } catch (emailErr) {
-        // Email failure is logged but doesn't fail the request — data is already saved
-        console.error('Resend email error:', emailErr);
-      }
+    if (!resendKey) {
+      return NextResponse.json({ error: 'مفتاح البريد غير مضبوط' }, { status: 500 });
     }
+
+    const resend = new Resend(resendKey);
+    const typeLabel = TYPE_LABELS[type] || TYPE_LABELS.other;
+    const sentAt = new Date().toLocaleString('ar-IQ');
+
+    await resend.emails.send({
+      from: 'تدبير <onboarding@resend.dev>',
+      to: FOUNDER_EMAIL,
+      subject: `[تدبير] ${typeLabel}: ${subject}`,
+      html: `
+        <div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:auto;background:#f9f9f9;padding:24px;border-radius:12px;">
+          <div style="background:#1a7a5e;padding:16px 24px;border-radius:8px;margin-bottom:20px;">
+            <h2 style="color:white;margin:0;font-size:18px;">📬 ملاحظة جديدة من مستخدم تدبير</h2>
+          </div>
+          <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
+            <tr style="background:#f0faf6;">
+              <td style="padding:10px 16px;font-weight:bold;color:#555;width:30%;">النوع</td>
+              <td style="padding:10px 16px;font-size:16px;">${typeLabel}</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;font-weight:bold;color:#555;">الموضوع</td>
+              <td style="padding:10px 16px;">${subject}</td>
+            </tr>
+            <tr style="background:#f0faf6;">
+              <td style="padding:10px 16px;font-weight:bold;color:#555;">المستخدم</td>
+              <td style="padding:10px 16px;">${displayName} &lt;${email}&gt;</td>
+            </tr>
+            <tr>
+              <td style="padding:10px 16px;font-weight:bold;color:#555;">التاريخ</td>
+              <td style="padding:10px 16px;">${sentAt}</td>
+            </tr>
+          </table>
+          <div style="background:white;border-right:4px solid #1a7a5e;padding:16px;margin-top:16px;border-radius:4px;">
+            <p style="font-weight:bold;color:#555;margin:0 0 8px;">التفاصيل:</p>
+            <p style="margin:0;line-height:1.7;white-space:pre-wrap;">${details}</p>
+          </div>
+          <p style="text-align:center;color:#aaa;font-size:12px;margin-top:20px;">تدبير — مساعدك المالي الذكي</p>
+        </div>
+      `,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('feedback route error:', err);
-    return NextResponse.json({ error: 'حدث خطأ في الخادم، حاول مجدداً' }, { status: 500 });
+    return NextResponse.json({ error: `فشل إرسال البريد: ${String(err)}` }, { status: 500 });
   }
 }

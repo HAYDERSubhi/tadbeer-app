@@ -149,11 +149,16 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean; setI
   const feedbackMutation = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
       if (!user) throw new Error('يرجى تسجيل الدخول');
-      const token = await user.getIdToken();
+      const subject = data.subject.trim() || 'بدون موضوع';
+      const details = data.details.trim();
+      // 1. Save to Firestore directly from client (auth rules allow user to write own data)
+      const { addFeedback } = await import('@/services/firestore');
+      await addFeedback(user.uid, { type: data.type, subject, details });
+      // 2. Send email via server (Resend only — no admin SDK)
       const res = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ type: data.type, subject: data.subject.trim() || 'بدون موضوع', details: data.details.trim() }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: data.type, subject, details, displayName: user.displayName || 'مستخدم', email: user.email || 'مجهول' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'فشل الإرسال');
