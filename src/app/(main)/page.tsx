@@ -5,7 +5,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle } from "lucide-react";
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -483,19 +483,22 @@ export default function DashboardPage() {
         <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-1">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
               <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
               <AlertDialogDescription>
-                هل أنت متأكد من حذف "{expense.title}"؟ لا يمكن التراجع عن هذا الإجراء.
+                سيتم حذف <span className="font-medium text-foreground">"{expense.title}"</span> نهائياً
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => handleDeleteExpense(expense.id)}
               >
-                نعم، احذف
+                حذف
               </AlertDialogAction>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

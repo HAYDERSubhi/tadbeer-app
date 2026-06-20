@@ -177,18 +177,20 @@ export default function AllExpensesPage() {
       <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-1">
+              <Trash2 className="h-5 w-5 text-destructive" />
+            </div>
             <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف "{deleteTargetTitle}"؟ لا يمكن التراجع عن هذا الإجراء.
+              سيتم حذف <span className="font-medium text-foreground">"{deleteTargetTitle}"</span> نهائياً
               {deleteTargetIsPastMonth && (
-                <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
-                  ⚠️ هذا المصروف من شهر منتهٍ — حذفه سيغيّر تقاريرك السابقة بأثر رجعي.
+                <span className="block mt-2 text-amber-600 dark:text-amber-400 text-xs">
+                  هذا المصروف من شهر منتهٍ — حذفه سيؤثر على تقاريرك السابقة
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteConfirmId(null)}>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -196,8 +198,9 @@ export default function AllExpensesPage() {
                 setDeleteConfirmId(null);
               }}
             >
-              نعم، احذف
+              حذف
             </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteConfirmId(null)}>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -289,16 +292,19 @@ export default function AllExpensesPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                      <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-1">
+                        <Trash2 className="h-5 w-5 text-destructive" />
+                      </div>
+                      <AlertDialogTitle>حذف {selectedIds.size} مصروف</AlertDialogTitle>
                       <AlertDialogDescription>
-                        هل أنت متأكد من حذف {selectedIds.size} مصروف؟ لا يمكن التراجع عن هذا الإجراء.
+                        سيتم حذف العناصر المحددة نهائياً
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
                       <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        نعم، احذف
+                        حذف
                       </AlertDialogAction>
+                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
