@@ -35,7 +35,7 @@ export default function PageNavigation() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <item.icon className={cn("h-[18px] w-[18px]", isActive && "stroke-[2.5px]")} />
+              <item.icon className={cn("h-[22px] w-[22px]", isActive && "stroke-[2.5px]")} />
               <span>{item.label}</span>
             </Link>
           );
