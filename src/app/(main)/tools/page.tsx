@@ -85,8 +85,8 @@ export default function ToolsPage() {
           >
             <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none overflow-hidden bg-muted"
-                style={{ background: tool.image ? undefined : tool.gradient }}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none overflow-hidden"
+                style={{ background: tool.gradient }}
               >
                 {tool.image ? (
                   <img src={tool.image} alt={tool.label} className="w-[85%] h-[85%] object-contain" />
