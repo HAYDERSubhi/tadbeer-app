@@ -423,6 +423,7 @@ export default function SettingsPage() {
     budgetSettings: false,
     profileSettings: false,
   });
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const formatNumberWithCommas = (value: string | number | undefined) => {
     if (value === null || value === undefined || value === '') return '';
@@ -658,7 +659,6 @@ export default function SettingsPage() {
     updateSettingsMutation.mutate({
       appTone,
       currency,
-      notifications: { dailyReminderEnabled },
     });
   };
   
@@ -1073,6 +1073,7 @@ export default function SettingsPage() {
 
         setDeleteOptions({ expenses: false, goals: false, incomes: false, budgetSettings: false, profileSettings: false });
         setIsDataResetOpen(false);
+        setDeleteConfirmText('');
     },
     onError: () => {
       toast({ title: "خطأ", description: "لم نتمكن من حذف البيانات المحددة.", variant: "destructive" });
@@ -1122,6 +1123,27 @@ export default function SettingsPage() {
     </AccordionItem>
   );
 
+  const DirectLinkRow = ({ href, icon: Icon, title, subtitle }: { href: string; icon: React.ElementType; title: string; subtitle?: string }) => (
+    <Link href={href}>
+      <Card className="active:scale-[0.98] transition-transform">
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between w-full py-3 px-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-primary/10 rounded-md text-primary shrink-0">
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="text-right">
+                <h3 className="font-semibold text-sm">{title}</h3>
+                {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+              </div>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+
   const FormDialog = Sheet;
 
   return (
@@ -1165,117 +1187,12 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      {/* All settings as uniform accordion */}
+      {/* ───── Group: المالية ───── */}
+      <div className="flex items-center gap-2 px-1">
+        <p className="text-xs font-semibold text-muted-foreground">المالية</p>
+        <div className="flex-1 h-px bg-border" />
+      </div>
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
-
-        <AccordionItemWrapper
-          value="item-1"
-          icon={Palette}
-          title="المظهر والإشعارات"
-          subtitle="العملة، الشخصية، المظهر، التذكير"
-          sectionId="settings-appearance"
-        >
-          <div className="space-y-6">
-
-            {/* Currency Selector */}
-            <div>
-              <h3 className="font-medium mb-3 text-sm">العملة</h3>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as import('@/types').CurrencyCode)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر العملة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IQD">🇮🇶 دينار عراقي (د.ع)</SelectItem>
-                  <SelectItem value="SAR">🇸🇦 ريال سعودي (ر.س)</SelectItem>
-                  <SelectItem value="KWD">🇰🇼 دينار كويتي (د.ك)</SelectItem>
-                  <SelectItem value="AED">🇦🇪 درهم إماراتي (د.إ)</SelectItem>
-                  <SelectItem value="EGP">🇪🇬 جنيه مصري (ج.م)</SelectItem>
-                  <SelectItem value="USD">🇺🇸 دولار أمريكي ($)</SelectItem>
-                  <SelectItem value="EUR">🇪🇺 يورو (€)</SelectItem>
-                  <SelectItem value="GBP">🇬🇧 جنيه إسترليني (£)</SelectItem>
-                  <SelectItem value="TRY">🇹🇷 ليرة تركية (₺)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator />
-
-             <div>
-                <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
-                <div className="grid grid-cols-2 gap-4">
-                
-                <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
-                      <Handshake className="w-6 h-6" />
-                    </div>
-                    <div>
-                    <h4 className="font-semibold text-sm">كرومي</h4>
-                    <p className="text-xs text-muted-foreground">صديقك، نصائحه ودية.</p>
-                    </div>
-                </div>
-
-                <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
-                      <CircleDollarSign className="w-6 h-6" />
-                    </div>
-                    <div>
-                    <h4 className="font-semibold text-sm">أستاذ حريص</h4>
-                    <p className="text-xs text-muted-foreground">مدرب محترف ودقيق.</p>
-                    </div>
-                </div>
-                </div>
-             </div>
-            
-            <Separator />
-
-            <div>
-              <h3 className="font-medium mb-3 text-sm">المظهر</h3>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3">
-                  {theme === 'dark'
-                    ? <Moon className="h-4 w-4 text-muted-foreground" />
-                    : <Sun className="h-4 w-4 text-muted-foreground" />}
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">الوضع الليلي</Label>
-                    <p className="text-xs text-muted-foreground">تبديل بين الوضع الفاتح والداكن.</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={theme === 'dark'}
-                  onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
-                  aria-label="تبديل الوضع الليلي"
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="daily-reminder" className="text-sm font-medium">
-                    التذكير اليومي
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    إرسال إشعار يومي لتسجيل المصروفات.
-                  </p>
-                </div>
-                <Switch
-                  id="daily-reminder"
-                  checked={dailyReminderEnabled}
-                  onCheckedChange={handleDailyReminderChange}
-                  aria-label="تفعيل التذكير اليومي"
-                />
-              </div>
-            </div>
-            
-            <Button onClick={handleSaveAppearanceSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
-              {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-              حفظ التغييرات
-            </Button>
-          </div>
-        </AccordionItemWrapper>
 
         <AccordionItemWrapper
           value="item-2"
@@ -1517,6 +1434,151 @@ export default function SettingsPage() {
             </div>
         </AccordionItemWrapper>
 
+      </Accordion>
+
+      {/* ───── Group: المظهر والإعدادات ───── */}
+      <div className="flex items-center gap-2 px-1">
+        <p className="text-xs font-semibold text-muted-foreground">المظهر والإعدادات</p>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
+
+        <AccordionItemWrapper
+          value="item-1"
+          icon={Palette}
+          title="المظهر والإشعارات"
+          subtitle="العملة، الشخصية، المظهر، التذكير"
+          sectionId="settings-appearance"
+        >
+          <div className="space-y-6">
+
+            {/* Currency Selector */}
+            <div>
+              <h3 className="font-medium mb-3 text-sm">العملة</h3>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as import('@/types').CurrencyCode)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر العملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IQD">🇮🇶 دينار عراقي (د.ع)</SelectItem>
+                  <SelectItem value="SAR">🇸🇦 ريال سعودي (ر.س)</SelectItem>
+                  <SelectItem value="KWD">🇰🇼 دينار كويتي (د.ك)</SelectItem>
+                  <SelectItem value="AED">🇦🇪 درهم إماراتي (د.إ)</SelectItem>
+                  <SelectItem value="EGP">🇪🇬 جنيه مصري (ج.م)</SelectItem>
+                  <SelectItem value="USD">🇺🇸 دولار أمريكي ($)</SelectItem>
+                  <SelectItem value="EUR">🇪🇺 يورو (€)</SelectItem>
+                  <SelectItem value="GBP">🇬🇧 جنيه إسترليني (£)</SelectItem>
+                  <SelectItem value="TRY">🇹🇷 ليرة تركية (₺)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
+             <div>
+                <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
+                <div className="grid grid-cols-2 gap-4">
+
+                <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
+                      <Handshake className="w-6 h-6" />
+                    </div>
+                    <div>
+                    <h4 className="font-semibold text-sm">كرومي</h4>
+                    <p className="text-xs text-muted-foreground">صديقك، نصائحه ودية.</p>
+                    </div>
+                </div>
+
+                <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
+                      <CircleDollarSign className="w-6 h-6" />
+                    </div>
+                    <div>
+                    <h4 className="font-semibold text-sm">أستاذ حريص</h4>
+                    <p className="text-xs text-muted-foreground">مدرب محترف ودقيق.</p>
+                    </div>
+                </div>
+                </div>
+             </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-medium mb-3 text-sm">المظهر</h3>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="flex items-center gap-3">
+                  {theme === 'dark'
+                    ? <Moon className="h-4 w-4 text-muted-foreground" />
+                    : <Sun className="h-4 w-4 text-muted-foreground" />}
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">الوضع الليلي</Label>
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">يُحفظ تلقائياً</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">تبديل بين الوضع الفاتح والداكن.</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
+                  aria-label="تبديل الوضع الليلي"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="daily-reminder" className="text-sm font-medium">التذكير اليومي</Label>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">يُحفظ تلقائياً</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    إرسال إشعار يومي لتسجيل المصروفات.
+                  </p>
+                </div>
+                <Switch
+                  id="daily-reminder"
+                  checked={dailyReminderEnabled}
+                  onCheckedChange={handleDailyReminderChange}
+                  aria-label="تفعيل التذكير اليومي"
+                />
+              </div>
+            </div>
+
+            <Button onClick={handleSaveAppearanceSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
+              {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
+              حفظ التغييرات
+            </Button>
+          </div>
+        </AccordionItemWrapper>
+
+        {/* Family / Household */}
+        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي" subtitle="شارك حسابك مع أفراد العائلة">
+          <HouseholdManager embedded />
+        </AccordionItemWrapper>
+
+      </Accordion>
+
+      {/* ───── Group: التخطيط ───── */}
+      <div className="flex items-center gap-2 px-1">
+        <p className="text-xs font-semibold text-muted-foreground">التخطيط</p>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <div className="space-y-2">
+        <DirectLinkRow href="/planner" icon={Target} title="الأهداف والمدخرات" subtitle="خطط التوفير وأهدافك المالية" />
+        <DirectLinkRow href="/achievements" icon={Trophy} title="الإنجازات والشارات" subtitle="شاراتك وإنجازاتك في تدبير" />
+      </div>
+
+      {/* ───── Group: البيانات ───── */}
+      <div className="flex items-center gap-2 px-1">
+        <p className="text-xs font-semibold text-muted-foreground">البيانات</p>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+      <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
 
          <AccordionItemWrapper
             value="item-4"
@@ -1580,51 +1642,33 @@ export default function SettingsPage() {
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-budget-settings" checked={deleteOptions.budgetSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, budgetSettings: !!checked}))} /><Label htmlFor="delete-budget-settings" className="font-normal text-xs">تصفير إعدادات الميزانية والدفعات المتكررة</Label></div>
                             <div className="flex items-center space-x-2 space-x-reverse pl-4"><Checkbox id="delete-profile-settings" checked={deleteOptions.profileSettings} onCheckedChange={(checked) => setDeleteOptions(prev => ({...prev, profileSettings: !!checked}))} /><Label htmlFor="delete-profile-settings" className="font-normal text-xs">تصفير الملف الشخصي</Label></div>
                         </div>
+                        <div className="space-y-3 pt-2">
+                          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                            <p className="text-xs text-destructive font-medium">⚠️ منطقة خطر — هذا الإجراء لا يمكن التراجع عنه</p>
+                            <p className="text-xs text-muted-foreground">اكتب كلمة <span className="font-bold text-foreground">حذف</span> للتأكيد</p>
+                            <Input
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value)}
+                              placeholder='اكتب "حذف" هنا'
+                              className="h-9 text-xs"
+                              dir="rtl"
+                            />
+                          </div>
+                        </div>
                         <DialogFooter>
-                            <Button variant="ghost" onClick={() => setIsDataResetOpen(false)} className="text-xs h-9">إلغاء</Button>
-                            <Button variant="destructive" onClick={handleCustomDelete} disabled={!Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending} className="text-xs h-9">{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</Button>
+                            <Button variant="ghost" onClick={() => { setIsDataResetOpen(false); setDeleteConfirmText(''); }} className="text-xs h-9">إلغاء</Button>
+                            <Button variant="destructive" onClick={handleCustomDelete} disabled={deleteConfirmText !== 'حذف' || !Object.values(deleteOptions).some(v => v) || resetDataMutation.isPending} className="text-xs h-9">{resetDataMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}نعم، قم بالحذف</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
              </div>
-        </AccordionItemWrapper>
-         
-        {/* Planner / Goals */}
-        <AccordionItemWrapper value="item-planner" icon={Target} title="الأهداف والمدخرات" subtitle="خطط التوفير وأهدافك المالية">
-          <div className="text-center space-y-3">
-            <p className="text-xs text-muted-foreground">تابع خطط التوفير وأهدافك المالية</p>
-            <Link href="/planner">
-              <Button className="w-full gap-2 h-9 text-sm">
-                <Target className="h-4 w-4" />
-                الذهاب إلى الأهداف
-              </Button>
-            </Link>
-          </div>
-        </AccordionItemWrapper>
-
-        {/* Achievements */}
-        <AccordionItemWrapper value="item-achievements" icon={Trophy} title="الإنجازات والشارات" subtitle="شاراتك وإنجازاتك في تدبير">
-          <div className="text-center space-y-3">
-            <p className="text-xs text-muted-foreground">اكتشف إنجازاتك وادعُ أصدقاءك لاستخدام تدبير</p>
-            <Link href="/achievements">
-              <Button className="w-full gap-2 h-9 text-sm" variant="outline">
-                <Trophy className="h-4 w-4 text-amber-500" />
-                عرض الإنجازات والشارات
-              </Button>
-            </Link>
-          </div>
-        </AccordionItemWrapper>
-
-        {/* Family / Household — now a proper accordion section */}
-        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي" subtitle="شارك حسابك مع أفراد العائلة">
-          <HouseholdManager embedded />
         </AccordionItemWrapper>
 
         <AccordionItemWrapper
             value="item-5"
             icon={Info}
             title="حول التطبيق"
-          subtitle="ملاحظات واقتراحات حول التطبيق"
+            subtitle="ملاحظات واقتراحات حول التطبيق"
             sectionId="settings-support"
         >
           <div className="space-y-4">
