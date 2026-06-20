@@ -89,7 +89,7 @@ export default function ToolsPage() {
                 style={{ background: tool.gradient }}
               >
                 {tool.image ? (
-                  <img src={tool.image} alt={tool.label} className="w-[85%] h-[85%] object-contain" />
+                  <img src={tool.image} alt={tool.label} className="w-full h-full object-cover" style={{ mixBlendMode: 'multiply' }} />
                 ) : (
                   <span style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
                     {tool.icon}

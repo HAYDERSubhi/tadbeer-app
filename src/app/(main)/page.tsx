@@ -800,7 +800,7 @@ export default function DashboardPage() {
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm overflow-hidden" style={{ background: t.bg }}>
                   {t.image ? (
-                    <img src={t.image} alt={t.label} className="w-[85%] h-[85%] object-contain" />
+                    <img src={t.image} alt={t.label} className="w-full h-full object-cover" style={{ mixBlendMode: 'multiply' }} />
                   ) : (
                     t.icon
                   )}
