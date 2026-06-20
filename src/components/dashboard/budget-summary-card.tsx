@@ -89,14 +89,14 @@ export default function BudgetSummaryCard({
 
                 <div className="grid grid-cols-3 gap-2 text-center mb-4">
                     <StatItem label="الميزانية" value={totalBudget} isVisible={isVisible} formatFn={formatCurrency} />
-                    <StatItem label="المصروف" value={totalSpent} isVisible={isVisible} className="text-destructive" formatFn={formatCurrency} />
+                    <StatItem label="المصروف" value={totalSpent} isVisible={isVisible} className="text-red-500 dark:text-red-400" formatFn={formatCurrency} />
                     <StatItem label="المتبقي" value={remaining} isVisible={isVisible} className={cn(remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")} formatFn={formatCurrency} />
                 </div>
 
                 <div className="px-2 space-y-2">
                     {isBudgetSet && (
                         <div className="relative w-full h-8 mt-2">
-                            <div className="absolute inset-0 w-full h-full rounded-full bg-muted overflow-hidden">
+                            <div className="absolute inset-0 w-full h-full rounded-full bg-muted dark:bg-slate-700 overflow-hidden">
                                 {/* Time fill — the bar IS the month */}
                                 <div
                                     className={cn("absolute top-0 bottom-0 transition-all duration-500", progressBarColor)}
