@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, MessageSquare, Send, Lightbulb, Bug, Heart } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -134,7 +134,7 @@ const FEEDBACK_TYPES = [
   { value: 'other',      label: 'أخرى',         icon: MessageSquare, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800' },
 ] as const;
 
-const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean; setIsOpen: (v: boolean) => void; isMobile: boolean }) => {
+const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v: boolean) => void; isMobile: boolean }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [sent, setSent] = useState(false);
@@ -151,10 +151,8 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean; setI
       if (!user) throw new Error('يرجى تسجيل الدخول');
       const subject = data.subject.trim() || 'بدون موضوع';
       const details = data.details.trim();
-      // 1. Save to Firestore directly from client (auth rules allow user to write own data)
       const { addFeedback } = await import('@/services/firestore');
       await addFeedback(user.uid, { type: data.type, subject, details });
-      // 2. Send email via server (Resend only — no admin SDK)
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,85 +170,91 @@ const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean; setI
     setTimeout(() => { setSent(false); form.reset(); }, 300);
   };
 
-  const DialogComponent = isMobile ? Sheet : Dialog;
-  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
+  if (!isOpen) return null;
 
   return (
-    <DialogComponent open={isOpen} onOpenChange={handleClose}>
-      <DialogContentComponent className={isMobile ? 'flex flex-col' : ''}>
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background">
+        <button
+          type="button"
+          onClick={handleClose}
+          className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-primary" />
+          <span className="font-semibold text-sm">شاركنا رأيك</span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
         {sent ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Send className="h-7 w-7 text-primary" />
+          <div className="flex flex-col items-center justify-center gap-5 py-20 text-center px-8">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <Send className="h-9 w-9 text-primary" />
             </div>
-            <div className="space-y-1">
-              <p className="font-bold text-base">شكراً لك!</p>
-              <p className="text-xs text-muted-foreground">وصلتنا ملاحظتك وسنعمل على مراجعتها</p>
+            <div className="space-y-2">
+              <p className="font-bold text-xl">شكراً لك!</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">وصلتنا ملاحظتك وسنعمل على مراجعتها</p>
             </div>
-            <Button onClick={handleClose} className="mt-2 h-9 text-xs">إغلاق</Button>
+            <Button onClick={handleClose} className="mt-2 px-8">إغلاق</Button>
           </div>
         ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-sm flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" />
-                شاركنا رأيك
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                ملاحظتك تصلنا مباشرة وتساعدنا على تحسين تدبير
-              </DialogDescription>
-            </DialogHeader>
+          <form onSubmit={form.handleSubmit((d) => feedbackMutation.mutate(d))} className="p-4 space-y-5">
+            <p className="text-sm text-muted-foreground">ملاحظتك تصلنا مباشرة وتساعدنا على تحسين تدبير</p>
 
-            <form onSubmit={form.handleSubmit((d) => feedbackMutation.mutate(d))} className="space-y-4 py-2">
-              {/* Type selector */}
-              <div className="grid grid-cols-2 gap-2">
+            {/* Type selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">نوع الملاحظة</Label>
+              <div className="grid grid-cols-2 gap-2.5">
                 {FEEDBACK_TYPES.map(({ value, label, icon: Icon, color, bg }) => (
                   <button
                     key={value}
                     type="button"
                     onClick={() => form.setValue('type', value)}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border p-2.5 text-xs font-medium transition-all',
+                      'flex items-center gap-2.5 rounded-xl border p-3.5 text-sm font-medium transition-all',
                       selectedType === value ? bg : 'border-border bg-muted/30 text-muted-foreground'
                     )}
                   >
-                    <Icon className={cn('h-3.5 w-3.5 shrink-0', selectedType === value ? color : '')} />
+                    <Icon className={cn('h-4 w-4 shrink-0', selectedType === value ? color : '')} />
                     {label}
                   </button>
                 ))}
               </div>
+            </div>
 
-              {/* Subject */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">الموضوع <span className="text-muted-foreground">(اختياري)</span></Label>
-                <Input {...form.register('subject')} placeholder="عنوان مختصر..." className="h-9 text-xs" />
-              </div>
+            {/* Subject */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">الموضوع <span className="text-muted-foreground font-normal">(اختياري)</span></Label>
+              <Input {...form.register('subject')} placeholder="عنوان مختصر..." className="h-11" />
+            </div>
 
-              {/* Details */}
-              <div className="space-y-1.5">
-                <Label className="text-xs">التفاصيل <span className="text-destructive">*</span></Label>
-                <Textarea
-                  {...form.register('details')}
-                  placeholder="اشرح فكرتك أو المشكلة بأكبر قدر من التفاصيل..."
-                  className="min-h-[100px] text-xs resize-none"
-                />
-                {form.formState.errors.details && (
-                  <p className="text-xs text-destructive">{form.formState.errors.details.message}</p>
-                )}
-              </div>
+            {/* Details */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">التفاصيل <span className="text-destructive">*</span></Label>
+              <Textarea
+                {...form.register('details')}
+                placeholder="اشرح فكرتك أو المشكلة بأكبر قدر من التفاصيل..."
+                className="min-h-[140px] resize-none"
+              />
+              {form.formState.errors.details && (
+                <p className="text-xs text-destructive">{form.formState.errors.details.message}</p>
+              )}
+            </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button type="button" variant="ghost" onClick={handleClose} className="flex-1 h-9 text-xs">إلغاء</Button>
-                <Button type="submit" disabled={feedbackMutation.isPending} className="flex-1 h-9 text-xs gap-1.5">
-                  {feedbackMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                  إرسال
-                </Button>
-              </div>
-            </form>
-          </>
+            {/* Submit */}
+            <Button type="submit" disabled={feedbackMutation.isPending} className="w-full h-12 text-base gap-2">
+              {feedbackMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              إرسال
+            </Button>
+          </form>
         )}
-      </DialogContentComponent>
-    </DialogComponent>
+      </div>
+    </div>
   );
 };
 
