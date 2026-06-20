@@ -163,7 +163,7 @@
 
 .fab-icon-robot { animation: fab-icon-robot 5s ease-in-out infinite; }
 .fab-icon-palm  { animation: fab-icon-palm  5s ease-in-out infinite; }
-.fab-glow       { animation: fab-glow       5s ease-in-out infinite; }
+.fab-glow       { box-shadow: 0 4px 14px rgba(20,184,166,0.45), 0 2px 6px rgba(0,0,0,0.15); }
 
 /* --- الشفرة الحاسمة لإصلاح الطباعة --- */
 @media print {
