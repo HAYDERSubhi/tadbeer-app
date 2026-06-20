@@ -74,7 +74,14 @@ function NoHousehold() {
 
     if (mode === 'idle') {
         return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4">
+                <div className="text-center space-y-2 py-2">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                        <Users className="h-7 w-7 text-primary" />
+                    </div>
+                    <p className="text-sm font-semibold">ميزانية عائلتك في مكان واحد</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">شارك تتبع المصاريف مع أفراد عائلتك — ترون نفس الأرقام وتتخذون قرارات أفضل معاً</p>
+                </div>
                 <Button
                     className="w-full gap-2"
                     onClick={() => setMode('create')}
@@ -88,7 +95,7 @@ function NoHousehold() {
                     onClick={() => setMode('join')}
                 >
                     <Link2 className="h-4 w-4" />
-                    الانضمام برمز دعوة
+                    لديّ رمز دعوة من عائلتي
                 </Button>
             </div>
         );
@@ -182,7 +189,7 @@ function ActiveHousehold({ household }: { household: Household }) {
             {/* Invite code */}
             <div className="flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3">
                 <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">رمز الدعوة</p>
+                    <p className="text-xs text-muted-foreground mb-0.5">شارك هذا الرمز مع عائلتك</p>
                     <p className="font-mono text-2xl font-bold tracking-widest text-primary">{household.inviteCode}</p>
                 </div>
                 <Button size="icon" variant="ghost" onClick={copyCode} title="نسخ">

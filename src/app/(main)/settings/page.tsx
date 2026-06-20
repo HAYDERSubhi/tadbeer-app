@@ -557,7 +557,7 @@ export default function SettingsPage() {
         return;
     }
     const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };
-    updateSettingsMutation.mutate({ profile: profileToSave });
+    updateSettingsMutation.mutate({ profile: profileToSave, currency });
   };
   
   const handleSaveBudgetSettings = () => {
@@ -658,7 +658,6 @@ export default function SettingsPage() {
   const handleSaveAppearanceSettings = () => {
     updateSettingsMutation.mutate({
       appTone,
-      currency,
     });
   };
   
@@ -1198,9 +1197,32 @@ export default function SettingsPage() {
           value="item-2"
           icon={Users}
           title="الملف الشخصي والدخل"
-          subtitle="مصادر دخلك وأفراد أسرتك"
+          subtitle="عملتك، دخلك، وأفراد أسرتك"
           sectionId="settings-profile"
         >
+            {/* Currency Selector */}
+            <div>
+              <h3 className="font-medium mb-3 text-sm">العملة</h3>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as import('@/types').CurrencyCode)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر العملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IQD">🇮🇶 دينار عراقي (د.ع)</SelectItem>
+                  <SelectItem value="SAR">🇸🇦 ريال سعودي (ر.س)</SelectItem>
+                  <SelectItem value="KWD">🇰🇼 دينار كويتي (د.ك)</SelectItem>
+                  <SelectItem value="AED">🇦🇪 درهم إماراتي (د.إ)</SelectItem>
+                  <SelectItem value="EGP">🇪🇬 جنيه مصري (ج.م)</SelectItem>
+                  <SelectItem value="USD">🇺🇸 دولار أمريكي ($)</SelectItem>
+                  <SelectItem value="EUR">🇪🇺 يورو (€)</SelectItem>
+                  <SelectItem value="GBP">🇬🇧 جنيه إسترليني (£)</SelectItem>
+                  <SelectItem value="TRY">🇹🇷 ليرة تركية (₺)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator />
+
             {/* Income Section */}
             <div className="space-y-4">
                 <h3 className='text-sm font-medium'>إدارة الدخل</h3>
@@ -1325,12 +1347,12 @@ export default function SettingsPage() {
             {/* Category Budgets */}
             <div className="space-y-4">
                  <h3 className='text-sm font-medium'>ميزانيات الفئات</h3>
-                 <p className="text-[11px] text-muted-foreground -mt-2">حدد حداً لكل فئة لتتبع إنفاقك بدقة أكبر.</p>
+                 <p className="text-[11px] text-muted-foreground -mt-2">حدد حداً لكل فئة لتتبع إنفاقك بدقة أكبر. <span className="opacity-70">الحقل الفارغ أو الصفر = بلا حد مُعيّن.</span></p>
                 <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 bg-background border rounded-lg p-3">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-3">
                             <span className="flex items-center gap-2 w-[45%] text-sm shrink-0"><span className="text-base">{getIconComponent(category.icon)}</span><Label htmlFor={`category-${category.id}`} className="text-xs leading-tight">{category.name}</Label></span>
-                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={categoryBudgets[category.id] || ''} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="0" className="flex-1 h-9 text-sm" />
+                            <Input id={`category-${category.id}`} type="text" inputMode="decimal" value={!categoryBudgets[category.id] || categoryBudgets[category.id] === '0' ? '' : categoryBudgets[category.id]} onChange={(e) => handleCategoryBudgetChange(category.id, e.target.value)} onFocus={(e) => { if (e.target.value === '0') handleCategoryBudgetChange(category.id, ''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') handleCategoryBudgetChange(category.id, '0'); }} placeholder="بلا حد" className="flex-1 h-9 text-sm" />
                         </div>
                     ))}
                 </div>
@@ -1447,33 +1469,10 @@ export default function SettingsPage() {
           value="item-1"
           icon={Palette}
           title="المظهر والإشعارات"
-          subtitle="العملة، الشخصية، المظهر، التذكير"
+          subtitle="الشخصية، المظهر، والتذكير"
           sectionId="settings-appearance"
         >
           <div className="space-y-6">
-
-            {/* Currency Selector */}
-            <div>
-              <h3 className="font-medium mb-3 text-sm">العملة</h3>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as import('@/types').CurrencyCode)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر العملة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IQD">🇮🇶 دينار عراقي (د.ع)</SelectItem>
-                  <SelectItem value="SAR">🇸🇦 ريال سعودي (ر.س)</SelectItem>
-                  <SelectItem value="KWD">🇰🇼 دينار كويتي (د.ك)</SelectItem>
-                  <SelectItem value="AED">🇦🇪 درهم إماراتي (د.إ)</SelectItem>
-                  <SelectItem value="EGP">🇪🇬 جنيه مصري (ج.م)</SelectItem>
-                  <SelectItem value="USD">🇺🇸 دولار أمريكي ($)</SelectItem>
-                  <SelectItem value="EUR">🇪🇺 يورو (€)</SelectItem>
-                  <SelectItem value="GBP">🇬🇧 جنيه إسترليني (£)</SelectItem>
-                  <SelectItem value="TRY">🇹🇷 ليرة تركية (₺)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator />
 
              <div>
                 <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
