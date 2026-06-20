@@ -86,10 +86,10 @@ export default function ToolsPage() {
             <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none overflow-hidden"
-                style={{ background: tool.gradient }}
+                style={{ background: tool.image ? 'transparent' : tool.gradient }}
               >
                 {tool.image ? (
-                  <img src={tool.image} alt={tool.label} className="w-full h-full object-cover" style={{ mixBlendMode: 'multiply' }} />
+                  <img src={tool.image} alt={tool.label} className="w-full h-full object-cover" />
                 ) : (
                   <span style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
                     {tool.icon}
