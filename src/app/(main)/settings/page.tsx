@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, MessageSquare, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -49,7 +49,7 @@ import type { Expense, UserProfile, FamilyMember, UserSettings, Income, Recurrin
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserSettings, addExpensesBatch, deleteCollection, addIncome, deleteIncome, updateIncome, addFeedback, exportUserData, importUserData } from '@/services/firestore';
+import { updateUserSettings, addExpensesBatch, deleteCollection, addIncome, deleteIncome, updateIncome, exportUserData, importUserData } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
@@ -119,11 +119,6 @@ const recurringPaymentSchema = z.object({
 
 type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
-const feedbackSchema = z.object({
-  subject: z.string(),
-  details: z.string().min(1, { message: "التفاصيل مطلوبة" }),
-});
-type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 
 // --- Mapping Dialog Component ---
@@ -284,85 +279,6 @@ const CategoryEditDialog = ({
 };
 
 
-const FeedbackDialog = ({ isOpen, setIsOpen, isMobile }: { isOpen: boolean, setIsOpen: (isOpen: boolean) => void, isMobile: boolean }) => {
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const queryClient = useQueryClient();
-
-    const form = useForm<FeedbackFormData>({
-        resolver: zodResolver(feedbackSchema),
-        defaultValues: {
-            subject: '',
-            details: '',
-        }
-    });
-
-    const feedbackMutation = useMutation({
-      mutationFn: (feedback: { subject: string; details: string; email?: string }) => {
-          if (!user) throw new Error("User not authenticated");
-          return addFeedback(user.uid, feedback);
-      },
-      onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['feedback', user?.uid] });
-          toast({ title: "شكراً لك!", description: "تم إرسال ملاحظاتك بنجاح." });
-          setIsOpen(false);
-          form.reset();
-      },
-      onError: (e) => {
-          console.error("Feedback error:", e);
-          toast({ title: "خطأ", description: "لم نتمكن من إرسال ملاحظاتك.", variant: "destructive" });
-      }
-    });
-
-    const handleSendFeedback = (data: FeedbackFormData) => {
-        if (!user) {
-            toast({ title: "المستخدم غير مسجل", description: "يرجى تسجيل الدخول لإرسال الملاحظات.", variant: "destructive" });
-            return;
-        }
-        feedbackMutation.mutate({
-            subject: data.subject.trim() || "بدون موضوع",
-            details: data.details.trim(),
-            email: user.email || 'anonymous'
-        });
-    }
-
-    const DialogComponent = isMobile ? Sheet : Dialog;
-    const DialogContentComponent = isMobile ? SheetContent : DialogContent;
-
-    return (
-        <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContentComponent className={isMobile ? "flex flex-col" : ""}>
-                <DialogHeader>
-                    <DialogTitle className="text-sm">إرسال ملاحظات</DialogTitle>
-                    <DialogDescription className="text-xs">
-                        نحن نقدر رأيك! استخدم النموذج أدناه لإرسال ملاحظاتك لمساعدتنا على تحسين التطبيق.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="flex-1 overflow-y-auto">
-                    <form onSubmit={form.handleSubmit(handleSendFeedback)} className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="feedback-subject" className="text-xs">الموضوع</Label>
-                            <Input id="feedback-subject" {...form.register('subject')} placeholder="اقتراح ميزة، إبلاغ عن مشكلة..." className="text-xs h-9" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="feedback-details" className="text-xs">التفاصيل</Label>
-                            <Textarea id="feedback-details" {...form.register('details')} placeholder="يرجى تقديم أكبر قدر ممكن من التفاصيل..." className="min-h-32 text-xs" />
-                            {form.formState.errors.details && <p className="text-sm text-destructive mt-1">{form.formState.errors.details.message}</p>}
-                        </div>
-                    
-                        <DialogFooter className="pt-4 border-t">
-                            <Button variant="ghost" type="button" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
-                            <Button type="submit" disabled={feedbackMutation.isPending} className="text-xs h-9">
-                                {feedbackMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                                إرسال
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </div>
-            </DialogContentComponent>
-        </DialogComponent>
-    );
-};
 
 
 export default function SettingsPage() {
@@ -414,7 +330,6 @@ export default function SettingsPage() {
   const incomeSyncInitialized = useRef(false);
 
   // State for Feedback Dialog
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   
   const [deleteOptions, setDeleteOptions] = useState({
     expenses: false,
@@ -1666,8 +1581,8 @@ export default function SettingsPage() {
         <AccordionItemWrapper
             value="item-5"
             icon={Info}
-            title="حول التطبيق"
-            subtitle="ملاحظات واقتراحات حول التطبيق"
+            title="حول تدبير"
+            subtitle="معلومات عن التطبيق"
             sectionId="settings-support"
         >
           <div className="space-y-4">
@@ -1676,22 +1591,6 @@ export default function SettingsPage() {
               <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
               <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
             </div>
-
-            <Button
-              variant="outline"
-              className="w-full text-xs h-9"
-              onClick={() => setIsFeedbackOpen(true)}
-            >
-              <MessageSquare className="ml-2 h-4 w-4" />
-              إرسال ملاحظات أو اقتراح ميزة
-            </Button>
-
-            <FeedbackDialog
-              isOpen={isFeedbackOpen}
-              setIsOpen={setIsFeedbackOpen}
-              isMobile={isMobile}
-            />
-
             <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
