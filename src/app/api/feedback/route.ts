@@ -15,20 +15,27 @@ const TYPE_LABELS: Record<string, string> = {
 export async function POST(req: NextRequest) {
   try {
     // Lazy-import so any init error is caught inside the try block
-    const { adminDb, adminAuth } = await import('@/lib/firebase-admin');
-    const { FieldValue } = await import('firebase-admin/firestore');
-    const { Resend } = await import('resend');
+    let adminDb: any, adminAuth: any, FieldValue: any, Resend: any;
+    try {
+      ({ adminDb, adminAuth } = await import('@/lib/firebase-admin'));
+      ({ FieldValue } = await import('firebase-admin/firestore'));
+      ({ Resend } = await import('resend'));
+    } catch (importErr) {
+      console.error('Import error:', importErr);
+      return NextResponse.json({ error: `خطأ في تحميل المكتبات: ${String(importErr)}` }, { status: 500 });
+    }
 
     // 1. Verify identity
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     if (!token) return NextResponse.json({ error: 'غير مصرّح' }, { status: 401 });
 
-    let decoded;
+    let decoded: any;
     try {
       decoded = await adminAuth().verifyIdToken(token);
-    } catch {
-      return NextResponse.json({ error: 'جلسة غير صالحة' }, { status: 401 });
+    } catch (authErr) {
+      console.error('Auth error:', authErr);
+      return NextResponse.json({ error: `جلسة غير صالحة: ${String(authErr)}` }, { status: 401 });
     }
 
     const body = await req.json() as { type?: string; subject?: string; details?: string };
@@ -40,11 +47,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'التفاصيل مطلوبة' }, { status: 400 });
     }
 
-    const db = adminDb();
+    let db: any;
+    try {
+      db = adminDb();
+    } catch (dbErr) {
+      console.error('Firestore init error:', dbErr);
+      return NextResponse.json({ error: `خطأ في قاعدة البيانات: ${String(dbErr)}` }, { status: 500 });
+    }
+
     const sentAt = new Date().toISOString();
 
     // 2. Save to Firestore
-    await db.collection('feedback').add({
+    try { await db.collection('feedback').add({
       uid: decoded.uid,
       email: decoded.email || 'مجهول',
       displayName: decoded.name || 'مستخدم',
@@ -53,7 +67,10 @@ export async function POST(req: NextRequest) {
       details,
       sentAt,
       createdAt: FieldValue.serverTimestamp(),
-    });
+    }); } catch (fsErr) {
+      console.error('Firestore save error:', fsErr);
+      return NextResponse.json({ error: `خطأ في الحفظ: ${String(fsErr)}` }, { status: 500 });
+    }
 
     // 3. Send email via Resend (non-blocking — don't fail if email errors)
     const resendKey = process.env.RESEND_API_KEY;
