@@ -1624,7 +1624,7 @@ export default function SettingsPage() {
             value="item-5"
             icon={Info}
             title="حول التطبيق"
-          subtitle={`الإصدار ${packageInfo.version} · ملاحظات واقتراحات`}
+          subtitle="ملاحظات واقتراحات حول التطبيق"
             sectionId="settings-support"
         >
           <div className="space-y-4">
