@@ -83,9 +83,9 @@ export default function ToolsPage() {
             href={tool.href}
             className="block active:scale-[0.97] transition-transform"
           >
-            <div className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+            <div className="bg-card border border-border rounded-2xl p-4 flex flex-col items-center text-center gap-3 min-h-[160px] justify-center">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl select-none overflow-hidden"
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl select-none overflow-hidden"
                 style={{ background: tool.image ? 'transparent' : tool.gradient }}
               >
                 {tool.image ? (
@@ -98,7 +98,7 @@ export default function ToolsPage() {
               </div>
               <div>
                 <p className="font-semibold text-sm text-foreground leading-tight">{tool.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{tool.sub}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tool.sub}</p>
               </div>
             </div>
           </Link>
