@@ -2,9 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "app.tadbeer.pwa",
-    "sha256_cert_fingerprints": [
-      "67:51:02:5B:65:0E:20:BB:81:E9:50:FE:D8:13:AD:AF:25:47:FC:42:EA:F0:5A:7B:99:BB:0E:A9:79:2B:FD:A5"
-    ]
+    "package_name": "app.tadbeer.twa",
+    "sha256_cert_fingerprints": ["6A:C9:55:FF:EC:24:47:3B:8D:2B:5F:9C:0D:18:22:23:4B:CD:44:14:4F:E9:E1:89:03:F5:DD:00:B7:BE:E8:68"]
   }
 }]
