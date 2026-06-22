@@ -1615,8 +1615,8 @@ export default function SettingsPage() {
         <AccordionItemWrapper onToggle={toggleAccordionItem}
           value="item-1"
           icon={Palette}
-          title="المظهر والإشعارات"
-          subtitle="الشخصية، المظهر، والتذكير"
+          title="التخصيص"
+          subtitle="الشخصية، المظهر، والإشعارات"
           sectionId="settings-appearance"
         >
           <div className="space-y-6">
@@ -1676,22 +1676,15 @@ export default function SettingsPage() {
 
             <div>
               <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
-              <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center justify-between rounded-lg border p-3 opacity-60">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="daily-reminder" className="text-sm font-medium">التذكير اليومي</Label>
-                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">يُحفظ تلقائياً</span>
+                    <Label className="text-sm font-medium">التذكير اليومي</Label>
+                    <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded-full">قريباً</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    إرسال إشعار يومي لتسجيل المصروفات.
-                  </p>
+                  <p className="text-xs text-muted-foreground">إشعار يومي لتسجيل المصروفات.</p>
                 </div>
-                <Switch
-                  id="daily-reminder"
-                  checked={dailyReminderEnabled}
-                  onCheckedChange={handleDailyReminderChange}
-                  aria-label="تفعيل التذكير اليومي"
-                />
+                <Switch disabled aria-label="التذكير اليومي" />
               </div>
             </div>
 
