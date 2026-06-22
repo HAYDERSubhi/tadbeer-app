@@ -644,7 +644,6 @@ export default function SettingsPage() {
           });
           // Close the accordion item after successful save
           if (variables.appTone || variables.notifications) setOpenAccordionItems(items => items.filter(i => i !== 'item-1'));
-          if (variables.profile) setOpenAccordionItems(items => items.filter(i => i !== 'item-2'));
           if (variables.budget || variables.categoryBudgets || variables.recurringPayments) setOpenAccordionItems(items => items.filter(i => i !== 'item-3'));
           if (variables.categories) setOpenAccordionItems(items => items.filter(i => i !== 'item-3b'));
       },
