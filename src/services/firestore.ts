@@ -255,7 +255,7 @@ export const addIncome = async (uid: string, incomeData: Omit<Income, 'id' | 'cr
     const docRef = await addDoc(incomesCol, {
         ...incomeData,
         uid, // record who added it (useful for shared household incomes)
-        date: new Date(incomeData.date),
+        ...(incomeData.date ? { date: new Date(incomeData.date) } : {}),
         createdAt: serverTimestamp(),
     });
     return docRef.id;
@@ -267,9 +267,10 @@ export const updateIncome = async (uid: string, incomeId: string, incomeData: Pa
     if (!db) throw new Error("Firestore is not initialized");
     const [p1, p2] = scope === 'personal' ? ['users', uid] : basePath(uid, householdId);
     const incomeDoc = doc(db, p1, p2, 'incomes', incomeId);
-    const dataToUpdate: { [key: string]: any } = { ...incomeData };
-    if (incomeData.date) {
-        dataToUpdate.date = new Date(incomeData.date);
+    const { date, ...rest } = incomeData;
+    const dataToUpdate: { [key: string]: any } = { ...rest };
+    if (date) {
+        dataToUpdate.date = new Date(date);
     }
     await updateDoc(incomeDoc, dataToUpdate);
 };

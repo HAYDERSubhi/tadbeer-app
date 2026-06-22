@@ -534,13 +534,17 @@ export default function SettingsPage() {
     }
   }, [userSettings]);
   
+  const [isProfileDirty, setIsProfileDirty] = React.useState(false);
+
   const handleAddMember = () => {
     setFamilyMembers(prev => [...prev, { id: crypto.randomUUID(), type: 'child', age: 0 }]);
+    setIsProfileDirty(true);
   };
-  
+
   const handleRemoveMember = (id: string) => {
     if (familyMembers.length > 1) {
       setFamilyMembers(prev => prev.filter(m => m.id !== id));
+      setIsProfileDirty(true);
     } else {
       toast({
         title: "لا يمكن الحذف",
@@ -552,6 +556,7 @@ export default function SettingsPage() {
 
   const handleMemberChange = (id: string, field: keyof Omit<FamilyMember, 'id'>, value: string | number) => {
     setFamilyMembers(prev => prev.map(m => m.id === id ? { ...m, [field]: value } : m));
+    setIsProfileDirty(true);
   };
 
   const updateSettingsMutation = useMutation({
@@ -612,6 +617,7 @@ export default function SettingsPage() {
     }
     const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };
     updateSettingsMutation.mutate({ profile: profileToSave, currency });
+    setIsProfileDirty(false);
   };
   
   const handleSaveBudgetSettings = () => {
@@ -1292,12 +1298,14 @@ export default function SettingsPage() {
             <div className="space-y-4">
                 <h3 className='text-sm font-medium'>إدارة الدخل</h3>
                 
-                <Card className="text-center bg-muted/50">
-                    <CardContent className="p-3">
-                        <Label className="text-xs">إجمالي الدخل الشهري المتكرر</Label>
-                        <p className="text-xl font-bold text-primary">{formatCurrency(totalRecurringIncome)}</p>
-                    </CardContent>
-                </Card>
+                {incomes.length > 0 && (
+                  <Card className="text-center bg-muted/50">
+                      <CardContent className="p-3">
+                          <Label className="text-xs">إجمالي الدخل الشهري المتكرر</Label>
+                          <p className="text-xl font-bold text-primary">{formatCurrency(totalRecurringIncome)}</p>
+                      </CardContent>
+                  </Card>
+                )}
 
                 <div>
                     <h4 className="font-medium mb-2 text-xs">مصادر الدخل الحالية</h4>
@@ -1347,7 +1355,7 @@ export default function SettingsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2"><Label htmlFor="income-type" className="text-xs">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={(v) => { field.onChange(v); incomeForm.setValue('date', undefined); incomeForm.setValue('dayOfMonth', undefined); }} value={field.value}><SelectTrigger id="income-type" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
                                     {incomeForm.watch('type') === 'recurring' ? (
-                                      <div className="space-y-2"><Label className="text-xs">يوم الاستلام من الشهر</Label><Controller name="dayOfMonth" control={incomeForm.control} render={({ field }) => (<Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString()}><SelectTrigger className="text-xs h-9"><SelectValue placeholder="اختر اليوم" /></SelectTrigger><SelectContent>{Array.from({length: 31}, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>يوم {day}</SelectItem>))}</SelectContent></Select>)} />{incomeForm.formState.errors.dayOfMonth && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.dayOfMonth.message}</p>}</div>
+                                      <div className="space-y-2"><Label className="text-xs">يوم الاستلام من الشهر</Label><Controller name="dayOfMonth" control={incomeForm.control} render={({ field }) => (<Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString()}><SelectTrigger className="text-xs h-9"><SelectValue placeholder="اختر اليوم" /></SelectTrigger><SelectContent position="popper" className="max-h-52 overflow-y-auto">{Array.from({length: 31}, (_, i) => i + 1).map(day => (<SelectItem key={day} value={day.toString()}>يوم {day}</SelectItem>))}</SelectContent></Select>)} />{incomeForm.formState.errors.dayOfMonth && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.dayOfMonth.message}</p>}</div>
                                     ) : (
                                       <div className="space-y-2"><Label className="text-xs">تاريخ الاستلام</Label><Controller name="date" control={incomeForm.control} render={({ field }) => (<Popover><PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start text-left font-normal bg-background text-xs h-9", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP", { locale: arIQ }) : <span>اختر تاريخاً</span>}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus dir="rtl" locale={arIQ} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} /></PopoverContent></Popover>)} />{incomeForm.formState.errors.date && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.date.message}</p>}</div>
                                     )}
@@ -1366,7 +1374,13 @@ export default function SettingsPage() {
                 <h3 className='text-sm font-medium'>الملف الشخصي</h3>
                 <div className="space-y-3">
                     <Label className="text-xs">أفراد الأسرة (بمن فيهم أنت)</Label>
+                    <p className="text-[11px] text-muted-foreground -mt-1">يؤثر التصنيف (بالغ/طفل) على حساب الميزانية المخصصة لكل فرد</p>
                     <div className="space-y-3 rounded-lg border bg-background p-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <span className="w-4" />
+                            <span className="text-[10px] text-muted-foreground w-[100px]">النوع</span>
+                            <span className="text-[10px] text-muted-foreground w-[100px]">العمر (سنة)</span>
+                        </div>
                         {familyMembers.map((member, index) => (
                         <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
                             <span className='text-muted-foreground text-xs'>{index + 1}.</span>
@@ -1386,7 +1400,7 @@ export default function SettingsPage() {
                         <Button variant="outline" size="sm" onClick={handleAddMember} className="w-full text-xs h-9"><UserPlus className="ml-2 h-4 w-4" />إضافة فرد</Button>
                     </div>
                 </div>
-                <Button onClick={handleSaveProfile} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
+                <Button onClick={handleSaveProfile} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending || !isProfileDirty}>
                     {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
                     حفظ التغييرات
                 </Button>
