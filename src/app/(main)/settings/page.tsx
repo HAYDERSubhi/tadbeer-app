@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, Bell, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1622,12 +1622,13 @@ export default function SettingsPage() {
           <div className="space-y-6">
 
              <div>
-                <h3 className="font-medium mb-3 text-sm">شخصية المدرب المالي</h3>
+                <h3 className="font-medium mb-1 text-sm">شخصية المدرب المالي</h3>
+                <p className="text-[11px] text-muted-foreground mb-3">تؤثر على نصائح التحليل الذكي</p>
                 <div className="grid grid-cols-2 gap-4">
 
-                <div onClick={() => setAppTone('colloquial')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
-                      <Handshake className="w-6 h-6" />
+                <div onClick={() => { setAppTone('colloquial'); updateSettingsMutation.mutate({ appTone: 'colloquial' }); }} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary shrink-0">
+                      <Handshake className="w-7 h-7" />
                     </div>
                     <div>
                     <h4 className="font-semibold text-sm">كرومي</h4>
@@ -1635,9 +1636,9 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                <div onClick={() => setAppTone('formal')} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
-                    <div className="w-10 h-10 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary">
-                      <CircleDollarSign className="w-6 h-6" />
+                <div onClick={() => { setAppTone('formal'); updateSettingsMutation.mutate({ appTone: 'formal' }); }} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'formal' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
+                    <div className="w-12 h-12 rounded-full bg-background flex items-center justify-center overflow-hidden border text-primary shrink-0">
+                      <CircleDollarSign className="w-7 h-7" />
                     </div>
                     <div>
                     <h4 className="font-semibold text-sm">أستاذ حريص</h4>
@@ -1654,8 +1655,8 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center gap-3">
                   {theme === 'dark'
-                    ? <Moon className="h-4 w-4 text-muted-foreground" />
-                    : <Sun className="h-4 w-4 text-muted-foreground" />}
+                    ? <Moon className="h-5 w-5 text-muted-foreground" />
+                    : <Sun className="h-5 w-5 text-muted-foreground" />}
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <Label className="text-sm font-medium">الوضع الليلي</Label>
@@ -1677,21 +1678,19 @@ export default function SettingsPage() {
             <div>
               <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
               <div className="flex items-center justify-between rounded-lg border p-3 opacity-60">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">التذكير اليومي</Label>
-                    <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded-full">قريباً</span>
+                <div className="flex items-center gap-3">
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium">التذكير اليومي</Label>
+                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded-full">قريباً</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">إشعار يومي لتسجيل المصروفات.</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">إشعار يومي لتسجيل المصروفات.</p>
                 </div>
                 <Switch disabled aria-label="التذكير اليومي" />
               </div>
             </div>
-
-            <Button onClick={handleSaveAppearanceSettings} className="w-full text-xs h-9" disabled={updateSettingsMutation.isPending}>
-              {updateSettingsMutation.isPending && <Loader2 className='ml-2 h-4 w-4 animate-spin' />}
-              حفظ التغييرات
-            </Button>
           </div>
         </AccordionItemWrapper>
 
