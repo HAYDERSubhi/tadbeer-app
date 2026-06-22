@@ -50,6 +50,8 @@ const TOOLS = [
 
 const SCREENSHOTS = [
   { src: '/screenshots/screenshot-home.jpg', label: 'الرئيسية' },
+  { src: '/screenshots/screenshot-manual.jpg', label: 'إدخال يدوي' },
+  { src: '/screenshots/screenshot-receipt.jpg', label: 'مسح فاتورة' },
   { src: '/screenshots/screenshot-stats.jpg', label: 'الإحصائيات' },
   { src: '/screenshots/screenshot-analysis.jpg', label: 'التحليل الذكي' },
   { src: '/screenshots/screenshot-tools.jpg', label: 'الأدوات' },
