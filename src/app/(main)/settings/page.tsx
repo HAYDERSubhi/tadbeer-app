@@ -636,12 +636,14 @@ export default function SettingsPage() {
 
   const updateSettingsMutation = useMutation({
       mutationFn: (newSettings: Partial<UserSettings>) => updateUserSettings(user!.uid, newSettings),
-      onSuccess: (_, variables) => {
+      onSuccess: (_, variables: Partial<UserSettings> & { _silent?: boolean }) => {
           queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
-          toast({
-              title: "تم الحفظ",
-              description: "تم تحديث إعداداتك بنجاح.",
-          });
+          if (!variables._silent) {
+              toast({
+                  title: "تم الحفظ",
+                  description: "تم تحديث إعداداتك بنجاح.",
+              });
+          }
           // Close the accordion item after successful save
           if (variables.appTone || variables.notifications) setOpenAccordionItems(items => items.filter(i => i !== 'item-1'));
           if (variables.budget || variables.categoryBudgets || variables.recurringPayments) setOpenAccordionItems(items => items.filter(i => i !== 'item-3'));
@@ -677,7 +679,7 @@ export default function SettingsPage() {
 
       if (userProfile.monthlyIncome !== totalRecurringIncome) {
           const updatedProfile = { ...userProfile, monthlyIncome: totalRecurringIncome };
-          updateSettingsMutation.mutate({ profile: updatedProfile });
+          updateSettingsMutation.mutate({ profile: updatedProfile, _silent: true } as any);
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalRecurringIncome, userSettings, incomes, user]);
