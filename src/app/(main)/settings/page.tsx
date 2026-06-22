@@ -1308,9 +1308,7 @@ export default function SettingsPage() {
                 <div>
                     <h4 className="font-medium mb-2 text-xs">مصادر الدخل الحالية</h4>
                     <div className="space-y-2">
-                        {incomes.length === 0 ? (
-                            <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد مصادر دخل مسجلة.</p>
-                        ) : (
+                        {incomes.length > 0 && (
                             <ul className="border rounded-lg max-h-60 overflow-y-auto bg-background">
                                 {incomes.map(income => (
                                     <li key={income.id} className="flex items-center justify-between p-2.5 border-b last:border-b-0">
