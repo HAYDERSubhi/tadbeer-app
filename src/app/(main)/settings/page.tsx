@@ -1321,7 +1321,7 @@ export default function SettingsPage() {
         <AccordionItemWrapper onToggle={toggleAccordionItem}
           value="item-2"
           icon={Users}
-          title="الملف الشخصي والدخل"
+          title="دخلي وأسرتي"
           subtitle="عملتك، دخلك، وأفراد أسرتك"
           sectionId="settings-profile"
         >
@@ -1474,7 +1474,7 @@ export default function SettingsPage() {
         <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-3"
             icon={SlidersHorizontal}
-            title="الميزانية والدفعات الدورية"
+            title="الميزانية والدفعات"
             subtitle="الميزانية وميزانيات الفئات والدفعات الثابتة"
             sectionId="settings-budget"
         >
@@ -1559,7 +1559,7 @@ export default function SettingsPage() {
         <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-3b"
             icon={Tag}
-            title="إدارة الفئات"
+            title="الفئات"
             subtitle="أضف وعدّل فئات مصاريفك"
             sectionId="settings-categories"
         >
@@ -1605,9 +1605,9 @@ export default function SettingsPage() {
 
       </Accordion>
 
-      {/* ───── Group: المظهر والإعدادات ───── */}
+      {/* ───── Group: التفضيلات ───── */}
       <div className="flex items-center gap-2 px-1">
-        <p className="text-xs font-semibold text-muted-foreground">المظهر والإعدادات</p>
+        <p className="text-xs font-semibold text-muted-foreground">التفضيلات</p>
         <div className="flex-1 h-px bg-border" />
       </div>
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
@@ -1721,7 +1721,7 @@ export default function SettingsPage() {
          <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-4"
             icon={DatabaseZap}
-            title="إدارة البيانات"
+            title="البيانات"
             subtitle="تصدير، استيراد، ونسخ احتياطية"
         >
              <div>
