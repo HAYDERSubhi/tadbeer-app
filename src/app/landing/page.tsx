@@ -79,7 +79,7 @@ export default function LandingPage() {
 
         <div className="relative z-10">
           <div className="flex items-center justify-center gap-2.5 mb-6">
-            <img src="/logo.png" alt="شعار تدبير" className="w-10 h-10 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+            <img src="/logo.png" alt="شعار تدبير" className="w-16 h-16 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
             <span className="text-white text-2xl font-bold tracking-wide">تدبير</span>
           </div>
 
