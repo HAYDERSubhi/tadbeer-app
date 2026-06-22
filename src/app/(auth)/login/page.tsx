@@ -100,9 +100,12 @@ export default function LoginPage() {
 
       {/* ── Hero ──────────────────────────────────────────────── */}
       <div className="flex flex-col items-center gap-4 text-white text-center">
-        <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl p-3 shadow-xl ring-2 ring-white/30">
-          <img src="/logo.png" alt="تدبير" className="w-full h-full object-contain" />
-        </div>
+        <img
+          src="/logo.png"
+          alt="تدبير"
+          className="w-24 h-24 object-contain"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
         <div>
           <h1 className="text-3xl font-black tracking-tight">تدبير</h1>
           <p className="text-white/80 text-sm mt-1">مساعدك المالي الذكي</p>
