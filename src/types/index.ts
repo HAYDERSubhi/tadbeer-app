@@ -31,6 +31,7 @@ export type Income = {
   amount: number;
   type: 'recurring' | 'one-time';
   date: string; // ISO string format, relevant for one-time income
+  dayOfMonth?: number; // 1-31, relevant for recurring income
   createdAt: string; // ISO string format
   // Set at read time (not stored): which Firestore path this income lives in.
   // Household members may still have legacy incomes in their personal path;
