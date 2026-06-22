@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, Clock } from 'lucide-react';
+import { Bell, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
@@ -11,17 +11,23 @@ import { getUpcomingPayments } from '@/lib/billing-utils';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 
+const VISIBLE_COUNT = 2;
+
 export function UpcomingBillsCard() {
   const { userSettings } = useAppData();
   const { categoryMap } = useCategories();
   const { format: formatCurrency } = useCurrency();
+  const [expanded, setExpanded] = useState(false);
 
   const upcoming = useMemo(() => {
     const payments = userSettings?.recurringPayments ?? [];
-    return getUpcomingPayments(payments, 7);
+    return getUpcomingPayments(payments, 3);
   }, [userSettings?.recurringPayments]);
 
   if (upcoming.length === 0) return null;
+
+  const visible = expanded ? upcoming : upcoming.slice(0, VISIBLE_COUNT);
+  const hiddenCount = upcoming.length - VISIBLE_COUNT;
 
   const urgencyLabel = (days: number) => {
     if (days === 0) return { label: 'اليوم!', cls: 'text-destructive font-bold' };
@@ -44,10 +50,9 @@ export function UpcomingBillsCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
-        {upcoming.map(({ payment, dueDate, daysUntilDue }) => {
+        {visible.map(({ payment, dueDate, daysUntilDue }) => {
           const { label, cls } = urgencyLabel(daysUntilDue);
           const catName = categoryMap[payment.category]?.name ?? payment.category;
-          const catIcon = categoryMap[payment.category]?.icon ?? '💸';
 
           return (
             <div
@@ -57,7 +62,6 @@ export function UpcomingBillsCard() {
                 urgencyBorder(daysUntilDue)
               )}
             >
-              <span className="text-xl shrink-0">{catIcon}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-xs truncate">{payment.title}</p>
                 <p className="text-[10px] text-muted-foreground">
@@ -71,6 +75,16 @@ export function UpcomingBillsCard() {
             </div>
           );
         })}
+
+        {!expanded && hiddenCount > 0 && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="w-full flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            <ChevronDown className="h-3 w-3" />
+            و{hiddenCount} فاتورة أخرى
+          </button>
+        )}
       </CardContent>
     </Card>
   );
