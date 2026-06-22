@@ -526,6 +526,7 @@ export default function SettingsPage() {
   
   // State for Dialogs
   const [isIncomeDialogOpen, setIsIncomeDialogOpen] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState<Income | null>(null);
   const [isRecurringPaymentDialogOpen, setIsRecurringPaymentDialogOpen] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   // Where the income being edited lives — legacy personal incomes of household
@@ -874,10 +875,12 @@ export default function SettingsPage() {
   const deleteIncomeMutation = useMutation({
     mutationFn: (income: Income) => deleteIncome(user!.uid, income.id, householdId, income.scope),
     onSuccess: () => {
+      setIncomeToDelete(null);
       toast({ title: "تم الحذف", description: "تم حذف مصدر الدخل." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
     },
     onError: () => {
+      setIncomeToDelete(null);
       toast({ title: "خطأ", description: "فشل حذف مصدر الدخل.", variant: "destructive" });
     }
   });
@@ -1376,7 +1379,7 @@ export default function SettingsPage() {
                                             <p className="font-bold text-green-600 dark:text-green-400 whitespace-nowrap text-sm">{formatCurrency(income.amount)}</p>
                                             <div className="flex items-center gap-0">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEditIncomeClick(income)} disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteIncomeMutation.mutate(income)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIncomeToDelete(income)} disabled={deleteIncomeMutation.isPending}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
                                     </li>
@@ -1385,6 +1388,24 @@ export default function SettingsPage() {
                         )}
                     </div>
                 </div>
+                <AlertDialog open={!!incomeToDelete} onOpenChange={(open) => { if (!open) setIncomeToDelete(null); }}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-1">
+                                <Trash2 className="h-5 w-5 text-destructive" />
+                            </div>
+                            <AlertDialogTitle>حذف مصدر الدخل</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                سيتم حذف <span className="font-medium text-foreground">"{incomeToDelete?.title}"</span> نهائياً
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => incomeToDelete && deleteIncomeMutation.mutate(incomeToDelete)}>حذف</AlertDialogAction>
+                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
                  <FormDialog open={isIncomeDialogOpen} onOpenChange={setIsIncomeDialogOpen}>
                     <DialogTrigger asChild>
                     <Button className="w-full text-xs h-9" variant="outline" onClick={handleAddNewIncomeClick}><UserPlus className="ml-2 h-4 w-4" />إضافة مصدر دخل جديد</Button>
