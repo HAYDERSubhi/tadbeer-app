@@ -694,6 +694,7 @@ export default function SettingsPage() {
     const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };
     updateSettingsMutation.mutate({ profile: profileToSave, currency });
     setIsProfileDirty(false);
+    setOpenAccordionItems(items => items.filter(i => i !== 'item-2'));
   };
   
   const handleSaveBudgetSettings = () => {
@@ -1454,7 +1455,7 @@ export default function SettingsPage() {
                                     <SelectItem value="child">طفل</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} className="w-[100px] h-9 text-xs" min="0" />
+                            <Input type="number" placeholder="العمر" value={member.age} onChange={(e) => handleMemberChange(member.id, 'age', parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} className="w-[100px] h-9 text-xs" min="0" />
                             <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)} disabled={familyMembers.length <= 1}>
                                 <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
                             </Button>
