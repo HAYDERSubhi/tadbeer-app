@@ -419,6 +419,37 @@ const CategoryEditDialog = ({
 
 
 
+function AccordionItemWrapper({ icon, title, subtitle, value, children, sectionId, onToggle }: { icon: React.ElementType, title: string, subtitle?: string, value: string, children: React.ReactNode, sectionId?: string, onToggle: (v: string) => void }) {
+  return (
+    <AccordionItem value={value} className="border-b-0" id={sectionId}>
+      <Card>
+        <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium" onClick={() => onToggle(value)}>
+          <CardHeader className="w-full py-3">
+              <div className="flex items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-primary/10 rounded-md text-primary shrink-0">
+                          {React.createElement(icon, { className: "h-4 w-4" })}
+                      </div>
+                      <div className="text-right">
+                          <h3 className="font-semibold text-sm">{title}</h3>
+                          {subtitle && <p className="text-[11px] text-muted-foreground font-normal mt-0.5">{subtitle}</p>}
+                      </div>
+                  </div>
+              </div>
+          </CardHeader>
+        </AccordionTrigger>
+        <AccordionContent>
+            <div className="border-t">
+                <div className="p-4 space-y-6">
+                    {children}
+                </div>
+            </div>
+        </AccordionContent>
+      </Card>
+    </AccordionItem>
+  );
+}
+
 function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
   const type = useWatch({ control, name: 'type' });
   return (
@@ -819,9 +850,9 @@ export default function SettingsPage() {
   const addIncomeMutation = useMutation({
     mutationFn: (newIncome: Omit<Income, 'id'|'createdAt'|'uid'|'scope'>) => addIncome(user!.uid, newIncome, householdId),
     onSuccess: () => {
+      setIsIncomeDialogOpen(false);
       toast({ title: "تمت الإضافة", description: "تم إضافة مصدر الدخل بنجاح." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
-      setIsIncomeDialogOpen(false);
     },
     onError: () => {
        toast({ title: "خطأ", description: "فشل إضافة مصدر الدخل.", variant: "destructive" });
@@ -831,9 +862,9 @@ export default function SettingsPage() {
   const updateIncomeMutation = useMutation({
     mutationFn: ({ incomeId, incomeData, scope }: { incomeId: string, incomeData: Partial<Omit<Income, 'id'|'createdAt'|'uid'|'scope'>>, scope?: 'personal' | 'household' }) => updateIncome(user!.uid, incomeId, incomeData, householdId, scope),
     onSuccess: () => {
+      setIsIncomeDialogOpen(false);
       toast({ title: "تم التحديث", description: "تم تحديث مصدر الدخل بنجاح." });
       queryClient.invalidateQueries({ queryKey: ['incomes', user?.uid] });
-      setIsIncomeDialogOpen(false);
     },
     onError: () => {
        toast({ title: "خطأ", description: "فشل تحديث مصدر الدخل.", variant: "destructive" });
@@ -1207,34 +1238,9 @@ export default function SettingsPage() {
     'one-time': 'مرة واحدة',
   };
 
-  const AccordionItemWrapper = ({ icon, title, subtitle, value, children, sectionId }: { icon: React.ElementType, title: string, subtitle?: string, value: string, children: React.ReactNode, sectionId?: string }) => (
-    <AccordionItem value={value} className="border-b-0" id={sectionId}>
-      <Card>
-        <AccordionTrigger className="hover:no-underline w-full p-0 text-sm font-medium" onClick={() => setOpenAccordionItems(prev => prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value])}>
-          <CardHeader className="w-full py-3">
-              <div className="flex items-center justify-between gap-2 w-full">
-                  <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-primary/10 rounded-md text-primary shrink-0">
-                          {React.createElement(icon, { className: "h-4 w-4" })}
-                      </div>
-                      <div className="text-right">
-                          <h3 className="font-semibold text-sm">{title}</h3>
-                          {subtitle && <p className="text-[11px] text-muted-foreground font-normal mt-0.5">{subtitle}</p>}
-                      </div>
-                  </div>
-              </div>
-          </CardHeader>
-        </AccordionTrigger>
-        <AccordionContent>
-            <div className="border-t">
-                <div className="p-4 space-y-6">
-                    {children}
-                </div>
-            </div>
-        </AccordionContent>
-      </Card>
-    </AccordionItem>
-  );
+  const toggleAccordionItem = React.useCallback((v: string) => {
+    setOpenAccordionItems(prev => prev.includes(v) ? prev.filter(i => i !== v) : [...prev, v]);
+  }, []);
 
   const DirectLinkRow = ({ href, icon: Icon, title, subtitle }: { href: string; icon: React.ElementType; title: string; subtitle?: string }) => (
     <Link href={href}>
@@ -1307,7 +1313,7 @@ export default function SettingsPage() {
       </div>
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
 
-        <AccordionItemWrapper
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
           value="item-2"
           icon={Users}
           title="الملف الشخصي والدخل"
@@ -1442,7 +1448,7 @@ export default function SettingsPage() {
             </div>
         </AccordionItemWrapper>
 
-        <AccordionItemWrapper
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-3"
             icon={SlidersHorizontal}
             title="الميزانية والدفعات الدورية"
@@ -1527,7 +1533,7 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
         {/* ===== Categories Section (split from item-3) ===== */}
-        <AccordionItemWrapper
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-3b"
             icon={Tag}
             title="إدارة الفئات"
@@ -1583,7 +1589,7 @@ export default function SettingsPage() {
       </div>
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
 
-        <AccordionItemWrapper
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
           value="item-1"
           icon={Palette}
           title="المظهر والإشعارات"
@@ -1674,7 +1680,7 @@ export default function SettingsPage() {
         </AccordionItemWrapper>
 
         {/* Family / Household */}
-        <AccordionItemWrapper value="item-family" icon={Users} title="الحساب العائلي" subtitle="شارك حسابك مع أفراد العائلة">
+        <AccordionItemWrapper onToggle={toggleAccordionItem} value="item-family" icon={Users} title="الحساب العائلي" subtitle="شارك حسابك مع أفراد العائلة">
           <HouseholdManager embedded />
         </AccordionItemWrapper>
 
@@ -1697,7 +1703,7 @@ export default function SettingsPage() {
       </div>
       <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
 
-         <AccordionItemWrapper
+         <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-4"
             icon={DatabaseZap}
             title="إدارة البيانات"
@@ -1781,7 +1787,7 @@ export default function SettingsPage() {
              </div>
         </AccordionItemWrapper>
 
-        <AccordionItemWrapper
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
             value="item-5"
             icon={Info}
             title="حول تدبير"
