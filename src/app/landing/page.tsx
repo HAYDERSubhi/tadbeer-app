@@ -233,7 +233,7 @@ export default function LandingPage() {
           >
             ابدأ مجاناً — سجّل الآن
           </Link>
-          <p className="text-white/50 text-xs mt-3">يعمل على الجوال والحاسوب · بدون تثبيت</p>
+          <p className="text-white/50 text-xs mt-3">يعمل على الهاتف والحاسوب · بدون تثبيت</p>
         </div>
       </section>
 
