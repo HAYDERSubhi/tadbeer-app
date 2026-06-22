@@ -103,7 +103,7 @@ export default function LoginPage() {
         <img
           src="/logo.png"
           alt="تدبير"
-          className="w-24 h-24 object-contain"
+          className="w-48 h-48 object-contain"
           style={{ filter: 'brightness(0) invert(1)' }}
         />
         <div>
