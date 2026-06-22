@@ -5,11 +5,38 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 
+const INPUT_METHODS = [
+  {
+    icon: '🎤',
+    title: 'بصوتك',
+    badge: 'الأسرع',
+    desc: 'قل "دفعت 5000 أجرة" وتدبير يفهمك ويصنّف تلقائياً',
+    color: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800',
+    badgeColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300',
+  },
+  {
+    icon: '✏️',
+    title: 'يدوياً',
+    badge: 'الأدق',
+    desc: 'أدخل المبلغ والتصنيف والملاحظة بشكل كامل ومتحكم',
+    color: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800',
+    badgeColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  },
+  {
+    icon: '📄',
+    title: 'من فاتورة',
+    badge: 'الأذكى',
+    desc: 'صوّر فاتورتك وتدبير يقرأها ويستخرج البيانات تلقائياً',
+    color: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800',
+    badgeColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+  },
+];
+
 const FEATURES = [
-  { icon: '🎤', title: 'سجّل بصوتك', desc: 'قل "دفعت 5000 أجرة" وتدبير يفهمك ويصنّف تلقائياً' },
   { icon: '📊', title: 'تحليل ذكي', desc: 'رسوم بيانية واضحة مع نصائح AI تساعدك على التوفير' },
   { icon: '🎯', title: 'ميزانية شهرية', desc: 'حدّد ميزانيتك وتدبير ينبّهك قبل تجاوز الحد' },
   { icon: '👨‍👩‍👧', title: 'حساب عائلي', desc: 'شارك ميزانيتك مع أفراد عائلتك في حساب مشترك واحد' },
+  { icon: '🏆', title: 'شارات وإنجازات', desc: 'اكسب شارات عند تحقيق أهدافك المالية' },
 ];
 
 const TOOLS = [
@@ -62,7 +89,7 @@ export default function LandingPage() {
             تحكّم بمصاريفك<br />وحقّق أهدافك المالية
           </h1>
           <p className="text-white/75 text-sm leading-relaxed mb-8 max-w-xs mx-auto">
-            سجّل بصوتك، تتبّع ميزانيتك، واحصل على تحليلات ذكية فورية — كل شيء بالعربية
+            سجّل مصاريفك بصوتك أو يدوياً أو من فاتورة — وتدبير يتولى الباقي
           </p>
 
           <Link
@@ -72,6 +99,32 @@ export default function LandingPage() {
             ابدأ مجاناً ←
           </Link>
           <p className="text-white/50 text-xs mt-3">بدون تثبيت · يعمل على جميع الأجهزة</p>
+        </div>
+      </section>
+
+      {/* ── INPUT METHODS ────────────────────────────── */}
+      <section className="px-5 py-10">
+        <div className="text-center mb-6">
+          <span className="text-xs text-primary bg-primary/10 px-3 py-1 rounded-full">3 طرق للإدخال</span>
+          <h2 className="text-xl font-bold text-foreground mt-2">سجّل كيف تشاء</h2>
+          <p className="text-sm text-muted-foreground mt-1">اختر الطريقة الأنسب لك — كلها سريعة وسهلة</p>
+        </div>
+
+        <div className="space-y-3">
+          {INPUT_METHODS.map((m) => (
+            <div key={m.title} className={`flex items-start gap-4 rounded-2xl border p-4 ${m.color}`}>
+              <div className="w-12 h-12 bg-white/70 dark:bg-white/10 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm">
+                {m.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-sm text-foreground">{m.title}</h3>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${m.badgeColor}`}>{m.badge}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
