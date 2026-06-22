@@ -1296,8 +1296,6 @@ export default function SettingsPage() {
 
             {/* Income Section */}
             <div className="space-y-4">
-                <h3 className='text-sm font-medium'>إدارة الدخل</h3>
-                
                 {incomes.length > 0 && (
                   <Card className="text-center bg-muted/50">
                       <CardContent className="p-3">
