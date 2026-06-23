@@ -187,7 +187,6 @@ export function useBadges() {
             ['family_leader',  !!householdId],
             ['month_saver',    finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0)],
             ['big_saver',      finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0.2)],
-            ['first_referral', referralCount >= 1],
             ['social_pro',     referralCount >= 3],
         ];
 

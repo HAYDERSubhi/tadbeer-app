@@ -167,19 +167,33 @@ export default function AchievementsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                    {/* Count */}
-                    <div className="flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3">
-                        <div>
-                            <p className="text-xs text-muted-foreground">الأصدقاء المدعوون</p>
-                            <p className="text-3xl font-bold text-primary">{referralCount}</p>
+                    {/* Count + progress */}
+                    <div className="rounded-xl bg-muted/60 px-4 py-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs text-muted-foreground">الأصدقاء المدعوون</p>
+                                <p className="text-3xl font-bold text-primary">{referralCount}</p>
+                            </div>
+                            <div className="text-right">
+                                {referralCount >= 3 ? (
+                                    <p className="text-xs text-emerald-500 font-medium">✓ ناشر تدبير مكتملة!</p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">{referralCount} من 3 أصدقاء</p>
+                                )}
+                            </div>
                         </div>
-                        <div className="text-right text-xs text-muted-foreground space-y-1">
-                            <p className={cn(referralCount >= 1 ? 'text-emerald-500' : '')}>
-                                {referralCount >= 1 ? '✓' : '○'} شارة سفير تدبير (1 صديق)
-                            </p>
-                            <p className={cn(referralCount >= 3 ? 'text-emerald-500' : '')}>
-                                {referralCount >= 3 ? '✓' : '○'} شارة ناشر تدبير (3 أصدقاء)
-                            </p>
+                        <div className="h-1.5 rounded-full bg-background overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-primary transition-all"
+                                style={{ width: `${Math.min((referralCount / 3) * 100, 100)}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                            {[1, 2, 3].map(n => (
+                                <span key={n} className={cn(referralCount >= n ? 'text-primary font-medium' : '')}>
+                                    {referralCount >= n ? '●' : '○'} صديق {n}
+                                </span>
+                            ))}
                         </div>
                     </div>
 

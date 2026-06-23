@@ -8,7 +8,6 @@ export type BadgeId =
   | 'family_leader'   // أنشأ/انضم لحساب عائلي
   | 'report_viewer'   // فتح التقرير الشهري
   | 'big_saver'       // وفّر 20%+ من الميزانية
-  | 'first_referral'  // دعا صديقاً واحداً
   | 'social_pro';     // دعا 3 أصدقاء أو أكثر
 
 export type BadgeDef = {
@@ -78,17 +77,9 @@ export const BADGES: BadgeDef[] = [
     textColor: 'text-cyan-700 dark:text-cyan-300',
   },
   {
-    id: 'first_referral',
-    name: 'سفير تدبير',
-    description: 'دعوت صديقاً لاستخدام تدبير',
-    icon: '🤝',
-    color: 'bg-rose-100 dark:bg-rose-900/30',
-    textColor: 'text-rose-700 dark:text-rose-300',
-  },
-  {
     id: 'social_pro',
     name: 'ناشر تدبير',
-    description: 'دعوت 3 أصدقاء أو أكثر',
+    description: 'دعوت 3 أصدقاء لاستخدام تدبير',
     icon: '🌟',
     color: 'bg-yellow-100 dark:bg-yellow-900/30',
     textColor: 'text-yellow-700 dark:text-yellow-300',
