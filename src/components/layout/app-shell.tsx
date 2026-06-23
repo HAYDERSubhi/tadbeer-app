@@ -10,9 +10,18 @@ import { InstallBanner } from './install-banner';
 import { IosInstallBanner } from './ios-install-banner';
 import { LoggingStreakBanner } from '@/components/dashboard/logging-streak-banner';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { canInstall, requestInstall } = usePWAInstall();
+  const { user } = useAuth();
+
+  // Persist referral code if user landed via a share link (e.g. tadbeer.app?ref=UID)
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const ref = new URLSearchParams(window.location.search).get('ref');
+    if (ref) sessionStorage.setItem('tadbeer-ref', ref);
+  }, []);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   usePushNotifications();
 
@@ -48,13 +57,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="مشاركة التطبيق"
               onClick={() => {
                 if (navigator.share) {
+                  const shareUrl = user ? `https://www.tadbeer.app?ref=${user.uid}` : 'https://www.tadbeer.app';
                   navigator.share({
                     title: 'تدبير — تطبيقك المالي الذكي',
                     text: '🌴 جرّب تدبير — تطبيق إدارة المصاريف الذكي\n\nتتبّع إنفاقك، حدّد ميزانيتك، وحقّق أهدافك المالية بسهولة وبالعربية 💰',
-                    url: 'https://www.tadbeer.app',
+                    url: shareUrl,
                   }).catch(() => {});
                 } else {
-                  navigator.clipboard?.writeText('https://www.tadbeer.app').catch(() => {});
+                  const shareUrl = user ? `https://www.tadbeer.app?ref=${user.uid}` : 'https://www.tadbeer.app';
+                  navigator.clipboard?.writeText(shareUrl).catch(() => {});
                 }
               }}
             >
