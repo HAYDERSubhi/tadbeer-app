@@ -51,9 +51,18 @@ const BUFFET = {
   guests:   { economy: 200,   medium: 350,   luxury: 600 } as Record<WeddingTier, number>,
   perGuest: { economy: 15000, medium: 30000, luxury: 60000 } as Record<WeddingTier, number>,
 };
-const GIFTS: Record<WeddingTier, number> = { economy: 3000000, medium: 8000000, luxury: 20000000 };
-
 const TIER_LABEL: Record<WeddingTier, string> = { economy: 'اقتصادي', medium: 'متوسط', luxury: 'فخم' };
+
+// الإجمالي التقريبي لكل مستوى — يُعرض على المستخدم ليختار بوعي ويقارنه بميزانيته
+const TIER_TOTAL: Record<WeddingTier, number> = (() => {
+  const out = {} as Record<WeddingTier, number>;
+  for (const tier of ['economy','medium','luxury'] as WeddingTier[]) {
+    const k = TIER_KEY[tier];
+    const items = ALL_ITEMS.reduce((s, it) => s + it[k], 0);
+    out[tier] = items + BUFFET.guests[tier] * BUFFET.perGuest[tier];
+  }
+  return out;
+})();
 
 const RESP_META: Record<WeddingResponsibility, { label: string; cls: string; dot: string }> = {
   groom:  { label: 'العريس',     cls: 'text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30',     dot: 'bg-blue-500' },
@@ -66,7 +75,7 @@ function fmt(n: number) { return Math.round(n).toLocaleString('en-US'); }
 function fmtInput(raw: number) { return raw ? raw.toLocaleString('en-US') : ''; }
 function parseAmt(s: string) { return parseInt(s.replace(/,/g, '').replace(/\D/g, '') || '0') || 0; }
 
-function buildPlan(tier: WeddingTier): WeddingPlan {
+function buildPlan(tier: WeddingTier, budget?: number): WeddingPlan {
   const k = TIER_KEY[tier];
   const amounts: Record<string, number> = {};
   const responsibilities: Record<string, WeddingResponsibility> = {};
@@ -75,8 +84,19 @@ function buildPlan(tier: WeddingTier): WeddingPlan {
   return {
     amounts, responsibilities, disabled: {},
     guests: BUFFET.guests[tier], perGuest: BUFFET.perGuest[tier],
-    gifts: GIFTS[tier], tier, updatedAt: new Date().toISOString(),
+    budget, tier, updatedAt: new Date().toISOString(),
   };
+}
+
+// يقترح أقرب مستوى لميزانية المستخدم
+function suggestTier(budget: number): WeddingTier {
+  if (budget <= 0) return 'medium';
+  let best: WeddingTier = 'economy'; let bestDiff = Infinity;
+  for (const tier of ['economy','medium','luxury'] as WeddingTier[]) {
+    const diff = Math.abs(TIER_TOTAL[tier] - budget);
+    if (diff < bestDiff) { bestDiff = diff; best = tier; }
+  }
+  return best;
 }
 
 // ── حوار تأكيد تطبيق المستوى ──────────────────────────────────
@@ -163,8 +183,13 @@ export default function WeddingPage() {
   const buffetTotal = plan && enabled('buffet') ? plan.guests * plan.perGuest : 0;
   const itemsTotal  = plan ? ALL_ITEMS.filter(i => enabled(i.id)).reduce((s,i) => s + (plan.amounts[i.id] ?? 0), 0) : 0;
   const total       = itemsTotal + buffetTotal;
-  const gifts       = plan?.gifts ?? 0;
-  const net         = Math.max(0, total - gifts);
+
+  // ── الميزانية: العمود الفقري للتخطيط ──
+  const budget      = plan?.budget ?? 0;
+  const hasBudget   = budget > 0;
+  const remaining   = budget - total;          // موجب = متبقٍّ، سالب = تجاوز
+  const overBudget  = hasBudget && remaining < 0;
+  const budgetPct   = hasBudget ? (total / budget) * 100 : 0;
 
   const respTotals: Record<WeddingResponsibility, number> = { groom: 0, bride: 0, shared: 0 };
   if (plan) {
@@ -177,7 +202,7 @@ export default function WeddingPage() {
     ...(enabled('buffet') ? [{ label: 'البوفيه', amount: buffetTotal }] : []),
   ].filter(x => x.amount > 0).sort((a,b) => b.amount - a.amount).slice(0, 5) : [];
 
-  const incomeMonths = incomeMonthly > 0 ? net / incomeMonthly : 0;
+  const incomeMonths = incomeMonthly > 0 ? total / incomeMonthly : 0;
 
   // ── محدّثات الحالة ──
   function update(mut: (p: WeddingPlan) => WeddingPlan) {
@@ -186,9 +211,11 @@ export default function WeddingPage() {
   const setAmount = (id: string, v: number) => update(p => ({ ...p, amounts: { ...p.amounts, [id]: v } }));
   const setResp   = (id: string, v: WeddingResponsibility) => update(p => ({ ...p, responsibilities: { ...p.responsibilities, [id]: v } }));
   const toggle    = (id: string) => update(p => ({ ...p, disabled: { ...p.disabled, [id]: !p.disabled[id] } }));
+  const setBudget = (v: number) => update(p => ({ ...p, budget: v }));
 
   function applyTier(tier: WeddingTier) {
-    const base = buildPlan(tier);
+    // المستوى يملأ مبالغ البنود فقط — لا يمسّ ميزانية المستخدم
+    const base = buildPlan(tier, plan?.budget);
     setPlan(base);
     setTierToApply(null);
   }
@@ -197,9 +224,9 @@ export default function WeddingPage() {
     const lines = [
       '🎉 خطة تكاليف زواجي',
       '',
+      hasBudget ? `الميزانية: ${fmt(budget)} د.ع` : '',
       `الإجمالي: ${fmt(total)} د.ع`,
-      gifts > 0 ? `النقوط المتوقعة: -${fmt(gifts)} د.ع` : '',
-      `الصافي المطلوب: ${fmt(net)} د.ع`,
+      hasBudget ? (overBudget ? `تجاوز الميزانية: ${fmt(-remaining)} د.ع` : `المتبقّي: ${fmt(remaining)} د.ع`) : '',
       '',
       'التوزيع:',
       `• العريس: ${fmt(respTotals.groom)} د.ع`,
@@ -258,20 +285,49 @@ export default function WeddingPage() {
 
       {/* ══════ تبويب البنود ══════ */}
       {tab === 'items' && (
-        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-3 min-h-0 pb-20">
+        <>
+        <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-3 min-h-0 pb-3">
 
-          {/* اختيار المستوى */}
+          {/* ① الميزانية أولاً — عمود التخطيط */}
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl px-4 py-3 shrink-0">
+            <label className="text-sm font-semibold mb-1.5 block">
+              كم رصدت لزواجك؟ <span className="text-muted-foreground font-normal text-xs">(اختياري)</span>
+            </label>
+            <div className="relative">
+              <input
+                value={fmtInput(plan.budget ?? 0)}
+                onChange={e => setBudget(parseAmt(e.target.value))}
+                inputMode="numeric"
+                placeholder="مثال: 40,000,000"
+                className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm text-right font-semibold outline-none focus:border-primary" />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">د.ع</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {hasBudget ? 'سنوضّح لك كم تبقّى مع كل تعديل — تابع الشريط بالأسفل ↓' : 'حدّد ميزانيتك وسنساعدك على ضبط زواجك ضمنها.'}
+            </p>
+          </div>
+
+          {/* ② ابدأ بمستوى — مع إجمالي كل مستوى واقتراح الأنسب للميزانية */}
           <div className="bg-card border border-border rounded-2xl px-4 py-3 shrink-0">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">ابدأ بمستوى جاهز</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              ابدأ بمستوى جاهز
+              {hasBudget && <span className="text-primary"> · الأنسب لميزانيتك: «{TIER_LABEL[suggestTier(budget)]}»</span>}
+            </p>
             <div className="flex gap-2">
-              {(['economy','medium','luxury'] as WeddingTier[]).map(t => (
-                <button key={t} onClick={() => setTierToApply(t)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all border ${
-                    plan.tier === t ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/40 text-muted-foreground border-border'
-                  }`}>
-                  {TIER_LABEL[t]}
-                </button>
-              ))}
+              {(['economy','medium','luxury'] as WeddingTier[]).map(t => {
+                const isSuggested = hasBudget && suggestTier(budget) === t && plan.tier !== t;
+                return (
+                  <button key={t} onClick={() => setTierToApply(t)}
+                    className={`flex-1 py-2 rounded-xl font-semibold transition-all border flex flex-col items-center gap-0.5 ${
+                      plan.tier === t ? 'bg-primary text-primary-foreground border-primary'
+                      : isSuggested ? 'bg-primary/5 text-foreground border-primary/40'
+                      : 'bg-muted/40 text-muted-foreground border-border'
+                    }`}>
+                    <span className="text-[11px]">{TIER_LABEL[t]}</span>
+                    <span className="text-[9px] opacity-80">~{fmt(TIER_TOTAL[t] / 1000000)}م</span>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">يملأ كل البنود بأرقام تقريبية ثم تعدّلها كما تشاء.</p>
           </div>
@@ -343,44 +399,72 @@ export default function WeddingPage() {
             </div>
           ))}
 
-          {/* النقوط المتوقعة */}
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl px-4 py-3 shrink-0">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1">
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">النقوط المتوقعة</p>
-                <p className="text-[10px] text-muted-foreground">تُطرح من الإجمالي</p>
+        </div>
+
+        {/* ③ الشريط الثابت — الإجمالي مقابل الميزانية (يتحدّث لحظياً) */}
+        <div className="shrink-0 px-1 pb-1">
+          <div className={`rounded-2xl px-4 py-2.5 border ${
+            overBudget ? 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800' : 'bg-card border-border'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground">الإجمالي</p>
+                <p className="text-lg font-bold leading-none">{fmt(total)} <span className="text-[10px] font-normal text-muted-foreground">د.ع</span></p>
               </div>
-              <div className="relative w-32 shrink-0">
-                <input value={fmtInput(plan.gifts)} onChange={e => update(p => ({ ...p, gifts: parseAmt(e.target.value) }))}
-                  inputMode="numeric"
-                  className="w-full bg-background border border-emerald-300 dark:border-emerald-700 rounded-lg pl-7 pr-2 py-2 text-xs text-right outline-none focus:border-emerald-500" />
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground">د.ع</span>
-              </div>
+              {hasBudget && (
+                <div className="text-left">
+                  <p className="text-[10px] text-muted-foreground">{overBudget ? 'تجاوزت الميزانية' : 'المتبقّي'}</p>
+                  <p className={`text-lg font-bold leading-none ${overBudget ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {fmt(Math.abs(remaining))} <span className="text-[10px] font-normal text-muted-foreground">د.ع</span>
+                  </p>
+                </div>
+              )}
             </div>
+            {hasBudget && (
+              <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden flex justify-end" dir="rtl">
+                <div className={`h-full rounded-full transition-all ${
+                  overBudget ? 'bg-red-500' : budgetPct > 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                }`} style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+              </div>
+            )}
           </div>
         </div>
+        </>
       )}
 
       {/* ══════ تبويب الملخص ══════ */}
       {tab === 'summary' && (
         <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-2 min-h-0 pb-20">
 
-          {/* الإجمالي والصافي */}
+          {/* الإجمالي + مقارنة الميزانية */}
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
             <p className="text-xs text-muted-foreground mb-1">إجمالي التكاليف</p>
             <p className="text-3xl font-bold leading-none">{fmt(total)} <span className="text-sm font-normal text-muted-foreground">د.ع</span></p>
-            {gifts > 0 && (
-              <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-xs">
-                <span className="text-emerald-600 dark:text-emerald-400">− النقوط المتوقعة: {fmt(gifts)}</span>
+
+            {hasBudget && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">ميزانيتك</span>
+                  <span className="font-semibold">{fmt(budget)} د.ع</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden flex justify-end" dir="rtl">
+                  <div className={`h-full rounded-full ${overBudget ? 'bg-red-500' : budgetPct > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${Math.min(budgetPct, 100)}%` }} />
+                </div>
+                <div className={`rounded-xl px-3 py-2 flex items-center justify-between ${
+                  overBudget ? 'bg-red-50 dark:bg-red-950/20' : 'bg-emerald-50 dark:bg-emerald-950/20'
+                }`}>
+                  <span className="text-xs font-semibold">{overBudget ? 'تجاوزت الميزانية' : 'متبقٍّ من ميزانيتك'}</span>
+                  <span className={`text-lg font-bold ${overBudget ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {fmt(Math.abs(remaining))} د.ع
+                  </span>
+                </div>
               </div>
             )}
-            <div className="mt-2 bg-primary/5 rounded-xl px-3 py-2 flex items-center justify-between">
-              <span className="text-xs font-semibold">الصافي المطلوب</span>
-              <span className="text-lg font-bold text-primary">{fmt(net)} د.ع</span>
-            </div>
+
             {incomeMonthly > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                يعادل دخل {incomeMonths.toFixed(1)} شهر من دخلك الحالي
+              <p className="text-[11px] text-muted-foreground mt-3 text-center">
+                يعادل دخل <span className="font-bold text-foreground">{incomeMonths.toFixed(1)}</span> شهر من دخلك الحالي
               </p>
             )}
           </div>
