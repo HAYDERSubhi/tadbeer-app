@@ -12,8 +12,17 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import ManualExpenseForm from '@/components/expenses/manual-expense-form';
-import EditExpenseForm from '@/components/expenses/edit-expense-form';
+import dynamic from 'next/dynamic';
+
+// تُحمَّل النماذج كسولاً — لا تظهر إلا داخل نافذة منبثقة بضغطة المستخدم،
+// فلا داعي لتحميل react-day-picker + zod + react-hook-form عند فتح الصفحة.
+const FormLoader = () => (
+  <div className="flex items-center justify-center py-10">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
+const ManualExpenseForm = dynamic(() => import('@/components/expenses/manual-expense-form'), { loading: FormLoader, ssr: false });
+const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense-form'), { loading: FormLoader, ssr: false });
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';

@@ -21,8 +21,18 @@ import { format, compareDesc, parseISO, isBefore, startOfMonth } from 'date-fns'
 import { arIQ } from '@/lib/arabic-date';
 import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
-import EditExpenseForm from '@/components/expenses/edit-expense-form';
+import dynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
+
+// تحميل كسول — النموذج لا يظهر إلا داخل نافذة منبثقة بضغطة المستخدم.
+const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense-form'), {
+  loading: () => (
+    <div className="flex items-center justify-center py-10">
+      <Loader2Icon className="h-6 w-6 animate-spin text-primary" />
+    </div>
+  ),
+  ssr: false,
+});
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 import Link from 'next/link';
