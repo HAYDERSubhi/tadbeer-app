@@ -36,6 +36,7 @@ import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
+import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -620,6 +621,8 @@ export default function DashboardPage() {
       <GuestUpgradeBanner />
 
       <UpcomingBillsCard />
+
+      <WeeklySummaryCard />
 
       {/* Budget Alert */}
       {!isAppDataLoading && budgetData.isBudgetSet && budgetData.spentPercentage >= 80 && (
