@@ -182,7 +182,7 @@ export default function AchievementsPage() {
                                 )}
                             </div>
                         </div>
-                        <div className="h-1.5 rounded-full bg-background overflow-hidden">
+                        <div className="h-1.5 rounded-full bg-background overflow-hidden" dir="rtl">
                             <div
                                 className="h-full rounded-full bg-primary transition-all"
                                 style={{ width: `${Math.min((referralCount / 3) * 100, 100)}%` }}
