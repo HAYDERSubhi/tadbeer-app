@@ -173,6 +173,7 @@ export function useBadges() {
                     title: `${def.icon} إنجاز جديد — ${def.name}!`,
                     description: def.description,
                 });
+                try { localStorage.setItem('tadbeer-new-badge', '1'); } catch {}
             }
         };
 

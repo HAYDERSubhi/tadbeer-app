@@ -33,6 +33,8 @@ export default function AchievementsPage() {
         staleTime: 1000 * 60 * 5,
     });
 
+    try { localStorage.removeItem('tadbeer-new-badge'); } catch {}
+
     // NOTE: do NOT set tadbeer-report-viewed here.
     // That flag is only set when user actually visits /report page.
 
