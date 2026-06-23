@@ -143,9 +143,10 @@ export default function WeddingPage() {
   const [plan, setPlan] = useState<WeddingPlan | null>(null);
   const [tierToApply, setTierToApply] = useState<WeddingTier | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [draftBudget, setDraftBudget] = useState(0); // الميزانية في شاشة البداية (قبل بناء الخطة)
   const loadedRef = useRef(false);
 
-  // تحميل الخطة المحفوظة (أو بناء مستوى متوسط لأول مرة)
+  // تحميل الخطة المحفوظة. إن لم توجد، تبقى الخطة null → تظهر شاشة الميزانية أولاً.
   const { data: saved, isLoading } = useQuery({
     queryKey: ['weddingPlan', user?.uid],
     queryFn:  () => getWeddingPlan(user!.uid),
@@ -154,13 +155,22 @@ export default function WeddingPage() {
 
   useEffect(() => {
     if (isLoading || plan) return;
-    setPlan(saved ?? buildPlan('medium'));
+    if (saved) setPlan(saved); // مستخدم عائد له خطة محفوظة → ادخل المحرّر مباشرة
+    // مستخدم جديد بلا خطة → نُبقي plan = null لتظهر شاشة البداية (الميزانية أولاً)
   }, [saved, isLoading, plan]);
 
   const saveMutation = useMutation({
     mutationFn: (p: WeddingPlan) => saveWeddingPlan(user!.uid, p),
     onSuccess:  () => { setSaveState('saved'); qc.invalidateQueries({ queryKey: ['weddingPlan', user?.uid] }); },
   });
+
+  // بناء الخطة من شاشة البداية على ضوء الميزانية، ثم حفظها فوراً (فلا تتكرر شاشة البداية)
+  function startPlan(tier: WeddingTier, budget?: number) {
+    const p = buildPlan(tier, budget && budget > 0 ? budget : undefined);
+    loadedRef.current = true;     // التعديلات اللاحقة ستُحفظ تلقائياً
+    setPlan(p);
+    saveMutation.mutate(p);       // حفظ فوري ليتجاوز المستخدم العائد شاشة البداية
+  }
 
   // حفظ تلقائي مؤجّل (1.2 ثانية بعد آخر تعديل)
   useEffect(() => {
@@ -238,11 +248,76 @@ export default function WeddingPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(lines)}`, '_blank');
   }
 
-  if (isLoading || !plan) {
+  if (isLoading) {
     return (
       <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto px-1 pt-2 gap-2 animate-pulse">
         <div className="h-10 bg-muted rounded-xl" />
         {[1,2,3,4].map(i => <div key={i} className="h-16 bg-muted rounded-2xl" />)}
+      </div>
+    );
+  }
+
+  // ── شاشة البداية: الميزانية أولاً — لا تظهر أي بنود قبل تحديدها ──
+  if (!plan) {
+    const sug = draftBudget > 0 ? suggestTier(draftBudget) : null;
+    return (
+      <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto px-1">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
+          <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
+            <ChevronRight className="h-6 w-6" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold">حاسبة زواجي</h1>
+            <p className="text-[11px] text-muted-foreground">لنبدأ بميزانيتك</p>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center gap-5 pb-20">
+          <div className="text-center px-2">
+            <p className="text-2xl font-bold mb-2">كم رصدت لزواجك؟</p>
+            <p className="text-sm text-muted-foreground">
+              أدخل المبلغ الذي خصّصته، وسنبني لك خطة تناسبه — ثم تعدّلها بحرية.
+            </p>
+          </div>
+
+          <div className="relative px-2">
+            <input
+              value={fmtInput(draftBudget)}
+              onChange={e => setDraftBudget(parseAmt(e.target.value))}
+              inputMode="numeric"
+              autoFocus
+              placeholder="مثال: 40,000,000"
+              className="w-full bg-card border-2 border-border rounded-2xl pl-12 pr-4 py-4 text-xl text-right font-bold outline-none focus:border-primary" />
+            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
+          </div>
+
+          {draftBudget > 0 ? (
+            <div className="px-2">
+              <p className="text-xs text-center text-muted-foreground mb-2">
+                ميزانيتك تناسب مستوى «{TIER_LABEL[sug!]}». اختر نقطة البداية:
+              </p>
+              <div className="flex gap-2">
+                {(['economy','medium','luxury'] as WeddingTier[]).map(t => (
+                  <button key={t} onClick={() => startPlan(t, draftBudget)}
+                    className={`flex-1 py-3 rounded-xl font-semibold border flex flex-col items-center gap-0.5 transition-all ${
+                      sug === t ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border'
+                    }`}>
+                    <span className="text-sm">{TIER_LABEL[t]}</span>
+                    <span className="text-[10px] opacity-80">~{fmt(TIER_TOTAL[t] / 1000000)}م</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="px-2">
+              <button onClick={() => startPlan('medium')}
+                className="w-full py-3 rounded-xl border border-dashed border-border text-sm text-muted-foreground active:scale-[0.98] transition-all">
+                ابدأ بدون تحديد ميزانية
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
