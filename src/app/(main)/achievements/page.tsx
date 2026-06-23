@@ -36,6 +36,17 @@ export default function AchievementsPage() {
     // NOTE: do NOT set tadbeer-report-viewed here.
     // That flag is only set when user actually visits /report page.
 
+    const shareBadge = async (badge: { icon: string; name: string; description: string }) => {
+        const text = `${badge.icon} حصلت على شارة "${badge.name}" في تدبير!\n${badge.description}`;
+        const url = 'https://tadbeer.app';
+        if (navigator.share) {
+            await navigator.share({ title: 'تدبير — إنجاز جديد!', text, url }).catch(() => {});
+        } else {
+            await navigator.clipboard.writeText(`${text}\n${url}`);
+            toast({ title: 'تم نسخ النص! 📋' });
+        }
+    };
+
     const earnedIds = new Set(earnedBadges.map(b => b.id));
     const earnedCount = earnedBadges.length;
     const totalCount = BADGES.length;
@@ -108,11 +119,19 @@ export default function AchievementsPage() {
                             <p className={cn('font-bold text-sm', badge.textColor)}>{badge.name}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">{badge.description}</p>
                         </div>
-                        <div className="text-right shrink-0">
+                        <div className="text-right shrink-0 flex flex-col items-end gap-1">
                             <p className="text-[10px] text-muted-foreground">
                                 {getEarnedDate(badge.id)}
                             </p>
                             <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ مفتوح</p>
+                            <button
+                                onClick={() => shareBadge(badge)}
+                                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+                                aria-label="شارك الشارة"
+                            >
+                                <Share2 className="h-3 w-3" />
+                                شارك
+                            </button>
                         </div>
                     </div>
                 ))}

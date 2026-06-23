@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -74,12 +74,29 @@ export async function POST(req: NextRequest) {
       );
       if (!expSnap.empty) { skipped++; continue; }
 
+      // جلب مصاريف أمس لتخصيص نص الإشعار
+      const yesterday = subDays(new Date(), 1);
+      const yStart = startOfDay(yesterday).toISOString();
+      const yEnd   = endOfDay(yesterday).toISOString();
+      const ySnap = await getDocs(
+        query(
+          collection(db, 'users', userId, 'expenses'),
+          where('date', '>=', yStart),
+          where('date', '<=', yEnd)
+        )
+      );
+      const yesterdayTotal = ySnap.docs.reduce((s, d) => s + (d.data().amount ?? 0), 0);
+
+      const body = yesterdayTotal > 0
+        ? `أمس أنفقت ${yesterdayTotal.toLocaleString('ar-IQ')} د.ع — اليوم ما الجديد؟`
+        : 'لم تسجّل أي مصروف اليوم — دقيقة واحدة تكفي!';
+
       try {
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
             title: '🔔 تدبير',
-            body: 'لم تسجّل أي مصروف اليوم — دقيقة واحدة تكفي!',
+            body,
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             url: '/',
