@@ -165,7 +165,7 @@ export type WeddingPlan = {
   disabled: Record<string, boolean>;                       // البنود المُستبعَدة
   guests: number;        // عدد المدعوين (للبوفيه)
   perGuest: number;      // تكلفة الفرد للبوفيه
-  gifts: number;         // النقوط/النثرية المتوقعة
+  budget?: number;       // الميزانية التي رصدها المستخدم (اختيارية — عمود التخطيط)
   tier: WeddingTier | null; // آخر مستوى مُطبَّق
   updatedAt: string;
 };
