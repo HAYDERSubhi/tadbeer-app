@@ -1677,19 +1677,34 @@ export default function SettingsPage() {
 
             <div>
               <h3 className="font-medium mb-3 text-sm">الإشعارات</h3>
-              <div className="flex items-center justify-between rounded-lg border p-3 opacity-60">
+              <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="flex items-center gap-3">
                   <Bell className="h-5 w-5 text-muted-foreground" />
                   <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm font-medium">التذكير اليومي</Label>
-                      <span className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 px-1.5 py-0.5 rounded-full">قريباً</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">إشعار يومي لتسجيل المصروفات.</p>
+                    <Label className="text-sm font-medium">التذكير اليومي</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {dailyReminderEnabled
+                        ? 'سيصلك إشعار كل يوم الساعة 8 مساءً.'
+                        : 'فعّل لتلقّي تذكير يومي بتسجيل مصاريفك.'}
+                    </p>
+                    {dailyReminderEnabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                        يحتاج إذن الإشعارات من إعدادات المتصفح
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Switch disabled aria-label="التذكير اليومي" />
+                <Switch
+                  checked={dailyReminderEnabled}
+                  onCheckedChange={handleDailyReminderChange}
+                  aria-label="التذكير اليومي"
+                />
               </div>
+              {dailyReminderEnabled && (
+                <p className="text-[10px] text-muted-foreground mt-2 px-1 leading-relaxed">
+                  ملاحظة: يجب أن يكون التطبيق مثبّتاً على الشاشة الرئيسية لضمان وصول الإشعار.
+                </p>
+              )}
             </div>
           </div>
         </AccordionItemWrapper>
