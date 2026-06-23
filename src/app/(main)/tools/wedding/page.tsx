@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import { getWeddingPlan, saveWeddingPlan } from '@/services/firestore';
-import { ChevronRight, ListChecks, PieChart, Share2, Check, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ListChecks, PieChart, Share2, Check, AlertTriangle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import type { WeddingPlan, WeddingResponsibility, WeddingTier } from '@/types';
 
@@ -144,6 +144,7 @@ export default function WeddingPage() {
   const [tierToApply, setTierToApply] = useState<WeddingTier | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [draftBudget, setDraftBudget] = useState(0); // الميزانية في شاشة البداية (قبل بناء الخطة)
+  const [forceGate, setForceGate] = useState(false); // «ابدأ من جديد» — يُظهر شاشة البداية رغم وجود خطة
   const loadedRef = useRef(false);
 
   // تحميل الخطة المحفوظة. إن لم توجد، تبقى الخطة null → تظهر شاشة الميزانية أولاً.
@@ -168,8 +169,15 @@ export default function WeddingPage() {
   function startPlan(tier: WeddingTier, budget?: number) {
     const p = buildPlan(tier, budget && budget > 0 ? budget : undefined);
     loadedRef.current = true;     // التعديلات اللاحقة ستُحفظ تلقائياً
+    setForceGate(false);
     setPlan(p);
     saveMutation.mutate(p);       // حفظ فوري ليتجاوز المستخدم العائد شاشة البداية
+  }
+
+  // «ابدأ من جديد» — يعيد المستخدم لشاشة الميزانية مع تعبئة ميزانيته الحالية
+  function restart() {
+    setDraftBudget(plan?.budget ?? 0);
+    setForceGate(true);
   }
 
   // حفظ تلقائي مؤجّل (1.2 ثانية بعد آخر تعديل)
@@ -258,15 +266,21 @@ export default function WeddingPage() {
   }
 
   // ── شاشة البداية: الميزانية أولاً — لا تظهر أي بنود قبل تحديدها ──
-  if (!plan) {
+  if (!plan || forceGate) {
     const sug = draftBudget > 0 ? suggestTier(draftBudget) : null;
     return (
       <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto px-1">
         {/* Header */}
         <div className="flex items-center gap-3 px-1 pt-1 pb-2 shrink-0">
-          <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
-            <ChevronRight className="h-6 w-6" />
-          </Link>
+          {forceGate ? (
+            <button onClick={() => setForceGate(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          ) : (
+            <Link href="/tools" className="text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="h-6 w-6" />
+            </Link>
+          )}
           <div className="flex-1">
             <h1 className="text-lg font-bold">حاسبة زواجي</h1>
             <p className="text-[11px] text-muted-foreground">لنبدأ بميزانيتك</p>
@@ -338,6 +352,11 @@ export default function WeddingPage() {
             {saveState === 'saved'  && <span className="text-emerald-500">· محفوظ ✓</span>}
           </p>
         </div>
+        <button onClick={restart}
+          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2 py-1 rounded-lg border border-border">
+          <RotateCcw className="h-3.5 w-3.5" />
+          ابدأ من جديد
+        </button>
       </div>
 
       {/* تبويبان */}
