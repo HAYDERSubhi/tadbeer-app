@@ -80,8 +80,11 @@ export type Category = {
     isDefault?: boolean; // To distinguish default from user-created
 };
 
+export type ReminderSlot = 'morning' | 'afternoon' | 'evening';
+
 export type NotificationSettings = {
   dailyReminderEnabled?: boolean;
+  reminderSlot?: ReminderSlot;
 }
 
 export type CurrencyCode = 'IQD' | 'SAR' | 'USD' | 'EUR' | 'GBP' | 'AED' | 'KWD' | 'EGP' | 'TRY';

@@ -519,6 +519,7 @@ export default function SettingsPage() {
   const [recurringPayments, setRecurringPayments] = useState<RecurringPayment[]>([]);
   const [appTone, setAppTone] = useState<AppTone>('formal');
   const [dailyReminderEnabled, setDailyReminderEnabled] = useState(false);
+  const [reminderSlot, setReminderSlot] = useState<import('@/types').ReminderSlot>('evening');
   const [currency, setCurrency] = useState<import('@/types').CurrencyCode>('IQD');
   const [isBackupLoading, setIsBackupLoading] = useState(false);
   const [isRestoreLoading, setIsRestoreLoading] = useState(false);
@@ -591,6 +592,7 @@ export default function SettingsPage() {
       setZeroSpendDaysTargetInput(userSettings.budget?.zeroSpendDaysTarget?.toString() || '4');
       setAppTone(userSettings.appTone || 'formal');
       setDailyReminderEnabled(userSettings.notifications?.dailyReminderEnabled ?? false);
+      setReminderSlot(userSettings.notifications?.reminderSlot ?? 'evening');
       setCurrency(userSettings.currency || 'IQD');
       
       const stringBudgets = Object.entries(userSettings.categoryBudgets || {}).reduce((acc, [key, value]) => {
@@ -745,7 +747,7 @@ export default function SettingsPage() {
         } catch { /* push not supported — silent fail */ }
       }
     }
-    updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked } });
+    updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked, reminderSlot } });
   };
 
 
@@ -1684,7 +1686,7 @@ export default function SettingsPage() {
                     <Label className="text-sm font-medium">التذكير اليومي</Label>
                     <p className="text-xs text-muted-foreground">
                       {dailyReminderEnabled
-                        ? 'سيصلك إشعار كل يوم الساعة 8 مساءً.'
+                        ? `سيصلك إشعار يومياً في ${reminderSlot === 'morning' ? 'الصباح (8 ص)' : reminderSlot === 'afternoon' ? 'الظهيرة (2 م)' : 'المساء (8 م)'}.`
                         : 'فعّل لتلقّي تذكير يومي بتسجيل مصاريفك.'}
                     </p>
                     {dailyReminderEnabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
@@ -1700,10 +1702,38 @@ export default function SettingsPage() {
                   aria-label="التذكير اليومي"
                 />
               </div>
+
               {dailyReminderEnabled && (
-                <p className="text-[10px] text-muted-foreground mt-2 px-1 leading-relaxed">
-                  ملاحظة: يجب أن يكون التطبيق مثبّتاً على الشاشة الرئيسية لضمان وصول الإشعار.
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-muted-foreground px-1">وقت التذكير</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { key: 'morning',   label: 'صباحاً',  time: '8 ص' },
+                      { key: 'afternoon', label: 'ظهراً',   time: '2 م' },
+                      { key: 'evening',   label: 'مساءً',   time: '8 م' },
+                    ] as const).map(({ key, label, time }) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setReminderSlot(key);
+                          updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: true, reminderSlot: key } });
+                        }}
+                        className={cn(
+                          'flex flex-col items-center justify-center rounded-lg border-2 py-2.5 gap-0.5 transition-all text-center',
+                          reminderSlot === key
+                            ? 'border-primary bg-primary/5'
+                            : 'border-transparent bg-muted/50'
+                        )}
+                      >
+                        <span className="text-xs font-semibold">{label}</span>
+                        <span className="text-[10px] text-muted-foreground">{time}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground px-1 leading-relaxed">
+                    يجب أن يكون التطبيق مثبّتاً على الشاشة الرئيسية لضمان وصول الإشعار.
+                  </p>
+                </div>
               )}
             </div>
           </div>

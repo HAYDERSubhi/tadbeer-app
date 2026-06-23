@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { getFirestore, collection, getDocs, query, where, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { startOfDay, endOfDay } from 'date-fns';
 
-// Initialize Firebase for server context
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -23,11 +22,24 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
+// Iraq is UTC+3
+// morning   → 8 AM Iraq = 05:00 UTC
+// afternoon → 2 PM Iraq = 11:00 UTC
+// evening   → 8 PM Iraq = 17:00 UTC
+const SLOT_UTC: Record<string, number> = {
+  morning:   5,
+  afternoon: 11,
+  evening:   17,
+};
+
 export async function POST(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const slot = searchParams.get('slot') ?? 'evening';
 
   try {
     const subsSnap = await getDocs(collection(db, 'pushSubscriptions'));
@@ -35,11 +47,24 @@ export async function POST(req: NextRequest) {
     let skipped = 0;
 
     for (const subDoc of subsSnap.docs) {
-      const { subscription, userId } = subDoc.data() as { subscription: webpush.PushSubscription; userId: string };
+      const { subscription, userId } = subDoc.data() as {
+        subscription: webpush.PushSubscription;
+        userId: string;
+      };
       if (!subscription || !userId) continue;
 
+      // تحقق من إعداد المستخدم — هل يريد إشعاراً في هذا الوقت؟
+      try {
+        const settingsDoc = await getDoc(doc(db, 'users', userId, 'settings', 'main'));
+        const notifications = settingsDoc.data()?.notifications ?? {};
+        if (!notifications.dailyReminderEnabled) { skipped++; continue; }
+        const userSlot = notifications.reminderSlot ?? 'evening';
+        if (userSlot !== slot) { skipped++; continue; }
+      } catch { skipped++; continue; }
+
+      // لا ترسل إذا سجّل مصروفاً اليوم بالفعل
       const todayStart = startOfDay(new Date()).toISOString();
-      const todayEnd = endOfDay(new Date()).toISOString();
+      const todayEnd   = endOfDay(new Date()).toISOString();
       const expSnap = await getDocs(
         query(
           collection(db, 'users', userId, 'expenses'),
@@ -47,15 +72,14 @@ export async function POST(req: NextRequest) {
           where('date', '<=', todayEnd)
         )
       );
-
       if (!expSnap.empty) { skipped++; continue; }
 
       try {
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
-            title: '🔥 تدبير — تذكير يومي',
-            body: 'لم تسجّل أي مصروف اليوم. دقيقة واحدة تكفي! 💰',
+            title: '🔔 تدبير',
+            body: 'لم تسجّل أي مصروف اليوم — دقيقة واحدة تكفي!',
             icon: '/icon-192x192.png',
             badge: '/icon-192x192.png',
             url: '/',
@@ -69,7 +93,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, sent, skipped });
+    return NextResponse.json({ ok: true, slot, sent, skipped });
   } catch (err) {
     console.error('push send error:', err);
     return NextResponse.json({ error: 'server error' }, { status: 500 });
