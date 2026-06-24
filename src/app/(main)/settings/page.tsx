@@ -738,10 +738,11 @@ export default function SettingsPage() {
               const key = Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
               sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
             }
+            const idToken = await user.getIdToken();
             await fetch('/api/push/subscribe', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subscription: sub.toJSON(), userId: user.uid }),
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+              body: JSON.stringify({ subscription: sub.toJSON() }),
             });
           }
         } catch { /* push not supported — silent fail */ }

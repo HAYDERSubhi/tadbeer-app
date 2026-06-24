@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
-import { getFirestore, collection, getDocs, query, where, deleteDoc, doc, getDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { adminDb } from '@/lib/firebase-admin';
 import { startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const runtime = 'nodejs';
 
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL!,
@@ -22,7 +11,7 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY!
 );
 
-export async function POST(req: NextRequest) {
+async function handler(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -39,7 +28,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const subsSnap = await getDocs(collection(db, 'pushSubscriptions'));
+    const db = adminDb();
+    const subsSnap = await db.collection('pushSubscriptions').get();
     let sent = 0;
     let skipped = 0;
 
@@ -52,8 +42,8 @@ export async function POST(req: NextRequest) {
 
       // تحقق أن المستخدم مفعّل التذكيرات
       try {
-        const settingsDoc = await getDoc(doc(db, 'users', userId, 'settings', 'main'));
-        const data = settingsDoc.data() ?? {};
+        const settingsSnap = await db.doc(`users/${userId}/settings/main`).get();
+        const data = settingsSnap.data() ?? {};
         if (!data.notifications?.dailyReminderEnabled) { skipped++; continue; }
 
         // احسب إجمالي الإنفاق هذا الشهر مقارنةً بالميزانية
@@ -62,13 +52,10 @@ export async function POST(req: NextRequest) {
 
         const monthStart = startOfMonth(now).toISOString();
         const monthEnd   = endOfMonth(now).toISOString();
-        const expSnap = await getDocs(
-          query(
-            collection(db, 'users', userId, 'expenses'),
-            where('date', '>=', monthStart),
-            where('date', '<=', monthEnd)
-          )
-        );
+        const expSnap = await db.collection(`users/${userId}/expenses`)
+          .where('date', '>=', monthStart)
+          .where('date', '<=', monthEnd)
+          .get();
         const spent = expSnap.docs.reduce((s, d) => s + (d.data().amount ?? 0), 0);
         const remaining = budget - spent;
 
@@ -92,7 +79,7 @@ export async function POST(req: NextRequest) {
         sent++;
       } catch (err: any) {
         if (err?.statusCode === 410 || err?.statusCode === 404) {
-          await deleteDoc(subDoc.ref);
+          await subDoc.ref.delete();
         } else {
           skipped++;
         }
@@ -105,3 +92,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'server error' }, { status: 500 });
   }
 }
+
+// Vercel Cron يستدعي عبر GET؛ نقبل POST أيضاً للاستدعاء اليدوي/الاختبار.
+export { handler as GET, handler as POST };

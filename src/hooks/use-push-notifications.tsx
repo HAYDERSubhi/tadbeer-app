@@ -35,10 +35,11 @@ export function usePushNotifications() {
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
           });
         }
+        const idToken = await user.getIdToken();
         await fetch('/api/push/subscribe', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription: sub.toJSON(), userId: user.uid }),
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body: JSON.stringify({ subscription: sub.toJSON() }),
         });
         registered.current = true;
       } catch { /* silent fail */ }
