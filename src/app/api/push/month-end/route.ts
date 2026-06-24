@@ -5,11 +5,16 @@ import { startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
 
 export const runtime = 'nodejs';
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+let vapidReady = false;
+function ensureVapid() {
+  if (vapidReady) return;
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  vapidReady = true;
+}
 
 async function handler(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -28,6 +33,7 @@ async function handler(req: NextRequest) {
   }
 
   try {
+    ensureVapid();
     const db = adminDb();
     const subsSnap = await db.collection('pushSubscriptions').get();
     let sent = 0;
