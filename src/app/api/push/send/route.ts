@@ -93,9 +93,9 @@ async function handler(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, slot, sent, skipped });
-  } catch (err: any) {
+  } catch (err) {
     console.error('push send error:', err);
-    return NextResponse.json({ error: 'server error', detail: String(err?.message || err) }, { status: 500 });
+    return NextResponse.json({ error: 'server error' }, { status: 500 });
   }
 }
 
