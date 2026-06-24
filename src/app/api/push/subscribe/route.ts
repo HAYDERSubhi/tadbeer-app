@@ -1,32 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { adminDb, adminAuth } from '@/lib/firebase-admin';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as { subscription: unknown; userId: string };
-    const { subscription, userId } = body;
-    if (!subscription || !userId) {
+    // تحقّق من هوية المُرسِل — لا أحد يكتب اشتراكاً باسم غيره.
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!token) {
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
+
+    let decoded;
+    try {
+      decoded = await adminAuth().verifyIdToken(token);
+    } catch {
+      return NextResponse.json({ error: 'invalid session' }, { status: 401 });
+    }
+
+    const uid = decoded.uid;
+    const body = (await req.json()) as { subscription: unknown };
+    const { subscription } = body;
+    if (!subscription) {
       return NextResponse.json({ error: 'missing fields' }, { status: 400 });
     }
 
-    await setDoc(
-      doc(db, 'pushSubscriptions', userId),
-      { subscription, userId, updatedAt: new Date().toISOString() },
-      { merge: true }
-    );
+    // admin SDK يتجاوز قواعد الأمان — المجموعة تبقى مقفلة أمام العملاء.
+    await adminDb()
+      .collection('pushSubscriptions')
+      .doc(uid)
+      .set({ subscription, userId: uid, updatedAt: new Date().toISOString() }, { merge: true });
 
     return NextResponse.json({ ok: true });
   } catch (err) {
