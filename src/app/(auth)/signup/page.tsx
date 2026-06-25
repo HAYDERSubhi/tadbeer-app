@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
-import { addExpense, recordReferral } from '@/services/firestore';
+import { recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
@@ -40,12 +40,6 @@ const perks = [
   'مزامنة بياناتك على كل أجهزتك',
   'نسخ احتياطي تلقائي آمن',
   'إحصائيات وتقارير ذكية',
-];
-
-const sampleExpenses = [
-  { title: 'قهوة الصباح',         amount: 3000,  category: 'food',          date: new Date().toISOString() },
-  { title: 'تعبئة وقود السيارة',  amount: 45000, category: 'private_car',   date: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { title: 'فاتورة انترنت',       amount: 30000, category: 'subscriptions', date: new Date(Date.now() - 86400000 * 5).toISOString() },
 ];
 
 export default function SignupPage() {
@@ -95,16 +89,10 @@ export default function SignupPage() {
       return;
     }
 
-    // ── المرحلة 2: بذر بيانات تجريبية (best-effort) — يجب ألا يمنع الدخول أبداً ──
-    try {
-      if (userCredential?.user) {
-        await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
-        const refUid = sessionStorage.getItem('tadbeer-ref');
-        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
-      }
-    } catch (seedErr) {
-      // الحساب أُنشئ بنجاح؛ فشل المصاريف التجريبية غير قاتل ولا يُعرض للمستخدم.
-      console.error('sample-data seed failed (non-fatal):', seedErr);
+    // ── المرحلة 2: تسجيل الإحالة إن وُجدت (best-effort، لا يمنع الدخول) ──
+    if (userCredential?.user) {
+      const refUid = sessionStorage.getItem('tadbeer-ref');
+      if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
     }
 
     toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
@@ -134,17 +122,12 @@ export default function SignupPage() {
       return;
     }
 
-    // ── المرحلة 2: بذر بيانات تجريبية للمستخدم الجديد (best-effort) ──
+    // ── المرحلة 2: تسجيل الإحالة للمستخدم الجديد (best-effort) ──
     const additionalInfo = getAdditionalUserInfo(userCredential);
     const isNewUser = additionalInfo?.isNewUser;
     if (isNewUser && userCredential.user) {
-      try {
-        await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
-        const refUid = sessionStorage.getItem('tadbeer-ref');
-        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
-      } catch (seedErr) {
-        console.error('sample-data seed failed (non-fatal):', seedErr);
-      }
+      const refUid = sessionStorage.getItem('tadbeer-ref');
+      if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
       toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
     } else {
       toast({ title: 'أهلاً بعودتك!' });
@@ -156,11 +139,8 @@ export default function SignupPage() {
   const handleGuestSignIn = async () => {
     setIsGuestLoading(true);
     try {
-      const cred = await signInAsGuest();
-      if (cred?.user) {
-        await Promise.all(sampleExpenses.map(exp => addExpense(cred.user.uid, exp)));
-      }
-      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك مؤقتة على هذا الجهاز فقط. أضفنا لك مصاريف تجريبية للبداية.' });
+      await signInAsGuest();
+      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك مؤقتة على هذا الجهاز فقط.' });
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
