@@ -135,6 +135,11 @@ export default function OnboardingSheet() {
   };
 
   const next = () => {
+    // عند تجاوز خطوة الدخل (الإلزامية): احفظ الدخل فوراً (دمج جزئي آمن) كي لا يضيع
+    // مهما أُغلق المعالج لاحقاً — حتى عبر الـ ✕. الميزانية/الأسرة تُحفظان عند الإنهاء.
+    if (step === 0 && user) {
+      updateUserSettings(user.uid, { profile: { monthlyIncome: parse(income) } }).catch(() => {});
+    }
     if (step < TOTAL_STEPS - 1) setStep(s => s + 1);
     else handleFinish();
   };
