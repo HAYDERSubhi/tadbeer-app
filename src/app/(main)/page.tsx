@@ -625,7 +625,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-3 pb-24">
       <OnboardingSheet />
-      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" />
+      {/* الجولة تُؤجَّل حتى يضيف المستخدم أول مصروف — فتظهر على لوحة فيها محتوى حقيقي يُشرَح */}
+      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses} />
 
       <GuestUpgradeBanner />
 

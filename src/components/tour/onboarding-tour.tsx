@@ -16,6 +16,8 @@ interface TourStep {
 interface OnboardingTourProps {
   steps: TourStep[];
   tourKey: string;
+  /** الجولة لا تبدأ إلا عندما يصبح true (مثلاً: بعد إضافة أول مصروف). افتراضياً true للتوافق. */
+  enabled?: boolean;
 }
 
 const TooltipArrow = ({ placement }: { placement: TourStep['placement'] }) => {
@@ -31,7 +33,7 @@ const TooltipArrow = ({ placement }: { placement: TourStep['placement'] }) => {
     return <div className={cn(baseClasses, placementClasses[currentPlacement])} />;
 };
 
-export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) {
+export default function OnboardingTour({ steps, tourKey, enabled = true }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -45,24 +47,13 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
   
   useEffect(() => {
     if (!isClient) return;
+    if (!enabled) return; // ننتظر وجود محتوى يُشرَح (أول مصروف) قبل بدء الجولة
+    if (localStorage.getItem(tourKey)) return; // شوهدت من قبل — لا تتكرر أبداً
+    if (!localStorage.getItem('tadbeer-onboarding-v1')) return; // معالج الإعداد لم يُغلَق بعد — لا تتداخل معه
 
-    const hasCompletedTour = localStorage.getItem(tourKey);
-    if (hasCompletedTour) return; // Already seen — never show again
-
-    const hasCompletedOnboarding = localStorage.getItem('tadbeer-onboarding-v1');
-
-    if (hasCompletedOnboarding) {
-      // Onboarding already done (returning user who hasn't seen tour yet)
-      setTimeout(() => setIsOpen(true), 800);
-    } else {
-      // Wait for onboarding to finish, then show tour
-      const handler = () => {
-        setTimeout(() => setIsOpen(true), 600);
-      };
-      window.addEventListener('onboarding-complete', handler);
-      return () => window.removeEventListener('onboarding-complete', handler);
-    }
-  }, [isClient, tourKey]);
+    const t = setTimeout(() => setIsOpen(true), 600);
+    return () => clearTimeout(t);
+  }, [isClient, tourKey, enabled]);
 
   const updatePosition = useCallback(() => {
     const step = steps[currentStep];
@@ -136,11 +127,17 @@ export default function OnboardingTour({ steps, tourKey }: OnboardingTourProps) 
 
         }, 300); // Wait for scroll to finish
     } else {
-      console.warn(`Tour step ${currentStep}: Element with selector "${step.selector}" not found.`);
-      setTargetRect(null);
-      setCurrentPlacement('center');
+      // العنصر غير موجود على هذه الشاشة (مثلاً المستخدم تخطّى الميزانية فلا توجد بطاقتها) —
+      // نتخطّى الخطوة بدل إظهار فقاعة معلّقة في وسط الشاشة بلا هدف.
+      console.warn(`Tour step ${currentStep}: "${step.selector}" not found — skipping.`);
+      if (currentStep < steps.length - 1) {
+        setCurrentStep(s => s + 1);
+      } else {
+        setIsOpen(false);
+        localStorage.setItem(tourKey, 'true');
+      }
     }
-  }, [currentStep, steps]);
+  }, [currentStep, steps, tourKey]);
 
   useEffect(() => {
     if (isOpen) {

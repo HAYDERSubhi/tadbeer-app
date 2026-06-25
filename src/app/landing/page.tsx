@@ -95,7 +95,7 @@ export default function LandingPage() {
           </p>
 
           <Link
-            href="/login"
+            href="/signup"
             className="inline-block bg-white text-primary font-bold text-sm px-10 py-3.5 rounded-full shadow-lg"
           >
             ابدأ مجاناً ←
@@ -228,7 +228,7 @@ export default function LandingPage() {
           <h2 className="text-white text-xl font-bold mt-3 mb-1">ابدأ رحلتك المالية اليوم</h2>
           <p className="text-white/70 text-sm mb-6">سجّل وابدأ تتبّع مصاريفك في ثوانٍ</p>
           <Link
-            href="/login"
+            href="/signup"
             className="block bg-white text-primary font-bold text-sm py-3.5 rounded-full shadow"
           >
             ابدأ مجاناً — سجّل الآن
