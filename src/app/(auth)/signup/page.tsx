@@ -73,48 +73,84 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     setUnauthorizedDomain(null);
+
+    // ── المرحلة 1: إنشاء الحساب فقط — هذه وحدها التي قد تفشل فشلاً قاتلاً ──
+    let userCredential: any;
     try {
-      const userCredential = await signUpWithEmailPassword(data.email, data.password);
-      if (userCredential.user) {
+      userCredential = await signUpWithEmailPassword(data.email, data.password);
+    } catch (error: any) {
+      console.error('signup auth error:', error?.code, error);
+      let description = `حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى. (${error?.code ?? 'unknown'})`;
+      if (error.code === 'auth/email-already-in-use') description = 'هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول.';
+      else if (error.code === 'auth/network-request-failed') description = 'فشل الاتصال بالشبكة. تأكد من اتصالك وحاول مجدداً.';
+      else if (error.code === 'auth/invalid-email') description = 'البريد الإلكتروني غير صالح.';
+      else if (error.code === 'auth/weak-password' || error.code === 'auth/password-does-not-meet-requirements')
+        description = 'كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.';
+      else if (error.code === 'auth/operation-not-allowed')
+        description = 'التسجيل بالبريد غير مفعّل حالياً. جرّب التسجيل بـ Google.';
+      else if (error.code === 'auth/too-many-requests')
+        description = 'محاولات كثيرة. انتظر قليلاً ثم حاول مجدداً.';
+      toast({ title: 'خطأ في إنشاء الحساب', description, variant: 'destructive' });
+      setIsLoading(false);
+      return;
+    }
+
+    // ── المرحلة 2: بذر بيانات تجريبية (best-effort) — يجب ألا يمنع الدخول أبداً ──
+    try {
+      if (userCredential?.user) {
         await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
-        // Record referral if came via invite link
         const refUid = sessionStorage.getItem('tadbeer-ref');
         if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
       }
-      toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'أضفنا لك مصاريف تجريبية للبداية.' });
-      router.push('/');
-    } catch (error: any) {
-      let description = 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
-      if (error.code === 'auth/email-already-in-use') description = 'هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول.';
-      else if (error.code === 'auth/network-request-failed') description = 'فشل الاتصال بالشبكة.';
-      toast({ title: 'خطأ في إنشاء الحساب', description, variant: 'destructive' });
-    } finally { setIsLoading(false); }
+    } catch (seedErr) {
+      // الحساب أُنشئ بنجاح؛ فشل المصاريف التجريبية غير قاتل ولا يُعرض للمستخدم.
+      console.error('sample-data seed failed (non-fatal):', seedErr);
+    }
+
+    toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
+    router.push('/');
+    setIsLoading(false);
   };
 
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     setUnauthorizedDomain(null);
+    // ── المرحلة 1: مصادقة Google فقط ──
+    let userCredential: UserCredential;
     try {
-      const userCredential = await signInWithGoogle();
-      const additionalInfo = getAdditionalUserInfo(userCredential);
-      if (additionalInfo?.isNewUser && userCredential.user) {
-        await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
-        const refUid = sessionStorage.getItem('tadbeer-ref');
-        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
-        toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'أضفنا لك مصاريف تجريبية للبداية.' });
-      } else {
-        toast({ title: 'أهلاً بعودتك!' });
-      }
-      router.push('/');
+      userCredential = await signInWithGoogle();
     } catch (error: any) {
+      console.error('google signup error:', error?.code, error);
       if (error.code === 'auth/unauthorized-domain') {
         setUnauthorizedDomain(window.location.hostname);
       } else {
         let description = 'فشل إنشاء الحساب باستخدام Google.';
         if (error.code === 'auth/popup-closed-by-user') description = 'أغلقت نافذة Google قبل اكتمال التسجيل.';
+        else if (error.code === 'auth/popup-blocked') description = 'المتصفح منع النافذة المنبثقة. اسمح بها وحاول مجدداً.';
+        else if (error.code === 'auth/network-request-failed') description = 'فشل الاتصال بالشبكة.';
         toast({ title: 'خطأ في إنشاء الحساب', description, variant: 'destructive' });
       }
-    } finally { setIsGoogleLoading(false); }
+      setIsGoogleLoading(false);
+      return;
+    }
+
+    // ── المرحلة 2: بذر بيانات تجريبية للمستخدم الجديد (best-effort) ──
+    const additionalInfo = getAdditionalUserInfo(userCredential);
+    const isNewUser = additionalInfo?.isNewUser;
+    if (isNewUser && userCredential.user) {
+      try {
+        await Promise.all(sampleExpenses.map(exp => addExpense(userCredential.user.uid, exp)));
+        const refUid = sessionStorage.getItem('tadbeer-ref');
+        if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
+      } catch (seedErr) {
+        console.error('sample-data seed failed (non-fatal):', seedErr);
+      }
+      toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
+    } else {
+      toast({ title: 'أهلاً بعودتك!' });
+    }
+    router.push('/');
+    setIsGoogleLoading(false);
   };
 
   const handleGuestSignIn = async () => {
