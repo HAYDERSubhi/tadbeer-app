@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { X, Share } from 'lucide-react';
+import { X, Share, ChevronDown } from 'lucide-react';
 
 export function IosInstallBanner() {
   const [visible, setVisible] = useState(false);
@@ -56,6 +56,11 @@ export function IosInstallBanner() {
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+
+      {/* سهم نابض يشير لأسفل نحو زر المشاركة في شريط Safari السفلي */}
+      <div className="flex justify-center" aria-hidden="true">
+        <ChevronDown className="h-6 w-6 text-primary animate-bounce drop-shadow" strokeWidth={3} />
       </div>
     </div>
   );
