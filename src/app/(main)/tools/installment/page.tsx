@@ -50,6 +50,20 @@ function daysUntil(dateStr: string): number {
   );
 }
 
+// عدد الأشهر المنقضية بين تاريخ البداية واليوم، مقيّد بين 0 وعدد الأقساط.
+// يُستخدم للتحقق المتبادل مع عدد الأقساط الذي يُدخله المستخدم يدوياً.
+function monthsElapsed(startStr: string, totalMonths: number): number {
+  if (!startStr) return 0;
+  const s = new Date(startStr);
+  const now = new Date();
+  const raw = (now.getFullYear() - s.getUTCFullYear()) * 12 + (now.getMonth() - s.getUTCMonth());
+  return Math.max(0, Math.min(raw, totalMonths || raw));
+}
+
+function todayISO(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 // FIX #2: تثبيت اليوم عند نهاية الشهر إذا كان الشهر أقصر
 function nextPaymentDate(plan: InstallmentPlan): string {
   const start    = new Date(plan.startDate);
@@ -241,11 +255,33 @@ export default function InstallmentPage() {
   const [productName, setProductName] = useState('');
   const [startDate,   setStartDate]   = useState(defaultStartDate);
 
+  // قسط مستمر: قرض بدأ قبل تثبيت التطبيق وسُدّد جزء منه.
+  const [isExisting,  setIsExisting]  = useState(false);
+  const [paidManual,  setPaidManual]  = useState('');
+
   const net      = Math.max(0, total.value - down.value);
   const mths     = parseInt(months) || 0;
   const monthly  = net > 0 && mths > 0 ? Math.round(net / mths) : 0;
   // FIX #1: استخدام getUTCDate
   const paymentDay = payDayFromDate(startDate);
+
+  // التحقق المتبادل: K من التاريخ مقابل K اليدوي
+  const kFromDate    = monthsElapsed(startDate, mths);
+  const kManual      = parseInt(paidManual) || 0;
+  const effectivePaid = isExisting
+    ? Math.max(0, Math.min(paidManual.trim() !== '' ? kManual : kFromDate, mths))
+    : 0;
+  const startInFuture = daysUntil(startDate) > 0;
+  const kMismatch     = isExisting && !startInFuture && mths > 0
+    && paidManual.trim() !== '' && kManual !== kFromDate;
+
+  // عند تفعيل/إلغاء «قسط مستمر»، اضبط التاريخ الافتراضي بما يناسب الحالة.
+  function toggleExisting(on: boolean) {
+    setIsExisting(on);
+    setPaidManual('');
+    if (on && daysUntil(startDate) > 0) setStartDate(todayISO());
+    if (!on) setStartDate(defaultStartDate());
+  }
 
   const extraCost = origPrice.value > 0 ? Math.max(0, total.value - origPrice.value) : 0;
   const extraPct  = origPrice.value > 0 ? (extraCost / origPrice.value) * 100 : 0;
@@ -256,7 +292,8 @@ export default function InstallmentPage() {
   const incomePct       = monthlyIncome > 0 ? (monthly / monthlyIncome) * 100 : 0;
   const budgetPct       = totalBudget  > 0  ? (monthly / totalBudget)   * 100 : 0;
 
-  const canSave = total.value > 0 && mths > 0 && productName.trim().length > 0;
+  const canSave = total.value > 0 && mths > 0 && productName.trim().length > 0
+    && !(isExisting && startInFuture);
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['installmentPlans', user?.uid],
@@ -272,6 +309,8 @@ export default function InstallmentPage() {
       setProductName('');
       setMonths('');
       setStartDate(defaultStartDate());
+      setIsExisting(false);
+      setPaidManual('');
       total.reset();
       down.reset();
       origPrice.reset();
@@ -303,8 +342,8 @@ export default function InstallmentPage() {
       originalPrice: origPrice.value || undefined,
       paymentDay,
       startDate,
-      paidCount: 0,
-      isCompleted: false,
+      paidCount: effectivePaid,
+      isCompleted: isExisting && effectivePaid >= mths,
     });
   }
 
@@ -351,7 +390,7 @@ export default function InstallmentPage() {
             tab === 'calc' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'
           }`}>
           <Plus className="h-3.5 w-3.5" />
-          إضافة قسط جديد
+          إضافة قسط
         </button>
         <button onClick={() => setTab('plans')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
@@ -433,19 +472,59 @@ export default function InstallmentPage() {
               </div>
             </div>
 
-            {/* ٦. تاريخ أول قسط */}
-            <div>
+            {/* ٦. تاريخ البداية */}
+            <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">
-                تاريخ أول قسط
-                <span className="mr-1 text-[10px] opacity-60">(يوم الاستحقاق يُحدد تلقائياً)</span>
+                {isExisting ? 'تاريخ بداية القرض' : 'تاريخ أول قسط'}
+                <span className="mr-1 text-[10px] opacity-60">
+                  {isExisting ? '(متى بدأ القرض فعلاً)' : '(يوم الاستحقاق يُحدد تلقائياً)'}
+                </span>
               </label>
               <input value={startDate} onChange={e => setStartDate(e.target.value)}
                 type="date"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm outline-none focus:border-primary" />
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                يوم الاستحقاق: يوم {paymentDay} من كل شهر
-              </p>
+              {isExisting && startInFuture ? (
+                <p className="text-[10px] text-red-500 mt-1.5">قرض قائم لا يبدأ في المستقبل — اختر تاريخاً سابقاً.</p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground mt-1.5">
+                  يوم الاستحقاق: يوم {paymentDay} من كل شهر
+                </p>
+              )}
             </div>
+
+            {/* ٧. مفتاح: هذا القرض بدأ من قبل؟ */}
+            <button type="button" onClick={() => toggleExisting(!isExisting)}
+              className="w-full flex items-center justify-between py-1.5">
+              <span className="text-xs text-muted-foreground">هذا القرض بدأ من قبل؟</span>
+              <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${isExisting ? 'bg-primary' : 'bg-muted'}`}>
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isExisting ? '-translate-x-[18px]' : '-translate-x-0.5'}`} />
+              </span>
+            </button>
+
+            {/* ٨. عدد الأقساط المسددة — يظهر فقط للقسط المستمر */}
+            {isExisting && (
+              <div className="mt-2">
+                <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط المسددة</label>
+                <input value={paidManual}
+                  onChange={e => setPaidManual(e.target.value.replace(/\D/g,''))}
+                  onFocus={e => e.target.select()}
+                  inputMode="numeric"
+                  placeholder={mths > 0 ? `حسب التاريخ: ${kFromDate} من ${mths}` : 'مثال: 6'}
+                  className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
+
+                {/* تنبيه التحقق المتبادل */}
+                {kMismatch && (
+                  <div className="mt-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2 flex items-start gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                      حسب التاريخ مرّ موعد <span className="font-semibold">{kFromDate}</span> قسط،
+                      لكنك أدخلت <span className="font-semibold">{kManual}</span>. أيهما الصحيح؟
+                      <span className="opacity-70"> (قد تكون مسبقاً أو متأخراً في السداد)</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── النتائج الفورية ── */}
@@ -461,6 +540,30 @@ export default function InstallmentPage() {
                   <p className="text-xs text-muted-foreground mt-1.5">
                     بعد دفعة أولى {fmt(down.value)} د.ع · صافي التقسيط {fmt(net)} د.ع
                   </p>
+                )}
+
+                {/* معاينة التقدم للقسط المستمر */}
+                {isExisting && mths > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[10px] text-muted-foreground">{effectivePaid} من {mths} قسط مدفوع</span>
+                      <span className="text-[10px] font-semibold">{Math.round((effectivePaid / mths) * 100)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2.5" dir="ltr">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all"
+                        style={{ width: `${Math.round((effectivePaid / mths) * 100)}%` }} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl py-2">
+                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{fmt(monthly * effectivePaid)}</p>
+                        <p className="text-[10px] text-muted-foreground">مدفوع</p>
+                      </div>
+                      <div className="bg-red-50 dark:bg-red-900/20 rounded-xl py-2">
+                        <p className="text-xs font-bold text-red-600 dark:text-red-400">{fmt(monthly * (mths - effectivePaid))}</p>
+                        <p className="text-[10px] text-muted-foreground">متبقي</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 
