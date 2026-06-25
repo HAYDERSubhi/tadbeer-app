@@ -23,7 +23,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   Wallet, Target, Users, ChevronLeft, ChevronRight,
@@ -164,9 +163,15 @@ export default function OnboardingSheet() {
           </SheetDescription>
         </SheetHeader>
 
-        {/* Progress bar */}
+        {/* Progress bar — تعبئة تبدأ من اليمين (RTL): عنصر بعرض نسبي يلتصق بحافة البداية
+            (اليمين في العربية) بدل translateX الذي لا ينقلب مع الاتجاه. */}
         <div className="px-5 pb-4">
-          <Progress value={((step + 1) / TOTAL_STEPS) * 100} className="h-1.5" />
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-300"
+              style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+            />
+          </div>
           <div className="flex justify-between mt-2">
             {steps.map((s, i) => {
               const Icon = s.icon;
@@ -219,9 +224,14 @@ export default function OnboardingSheet() {
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
                 </div>
-                {/* Quick picks */}
+                {/* Quick picks — تسميات عربية واضحة بدل صيغة K الإنجليزية */}
                 <div className="flex gap-2 flex-wrap pt-1">
-                  {[500_000, 750_000, 1_000_000, 1_500_000].map(v => (
+                  {[
+                    { v: 500_000,   label: "500 ألف" },
+                    { v: 750_000,   label: "750 ألف" },
+                    { v: 1_000_000, label: "مليون" },
+                    { v: 1_500_000, label: "مليون ونصف" },
+                  ].map(({ v, label }) => (
                     <button
                       key={v}
                       onClick={() => setIncome(fmt(v))}
@@ -232,7 +242,7 @@ export default function OnboardingSheet() {
                           : "bg-muted border-transparent hover:border-primary/40"
                       )}
                     >
-                      {(v / 1000).toFixed(0)}K
+                      {label}
                     </button>
                   ))}
                 </div>
