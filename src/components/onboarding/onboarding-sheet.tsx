@@ -151,12 +151,17 @@ export default function OnboardingSheet() {
         <SheetHeader className="px-5 pt-5 pb-3">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-bold">إعداد تدبير</SheetTitle>
-            <button
-              onClick={dismiss}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              تخطّي
-            </button>
+            {/* خطوة الدخل (0) إلزامية: لا «تخطّي». من خطوة الميزانية فصاعداً، «تخطّي»
+                يحفظ الدخل المُدخَل + ميزانية تلقائية بدل تجاهل كل شيء. */}
+            {step > 0 && (
+              <button
+                onClick={handleFinish}
+                disabled={saving}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                تخطّي الباقي
+              </button>
+            )}
           </div>
           <SheetDescription className="text-xs text-right">
             3 خطوات سريعة لتفعيل كل ميزات الميزانية
@@ -279,6 +284,12 @@ export default function OnboardingSheet() {
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
                 </div>
+
+                {/* تلميح: الحقل اختياري ويُحسب تلقائياً إن تُرك فارغاً */}
+                <p className="text-[11px] text-muted-foreground/80">
+                  اتركها فارغة وسنحسبها لك تلقائياً
+                  {parse(income) > 0 && <> (70% من دخلك = {fmt(Math.round(parse(income) * 0.7))} د.ع)</>}
+                </p>
 
                 {/* Smart suggestion */}
                 {parse(income) > 0 && (
