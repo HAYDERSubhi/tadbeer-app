@@ -308,15 +308,28 @@ export function FinancialChatSheet() {
     setLastSentText(content);
     setIsSending(true);
 
+    // Safety timeout: the browser's fetch has NO default timeout, so if the
+    // serverless function freezes or the connection stalls, the typing dots
+    // would spin forever. The server's own maxDuration is 60s, so we abort
+    // slightly above that (62s) — this only catches a truly stuck request and
+    // never cuts off a legitimate slow-but-valid reply.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 62000);
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: updatedMessages,
+          // Trim ONLY the conversational history sent over the wire (last 10
+          // turns) to keep latency/cost bounded. The full, always-current
+          // financialContext is sent separately and untouched, so financial
+          // data stays 100% accurate regardless of how long the chat gets.
+          messages: updatedMessages.slice(-10),
           financialContext,
           appTone: userSettings?.appTone ?? 'formal',
         }),
+        signal: controller.signal,
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -333,12 +346,21 @@ export function FinancialChatSheet() {
         ]);
       }
     } catch (err) {
+      const isTimeout = err instanceof DOMException && err.name === 'AbortError';
       console.error('[FinancialChat] fetch error:', err);
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.', timestamp: Date.now(), isError: true },
+        {
+          role: 'assistant',
+          content: isTimeout
+            ? 'استغرق الرد وقتًا أطول من المعتاد. حاول مرة أخرى.'
+            : 'انقطع الاتصال. تحقق من الإنترنت وحاول مرة أخرى.',
+          timestamp: Date.now(),
+          isError: true,
+        },
       ]);
     } finally {
+      clearTimeout(timeoutId);
       setIsSending(false);
     }
   };
