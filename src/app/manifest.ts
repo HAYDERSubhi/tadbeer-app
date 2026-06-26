@@ -5,8 +5,10 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'تدبير | تطبيقك المالي الذكي',
     short_name: 'تدبير',
     description: 'إدارة مصاريفك، حدد أهدافك، وحقق استقرارك المالي مع تدبير.',
+    id: '/',
     start_url: '/',
     display: 'standalone',
+    categories: ['finance', 'productivity'],
     // Match the app's light background so the OS splash screen blends in.
     background_color: '#14B8A5',
     theme_color: '#14B8A5',
