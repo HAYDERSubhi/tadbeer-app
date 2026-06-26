@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, Bell, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, Bell, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight, UserX } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -554,6 +554,8 @@ export default function SettingsPage() {
     profileSettings: false,
   });
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [deleteAccountText, setDeleteAccountText] = useState('');
 
   const formatNumberWithCommas = (value: string | number | undefined) => {
     if (value === null || value === undefined || value === '') return '';
@@ -1232,6 +1234,30 @@ export default function SettingsPage() {
     }
   });
 
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('No user');
+      const token = await user.getIdToken();
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'فشل الحذف');
+    },
+    onSuccess: async () => {
+      await signOutUser();
+      window.location.href = '/';
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'خطأ في حذف الحساب',
+        description: err.message || 'فشل حذف الحساب. حاول مجدداً.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const handleCustomDelete = () => {
     if (!user || !Object.values(deleteOptions).some(v => v)) return;
     resetDataMutation.mutate(deleteOptions);
@@ -1845,6 +1871,51 @@ export default function SettingsPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+             </div>
+
+             <div className="my-1 h-px w-full bg-border/50" />
+
+             <div>
+               <h4 className='font-medium text-sm text-destructive'>حذف الحساب نهائياً</h4>
+               <p className="text-xs text-muted-foreground mb-2">حذف حسابك وجميع بياناتك بشكل دائم لا يمكن التراجع عنه.</p>
+               <Dialog open={isDeleteAccountOpen} onOpenChange={(open) => { setIsDeleteAccountOpen(open); if (!open) setDeleteAccountText(''); }}>
+                 <DialogTrigger asChild>
+                   <Button className="w-full text-xs h-9" variant="destructive">
+                     <UserX className="ml-2 h-4 w-4" />حذف الحساب نهائياً
+                   </Button>
+                 </DialogTrigger>
+                 <DialogContent>
+                   <DialogHeader>
+                     <DialogTitle className="text-base">حذف الحساب نهائياً</DialogTitle>
+                     <DialogDescription className="text-xs">سيتم حذف حسابك وجميع بياناتك (مصاريف، أهداف، دخل، إعدادات) بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
+                   </DialogHeader>
+                   <div className="space-y-3 pt-2">
+                     <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+                       <p className="text-xs text-destructive font-medium">⚠️ تحذير — هذا الإجراء لا يمكن التراجع عنه</p>
+                       <p className="text-xs text-muted-foreground">اكتب كلمة <span className="font-bold text-foreground">احذف</span> للتأكيد</p>
+                       <Input
+                         value={deleteAccountText}
+                         onChange={(e) => setDeleteAccountText(e.target.value)}
+                         placeholder='اكتب "احذف" هنا'
+                         className="h-9 text-xs"
+                         dir="rtl"
+                       />
+                     </div>
+                   </div>
+                   <DialogFooter>
+                     <Button variant="ghost" onClick={() => { setIsDeleteAccountOpen(false); setDeleteAccountText(''); }} className="text-xs h-9">إلغاء</Button>
+                     <Button
+                       variant="destructive"
+                       onClick={() => deleteAccountMutation.mutate()}
+                       disabled={deleteAccountText !== 'احذف' || deleteAccountMutation.isPending}
+                       className="text-xs h-9"
+                     >
+                       {deleteAccountMutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                       نعم، احذف حسابي
+                     </Button>
+                   </DialogFooter>
+                 </DialogContent>
+               </Dialog>
              </div>
         </AccordionItemWrapper>
 
