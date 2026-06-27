@@ -88,7 +88,8 @@ export default function LoginPage() {
     setIsGuestLoading(true);
     try {
       await signInAsGuest();
-      toast({ title: 'أهلاً بك كزائر!', description: 'بياناتك مؤقتة على هذا الجهاز فقط.' });
+      // لا toast ترحيب هنا: شاشة «أهلاً، خلّينا نبدأ» ترحّب، وشريط الزائر في اللوحة
+      // يعرض «بياناتك مؤقتة». فالترحيب المنبثق كان تكراراً يتداخل مع شاشة الترحيب.
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });

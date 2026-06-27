@@ -67,19 +67,16 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
     const targetElement = document.querySelector(step.selector) as HTMLElement;
     if (targetElement) {
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-        
-        setTimeout(() => {
-            if (!document.body.contains(targetElement)) return;
-            
-            const rect = targetElement.getBoundingClientRect();
+
+        const PADDING = 16;
+        const TOOLTIP_WIDTH = 320;
+        const TOOLTIP_HEIGHT = 180; // Approximate height
+
+        const applyPosition = (rect: DOMRect) => {
             setTargetRect(rect);
 
-            const PADDING = 16;
-            const TOOLTIP_WIDTH = 320;
-            const TOOLTIP_HEIGHT = 180; // Approximate height
-
             let placement = step.placement || 'bottom';
-            
+
             // Auto-placement logic
             if (!step.placement) {
                 const spaceBottom = window.innerHeight - rect.bottom - TOOLTIP_HEIGHT;
@@ -124,8 +121,31 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
             }
 
             setPosition(newPos);
+        };
 
-        }, 300); // Wait for scroll to finish
+        // بدل مهلة ثابتة 300ms (كانت تقيس البطاقة والتمرير الناعم لم يكتمل بعد، فتقع البؤرة
+        // في مكان خاطئ على الجوال) — نقيس عبر requestAnimationFrame حتى يثبت موضع البطاقة
+        // (٣ إطارات متتالية بلا حركة)، مع سقف أمان ~48 إطاراً، فتُحيط البؤرة بالعنصر دائماً.
+        let lastTop: number | null = null;
+        let stableFrames = 0;
+        let totalFrames = 0;
+        const settleAndPosition = () => {
+            if (!document.body.contains(targetElement)) return;
+            const rect = targetElement.getBoundingClientRect();
+            if (lastTop !== null && Math.abs(rect.top - lastTop) < 1) {
+                stableFrames++;
+            } else {
+                stableFrames = 0;
+            }
+            lastTop = rect.top;
+            totalFrames++;
+            if (stableFrames >= 3 || totalFrames > 48) {
+                applyPosition(targetElement.getBoundingClientRect());
+                return;
+            }
+            requestAnimationFrame(settleAndPosition);
+        };
+        requestAnimationFrame(settleAndPosition);
     } else {
       // العنصر غير موجود على هذه الشاشة (مثلاً المستخدم تخطّى الميزانية فلا توجد بطاقتها) —
       // نتخطّى الخطوة بدل إظهار فقاعة معلّقة في وسط الشاشة بلا هدف.

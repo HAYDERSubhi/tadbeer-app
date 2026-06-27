@@ -15,7 +15,7 @@
  * Completion flag stored in localStorage so it never shows again.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
@@ -83,20 +83,23 @@ export default function OnboardingSheet() {
   const [children,     setChildren]     = useState(0);
 
   /* show only once, only for users who haven't set income yet */
+  const decidedRef = useRef(false);
   useEffect(() => {
+    if (decidedRef.current) return;       // قرار الفتح يُتّخذ مرة واحدة فقط
     if (!user) return;
     // المعالج صار يُركَّب في الـ layout قبل اكتمال جلب الإعدادات — انتظر البيانات الحقيقية
     // قبل القرار، وإلا قد نفتحه لمستخدم عائد بناءً على القيم المؤقتة (دخل=0).
     if (!isSettingsFetched) return;
+    decidedRef.current = true;             // قرّرنا الآن — لا نُعيد التقييم مع كل تغيّر لاحق لـ userSettings
     if (localStorage.getItem(ONBOARDING_KEY)) return;
     // مستخدم عائد لديه دخل مسجّل فعلاً (جهاز جديد/بعد مسح الكاش) → لا تُظهر المعالج
     if ((userSettings?.profile?.monthlyIncome ?? 0) > 0) {
       localStorage.setItem(ONBOARDING_KEY, "done");
       return;
     }
-    // Wait a moment so the dashboard loads first
-    const t = setTimeout(() => setOpen(true), 800);
-    return () => clearTimeout(t);
+    // افتح فوراً فور جهوزية الإعدادات — بلا مؤقّت (كان المؤقّت يُلغى عند إعادة تشغيل الـ effect
+    // مع كل إعادة جلب خلفية فيتأخّر الظهور ~ثانية وتُكشَف اللوحة). أنميشن الـ Sheet يتكفّل بالسلاسة.
+    setOpen(true);
   }, [user, userSettings, isSettingsFetched]);
 
   /* pre-fill if user already has some data */
