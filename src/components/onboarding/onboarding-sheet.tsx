@@ -66,7 +66,7 @@ const steps = [
 
 export default function OnboardingSheet() {
   const { user }          = useAuth();
-  const { userSettings }  = useAppData();
+  const { userSettings, isSettingsFetched } = useAppData();
   const queryClient       = useQueryClient();
   const router            = useRouter();
   const { toast }         = useToast();
@@ -85,6 +85,9 @@ export default function OnboardingSheet() {
   /* show only once, only for users who haven't set income yet */
   useEffect(() => {
     if (!user) return;
+    // المعالج صار يُركَّب في الـ layout قبل اكتمال جلب الإعدادات — انتظر البيانات الحقيقية
+    // قبل القرار، وإلا قد نفتحه لمستخدم عائد بناءً على القيم المؤقتة (دخل=0).
+    if (!isSettingsFetched) return;
     if (localStorage.getItem(ONBOARDING_KEY)) return;
     // مستخدم عائد لديه دخل مسجّل فعلاً (جهاز جديد/بعد مسح الكاش) → لا تُظهر المعالج
     if ((userSettings?.profile?.monthlyIncome ?? 0) > 0) {
@@ -94,7 +97,7 @@ export default function OnboardingSheet() {
     // Wait a moment so the dashboard loads first
     const t = setTimeout(() => setOpen(true), 800);
     return () => clearTimeout(t);
-  }, [user, userSettings]);
+  }, [user, userSettings, isSettingsFetched]);
 
   /* pre-fill if user already has some data */
   useEffect(() => {

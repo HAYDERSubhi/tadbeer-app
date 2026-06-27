@@ -16,6 +16,7 @@ import { PullToRefresh } from '@/components/pull-to-refresh';
 import { OfflineIndicator } from '@/components/offline-indicator';
 import { useSmartNotifications } from '@/hooks/use-smart-notifications';
 import { useBadges } from '@/hooks/use-badges';
+import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 
 // Inner component so useSmartNotifications can access AppDataProvider context
 function NotificationsRunner() {
@@ -71,6 +72,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <AppDataProvider>
       {user && <NotificationsRunner />}
       {user && <BadgeChecker />}
+      {/* المعالج هنا (لا داخل لوحة `/`) كي لا تُفكِّكه بوّابة pageReady عند أي إعادة جلب
+          خلفية (مثل refetchOnReconnect على الجوال) — وإلا تختفي شاشاته وتظهر ثانيةً. */}
+      {user && <OnboardingSheet />}
       <PwaUpdateBanner />
       <OfflineIndicator />
       <PullToRefresh />

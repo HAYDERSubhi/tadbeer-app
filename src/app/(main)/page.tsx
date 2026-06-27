@@ -41,7 +41,6 @@ import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
-import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
 import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
@@ -624,7 +623,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-3 pb-24">
-      <OnboardingSheet />
+      {/* ملاحظة: OnboardingSheet انتقل إلى (main)/layout.tsx كي لا تُفكِّكه بوّابة pageReady. */}
       {/* الجولة تُؤجَّل حتى يضيف المستخدم أول مصروف — فتظهر على لوحة فيها محتوى حقيقي يُشرَح */}
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses} />
 
