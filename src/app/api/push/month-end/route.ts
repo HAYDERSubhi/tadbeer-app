@@ -77,8 +77,8 @@ async function handler(req: NextRequest) {
           JSON.stringify({
             title: 'ملخص نهاية الشهر 📅',
             body,
-            // بلا أيقونة كبيرة لتفادي تكرار الشعار؛ الـ badge للأيقونة الصغيرة.
-            badge: '/icon-192x192.png',
+            // بلا أيقونة كبيرة لتفادي تكرار الشعار؛ الـ badge أيقونة شفّافة لشريط الحالة.
+            badge: '/badge-96.png',
             url: '/',
           })
         );

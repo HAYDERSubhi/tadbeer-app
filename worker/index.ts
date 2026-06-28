@@ -19,7 +19,7 @@ self.addEventListener('push', (event: Event) => {
     icon?: string;
   } = {
     body: data.body ?? '',
-    badge: data.badge ?? '/icon-192x192.png',
+    badge: data.badge ?? '/badge-96.png',
     dir: 'rtl' as NotificationDirection,
     lang: 'ar',
     data: { url: data.url ?? '/' },

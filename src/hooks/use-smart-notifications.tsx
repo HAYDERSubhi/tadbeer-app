@@ -34,7 +34,7 @@ function sendNotification(title: string, body: string, icon = '/icon-192x192.png
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
   try {
-    new Notification(title, { body, icon, dir: 'rtl', lang: 'ar' });
+    new Notification(title, { body, icon, badge: '/badge-96.png', dir: 'rtl', lang: 'ar' });
   } catch {
     // some browsers block new Notification() in service worker context
   }
