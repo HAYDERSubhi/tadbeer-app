@@ -2,27 +2,98 @@
 
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, ChevronDown } from 'lucide-react';
+import { Bell, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
+import { useAuth } from '@/hooks/use-auth';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
-import { getUpcomingPayments } from '@/lib/billing-utils';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { addExpense } from '@/services/firestore';
+import { getUpcomingPayments, isBillPaidThisCycle } from '@/lib/billing-utils';
+import type { Expense, RecurringPayment } from '@/types';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 
 const VISIBLE_COUNT = 2;
 
 export function UpcomingBillsCard() {
-  const { userSettings } = useAppData();
+  const { userSettings, expenses, householdId, queryClient } = useAppData();
+  const { user } = useAuth();
   const { categoryMap } = useCategories();
   const { format: formatCurrency } = useCurrency();
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const upcoming = useMemo(() => {
     const payments = userSettings?.recurringPayments ?? [];
     return getUpcomingPayments(payments, 3);
   }, [userSettings?.recurringPayments]);
+
+  // Same optimistic pattern as the manual add-expense form so the new expense
+  // appears instantly (and flips the bill to "paid") before the server settles.
+  const payMutation = useMutation({
+    mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
+      addExpense(user!.uid, newExpense, householdId),
+    onMutate: async (newExpenseData) => {
+      await queryClient.cancelQueries({ queryKey: ['expenses', user?.uid] });
+
+      const prevRecent = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'recent']);
+      const prevAll = queryClient.getQueryData<Expense[]>(['expenses', user?.uid, householdId, 'all']);
+
+      const tempExpense: Expense = {
+        ...newExpenseData,
+        id: `temp-${Date.now()}`,
+        uid: user!.uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (prevRecent) {
+        queryClient.setQueryData<Expense[]>(['expenses', user?.uid, householdId, 'recent'], [tempExpense, ...prevRecent]);
+      }
+      if (prevAll) {
+        queryClient.setQueryData<Expense[]>(['expenses', user?.uid, householdId, 'all'], [tempExpense, ...prevAll]);
+      }
+      return { prevRecent, prevAll };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prevRecent) {
+        queryClient.setQueryData(['expenses', user?.uid, householdId, 'recent'], context.prevRecent);
+      }
+      if (context?.prevAll) {
+        queryClient.setQueryData(['expenses', user?.uid, householdId, 'all'], context.prevAll);
+      }
+      toast({
+        title: 'تعذّر تسجيل الدفعة',
+        description: 'حدث خطأ أثناء الحفظ. يرجى التحقق من الاتصال والمحاولة مجدداً.',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: (_data, variables) => {
+      toast({
+        title: 'تم تسجيل الدفعة ✓',
+        description: `سُجِّل "${variables.title}" كمصروف اليوم.`,
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
+      setPayingId(null);
+    },
+  });
+
+  const handleMarkPaid = (payment: RecurringPayment) => {
+    if (!user) return;
+    setPayingId(payment.id);
+    payMutation.mutate({
+      title: payment.title,
+      amount: payment.amount,
+      category: payment.category,
+      date: new Date().toISOString(),
+    });
+  };
 
   if (upcoming.length === 0) return null;
 
@@ -53,25 +124,50 @@ export function UpcomingBillsCard() {
         {visible.map(({ payment, dueDate, daysUntilDue }) => {
           const { label, cls } = urgencyLabel(daysUntilDue);
           const catName = categoryMap[payment.category]?.name ?? payment.category;
+          const paid = isBillPaidThisCycle(payment, expenses);
+          const isThisPaying = payingId === payment.id && payMutation.isPending;
 
           return (
             <div
               key={payment.id}
               className={cn(
-                'flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors',
+                'rounded-lg border transition-colors overflow-hidden',
                 urgencyBorder(daysUntilDue)
               )}
             >
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-xs truncate">{payment.title}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {catName} · {format(dueDate, 'd MMM', { locale: arIQ })}
-                </p>
+              <div className="flex items-center gap-3 px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-xs truncate">{payment.title}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {catName} · {format(dueDate, 'd MMM', { locale: arIQ })}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-bold text-sm">{formatCurrency(payment.amount)}</p>
+                  <p className={cn('text-[10px]', cls)}>{label}</p>
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="font-bold text-sm">{formatCurrency(payment.amount)}</p>
-                <p className={cn('text-[10px]', cls)}>{label}</p>
-              </div>
+
+              {paid ? (
+                <div className="flex items-center justify-center gap-1.5 border-t border-border/40 py-2 text-[11px] font-semibold text-green-700 dark:text-green-400">
+                  <Check className="h-3.5 w-3.5" />
+                  سُجِّلت هذه الدورة
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleMarkPaid(payment)}
+                  disabled={isThisPaying}
+                  className="flex w-full items-center justify-center gap-1.5 border-t border-border/40 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 active:bg-primary/10 disabled:opacity-50"
+                >
+                  {isThisPaying ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
+                  تم الدفع
+                </button>
+              )}
             </div>
           );
         })}

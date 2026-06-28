@@ -1,8 +1,12 @@
 // src/lib/billing-utils.ts
 // Shared utility for computing next due dates for recurring payments.
 
-import { addMonths, addQuarters, addYears, startOfDay, isBefore } from 'date-fns';
-import type { RecurringPayment } from '@/types';
+import {
+  addMonths, addQuarters, addYears,
+  subMonths, subQuarters, subYears,
+  startOfDay, endOfDay, isBefore, isWithinInterval, parseISO,
+} from 'date-fns';
+import type { RecurringPayment, Expense } from '@/types';
 
 /**
  * Given a recurring payment, returns its next due Date (today or in the future).
@@ -66,4 +70,63 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+/** Normalize a title for comparison: trim, collapse spaces, lowercase. */
+function normalizeTitle(title: string): string {
+  return (title || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * Returns true if an expense matching this recurring payment (same normalized
+ * title + amount + category) was already logged within the payment's current
+ * billing cycle — i.e. the window [previous occurrence, next due date].
+ *
+ * Used to decide whether the "تم الدفع" action is still available or the bill
+ * is already marked paid for this cycle. No schema change: the source of truth
+ * is the expenses list itself.
+ */
+export function isBillPaidThisCycle(
+  payment: RecurringPayment,
+  expenses: Expense[]
+): boolean {
+  const nextDue = getNextDueDate(payment);
+  if (!nextDue) return false;
+
+  // Window = (midpoint between the previous and next due dates, next due date].
+  // Starting at the midpoint (not a full interval back) cleanly separates one
+  // cycle from the next, so last cycle's payment can never satisfy this one,
+  // while still tolerating an early payment well before the due date.
+  // For one-time bills the window is open-ended in the past.
+  let cycleStart: Date;
+  if (payment.frequency === 'one-time') {
+    cycleStart = new Date(0);
+  } else {
+    let prevDue: Date;
+    if (payment.frequency === 'monthly') {
+      prevDue = subMonths(nextDue, 1);
+    } else if (payment.frequency === 'quarterly') {
+      prevDue = subQuarters(nextDue, 1);
+    } else if (payment.frequency === 'annually') {
+      prevDue = subYears(nextDue, 1);
+    } else {
+      return false;
+    }
+    cycleStart = new Date((prevDue.getTime() + nextDue.getTime()) / 2);
+  }
+
+  const start = startOfDay(cycleStart);
+  const end = endOfDay(nextDue);
+  const title = normalizeTitle(payment.title);
+
+  return expenses.some(exp => {
+    if (exp.amount !== payment.amount) return false;
+    if (exp.category !== payment.category) return false;
+    if (normalizeTitle(exp.title) !== title) return false;
+    try {
+      return isWithinInterval(parseISO(exp.date), { start, end });
+    } catch {
+      return false;
+    }
+  });
 }
