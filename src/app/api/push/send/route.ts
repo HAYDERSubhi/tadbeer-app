@@ -69,17 +69,25 @@ async function handler(req: NextRequest) {
         .get();
       const yesterdayTotal = ySnap.docs.reduce((s, d) => s + (d.data().amount ?? 0), 0);
 
-      const body = yesterdayTotal > 0
-        ? `أمس أنفقت ${yesterdayTotal.toLocaleString('ar-IQ')} د.ع — اليوم ما الجديد؟`
-        : 'لم تسجّل أي مصروف اليوم — دقيقة واحدة تكفي!';
+      // العنوان خطّاف قصير والنص داعم — بلا تكرار اسم التطبيق (يظهر أصلاً في الترويسة).
+      const { title, body } = yesterdayTotal > 0
+        ? {
+            title: 'تتبّع إنفاقك اليوم 📊',
+            body: `أمس أنفقت ${yesterdayTotal.toLocaleString('ar-IQ')} د.ع — ماذا عن اليوم؟`,
+          }
+        : {
+            title: 'لم تسجّل أي مصروف اليوم 📝',
+            body: 'دقيقة واحدة تكفي لتتبّع إنفاقك.',
+          };
 
       try {
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
-            title: '🔔 تدبير',
+            title,
             body,
-            icon: '/icon-192x192.png',
+            // بلا أيقونة كبيرة (large icon) — يكفي أيقونة التطبيق التي يعرضها النظام،
+            // فلا يتكرّر الشعار. الـ badge للأيقونة الصغيرة في شريط الحالة.
             badge: '/icon-192x192.png',
             url: '/',
           })

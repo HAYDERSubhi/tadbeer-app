@@ -78,8 +78,8 @@ export function useSmartNotifications() {
         });
         if (stillNoExpense) {
           sendNotification(
-            '📝 تذكير يومي — تدبير',
-            'لم تسجّل أي مصروف اليوم. خذ دقيقة لتتبع إنفاقك! 💰'
+            'لم تسجّل أي مصروف اليوم 📝',
+            'دقيقة واحدة تكفي لتتبّع إنفاقك! 💰'
           );
         }
         localStorage.setItem(reminderKey, 'sent');
@@ -133,7 +133,7 @@ export function useSmartNotifications() {
           ? ` (${Math.round((total / budget) * 100)}% من ميزانيتك)`
           : '';
         sendNotification(
-          '📊 ملخص الشهر الماضي — تدبير',
+          'ملخص الشهر الماضي 📊',
           `أنفقت ${formatNum(total)} د.ع${budgetMsg}. شهر جديد، بداية جديدة! 💪`
         );
         localStorage.setItem(LAST_MONTHLY_KEY, monthKey);
@@ -161,7 +161,7 @@ export function useSmartNotifications() {
         if (granted) {
           const remaining = budget - thisMonthTotal;
           sendNotification(
-            '⚠️ تنبيه ميزانية — تدبير',
+            'تنبيه ميزانية ⚠️',
             remaining > 0
               ? `استهلكت ${Math.round(pct)}% من ميزانيتك. تبقى ${formatNum(remaining)} د.ع فقط.`
               : `تجاوزت ميزانيتك هذا الشهر بمقدار ${formatNum(Math.abs(remaining))} د.ع!`
@@ -227,7 +227,7 @@ export function useSmartNotifications() {
         7: 'أسبوع كامل بدون إنفاق! 🏆 إنجاز استثنائي!',
       };
       const body = msgs[streak] ?? `🔥 ${streak} أيام صفرية — أتمم اليوم وحافظ على streak!`;
-      sendNotification('تدبير — اليوم الصفري', body);
+      sendNotification('اليوم الصفري 🎯', body);
       localStorage.setItem(streakKey, '1');
     });
   }, [streak, spentToday]);

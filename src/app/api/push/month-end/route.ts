@@ -75,9 +75,9 @@ async function handler(req: NextRequest) {
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
-            title: '📅 تدبير — ملخص الشهر',
+            title: 'ملخص نهاية الشهر 📅',
             body,
-            icon: '/icon-192x192.png',
+            // بلا أيقونة كبيرة لتفادي تكرار الشعار؛ الـ badge للأيقونة الصغيرة.
             badge: '/icon-192x192.png',
             url: '/',
           })

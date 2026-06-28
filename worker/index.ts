@@ -10,14 +10,24 @@ self.addEventListener('push', (event: Event) => {
   try { data = pushEvent.data.json(); } catch { data = { body: pushEvent.data.text() }; }
 
   const title = data.title ?? 'تدبير';
-  const options = {
+  const options: {
+    body: string;
+    badge: string;
+    dir: NotificationDirection;
+    lang: string;
+    data: { url: string };
+    icon?: string;
+  } = {
     body: data.body ?? '',
-    icon: data.icon ?? '/icon-192x192.png',
     badge: data.badge ?? '/icon-192x192.png',
     dir: 'rtl' as NotificationDirection,
     lang: 'ar',
     data: { url: data.url ?? '/' },
   };
+
+  // الأيقونة الكبيرة (large icon) تُضاف فقط إن أُرسلت صراحةً، حتى لا يتكرّر
+  // الشعار بجانب أيقونة التطبيق التي يعرضها النظام تلقائياً.
+  if (data.icon) options.icon = data.icon;
 
   pushEvent.waitUntil((self as any).registration.showNotification(title, options));
 });
