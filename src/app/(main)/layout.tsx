@@ -10,6 +10,7 @@ import PageNavigation from '@/components/layout/page-navigation';
 import { Terminal } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AppDataProvider } from '@/hooks/use-app-data';
+import { AppLockGate } from '@/components/app-lock/app-lock-gate';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
 import { PullToRefresh } from '@/components/pull-to-refresh';
@@ -69,6 +70,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   //   NEW: shell (instant) → skeleton in-place → content
   // ────────────────────────────────────────────────────────────────────────────
   return (
+    <AppLockGate>
     <AppDataProvider>
       {user && <NotificationsRunner />}
       {user && <BadgeChecker />}
@@ -86,5 +88,6 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <FinancialChatSheet />
       </AppShell>
     </AppDataProvider>
+    </AppLockGate>
   );
 }

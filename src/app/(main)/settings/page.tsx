@@ -74,6 +74,7 @@ import Link from 'next/link';
 import { useCurrency } from '@/hooks/use-currency';
 import { useTheme } from 'next-themes';
 import { HouseholdManager } from '@/components/family/household-manager';
+import { AppLockSetting } from '@/components/app-lock/app-lock-setting';
 
 
 const COLUMN_MAP_CONFIG = {
@@ -1763,6 +1764,10 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+
+            <Separator />
+
+            <AppLockSetting />
           </div>
         </AccordionItemWrapper>
 
