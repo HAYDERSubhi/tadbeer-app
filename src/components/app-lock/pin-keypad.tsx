@@ -38,8 +38,9 @@ export function PinKeypad({
         ))}
       </div>
 
-      {/* Number pad */}
-      <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+      {/* Number pad — forced LTR so the Latin digits read 1→9 left-to-right
+          like a standard phone keypad (the app is RTL by default). */}
+      <div dir="ltr" className="grid grid-cols-3 gap-x-6 gap-y-4">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
           <KeyButton key={n} onClick={() => press(String(n))}>
             {n}
