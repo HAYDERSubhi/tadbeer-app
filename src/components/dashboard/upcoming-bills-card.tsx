@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Bell, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppData } from '@/hooks/use-app-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -29,8 +29,10 @@ export function UpcomingBillsCard() {
 
   const upcoming = useMemo(() => {
     const payments = userSettings?.recurringPayments ?? [];
-    return getUpcomingPayments(payments, 3);
-  }, [userSettings?.recurringPayments]);
+    return getUpcomingPayments(payments, 3).filter(
+      ({ payment }) => !isBillPaidThisCycle(payment, expenses)
+    );
+  }, [userSettings?.recurringPayments, expenses]);
 
   // Same optimistic pattern as the manual add-expense form so the new expense
   // appears instantly (and flips the bill to "paid") before the server settles.
@@ -124,7 +126,6 @@ export function UpcomingBillsCard() {
         {visible.map(({ payment, dueDate, daysUntilDue }) => {
           const { label, cls } = urgencyLabel(daysUntilDue);
           const catName = categoryMap[payment.category]?.name ?? payment.category;
-          const paid = isBillPaidThisCycle(payment, expenses);
           const isThisPaying = payingId === payment.id && payMutation.isPending;
 
           return (
@@ -148,22 +149,15 @@ export function UpcomingBillsCard() {
                 </div>
               </div>
 
-              {paid ? (
-                <div className="flex items-center justify-center gap-1.5 border-t border-border/40 py-2 text-xs font-semibold text-green-700 dark:text-green-400">
-                  تم الدفع
-                  <Check className="h-3.5 w-3.5" />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleMarkPaid(payment)}
-                  disabled={isThisPaying}
-                  className="flex w-full items-center justify-center gap-1.5 border-t border-border/40 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 active:bg-primary/10 disabled:opacity-50"
-                >
-                  {isThisPaying && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  تأكيد الدفع؟
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => handleMarkPaid(payment)}
+                disabled={isThisPaying}
+                className="flex w-full items-center justify-center gap-1.5 border-t border-border/40 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 active:bg-primary/10 disabled:opacity-50"
+              >
+                {isThisPaying && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                تأكيد الدفع؟
+              </button>
             </div>
           );
         })}
