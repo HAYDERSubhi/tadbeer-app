@@ -25,8 +25,8 @@ export function PinKeypad({
 
   return (
     <div className="flex flex-col items-center gap-10">
-      {/* PIN dots */}
-      <div className={cn('flex gap-4', shake && 'animate-pin-shake')}>
+      {/* PIN dots — LTR so they fill from the left and end on the right. */}
+      <div dir="ltr" className={cn('flex gap-4', shake && 'animate-pin-shake')}>
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <span
             key={i}
@@ -65,7 +65,7 @@ function KeyButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-muted/60 text-3xl font-semibold text-foreground transition-all active:scale-95 active:bg-primary/15"
+      className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-muted/60 text-3xl font-semibold text-muted-foreground transition-all active:scale-95 active:bg-primary/15"
       {...props}
     >
       {children}
