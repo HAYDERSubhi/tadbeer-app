@@ -52,9 +52,6 @@ export default function PageNavigation() {
             >
               <span className="relative inline-flex">
                 <item.icon className={cn("h-[22px] w-[22px]", isActive && "stroke-[2.5px]")} />
-                {item.href === '/planner' && hasNewBadge && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-destructive border border-background" />
-                )}
               </span>
               <span>{item.label}</span>
             </Link>
