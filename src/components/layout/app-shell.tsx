@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Settings, Share2 } from 'lucide-react';
+import { Settings, Share2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import React, { useState } from 'react';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
@@ -11,19 +11,28 @@ import { IosInstallBanner } from './ios-install-banner';
 import { LoggingStreakBanner } from '@/components/dashboard/logging-streak-banner';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { useAuth } from '@/hooks/use-auth';
+import { useNotificationsFeed, markNotificationsSeen } from '@/hooks/use-notifications-feed';
+import { NotificationsSheet } from '@/components/notifications/notifications-sheet';
+import { cn } from '@/lib/utils';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { canInstall, requestInstall } = usePWAInstall();
   const { user } = useAuth();
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const { notifications, unreadCount } = useNotificationsFeed();
+  usePushNotifications();
 
-  // Persist referral code if user landed via a share link (e.g. tadbeer.app?ref=UID)
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
     const ref = new URLSearchParams(window.location.search).get('ref');
     if (ref) sessionStorage.setItem('tadbeer-ref', ref);
   }, []);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  usePushNotifications();
+
+  const handleOpenNotif = () => {
+    setNotifOpen(true);
+    markNotificationsSeen();
+  };
 
   const handleInstall = async () => {
     setBannerDismissed(true);
@@ -49,7 +58,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             />
             <span className="text-white">تدبير</span>
           </Link>
+
           <div className="flex items-center gap-1">
+            {/* زر الإشعارات */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20 relative"
+              aria-label="الإشعارات"
+              onClick={handleOpenNotif}
+            >
+              <Bell className="h-5 w-5" strokeWidth={2.75} />
+              {unreadCount > 0 && (
+                <span className={cn(
+                  "absolute top-1.5 right-1.5 flex items-center justify-center rounded-full bg-white text-primary font-bold leading-none",
+                  unreadCount > 9
+                    ? "h-4 w-4 text-[9px]"
+                    : "h-3.5 w-3.5 text-[8px]"
+                )}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+
+            {/* زر المشاركة */}
             <Button
               variant="ghost"
               size="icon"
@@ -71,6 +103,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Share2 className="h-5 w-5" strokeWidth={2.75} />
             </Button>
+
+            {/* زر الإعدادات */}
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" asChild>
               <Link href="/settings" aria-label="الإعدادات">
                 <Settings className="h-5 w-5" strokeWidth={2.75} />
@@ -83,6 +117,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <LoggingStreakBanner />
 
       {children}
+
+      <NotificationsSheet
+        open={notifOpen}
+        onOpenChange={setNotifOpen}
+        notifications={notifications}
+      />
 
       {showBanner && (
         <InstallBanner
