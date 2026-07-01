@@ -40,7 +40,7 @@ export default function LoginPage() {
   const { signInWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [isLoading, setIsLoading]         = useState(false);
+  const [isLoading, setIsLoading]             = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
@@ -88,8 +88,6 @@ export default function LoginPage() {
     setIsGuestLoading(true);
     try {
       await signInAsGuest();
-      // لا toast ترحيب هنا: شاشة «أهلاً، خلّينا نبدأ» ترحّب، وشريط الزائر في اللوحة
-      // يعرض «بياناتك مؤقتة». فالترحيب المنبثق كان تكراراً يتداخل مع شاشة الترحيب.
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
@@ -97,48 +95,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-sm flex flex-col gap-6">
+    <div className="w-full max-w-sm flex flex-col gap-7">
 
       {/* ── Hero ──────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-4 text-white text-center">
+      <div className="flex flex-col items-center gap-5 text-white text-center">
         <img
           src="/logo.png"
           alt="تدبير"
-          className="w-48 h-48 object-contain"
+          className="w-24 h-24 object-contain"
           style={{ filter: 'brightness(0) invert(1)' }}
         />
         <div>
-          <h1 className="text-3xl font-black tracking-tight">تدبير</h1>
-          <p className="text-white/80 text-sm mt-1">مساعدك المالي الذكي</p>
+          <h1 className="text-4xl font-black tracking-tight">تدبير</h1>
+          <p className="text-white/85 text-base mt-1.5">مساعدك المالي الذكي</p>
         </div>
-        <div className="flex gap-4 mt-1">
+        <div className="flex gap-5 mt-1">
           {features.map(({ icon: Icon, text }) => (
-            <div key={text} className="flex flex-col items-center gap-1">
-              <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-                <Icon className="w-4 h-4 text-white" />
+            <div key={text} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-white" />
               </div>
-              <span className="text-[10px] text-white/70 leading-tight text-center max-w-[60px]">{text}</span>
+              <span className="text-xs text-white/80 leading-tight text-center max-w-[68px]">{text}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Card ──────────────────────────────────────────────── */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-4">
+      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-5">
         <div className="text-center">
-          <h2 className="text-lg font-bold">تسجيل الدخول</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">أهلاً بعودتك!</p>
+          <h2 className="text-xl font-bold">تسجيل الدخول</h2>
+          <p className="text-sm text-muted-foreground mt-1">أهلاً بعودتك!</p>
         </div>
 
         {/* Google — primary CTA */}
         <Button
           variant="outline"
-          className="w-full h-11 border-2 border-border hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-sm font-semibold"
+          className="w-full h-12 border-2 border-border hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-base font-semibold"
           onClick={handleGoogleSignIn}
           disabled={anyLoading}
         >
           {isGoogleLoading
-            ? <Loader2Icon className="h-4 w-4 animate-spin" />
+            ? <Loader2Icon className="h-5 w-5 animate-spin" />
             : <GoogleIcon />}
           الدخول بـ Google
         </Button>
@@ -149,58 +147,58 @@ export default function LoginPage() {
             <span className="w-full border-t border-gray-100" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-card px-3 text-[11px] text-muted-foreground">أو بالبريد الإلكتروني</span>
+            <span className="bg-card px-3 text-xs text-muted-foreground">أو بالبريد الإلكتروني</span>
           </div>
         </div>
 
         {/* Email form */}
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="email" className="text-xs font-medium">البريد الإلكتروني</Label>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
             <Input
               id="email" type="email" placeholder="email@example.com"
-              className="h-10 text-sm focus:border-teal-400"
+              className="h-12 text-base focus:border-teal-400"
               {...form.register('email')}
             />
             {form.formState.errors.email && (
-              <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+              <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
             )}
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="password" className="text-xs font-medium">كلمة المرور</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-sm font-medium">كلمة المرور</Label>
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'}
-                className="h-10 text-sm focus:border-teal-400 pl-10"
+                className="h-12 text-base focus:border-teal-400 pl-11"
                 {...form.register('password')}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(v => !v)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
             {form.formState.errors.password && (
-              <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
           </div>
           <Button
             type="submit"
-            className="w-full h-11 bg-teal-500 hover:bg-teal-600 text-white font-semibold text-sm"
+            className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold text-base"
             disabled={anyLoading}
           >
-            {isLoading ? <><Loader2Icon className="animate-spin ml-2 h-4 w-4" /> جاري الدخول...</> : 'دخول'}
+            {isLoading ? <><Loader2Icon className="animate-spin ml-2 h-5 w-5" /> جاري الدخول...</> : 'دخول'}
           </Button>
         </form>
 
         {unauthorizedDomain && (
-          <Alert variant="destructive" className="p-3 text-xs">
+          <Alert variant="destructive" className="p-3 text-sm">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitleComponent className="text-xs font-semibold">نطاق غير مصرح</AlertTitleComponent>
-            <AlertDescription className="text-xs">
+            <AlertTitleComponent className="text-sm font-semibold">نطاق غير مصرح</AlertTitleComponent>
+            <AlertDescription className="text-sm">
               أضف <code className="font-mono bg-white/20 px-1 rounded">{unauthorizedDomain}</code> إلى{' '}
               <a href={`https://console.firebase.google.com/project/${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}/authentication/settings`}
                 target="_blank" rel="noopener noreferrer" className="underline font-bold">
@@ -211,17 +209,17 @@ export default function LoginPage() {
         )}
 
         {/* Footer links */}
-        <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between pt-1 text-sm text-muted-foreground">
           <button
             type="button"
             onClick={handleGuestSignIn}
             disabled={anyLoading}
-            className="flex items-center gap-1 hover:text-teal-600 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 hover:text-teal-600 transition-colors disabled:opacity-50 py-1"
           >
-            {isGuestLoading ? <Loader2Icon className="h-3 w-3 animate-spin" /> : <User className="h-3 w-3" />}
+            {isGuestLoading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
             دخول كزائر
           </button>
-          <Link href="/signup" className="font-semibold text-teal-600 hover:text-teal-700">
+          <Link href="/signup" className="font-semibold text-teal-600 hover:text-teal-700 py-1">
             إنشاء حساب ←
           </Link>
         </div>

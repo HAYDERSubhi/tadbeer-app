@@ -51,9 +51,9 @@ const parse = (s: string) => {
 
 /* تنويه موحّد «ليش نسأل؟» — سبب جمع كل معلومة، بنبرة وأيقونة ثابتة */
 const WhyNote = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-start gap-2 bg-primary/5 rounded-lg px-3 py-2">
-    <Info className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-    <p className="text-[11px] text-primary/90 leading-relaxed">{children}</p>
+  <div className="flex items-start gap-2.5 bg-primary/5 rounded-lg px-3 py-2.5">
+    <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+    <p className="text-sm text-primary/90 leading-relaxed">{children}</p>
   </div>
 );
 
@@ -207,38 +207,38 @@ export default function OnboardingSheet() {
               <SheetDescription className="sr-only">شاشة ترحيب قبل إعداد حسابك</SheetDescription>
             </SheetHeader>
 
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-              <Sparkles className="h-7 w-7 text-primary" />
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+              <Sparkles className="h-8 w-8 text-primary" />
             </div>
 
-            <h2 className="text-lg font-bold text-foreground">أهلاً، خلّينا نبدأ بدقيقة</h2>
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+            <h2 className="text-xl font-bold text-foreground">أهلاً، خلّينا نبدأ بدقيقة</h2>
+            <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">
               تدبير يتابع أموالك بذكاء ويساعدك بإدارتها.
             </p>
 
-            <div className="space-y-3 mt-5">
+            <div className="space-y-4 mt-6">
               {[
                 { icon: Zap,    title: "تسجيل سريع",   sub: "أضف مصاريفك بالكتابة أو الصوت أو الفاتورة" },
                 { icon: Target, title: "ميزانية ذكية", sub: "تنبيهات قبل ما تتجاوز حدّك الشهري" },
                 { icon: Wrench, title: "أدوات مالية",  sub: "عملات، ديون، أقساط، وحاسبات تساعدك تقرّر" },
               ].map(({ icon: Icon, title, sub }) => (
-                <div key={title} className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Icon className="h-4 w-4 text-primary" />
+                <div key={title} className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{sub}</p>
+                    <p className="text-base font-semibold text-foreground leading-tight">{title}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{sub}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             <Button
-              className="w-full h-12 text-sm font-semibold mt-6"
+              className="w-full h-13 text-base font-semibold mt-7"
               onClick={() => setPhase("steps")}
             >
-              يلا نبدأ <ChevronLeft className="h-4 w-4 mr-1" />
+              يلا نبدأ <ChevronLeft className="h-5 w-5 mr-1" />
             </Button>
           </div>
         )}
@@ -249,20 +249,18 @@ export default function OnboardingSheet() {
             {/* Header */}
             <SheetHeader className="px-5 pt-5 pb-3">
               <div className="flex items-center justify-between">
-                <SheetTitle className="text-base font-bold">إعداد تدبير</SheetTitle>
-                {/* خطوة الدخل (0) إلزامية: لا «تخطّي». من خطوة الميزانية فصاعداً، «تخطّي»
-                    يحفظ الدخل المُدخَل + ميزانية تلقائية بدل تجاهل كل شيء. */}
+                <SheetTitle className="text-lg font-bold">إعداد تدبير</SheetTitle>
                 {step > 0 && (
                   <button
                     onClick={handleFinish}
                     disabled={saving}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
                     تخطّي الباقي
                   </button>
                 )}
               </div>
-              <SheetDescription className="text-xs text-right">
+              <SheetDescription className="text-sm text-right">
                 3 خطوات سريعة لتفعيل كل ميزات الميزانية
               </SheetDescription>
             </SheetHeader>
@@ -281,13 +279,13 @@ export default function OnboardingSheet() {
                   const Icon = s.icon;
                   return (
                     <div key={i} className={cn(
-                      "flex items-center gap-1 text-[10px] transition-colors",
+                      "flex items-center gap-1.5 text-xs transition-colors",
                       i === step ? "text-primary font-semibold" :
                       i < step   ? "text-primary/60" : "text-muted-foreground"
                     )}>
                       {i < step
-                        ? <CheckCircle2 className="h-3.5 w-3.5" />
-                        : <Icon className="h-3.5 w-3.5" />}
+                        ? <CheckCircle2 className="h-4 w-4" />
+                        : <Icon className="h-4 w-4" />}
                       {s.label}
                     </div>
                   );
@@ -301,21 +299,21 @@ export default function OnboardingSheet() {
               {/* ── Step 0: Income ─────────────────────────────── */}
               {step === 0 && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="bg-primary/5 rounded-xl p-4 space-y-1">
+                  <div className="bg-primary/5 rounded-xl p-4 space-y-2">
                     <div className="flex items-center gap-2 text-primary">
                       <Wallet className="h-5 w-5" />
-                      <h3 className="font-bold text-sm">ما هو دخلك الشهري؟</h3>
+                      <h3 className="font-bold text-base">ما هو دخلك الشهري؟</h3>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       ليش نسأل؟ منه نحسب نسبة إنفاقك وننبّهك قبل ما تتجاوز ميزانيتك.
                     </p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Lock className="h-3 w-3 shrink-0" /> لا يُشارَك مع أحد.
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد.
                     </p>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">الدخل الشهري (د.ع)</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">الدخل الشهري (د.ع)</Label>
                     <div className="relative">
                       <Input
                         type="text"
@@ -363,15 +361,15 @@ export default function OnboardingSheet() {
                   <div className="bg-primary/5 rounded-xl p-4 space-y-2">
                     <div className="flex items-center gap-2 text-primary">
                       <Target className="h-5 w-5" />
-                      <h3 className="font-bold text-sm">ما هي ميزانيتك الشهرية؟</h3>
+                      <h3 className="font-bold text-base">ما هي ميزانيتك الشهرية؟</h3>
                     </div>
                     <WhyNote>
                       ليش نسأل؟ هي خطّك الأحمر الشهري — منها يشتغل شريط الميزانية وتنبيهات التجاوز.
                     </WhyNote>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">الميزانية الشهرية (د.ع)</Label>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">الميزانية الشهرية (د.ع)</Label>
                     <div className="relative">
                       <Input
                         type="text"
@@ -388,15 +386,14 @@ export default function OnboardingSheet() {
                     </div>
 
                     {/* تلميح: الحقل اختياري ويُحسب تلقائياً إن تُرك فارغاً */}
-                    <p className="text-[11px] text-muted-foreground/80">
+                    <p className="text-sm text-muted-foreground/80">
                       اتركها فارغة وسنحسبها لك تلقائياً
                       {parse(income) > 0 && <> (70% من دخلك = {fmt(Math.round(parse(income) * 0.7))} د.ع)</>}
                     </p>
 
-                    {/* Smart suggestion */}
                     {parse(income) > 0 && (
                       <div className="space-y-2 pt-1">
-                        <p className="text-[11px] text-muted-foreground">اقتراحات بناءً على دخلك:</p>
+                        <p className="text-sm text-muted-foreground">اقتراحات بناءً على دخلك:</p>
                         <div className="flex gap-2 flex-wrap">
                           {[
                             { label: "70% (موصى به)", pct: 0.7 },
@@ -433,7 +430,7 @@ export default function OnboardingSheet() {
                   <div className="bg-primary/5 rounded-xl p-4 space-y-2">
                     <div className="flex items-center gap-2 text-primary">
                       <Users className="h-5 w-5" />
-                      <h3 className="font-bold text-sm">حجم الأسرة</h3>
+                      <h3 className="font-bold text-base">حجم الأسرة</h3>
                     </div>
                     <WhyNote>
                       ليش نسأل؟ نخصّص لك توصيات أدقّ حسب عدد أفراد بيتك (اختياري).
@@ -448,8 +445,8 @@ export default function OnboardingSheet() {
                           <UserRound className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">بالغون</p>
-                          <p className="text-[11px] text-muted-foreground">أنت + الشريك/الزوجة</p>
+                          <p className="text-base font-medium">بالغون</p>
+                          <p className="text-sm text-muted-foreground">أنت + الشريك/الزوجة</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -476,8 +473,8 @@ export default function OnboardingSheet() {
                           <Baby className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">أطفال</p>
-                          <p className="text-[11px] text-muted-foreground">دون 18 سنة</p>
+                          <p className="text-base font-medium">أطفال</p>
+                          <p className="text-sm text-muted-foreground">دون 18 سنة</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -500,7 +497,7 @@ export default function OnboardingSheet() {
                     {/* Summary badge */}
                     <div className="flex items-center gap-2 bg-muted/60 rounded-lg px-3 py-2">
                       <Users className="h-4 w-4 text-primary shrink-0" />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         أسرة مكوّنة من{" "}
                         <span className="font-bold text-foreground">
                           {adults + children === 1 ? "شخص واحد" : adults + children === 2 ? "شخصين" : `${adults + children} أشخاص`}
@@ -519,7 +516,7 @@ export default function OnboardingSheet() {
               {step > 0 && (
                 <Button
                   variant="outline"
-                  className="h-11 px-4"
+                  className="h-12 px-5 text-sm"
                   onClick={() => setStep(s => s - 1)}
                   disabled={saving}
                 >
@@ -528,7 +525,7 @@ export default function OnboardingSheet() {
                 </Button>
               )}
               <Button
-                className="flex-1 h-11 text-sm font-semibold"
+                className="flex-1 h-12 text-base font-semibold"
                 onClick={next}
                 disabled={!canProceed() || saving}
               >
@@ -556,21 +553,21 @@ export default function OnboardingSheet() {
               <CheckCircle2 className="h-9 w-9 text-emerald-600 dark:text-emerald-400" />
             </div>
 
-            <h2 className="text-lg font-bold text-foreground">تم! حسابك جاهز</h2>
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-[260px]">
+            <h2 className="text-xl font-bold text-foreground">تم! حسابك جاهز</h2>
+            <p className="text-base text-muted-foreground mt-2 leading-relaxed max-w-[280px]">
               سجّل أول مصروف وشوف تدبير يشتغل.
             </p>
 
             <Button
-              className="w-full h-12 text-sm font-semibold mt-6"
+              className="w-full h-12 text-base font-semibold mt-7"
               onClick={goAddExpense}
             >
-              <Plus className="h-4 w-4 ml-2" /> سجّل أول مصروف
+              <Plus className="h-5 w-5 ml-2" /> سجّل أول مصروف
             </Button>
 
             <button
               onClick={dismiss}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-4"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors mt-4 py-1"
             >
               لاحقاً
             </button>
