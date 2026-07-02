@@ -43,10 +43,16 @@ const perks = [
 ];
 
 export default function SignupPage() {
-  const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
+  const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading]             = useState(false);
+
+  // مستخدم مسجّل أصلاً وصل لصفحة التسجيل؟ حوّله للتطبيق مباشرة —
+  // يعالج أيضاً حالات نجاح الدخول بجوجل التي تعود للصفحة دون إكمال التوجيه.
+  useEffect(() => {
+    if (!authLoading && user) router.replace('/');
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -140,6 +146,10 @@ export default function SignupPage() {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
     } finally { setIsGuestLoading(false); }
   };
+
+  // أثناء تحديد حالة الدخول أو عند وجود مستخدم (سيُحوَّل فوراً) لا تعرض النموذج —
+  // نفس أسلوب صفحة landing، يمنع وميض نموذج التسجيل لمستخدم مسجّل.
+  if (authLoading || user) return null;
 
   return (
     <div className="w-full max-w-sm flex flex-col gap-7">

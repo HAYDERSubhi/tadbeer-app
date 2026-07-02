@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, User, Mic, ScanText, Wallet, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
@@ -37,8 +37,14 @@ const features = [
 ];
 
 export default function LoginPage() {
-  const { signInWithEmailPassword, signInWithGoogle, signInAsGuest } = useAuth();
+  const { signInWithEmailPassword, signInWithGoogle, signInAsGuest, user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // مستخدم مسجّل أصلاً وصل لصفحة الدخول؟ حوّله للتطبيق مباشرة —
+  // يعالج أيضاً حالات نجاح الدخول بجوجل التي تعود للصفحة دون إكمال التوجيه.
+  useEffect(() => {
+    if (!authLoading && user) router.replace('/');
+  }, [user, authLoading, router]);
   const { toast } = useToast();
   const [isLoading, setIsLoading]             = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -93,6 +99,10 @@ export default function LoginPage() {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
     } finally { setIsGuestLoading(false); }
   };
+
+  // أثناء تحديد حالة الدخول أو عند وجود مستخدم (سيُحوَّل فوراً) لا تعرض النموذج —
+  // نفس أسلوب صفحة landing، يمنع وميض نموذج الدخول لمستخدم مسجّل.
+  if (authLoading || user) return null;
 
   return (
     <div className="w-full max-w-sm flex flex-col gap-7">

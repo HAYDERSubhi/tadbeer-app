@@ -77,6 +77,22 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now()),
   },
+  // توحيد نطاق المصادقة: نافذة الدخول بجوجل تُخدَم من tadbeer.app نفسه بدل
+  // iraqi-budgeteer.firebaseapp.com — الحل الرسمي من Firebase لانقطاع الدخول
+  // عندما يعزل المتصفح تخزين الطرف الثالث (Chrome/TWA/Safari).
+  // يعمل فقط عندما يكون NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=tadbeer.app في Vercel.
+  async rewrites() {
+    return [
+      {
+        source: '/__/auth/:path*',
+        destination: 'https://iraqi-budgeteer.firebaseapp.com/__/auth/:path*',
+      },
+      {
+        source: '/__/firebase/:path*',
+        destination: 'https://iraqi-budgeteer.firebaseapp.com/__/firebase/:path*',
+      },
+    ];
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
