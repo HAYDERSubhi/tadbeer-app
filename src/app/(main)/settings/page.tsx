@@ -693,7 +693,7 @@ export default function SettingsPage() {
   const handleSaveProfile = () => {
     const areAgesValid = familyMembers.every(m => m.age >= 0 && m.age < 150);
     if (!areAgesValid) {
-        toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أعمار صحيحة لجميع أفراد الأسرة.", variant: "destructive" });
+        toast({ title: "خطأ في الإدخال", description: "الرجاء إدخال أعمار صحيحة لافراد الأسرة.", variant: "destructive" });
         return;
     }
     const profileToSave: UserProfile = { monthlyIncome: totalRecurringIncome, familyMembers };

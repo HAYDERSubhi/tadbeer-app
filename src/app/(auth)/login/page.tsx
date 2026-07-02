@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/co
 import React from 'react';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
+  email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صحيح' }),
   password: z.string().min(6, { message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' }),
 });
 type LoginFormData = z.infer<typeof loginSchema>;

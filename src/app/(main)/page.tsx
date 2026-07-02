@@ -271,7 +271,7 @@ export default function DashboardPage() {
       if (blob.size < 2000) {
         toast({
           title: 'لم يُكتشف صوت',
-          description: 'لم تتضمن المقطع أي كلام واضح. حاول مجدداً.',
+          description: 'لم يتضمن المقطع أي كلام واضح. حاول مجدداً.',
         });
         return;
       }
