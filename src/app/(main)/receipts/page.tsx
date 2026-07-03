@@ -242,10 +242,11 @@ export default function DetailedReceiptPage() {
     return entry;
   }, [toast]);
 
-  // عند فتح صورة للتحديد: مستطيل ابتدائي يغطي 92% منها — المستخدم يضيّقه على الفاتورة
+  // عند فتح صورة للتحديد: مستطيل ابتدائي يغطي 84% منها — إزاحة 8% تُبقي زوايا
+  // السحب كاملةً داخل الصورة فتبان واضحة وقابلة للإمساك (لا مقصوصة على الحافة)
   const onCropImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCropRect({ unit: 'px', x: width * 0.04, y: height * 0.04, width: width * 0.92, height: height * 0.92 });
+    setCropRect({ unit: 'px', x: width * 0.08, y: height * 0.08, width: width * 0.84, height: height * 0.84 });
   }, []);
 
   /**

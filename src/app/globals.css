@@ -240,7 +240,7 @@
 .receipt-crop .ReactCrop__crop-selection {
   animation: none !important;
   background-image: none !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.75);
   border-radius: 14px;
   outline: none !important;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
