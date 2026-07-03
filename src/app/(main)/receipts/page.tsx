@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles,
-  AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop, ZoomIn,
+  AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
-  ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert
+  ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert,
+  Flashlight, FlashlightOff
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
@@ -23,11 +24,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpensesBatch } from '@/services/firestore';
-import Cropper from 'react-easy-crop';
-import 'react-easy-crop/react-easy-crop.css';
-import type { Point, Area } from 'react-easy-crop';
+import ReactCrop, { type Crop as CropRect, type PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import getCroppedImg from '@/lib/crop-image';
-import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -158,17 +157,17 @@ export default function DetailedReceiptPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const photoRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cropImgRef = useRef<HTMLImageElement>(null);
 
-  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  // نسبة الاقتصاص — قابلة للتغيير لتناسب الفواتير الطويلة (P3)
-  const [cropAspect, setCropAspect] = useState(3 / 4);
-  const ASPECT_PRESETS: { label: string; value: number }[] = [
-    { label: 'قصيرة', value: 3 / 4 },
-    { label: 'طويلة', value: 1 / 2 },
-    { label: 'ممتدّة', value: 9 / 21 },
-  ];
+  // ── الكاميرا الاحترافية ──
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);  // وميض الالتقاط
+  const [sessionShots, setSessionShots] = useState<string[]>([]); // لقطات الجلسة الحالية (للمعاينة والعدّاد)
+
+  // ── الاقتصاص الحر: مستطيل يسحبه المستخدم فوق الفاتورة — بلا نسب ثابتة ──
+  const [cropRect, setCropRect] = useState<CropRect>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
 
   const categoryMapForAI = useMemo(() =>
     categories.reduce((acc, cat) => { acc[cat.id] = cat.name; return acc; }, {} as Record<string, string>),
@@ -181,17 +180,30 @@ export default function DetailedReceiptPage() {
   const lowConfidenceCount = analyzedItems.filter(i => i.confidence === 'low').length;
   const hasQualityWarning = images.some(i => i.quality === 'bad');
 
-  // Camera
+  // Camera — نطلب أعلى دقة يوفرها المستشعر + تركيز مستمر، لا الدقة الافتراضية للفيديو
   useEffect(() => {
     let mounted = true;
     const stop = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
-    if (viewState !== 'camera') { stop(); return; }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        if (!mounted || !videoRef.current) return;
+    if (viewState !== 'camera') { stop(); setTorchOn(false); setSessionShots([]); return; }
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 4096 },
+        height: { ideal: 3072 },
+      },
+    })
+      .then(async stream => {
+        if (!mounted || !videoRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         videoRef.current.play();
+        const track = stream.getVideoTracks()[0];
+        // تركيز تلقائي مستمر — حاسم لوضوح نص الفاتورة عن قرب (يتجاهله المتصفح إن لم يدعمه)
+        try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] }); } catch { /* غير مدعوم */ }
+        try {
+          const caps: any = track.getCapabilities?.() ?? {};
+          if (mounted) setTorchSupported(!!caps.torch);
+        } catch { /* غير مدعوم */ }
       })
       .catch(() => {
         if (mounted) {
@@ -201,6 +213,15 @@ export default function DetailedReceiptPage() {
       });
     return () => { mounted = false; stop(); };
   }, [viewState, toast]);
+
+  const toggleTorch = async () => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: !torchOn } as any] });
+      setTorchOn(v => !v);
+    } catch { /* بعض الأجهزة لا تدعم الفلاش أثناء البث */ }
+  };
 
   const addImage = useCallback(async (src: string) => {
     const id = crypto.randomUUID();
@@ -216,17 +237,32 @@ export default function DetailedReceiptPage() {
     }
   }, [toast]);
 
-  const onCropComplete = useCallback((_: Area, pixels: Area) => setCroppedAreaPixels(pixels), []);
+  // عند فتح صورة للتحديد: مستطيل ابتدائي يغطي 92% منها — المستخدم يضيّقه على الفاتورة
+  const onCropImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    setCropRect({ unit: 'px', x: width * 0.04, y: height * 0.04, width: width * 0.92, height: height * 0.92 });
+  }, []);
 
   const confirmCrop = useCallback(async () => {
-    if (!imageToCrop || !croppedAreaPixels) return;
+    if (!imageToCrop || !completedCrop || !cropImgRef.current) return;
     try {
-      const cropped = await getCroppedImg(imageToCrop.src, croppedAreaPixels);
+      // تحويل إحداثيات المستطيل من أبعاد العرض إلى أبعاد الصورة الأصلية
+      const img = cropImgRef.current;
+      const scaleX = img.naturalWidth / img.width;
+      const scaleY = img.naturalHeight / img.height;
+      const pixels = {
+        x: Math.round(completedCrop.x * scaleX),
+        y: Math.round(completedCrop.y * scaleY),
+        width: Math.round(completedCrop.width * scaleX),
+        height: Math.round(completedCrop.height * scaleY),
+      };
+      if (pixels.width < 10 || pixels.height < 10) return; // تحديد ضئيل بالخطأ
+      const cropped = await getCroppedImg(imageToCrop.src, pixels);
       const quality = await checkImageQuality(cropped);
       setImages(prev => prev.map(img => img.id === imageToCrop.id ? { ...img, src: cropped, quality } : img));
-      setImageToCrop(null); setZoom(1); setCrop({ x: 0, y: 0 }); setViewState('initial');
+      setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial');
     } catch { toast({ title: 'خطأ في الاقتصاص', variant: 'destructive' }); }
-  }, [imageToCrop, croppedAreaPixels, toast]);
+  }, [imageToCrop, completedCrop, toast]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,13 +273,40 @@ export default function DetailedReceiptPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const takePhoto = () => {
-    if (!videoRef.current || !photoRef.current) return;
-    const v = videoRef.current, c = photoRef.current;
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext('2d')?.drawImage(v, 0, 0);
-    addImage(c.toDataURL('image/jpeg'));
-    setViewState('initial');
+  const takePhoto = async () => {
+    if (isCapturing) return; // منع الضغط المزدوج أثناء الالتقاط
+    setIsCapturing(true);
+    let dataUri: string | null = null;
+
+    // 1) ImageCapture: صورة فوتوغرافية بدقة المستشعر الكاملة (وليس لقطة فيديو) — مدعوم في كروم أندرويد
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (track && typeof (window as any).ImageCapture !== 'undefined') {
+      try {
+        const imageCapture = new (window as any).ImageCapture(track);
+        const blob: Blob = await imageCapture.takePhoto();
+        dataUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('read failed'));
+          reader.readAsDataURL(blob);
+        });
+      } catch { /* بعض الأجهزة تفشل → نسقط للطريقة الاحتياطية */ }
+    }
+
+    // 2) احتياط: لقطة من إطار الفيديو (النمط القديم) — أفضل من لا شيء
+    if (!dataUri && videoRef.current && photoRef.current) {
+      const v = videoRef.current, c = photoRef.current;
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext('2d')?.drawImage(v, 0, 0);
+      dataUri = c.toDataURL('image/jpeg', 0.95);
+    }
+
+    if (dataUri) {
+      addImage(dataUri);
+      setSessionShots(prev => [...prev, dataUri!]);
+    }
+    // وميض قصير ثم عودة الزر — البقاء في الكاميرا يسمح بتصوير الفاتورة الطويلة على دفعات
+    setTimeout(() => setIsCapturing(false), 220);
   };
 
   const handleAnalyze = async () => {
@@ -347,67 +410,122 @@ export default function DetailedReceiptPage() {
     processingStep === 'analyzing'  ? 'الذكاء الاصطناعي يقرأ الفاتورة...' :
     processingStep === 'extracting' ? 'جاري استخراج البيانات المالية...' : '';
 
-  // ── Camera view ──────────────────────────────────────────────────────────────
+  // ── Camera view — كاميرا احترافية بنمط الماسح الضوئي ─────────────────────────
   if (viewState === 'camera') return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      <header className="absolute top-0 left-0 right-0 p-4 z-10 bg-gradient-to-b from-black/60 to-transparent">
+      <header className="absolute top-0 left-0 right-0 p-4 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent">
         <Button variant="ghost" size="icon" onClick={() => setViewState('initial')} className="text-white hover:bg-white/10 hover:text-white">
           <ArrowRight />
         </Button>
+        {torchSupported && (
+          <button onClick={toggleTorch} aria-label="الفلاش"
+            className={cn(
+              "w-11 h-11 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm",
+              torchOn ? "bg-yellow-400 text-black" : "bg-white/15 text-white"
+            )}>
+            {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
+          </button>
+        )}
       </header>
+
       <div className="flex-1 relative">
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={photoRef} className="hidden" />
-        {/* Framing guide — إطار طويل يناسب الفواتير الحرارية الطويلة (P2) */}
+
+        {/* وميض الالتقاط */}
+        <div className={cn(
+          "absolute inset-0 bg-white pointer-events-none transition-opacity duration-200 z-10",
+          isCapturing ? "opacity-70" : "opacity-0"
+        )} />
+
+        {/* إطار التوجيه — قناع داكن + زوايا ماسح ضوئي بيضاء */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-[70vw] h-[72vh] border-2 border-white/70 rounded-xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
+          <div className="relative w-[74vw] h-[70vh] rounded-2xl border border-white/40" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }}>
+            {/* زوايا L بارزة — نمط CamScanner */}
+            <span className="absolute -top-[3px] -right-[3px] w-9 h-9 border-t-4 border-r-4 border-white rounded-tr-2xl" />
+            <span className="absolute -top-[3px] -left-[3px] w-9 h-9 border-t-4 border-l-4 border-white rounded-tl-2xl" />
+            <span className="absolute -bottom-[3px] -right-[3px] w-9 h-9 border-b-4 border-r-4 border-white rounded-br-2xl" />
+            <span className="absolute -bottom-[3px] -left-[3px] w-9 h-9 border-b-4 border-l-4 border-white rounded-bl-2xl" />
+          </div>
         </div>
-        <div className="absolute bottom-48 left-0 right-0 text-center px-6 pointer-events-none">
+
+        <div className="absolute bottom-52 left-0 right-0 text-center px-6 pointer-events-none">
           <p className="text-white text-sm font-medium opacity-95 drop-shadow">ضع الفاتورة كاملةً داخل الإطار</p>
-          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">فاتورة طويلة؟ صوّرها على دفعتين</p>
+          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">فاتورة طويلة؟ صوّرها على دفعات — اللقطات تتجمع تلقائياً</p>
         </div>
       </div>
-      <footer className="absolute bottom-0 left-0 right-0 p-6 flex justify-center z-10 bg-gradient-to-t from-black/60 to-transparent pb-24">
-        <button onClick={takePhoto} className="w-20 h-20 rounded-full border-4 border-white bg-white/30 hover:bg-white/50 flex items-center justify-center transition-transform active:scale-95">
-          <Camera className="h-8 w-8 text-white" />
-        </button>
+
+      <footer className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 via-black/50 to-transparent pb-24 pt-8 px-6">
+        <div className="grid grid-cols-3 items-center">
+          {/* معاينة آخر لقطة + العدّاد */}
+          <div className="flex justify-start">
+            {sessionShots.length > 0 && (
+              <div className="relative animate-in zoom-in-75 duration-200" key={sessionShots.length}>
+                <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white/90 shadow-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={sessionShots[sessionShots.length - 1]} alt="آخر لقطة" className="w-full h-full object-cover" />
+                </div>
+                <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shadow">
+                  {sessionShots.length}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* زر الغالق — حلقة بيضاء بقرص داخلي، نمط كاميرات الهواتف */}
+          <div className="flex justify-center">
+            <button onClick={takePhoto} aria-label="التقاط"
+              className="w-[76px] h-[76px] rounded-full border-4 border-white flex items-center justify-center transition-transform active:scale-90">
+              <span className={cn(
+                "rounded-full bg-white transition-all duration-150",
+                isCapturing ? "w-12 h-12" : "w-[60px] h-[60px]"
+              )} />
+            </button>
+          </div>
+
+          {/* زر إنهاء الجلسة */}
+          <div className="flex justify-end">
+            {sessionShots.length > 0 && (
+              <button onClick={() => setViewState('initial')}
+                className="h-12 px-5 rounded-full bg-white text-black text-sm font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-transform animate-in fade-in">
+                <Check className="h-4 w-4" />
+                تم
+              </button>
+            )}
+          </div>
+        </div>
       </footer>
     </div>
   );
 
-  // ── Crop view ─────────────────────────────────────────────────────────────────
+  // ── Crop view — تحديد حر لحدود الفاتورة: اسحب الزوايا لتطويقها، بلا نسب ثابتة ──
   if (viewState === 'cropping' && imageToCrop) return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       <header className="p-4 flex justify-between items-center border-b">
-        <h2 className="text-base font-bold flex items-center gap-2"><Crop className="h-5 w-5 text-primary" /> اقتصاص الفاتورة</h2>
-        <Button variant="ghost" size="icon" onClick={() => { setImageToCrop(null); setViewState('initial'); }}><X /></Button>
+        <h2 className="text-base font-bold flex items-center gap-2"><Crop className="h-5 w-5 text-primary" /> تحديد حدود الفاتورة</h2>
+        <Button variant="ghost" size="icon" onClick={() => { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }}><X /></Button>
       </header>
-      <div className="flex-1 relative bg-muted/50">
-        <Cropper image={imageToCrop.src} crop={crop} zoom={zoom} aspect={cropAspect}
-          onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} showGrid />
+      <div className="flex-1 overflow-auto bg-black/90 flex items-center justify-center p-3" dir="ltr">
+        <ReactCrop
+          crop={cropRect}
+          onChange={c => setCropRect(c)}
+          onComplete={c => setCompletedCrop(c)}
+          keepSelection
+          ruleOfThirds
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img ref={cropImgRef} src={imageToCrop.src} alt="الفاتورة"
+            onLoad={onCropImageLoad}
+            style={{ maxHeight: 'calc(100vh - 220px)', maxWidth: '100%', objectFit: 'contain' }} />
+        </ReactCrop>
       </div>
-      <div className="p-4 border-t space-y-4 pb-24">
-        {/* اختيار شكل الاقتصاص حسب طول الفاتورة (P3) */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground shrink-0">شكل الفاتورة:</span>
-          <div className="flex gap-1.5 flex-1">
-            {ASPECT_PRESETS.map(p => (
-              <button key={p.label} onClick={() => setCropAspect(p.value)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  Math.abs(cropAspect - p.value) < 0.001 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Slider value={[zoom]} onValueChange={([v]) => setZoom(v)} min={1} max={3} step={0.1} />
-        </div>
+      <div className="p-4 border-t space-y-3 pb-24">
+        <p className="text-xs text-muted-foreground text-center">اسحب الزوايا والحواف حتى تطوّق الفاتورة فقط</p>
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="ghost" onClick={() => { setImageToCrop(null); setViewState('initial'); }}>إلغاء</Button>
-          <Button onClick={confirmCrop}><Check className="ml-2 h-4 w-4" /> تأكيد</Button>
+          <Button variant="ghost" onClick={() => { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }}>إلغاء</Button>
+          <Button onClick={confirmCrop} disabled={!completedCrop || completedCrop.width < 10}>
+            <Check className="ml-2 h-4 w-4" /> تأكيد
+          </Button>
         </div>
       </div>
     </div>
@@ -475,7 +593,7 @@ export default function DetailedReceiptPage() {
                       {/* Action buttons — always visible for touch */}
                       <div className="flex gap-1">
                         <button className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center active:scale-90 transition-transform"
-                          onClick={() => { setImageToCrop(img); setViewState('cropping'); }}>
+                          onClick={() => { setCropRect(undefined); setCompletedCrop(null); setImageToCrop(img); setViewState('cropping'); }}>
                           <Crop className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
                         <button className="h-8 w-8 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center active:scale-90 transition-transform"
