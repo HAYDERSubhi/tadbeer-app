@@ -163,7 +163,8 @@ export default function DetailedReceiptPage() {
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);  // وميض الالتقاط
-  const [sessionShots, setSessionShots] = useState<string[]>([]); // لقطات الجلسة الحالية (للمعاينة والعدّاد)
+  // مصدر فتح شاشة القص: بعد الالتقاط مباشرة (camera) أو من مصغّرات الشاشة الرئيسية (gallery)
+  const [cropSource, setCropSource] = useState<'camera' | 'gallery'>('gallery');
 
   // ── الاقتصاص الحر: مستطيل يسحبه المستخدم فوق الفاتورة — بلا نسب ثابتة ──
   const [cropRect, setCropRect] = useState<CropRect>();
@@ -184,7 +185,7 @@ export default function DetailedReceiptPage() {
   useEffect(() => {
     let mounted = true;
     const stop = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
-    if (viewState !== 'camera') { stop(); setTorchOn(false); setSessionShots([]); return; }
+    if (viewState !== 'camera') { stop(); setTorchOn(false); return; }
     navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
@@ -223,18 +224,22 @@ export default function DetailedReceiptPage() {
     } catch { /* بعض الأجهزة لا تدعم الفلاش أثناء البث */ }
   };
 
-  const addImage = useCallback(async (src: string) => {
-    const id = crypto.randomUUID();
-    setImages(prev => [...prev, { id, src, quality: 'checking' }]);
-    const quality = await checkImageQuality(src);
-    setImages(prev => prev.map(img => img.id === id ? { ...img, quality } : img));
-    if (quality === 'bad') {
-      toast({
-        title: '⚠️ جودة الصورة ضعيفة',
-        description: 'الصورة مظلمة أو ضبابية جداً. أعد التصوير في ضوء أفضل للحصول على نتائج دقيقة.',
-        variant: 'destructive',
-      });
-    }
+  // يضيف الصورة فوراً ويعيد مدخلها (فحص الجودة يكمل بالخلفية) — الإرجاع الفوري
+  // ضروري لفتح شاشة القص مباشرة بعد الالتقاط دون انتظار الفحص
+  const addImage = useCallback((src: string): ImageEntry => {
+    const entry: ImageEntry = { id: crypto.randomUUID(), src, quality: 'checking' };
+    setImages(prev => [...prev, entry]);
+    checkImageQuality(src).then(quality => {
+      setImages(prev => prev.map(img => img.id === entry.id ? { ...img, quality } : img));
+      if (quality === 'bad') {
+        toast({
+          title: '⚠️ جودة الصورة ضعيفة',
+          description: 'الصورة مظلمة أو ضبابية جداً. أعد التصوير في ضوء أفضل للحصول على نتائج دقيقة.',
+          variant: 'destructive',
+        });
+      }
+    });
+    return entry;
   }, [toast]);
 
   // عند فتح صورة للتحديد: مستطيل ابتدائي يغطي 92% منها — المستخدم يضيّقه على الفاتورة
@@ -243,26 +248,45 @@ export default function DetailedReceiptPage() {
     setCropRect({ unit: 'px', x: width * 0.04, y: height * 0.04, width: width * 0.92, height: height * 0.92 });
   }, []);
 
-  const confirmCrop = useCallback(async () => {
-    if (!imageToCrop || !completedCrop || !cropImgRef.current) return;
+  /**
+   * يطبّق القص (إن حدّد المستخدم مستطيلاً) ثم ينتقل للوجهة المطلوبة:
+   * initial = الشاشة الرئيسية · camera = التقاط صورة أخرى · analyze = بدء التحليل فوراً.
+   * بلا تحديد → تبقى الصورة كاملة كما هي (القص اختياري).
+   */
+  const finishCrop = async (next: 'initial' | 'camera' | 'analyze') => {
+    if (!imageToCrop) return;
+    let updated = images;
     try {
-      // تحويل إحداثيات المستطيل من أبعاد العرض إلى أبعاد الصورة الأصلية
       const img = cropImgRef.current;
-      const scaleX = img.naturalWidth / img.width;
-      const scaleY = img.naturalHeight / img.height;
-      const pixels = {
-        x: Math.round(completedCrop.x * scaleX),
-        y: Math.round(completedCrop.y * scaleY),
-        width: Math.round(completedCrop.width * scaleX),
-        height: Math.round(completedCrop.height * scaleY),
-      };
-      if (pixels.width < 10 || pixels.height < 10) return; // تحديد ضئيل بالخطأ
-      const cropped = await getCroppedImg(imageToCrop.src, pixels);
-      const quality = await checkImageQuality(cropped);
-      setImages(prev => prev.map(img => img.id === imageToCrop.id ? { ...img, src: cropped, quality } : img));
-      setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial');
-    } catch { toast({ title: 'خطأ في الاقتصاص', variant: 'destructive' }); }
-  }, [imageToCrop, completedCrop, toast]);
+      if (completedCrop && img && completedCrop.width >= 10 && completedCrop.height >= 10) {
+        // تحويل إحداثيات المستطيل من أبعاد العرض إلى أبعاد الصورة الأصلية
+        const scaleX = img.naturalWidth / img.width;
+        const scaleY = img.naturalHeight / img.height;
+        const pixels = {
+          x: Math.round(completedCrop.x * scaleX),
+          y: Math.round(completedCrop.y * scaleY),
+          width: Math.round(completedCrop.width * scaleX),
+          height: Math.round(completedCrop.height * scaleY),
+        };
+        if (pixels.width >= 10 && pixels.height >= 10) {
+          const cropped = await getCroppedImg(imageToCrop.src, pixels);
+          const quality = await checkImageQuality(cropped);
+          updated = images.map(i => i.id === imageToCrop.id ? { ...i, src: cropped, quality } : i);
+          setImages(updated);
+        }
+      }
+    } catch { toast({ title: 'خطأ في الاقتصاص', variant: 'destructive' }); return; }
+    setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null);
+    if (next === 'analyze') { setViewState('initial'); handleAnalyze(updated); }
+    else setViewState(next);
+  };
+
+  /** إعادة التقاط: حذف اللقطة الحالية والعودة للكاميرا */
+  const retakePhoto = () => {
+    if (imageToCrop) setImages(prev => prev.filter(i => i.id !== imageToCrop.id));
+    setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null);
+    setViewState('camera');
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -301,23 +325,28 @@ export default function DetailedReceiptPage() {
       dataUri = c.toDataURL('image/jpeg', 0.95);
     }
 
-    if (dataUri) {
-      addImage(dataUri);
-      setSessionShots(prev => [...prev, dataUri!]);
-    }
-    // وميض قصير ثم عودة الزر — البقاء في الكاميرا يسمح بتصوير الفاتورة الطويلة على دفعات
-    setTimeout(() => setIsCapturing(false), 220);
+    if (!dataUri) { setIsCapturing(false); return; }
+    const entry = addImage(dataUri);
+    // وميض قصير ثم فتح شاشة القص مباشرة — الصورة تبقى أمام المستخدم بدل مصغّرة بالزاوية
+    setTimeout(() => {
+      setIsCapturing(false);
+      setCropRect(undefined); setCompletedCrop(null);
+      setImageToCrop(entry);
+      setCropSource('camera');
+      setViewState('cropping');
+    }, 220);
   };
 
-  const handleAnalyze = async () => {
-    if (!user || images.length === 0) {
+  // imagesToAnalyze: تُمرَّر عند التحليل الفوري من شاشة القص لأن setImages لم تُحدَّث بعد
+  const handleAnalyze = async (imagesToAnalyze: ImageEntry[] = images) => {
+    if (!user || imagesToAnalyze.length === 0) {
       toast({ title: 'لا توجد صور', description: 'أضف صورة فاتورة واحدة على الأقل.', variant: 'destructive' });
       return;
     }
     setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]);
     try {
       // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
-      const compressedImages = await Promise.all(images.map(i => compressDataUri(i.src)));
+      const compressedImages = await Promise.all(imagesToAnalyze.map(i => compressDataUri(i.src)));
 
       // مهلة client-side: تُلغي الطلب إن تجاوز 75 ثانية بدل التعليق اللانهائي.
       const controller = new AbortController();
@@ -457,16 +486,16 @@ export default function DetailedReceiptPage() {
 
       <footer className="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 via-black/50 to-transparent pb-24 pt-8 px-6">
         <div className="grid grid-cols-3 items-center">
-          {/* معاينة آخر لقطة + العدّاد */}
+          {/* معاينة آخر صورة مجمّعة + العدّاد */}
           <div className="flex justify-start">
-            {sessionShots.length > 0 && (
-              <div className="relative animate-in zoom-in-75 duration-200" key={sessionShots.length}>
+            {images.length > 0 && (
+              <div className="relative animate-in zoom-in-75 duration-200" key={images.length}>
                 <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white/90 shadow-lg">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sessionShots[sessionShots.length - 1]} alt="آخر لقطة" className="w-full h-full object-cover" />
+                  <img src={images[images.length - 1].src} alt="آخر لقطة" className="w-full h-full object-cover" />
                 </div>
                 <span className="absolute -top-2 -left-2 min-w-5 h-5 px-1 rounded-full bg-primary text-white text-[11px] font-bold flex items-center justify-center shadow">
-                  {sessionShots.length}
+                  {images.length}
                 </span>
               </div>
             )}
@@ -485,7 +514,7 @@ export default function DetailedReceiptPage() {
 
           {/* زر إنهاء الجلسة */}
           <div className="flex justify-end">
-            {sessionShots.length > 0 && (
+            {images.length > 0 && (
               <button onClick={() => setViewState('initial')}
                 className="h-12 px-5 rounded-full bg-white text-black text-sm font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition-transform animate-in fade-in">
                 <Check className="h-4 w-4" />
@@ -503,7 +532,11 @@ export default function DetailedReceiptPage() {
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       <header className="p-4 flex justify-between items-center border-b">
         <h2 className="text-base font-bold flex items-center gap-2"><Crop className="h-5 w-5 text-primary" /> تحديد حدود الفاتورة</h2>
-        <Button variant="ghost" size="icon" onClick={() => { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }}><X /></Button>
+        {/* X بعد الالتقاط = تجاهل اللقطة والعودة للكاميرا · من المصغّرات = إغلاق فقط */}
+        <Button variant="ghost" size="icon" onClick={() => {
+          if (cropSource === 'camera') retakePhoto();
+          else { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }
+        }}><X /></Button>
       </header>
       <div className="flex-1 overflow-auto bg-black/90 flex items-center justify-center p-3" dir="ltr">
         <ReactCrop
@@ -521,12 +554,29 @@ export default function DetailedReceiptPage() {
       </div>
       <div className="p-4 border-t space-y-3 pb-24">
         <p className="text-xs text-muted-foreground text-center">اسحب الزوايا والحواف حتى تطوّق الفاتورة فقط</p>
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="ghost" onClick={() => { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }}>إلغاء</Button>
-          <Button onClick={confirmCrop} disabled={!completedCrop || completedCrop.width < 10}>
-            <Check className="ml-2 h-4 w-4" /> تأكيد
-          </Button>
-        </div>
+        {cropSource === 'camera' ? (
+          <>
+            {/* بعد الالتقاط مباشرة: تحليل فوري أو لقطة إضافية (فاتورة طويلة) — القص اختياري */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-12" onClick={() => finishCrop('camera')}>
+                <Camera className="ml-2 h-4 w-4" /> صورة أخرى
+              </Button>
+              <Button className="h-12" onClick={() => finishCrop('analyze')}>
+                <Sparkles className="ml-2 h-4 w-4" /> تحليل
+              </Button>
+            </div>
+            <Button variant="ghost" className="w-full h-11 text-muted-foreground" onClick={retakePhoto}>
+              <XCircle className="ml-2 h-4 w-4" /> إعادة التقاط
+            </Button>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="ghost" onClick={() => { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }}>إلغاء</Button>
+            <Button onClick={() => finishCrop('initial')}>
+              <Check className="ml-2 h-4 w-4" /> تأكيد
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -593,7 +643,7 @@ export default function DetailedReceiptPage() {
                       {/* Action buttons — always visible for touch */}
                       <div className="flex gap-1">
                         <button className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center active:scale-90 transition-transform"
-                          onClick={() => { setCropRect(undefined); setCompletedCrop(null); setImageToCrop(img); setViewState('cropping'); }}>
+                          onClick={() => { setCropRect(undefined); setCompletedCrop(null); setImageToCrop(img); setCropSource('gallery'); setViewState('cropping'); }}>
                           <Crop className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
                         <button className="h-8 w-8 rounded-full bg-destructive/10 border border-destructive/30 flex items-center justify-center active:scale-90 transition-transform"
@@ -608,7 +658,7 @@ export default function DetailedReceiptPage() {
             </div>
           )}
 
-          <Button onClick={handleAnalyze} disabled={isLoading || images.length === 0} className="w-full h-12">
+          <Button onClick={() => handleAnalyze()} disabled={isLoading || images.length === 0} className="w-full h-12">
             {isLoading ? <Loader2 className="ml-2 h-5 w-5 animate-spin" /> : <Sparkles className="ml-2 h-5 w-5" />}
             بدء التحليل الذكي
           </Button>
