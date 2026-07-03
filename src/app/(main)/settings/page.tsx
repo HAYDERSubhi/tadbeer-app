@@ -495,7 +495,7 @@ function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
 }
 
 export default function SettingsPage() {
-  const { user, signOutUser } = useAuth();
+  const { user, signOutUser, updateDisplayName } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -615,6 +615,27 @@ export default function SettingsPage() {
   }, [userSettings]);
   
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
+
+  // ── الاسم الشخصي (اختياري) — يُحفظ في Firebase Auth لا في Firestore ──
+  const [displayNameInput, setDisplayNameInput] = useState(user?.displayName ?? '');
+  const [isSavingName, setIsSavingName] = useState(false);
+  useEffect(() => { setDisplayNameInput(user?.displayName ?? ''); }, [user?.displayName]);
+
+  const handleSaveDisplayName = async () => {
+    setIsSavingName(true);
+    try {
+      await updateDisplayName(displayNameInput);
+      const saved = displayNameInput.trim();
+      toast({
+        title: saved ? `أهلاً ${saved.split(/\s+/)[0]}! 👋` : 'تمت إزالة الاسم',
+        description: saved ? 'سنناديك بهذا الاسم في الشاشة الرئيسية.' : 'ستظهر التحية بدون اسم.',
+      });
+    } catch {
+      toast({ title: 'خطأ', description: 'تعذّر حفظ الاسم. حاول مجدداً.', variant: 'destructive' });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
 
   const handleAddMember = () => {
     setFamilyMembers(prev => [...prev, { id: crypto.randomUUID(), type: 'child', age: 0 }]);
@@ -1466,6 +1487,28 @@ export default function SettingsPage() {
             {/* Profile Section */}
             <div className="space-y-4">
                 <h3 className='text-sm font-medium'>الملف الشخصي</h3>
+                <div className="space-y-2">
+                    <Label htmlFor="display-name" className="text-xs">اسمك — شنو نناديك؟</Label>
+                    <p className="text-[11px] text-muted-foreground -mt-1">اختياري — يظهر في التحية بالشاشة الرئيسية</p>
+                    <div className="flex gap-2">
+                        <Input
+                            id="display-name"
+                            value={displayNameInput}
+                            onChange={(e) => setDisplayNameInput(e.target.value)}
+                            placeholder="مثال: حيدر"
+                            maxLength={40}
+                            className="h-9 text-xs flex-1"
+                        />
+                        <Button
+                            size="sm"
+                            className="h-9 text-xs shrink-0"
+                            onClick={handleSaveDisplayName}
+                            disabled={isSavingName || displayNameInput.trim() === (user?.displayName ?? '').trim()}
+                        >
+                            {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : 'حفظ'}
+                        </Button>
+                    </div>
+                </div>
                 <div className="space-y-3">
                     <Label className="text-xs">أفراد الأسرة (بمن فيهم أنت)</Label>
                     <p className="text-[11px] text-muted-foreground -mt-1">يؤثر التصنيف (بالغ/طفل) على حساب الميزانية المخصصة لكل فرد</p>

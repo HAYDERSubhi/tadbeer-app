@@ -13,11 +13,10 @@ import {
   signInWithPopup,
   UserCredential,
   signInAnonymously,
-  linkWithPopup
+  linkWithPopup,
+  updateProfile
 } from 'firebase/auth';
 import { auth as firebaseAuth, googleProvider } from '@/lib/firebase';
-import { addExpense } from '@/services/firestore';
-import { getAdditionalUserInfo } from 'firebase/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +28,7 @@ interface AuthContextType {
   signInAsGuest: () => Promise<UserCredential>;
   signOutUser: () => Promise<void>;
   linkGuestWithGoogle: () => Promise<UserCredential>;
+  updateDisplayName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,6 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return auth.currentUser === null; // null = not yet resolved OR logged out
   });
   const [authError, setAuthError] = useState<FirebaseError | null>(null);
+  // updateProfile يعدّل كائن المستخدم في مكانه (نفس المرجع) فلا يعيد React
+  // رسم المستهلكين تلقائياً — هذا العدّاد يجبر تحديث قيمة الـ context بعد كل تعديل.
+  const [profileVersion, setProfileVersion] = useState(0);
 
   useEffect(() => {
     // This effect now specifically checks for the `auth/configuration-missing` scenario
@@ -109,6 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return linkWithPopup(auth.currentUser, googleProvider);
   }
 
+  // يحفظ الاسم الذي يُنادى به المستخدم (اختياري) — نص فارغ يزيل الاسم
+  const updateDisplayName = async (name: string) => {
+    if (!auth?.currentUser) return Promise.reject(new Error("لا يوجد مستخدم مسجّل."));
+    await updateProfile(auth.currentUser, { displayName: name.trim() || null });
+    setProfileVersion(v => v + 1);
+  };
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -119,8 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInAsGuest,
     signOutUser,
     linkGuestWithGoogle,
+    updateDisplayName,
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [user, loading, authError]);
+  }), [user, loading, authError, profileVersion]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

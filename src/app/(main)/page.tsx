@@ -45,6 +45,7 @@ import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
+import { GreetingHeader } from '@/components/dashboard/greeting-header';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -626,6 +627,8 @@ export default function DashboardPage() {
       {/* ملاحظة: OnboardingSheet انتقل إلى (main)/layout.tsx كي لا تُفكِّكه بوّابة pageReady. */}
       {/* الجولة تُؤجَّل حتى يضيف المستخدم أول مصروف — فتظهر على لوحة فيها محتوى حقيقي يُشرَح */}
       <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses} />
+
+      <GreetingHeader />
 
       <GuestUpgradeBanner />
 
