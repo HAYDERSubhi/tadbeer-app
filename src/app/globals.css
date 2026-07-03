@@ -234,3 +234,51 @@
     size: A4;
   }
 }
+
+/* --- قص الفاتورة (receipts): نمط الماسح الضوئي بدل خطوط react-image-crop المتقطعة --- */
+/* الحدود: إطار ثابت ناعم + تعتيم خارجي، بلا حركة "النمل الزاحف" */
+.receipt-crop .ReactCrop__crop-selection {
+  animation: none !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 14px;
+  outline: none !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+}
+.receipt-crop .ReactCrop__crop-selection:focus {
+  outline: none !important;
+}
+
+/* المقابض: زوايا L بيضاء بارزة (نمط CamScanner) بمساحة لمس 44px */
+.receipt-crop .ReactCrop__drag-handle {
+  width: 44px;
+  height: 44px;
+  background: transparent !important;
+  border: none;
+}
+.receipt-crop .ord-nw { border-top: 5px solid #fff; border-left: 5px solid #fff; border-top-left-radius: 16px; }
+.receipt-crop .ord-ne { border-top: 5px solid #fff; border-right: 5px solid #fff; border-top-right-radius: 16px; }
+.receipt-crop .ord-sw { border-bottom: 5px solid #fff; border-left: 5px solid #fff; border-bottom-left-radius: 16px; }
+.receipt-crop .ord-se { border-bottom: 5px solid #fff; border-right: 5px solid #fff; border-bottom-right-radius: 16px; }
+
+/* مقابض الحواف (تظهر على الشاشات بمؤشر فأرة فقط): شرائط قصيرة بدل مربعات */
+.receipt-crop .ord-n::after,
+.receipt-crop .ord-s::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px; height: 5px;
+  border-radius: 3px;
+  background: #fff;
+}
+.receipt-crop .ord-e::after,
+.receipt-crop .ord-w::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 5px; height: 34px;
+  border-radius: 3px;
+  background: #fff;
+}

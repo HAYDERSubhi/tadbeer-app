@@ -540,6 +540,7 @@ export default function DetailedReceiptPage() {
       </header>
       <div className="flex-1 overflow-auto bg-black/90 flex items-center justify-center p-3" dir="ltr">
         <ReactCrop
+          className="receipt-crop"
           crop={cropRect}
           onChange={c => setCropRect(c)}
           onComplete={c => setCompletedCrop(c)}
