@@ -16,8 +16,8 @@ const AnalyzeDetailedReceiptInputSchema = z.object({
 export type AnalyzeDetailedReceiptInput = z.infer<typeof AnalyzeDetailedReceiptInputSchema>;
 
 const CategorizedItemSchema = z.object({
-  name: z.string().describe('Item name exactly as it appears on the receipt (keep original language).'),
-  price: z.number().describe('Item price as a number (no currency symbol, no commas).'),
+  name: z.string().describe('Item name exactly as it appears on the receipt (keep original language). If quantity > 1, append it as ×N.'),
+  price: z.number().describe('LINE TOTAL for this item = quantity × unit price (the الاجمالي column, NOT the السعر unit-price column). No currency symbol, no commas.'),
   suggestedCategory: z.string().describe('Best matching category ID from the provided list.'),
   confidence: z
     .enum(['high', 'medium', 'low'])
@@ -88,9 +88,17 @@ Analyze the provided receipt image(s) and extract all financial data accurately.
 {{media url=this}}
 {{/each}}
 
+## Quantity & Line-Total Rule (critical)
+Many receipts have columns like: اسم المنتج / العدد (quantity) / السعر (unit price) / الاجمالي (line total).
+- The item's price MUST be the **line total** (الاجمالي) = quantity × unit price — NOT the unit price
+- Example: قدح ذرة | العدد: 2 | السعر: 1,000 | الاجمالي: 2,000 → price = 2000 (not 1000)
+- If the line total column is missing, compute it yourself: quantity × unit price
+- If quantity > 1, append it to the item name as ×N (e.g. "قدح ذرة ×2")
+- The sum of all item prices should match the receipt's grand total
+
 ## Extraction Instructions
 1. First determine if this is an **itemized** or **simple** receipt
-2. For **itemized**: extract EVERY item with its individual price
+2. For **itemized**: extract EVERY item with its LINE TOTAL (see rule above)
 3. For **simple**: extract the single total amount as one item named after the store
 4. Always extract the **grand total** (المجموع / الإجمالي / Total) if visible — this is critical for verification
 5. Extract store name and date if readable
