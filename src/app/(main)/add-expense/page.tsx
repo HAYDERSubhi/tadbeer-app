@@ -14,6 +14,7 @@ import { Save, CalendarIcon, Loader2, Clock, ChevronDown, ChevronUp } from 'luci
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
@@ -61,7 +62,7 @@ const formatNumberWithCommas = (value: string | number | undefined) => {
 
 const parseFormattedNumber = (value: string | undefined) => {
     if (!value) return '';
-    return value.replace(/,/g, '');
+    return normalizeDigits(value).replace(/,/g, '');
 };
 
 export default function AddExpensePage() {

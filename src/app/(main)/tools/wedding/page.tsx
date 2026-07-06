@@ -8,6 +8,7 @@ import { getWeddingPlan, saveWeddingPlan } from '@/services/firestore';
 import { ChevronRight, ListChecks, PieChart, Share2, Check, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import type { WeddingPlan, WeddingResponsibility, WeddingTier } from '@/types';
+import { normalizeDigits } from '@/lib/normalize-digits';
 
 // ── الكتالوج: البنود بمبالغ عراقية تقريبية (قابلة للتعديل لاحقاً) ──
 type CatalogItem = { id: string; label: string; e: number; m: number; l: number; resp: WeddingResponsibility };
@@ -71,7 +72,7 @@ const RESP_CYCLE: WeddingResponsibility[] = ['groom', 'bride', 'shared'];
 
 function fmt(n: number) { return Math.round(n).toLocaleString('en-US'); }
 function fmtInput(raw: number) { return raw ? raw.toLocaleString('en-US') : ''; }
-function parseAmt(s: string) { return parseInt(s.replace(/,/g, '').replace(/\D/g, '') || '0') || 0; }
+function parseAmt(s: string) { return parseInt(normalizeDigits(s).replace(/,/g, '').replace(/\D/g, '') || '0') || 0; }
 
 function buildPlan(tier: WeddingTier, budget?: number): WeddingPlan {
   const k = TIER_KEY[tier];

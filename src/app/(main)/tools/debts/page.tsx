@@ -7,6 +7,7 @@ import { getDebts, addDebt, settleDebt, unsettleDebt, deleteDebt } from '@/servi
 import { ChevronRight, Plus, MessageCircle, Check, Trash2, Bell, X, ChevronDown, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import type { Debt } from '@/types';
+import { normalizeDigits } from '@/lib/normalize-digits';
 
 type Filter = 'all' | 'to-me' | 'from-me' | 'settled';
 
@@ -140,7 +141,7 @@ function AddSheet({ onClose, onSave }: {
               <input
                 value={amount ? parseInt(amount.replace(/,/g,'')||'0').toLocaleString('en-US') : ''}
                 onChange={e => {
-                  const raw = e.target.value.replace(/,/g,'').replace(/[^\d]/g,'');
+                  const raw = normalizeDigits(e.target.value).replace(/,/g,'').replace(/[^\d]/g,'');
                   setAmount(raw);
                 }}
                 inputMode="numeric" placeholder="أدخل المبلغ"
@@ -176,7 +177,7 @@ function AddSheet({ onClose, onSave }: {
               return (
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">رقم الواتساب (مع رمز الدولة)</label>
-                  <input value={phone} onChange={e => setPhone(e.target.value)}
+                  <input value={phone} onChange={e => setPhone(normalizeDigits(e.target.value))}
                     type="tel" placeholder="9647701234567"
                     className={`w-full bg-muted/50 border rounded-xl px-3 py-3 text-sm outline-none ${
                       looksLocal ? 'border-amber-400 focus:border-amber-500' : 'border-border focus:border-primary'

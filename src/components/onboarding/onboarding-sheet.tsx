@@ -34,6 +34,7 @@ import {
   Sparkles, Zap, Wrench, Info, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeDigits } from "@/lib/normalize-digits";
 
 const ONBOARDING_KEY = "tadbeer-onboarding-v1";
 const TOTAL_STEPS    = 3;
@@ -45,7 +46,7 @@ const fmt = (n: number) =>
   n > 0 ? new Intl.NumberFormat("en-US").format(n) : "";
 
 const parse = (s: string) => {
-  const n = Number(s.replace(/,/g, ""));
+  const n = Number(normalizeDigits(s).replace(/,/g, ""));
   return isNaN(n) || n < 0 ? 0 : n;
 };
 
@@ -321,7 +322,7 @@ export default function OnboardingSheet() {
                         placeholder="مثال: 800,000"
                         value={income}
                         onChange={e => {
-                          const raw = e.target.value.replace(/,/g, "");
+                          const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setIncome(fmt(Number(raw)) || "");
                         }}
                         className="h-12 text-base pl-16 font-mono"
@@ -377,7 +378,7 @@ export default function OnboardingSheet() {
                         placeholder={parse(income) > 0 ? fmt(Math.round(parse(income) * 0.7)) : "مثال: 560,000"}
                         value={totalBudget}
                         onChange={e => {
-                          const raw = e.target.value.replace(/,/g, "");
+                          const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setTotalBudget(fmt(Number(raw)) || "");
                         }}
                         className="h-12 text-base pl-16 font-mono"

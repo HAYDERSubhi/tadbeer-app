@@ -32,6 +32,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import { useCategories } from '@/hooks/use-categories';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -400,7 +401,7 @@ export default function DetailedReceiptPage() {
 
   const handleItemChange = (id: string, field: keyof EditableItem, value: string | number) => {
     setAnalyzedItems(prev => prev.map(item =>
-      item.id === id ? { ...item, [field]: field === 'price' ? Number(value) || 0 : value } : item
+      item.id === id ? { ...item, [field]: field === 'price' ? Number(normalizeDigits(String(value)).replace(/[^\d.]/g, '')) || 0 : value } : item
     ));
   };
 
@@ -816,7 +817,7 @@ export default function DetailedReceiptPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">السعر</Label>
-                        <Input type="number" value={item.price || ''} onChange={e => handleItemChange(item.id, 'price', e.target.value)}
+                        <Input type="text" inputMode="decimal" value={item.price || ''} onChange={e => handleItemChange(item.id, 'price', e.target.value)}
                           placeholder="0" className="h-8 text-xs" />
                       </div>
                       <div className="space-y-1">

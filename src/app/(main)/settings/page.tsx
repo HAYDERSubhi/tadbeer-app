@@ -47,6 +47,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
 import { cn } from '@/lib/utils';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateUserSettings, addExpensesBatch, deleteCollection, addIncome, deleteIncome, updateIncome, exportUserData, importUserData } from '@/services/firestore';
@@ -568,7 +569,7 @@ export default function SettingsPage() {
 
   const parseFormattedNumber = (value: string | undefined) => {
     if (!value) return '';
-    return value.replace(/,/g, '');
+    return normalizeDigits(value).replace(/,/g, '');
   };
 
   const handleNumericInputChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {

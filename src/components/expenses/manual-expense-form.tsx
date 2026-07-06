@@ -21,6 +21,7 @@ import { CalendarIcon, Loader2Icon, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
@@ -242,7 +243,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                 placeholder="25,000"
                 value={field.value ? Number(field.value).toLocaleString('en-US') : ''}
                 onChange={(e) => {
-                  const raw = e.target.value.replace(/,/g, '').replace(/\D/g, '');
+                  const raw = normalizeDigits(e.target.value).replace(/,/g, '').replace(/\D/g, '');
                   field.onChange(raw ? Number(raw) : 0);
                 }}
               />

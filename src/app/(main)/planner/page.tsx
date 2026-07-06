@@ -15,6 +15,7 @@ import { Loader2Icon, Goal as GoalIcon, Target, CheckCircle2, XCircle, ArrowRigh
 import { format, differenceInCalendarMonths, isFuture, parseISO } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -64,7 +65,7 @@ const formatNumberWithCommas = (value: string | number | undefined) => {
 
 const parseFormattedNumber = (value: string | undefined) => {
     if (!value) return '';
-    return value.replace(/,/g, '');
+    return normalizeDigits(value).replace(/,/g, '');
 };
 
 
@@ -197,7 +198,7 @@ function PlannerContent() {
   });
 
   const handleSaveSaving = (goalId: string, currentSaved: number) => {
-    const parsed = Number(savingInput.replace(/,/g, ''));
+    const parsed = Number(normalizeDigits(savingInput).replace(/,/g, ''));
     if (isNaN(parsed) || parsed < 0) return;
     updateSavingMutation.mutate({ goalId, amount: parsed });
   };
@@ -437,7 +438,7 @@ function PlannerContent() {
                                     placeholder="المبلغ المُوفَّر"
                                     className="h-7 text-xs flex-1"
                                     value={savingInput}
-                                    onChange={e => setSavingInput(e.target.value)}
+                                    onChange={e => setSavingInput(normalizeDigits(e.target.value))}
                                     onKeyDown={e => { if (e.key === 'Enter') handleSaveSaving(goal.id, saved); if (e.key === 'Escape') setEditingSavingId(null); }}
                                   />
                                   <Button size="sm" className="h-7 px-2 text-xs" onClick={() => handleSaveSaving(goal.id, saved)} disabled={updateSavingMutation.isPending}>

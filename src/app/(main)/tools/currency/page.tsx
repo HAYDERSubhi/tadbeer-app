@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronRight, WifiOff, Pencil, Check, X, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate, getIQDMarketRateSavedAt } from '@/hooks/use-exchange-rates';
+import { normalizeDigits } from '@/lib/normalize-digits';
 
 const CURRENCIES = [
   { code: 'IQD', name: 'دينار عراقي',   symbol: 'د.ع', flag: '🇮🇶' },
@@ -164,9 +165,9 @@ export default function CurrencyPage() {
                   <div className="flex items-center gap-2 flex-1">
                     <span className="text-xs text-muted-foreground shrink-0">🏪 1$ =</span>
                     <input
-                      type="number" inputMode="numeric"
+                      type="text" inputMode="numeric"
                       value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
+                      onChange={e => setEditValue(normalizeDigits(e.target.value).replace(/[^\d.]/g, ''))}
                       className="flex-1 bg-transparent text-sm font-bold text-foreground outline-none border-b border-primary w-0"
                       autoFocus
                       onKeyDown={e => e.key === 'Enter' && confirmMarketRate()}

@@ -18,6 +18,7 @@ import {
   LayoutDashboard, TrendingUp, Bell, Camera, PenLine, ShieldCheck, Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { normalizeDigits } from '@/lib/normalize-digits';
 import type {
   Silftna, SilftnaMember, SilftnaPeriod, SilftnaMethod, SilftnaPaymentStatus,
   SilftnaMemberStatus, SilftnaCycle,
@@ -48,7 +49,7 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 function fmtInput(raw: number) { return raw ? raw.toLocaleString('en-US') : ''; }
-function parseAmt(s: string) { return parseInt(s.replace(/,/g, '').replace(/\D/g, '') || '0') || 0; }
+function parseAmt(s: string) { return parseInt(normalizeDigits(s).replace(/,/g, '').replace(/\D/g, '') || '0') || 0; }
 
 // ═══════════════ رسائل واتساب الجاهزة ═══════════════
 function waLaunch(s: Silftna, m: SilftnaMember, order: number, date: string, amount: number) {
@@ -430,7 +431,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
               <div className="flex flex-col gap-2">
                 <input value={mName} onChange={e => setMName(e.target.value)} placeholder="اسم العضو *"
                   className="w-full bg-muted/50 border border-border rounded-xl px-3 py-2.5 text-sm text-right outline-none focus:border-primary" />
-                <input value={mPhone} onChange={e => setMPhone(e.target.value)} type="tel" placeholder="رقم الواتساب (اختياري) — 9647..." dir="ltr"
+                <input value={mPhone} onChange={e => setMPhone(normalizeDigits(e.target.value))} type="tel" placeholder="رقم الواتساب (اختياري) — 9647..." dir="ltr"
                   className="w-full bg-muted/50 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary" />
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">

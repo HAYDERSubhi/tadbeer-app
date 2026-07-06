@@ -11,6 +11,7 @@ import {
 import { ChevronRight, Plus, Check, Trash2, Bell, AlertTriangle, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import type { InstallmentPlan } from '@/types';
+import { normalizeDigits } from '@/lib/normalize-digits';
 
 // ── مساعدات ───────────────────────────────────────────────────
 function fmt(n: number) {
@@ -27,7 +28,7 @@ function useAmountField() {
   const [raw, setRaw] = useState('');
   const display = fmtInput(raw);
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setRaw(e.target.value.replace(/,/g, '').replace(/\D/g, ''));
+    setRaw(normalizeDigits(e.target.value).replace(/,/g, '').replace(/\D/g, ''));
   }
   function reset() { setRaw(''); }
   return { value: parseAmt(raw), display, onChange, reset };
@@ -439,7 +440,7 @@ export default function InstallmentPage() {
             {/* ٣. عدد الأقساط */}
             <div className="mb-3">
               <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط (شهر) *</label>
-              <input value={months} onChange={e => setMonths(e.target.value.replace(/\D/g,''))}
+              <input value={months} onChange={e => setMonths(normalizeDigits(e.target.value).replace(/\D/g,''))}
                 onFocus={e => e.target.select()}
                 inputMode="numeric" placeholder="مثال: 12"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
@@ -506,7 +507,7 @@ export default function InstallmentPage() {
               <div className="mt-2">
                 <label className="text-xs text-muted-foreground mb-1 block">عدد الأقساط المسددة</label>
                 <input value={paidManual}
-                  onChange={e => setPaidManual(e.target.value.replace(/\D/g,''))}
+                  onChange={e => setPaidManual(normalizeDigits(e.target.value).replace(/\D/g,''))}
                   onFocus={e => e.target.select()}
                   inputMode="numeric"
                   placeholder={mths > 0 ? `حسب التاريخ: ${kFromDate} من ${mths}` : 'مثال: 6'}
