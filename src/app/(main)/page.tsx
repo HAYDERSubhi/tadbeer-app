@@ -49,16 +49,18 @@ import { GreetingHeader } from '@/components/dashboard/greeting-header';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
-function VoiceWaveBars({ level, className }: { level: number; className?: string }) {
-  const multipliers = [0.45, 0.75, 1.0, 0.75, 0.45];
+// الأعمدة تُحدَّث مباشرة عبر DOM من حلقة rAF (بلا setState لكل إطار):
+// إعادة رسم الصفحة كاملة 60 مرة/ثانية كانت تُضيع ضغطة الإيقاف على iOS Safari.
+const WAVE_BAR_MULTIPLIERS = [0.45, 0.75, 1.0, 0.75, 0.45];
+
+function VoiceWaveBars({ barsRef, className }: { barsRef: { current: HTMLDivElement | null }; className?: string }) {
   return (
-    <div className={cn('flex items-center justify-center gap-[3px]', className)}>
-      {multipliers.map((m, i) => (
+    <div ref={(el) => { barsRef.current = el; }} className={cn('flex items-center justify-center gap-[3px]', className)}>
+      {WAVE_BAR_MULTIPLIERS.map((_, i) => (
         <div
           key={i}
           className="w-[3px] rounded-full bg-current transition-all duration-75"
-          // level is already amplified (0–1). min height keeps bars visible.
-          style={{ height: `${Math.max(4, Math.min(22, 4 + level * m * 18))}px` }}
+          style={{ height: '4px' }}
         />
       ))}
     </div>
@@ -123,10 +125,14 @@ export default function DashboardPage() {
   const autoStopTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingStartRef   = useRef<number>(0);
   const maxAudioLevelRef    = useRef<number>(0); // أعلى مستوى صوت أثناء التسجيل
+  const waveBarsRef         = useRef<HTMLDivElement | null>(null);
+  const stopFallbackTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalizeRecordingRef  = useRef<(() => void) | null>(null);
+  const hasProcessedRecordingRef = useRef(false); // يمنع معالجة التسجيل مرتين (onstop + المهلة الاحتياطية)
+  const isStartingVoiceRef    = useRef(false);    // يمنع بدء تسجيلَين من ضغطتين متتاليتين
 
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [isVoiceLoading,   setIsVoiceLoading]   = useState(false);
-  const [audioLevel,       setAudioLevel]        = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
   const setRecordingState = (val: boolean) => {
@@ -139,6 +145,7 @@ export default function DashboardPage() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+      if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
       audioContextRef.current?.close().catch(() => {});
     };
   }, []);
@@ -162,7 +169,6 @@ export default function DashboardPage() {
       try { await audioContextRef.current.close(); } catch { /* ignore */ }
       audioContextRef.current = null;
     }
-    setAudioLevel(0);
   };
 
   const stopRecordingTimers = () => {
@@ -193,31 +199,54 @@ export default function DashboardPage() {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length / 255;
-        const level = Math.min(1, avg * 5);
-        setAudioLevel(level);
+        const level = Math.min(1, avg * 5); // level is already amplified (0–1)
         if (level > maxAudioLevelRef.current) maxAudioLevelRef.current = level;
+        const bars = waveBarsRef.current?.children;
+        if (bars) {
+          for (let i = 0; i < bars.length; i++) {
+            (bars[i] as HTMLElement).style.height =
+              `${Math.max(4, Math.min(22, 4 + level * WAVE_BAR_MULTIPLIERS[i] * 18))}px`;
+          }
+        }
         rafRef.current = requestAnimationFrame(tick);
       };
       tick();
     } catch { /* skip if AudioContext unsupported */ }
   };
 
+  const stopVoiceRecording = () => {
+    setRecordingState(false);
+    stopAudioVisualization();
+    stopRecordingTimers();
+    safeStopMediaRecorder(); // triggers onstop → API → Gemini
+    // iOS Safari أحياناً لا يُطلق onstop إطلاقاً — مهلة احتياطية تعالج
+    // المقاطع الملتقطة يدوياً. finalizeRecording محمي من التنفيذ المزدوج.
+    if (stopFallbackTimerRef.current) clearTimeout(stopFallbackTimerRef.current);
+    stopFallbackTimerRef.current = setTimeout(() => {
+      stopFallbackTimerRef.current = null;
+      finalizeRecordingRef.current?.();
+    }, 1000);
+  };
+
   const handleToggleVoiceRecording = async () => {
     // ── STOP: user tapped again ───────────────────────────────────────────────
     if (isVoiceRecordingRef.current) {
-      setRecordingState(false);
-      stopAudioVisualization();
-      stopRecordingTimers();
-      safeStopMediaRecorder(); // triggers onstop → API → Gemini
+      stopVoiceRecording();
       return;
     }
 
     // ── START ─────────────────────────────────────────────────────────────────
+    if (isStartingVoiceRef.current) return; // ضغطة ثانية سريعة قبل اكتمال البدء
+    isStartingVoiceRef.current = true;
+    // مهلة احتياطية معلّقة من تسجيل سابق تُلغى — التسجيل الجديد يتخلى عن السابق
+    if (stopFallbackTimerRef.current) { clearTimeout(stopFallbackTimerRef.current); stopFallbackTimerRef.current = null; }
+    finalizeRecordingRef.current = null;
     setVoiceExpenseData(null); // clear stale data from previous recording
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
+      isStartingVoiceRef.current = false;
       toast({
         title: 'خطأ في الميكروفون',
         description: 'امنح التطبيق إذن الوصول إلى الميكروفون وأعد المحاولة.',
@@ -228,20 +257,39 @@ export default function DashboardPage() {
 
     // Pick a supported MIME type — Gemini accepts webm/ogg/mp4
     const preferredTypes = ['audio/webm', 'audio/ogg', 'audio/mp4'];
-    const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
-    const mediaRecorder = supportedMime
-      ? new MediaRecorder(stream, { mimeType: supportedMime })
-      : new MediaRecorder(stream);
+    let mediaRecorder: MediaRecorder;
+    try {
+      const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+      mediaRecorder = supportedMime
+        ? new MediaRecorder(stream, { mimeType: supportedMime })
+        : new MediaRecorder(stream);
+    } catch {
+      stream.getTracks().forEach(t => t.stop());
+      isStartingVoiceRef.current = false;
+      toast({
+        title: 'التسجيل غير مدعوم',
+        description: 'متصفحك لا يدعم تسجيل الصوت. حدّث نظام جهازك وحاول مجدداً.',
+        variant: 'destructive',
+      });
+      return;
+    }
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current   = [];
     recordingStartRef.current = Date.now();
-    maxAudioLevelRef.current  = 0; // إعادة تهيئة عند كل تسجيل جديد
+    maxAudioLevelRef.current  = -1; // -1 = لم يعمل محلل الصوت بعد (يعطّل فحص الصمت إذا فشل المحلل)
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) audioChunksRef.current.push(e.data);
     };
 
-    mediaRecorder.onstop = async () => {
+    const finalizeRecording = async () => {
+      // ينفَّذ مرة واحدة فقط: إما من onstop أو من المهلة الاحتياطية (iOS)
+      if (hasProcessedRecordingRef.current) return;
+      hasProcessedRecordingRef.current = true;
+      if (stopFallbackTimerRef.current) {
+        clearTimeout(stopFallbackTimerRef.current);
+        stopFallbackTimerRef.current = null;
+      }
       stream.getTracks().forEach(t => t.stop());
 
       const durationMs = Date.now() - recordingStartRef.current;
@@ -279,7 +327,8 @@ export default function DashboardPage() {
 
       // Guard: الصمت الحقيقي — مستوى الصوت لم يتجاوز العتبة طوال التسجيل.
       // الكودك ينتج بيانات حتى بدون صوت لذا لا نعتمد على blob.size وحده.
-      if (maxAudioLevelRef.current < 0.04) {
+      // (-1 = المحلل لم يعمل أصلاً، فنتخطى الفحص بدل رفض تسجيل سليم)
+      if (maxAudioLevelRef.current !== -1 && maxAudioLevelRef.current < 0.04) {
         toast({
           title: 'لم نسمع أي كلام',
           description: 'تأكد من أن الميكروفون يعمل وتحدث بوضوح.',
@@ -353,10 +402,28 @@ export default function DashboardPage() {
       }
     };
 
-    await startAudioVisualization(stream);
-    mediaRecorder.start(250); // 250ms chunks for reliability
+    mediaRecorder.onstop = finalizeRecording;
+    finalizeRecordingRef.current = finalizeRecording;
+    hasProcessedRecordingRef.current = false;
+
+    try {
+      mediaRecorder.start(250); // 250ms chunks for reliability
+    } catch {
+      // فشل start() يجب ألّا يترك قفل isStartingVoiceRef معلّقاً (زر ميت)
+      stream.getTracks().forEach(t => t.stop());
+      isStartingVoiceRef.current = false;
+      toast({
+        title: 'تعذّر بدء التسجيل',
+        description: 'حدث خطأ في الميكروفون. حاول مجدداً.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setRecordingState(true);
     setRecordingSeconds(0);
+    isStartingVoiceRef.current = false;
+    // بلا await: الرسم تجميلي، وctx.resume() قد يعلق على iOS فلا يجوز أن يمنع بدء التسجيل
+    void startAudioVisualization(stream);
 
     // ── Recording timer (counts up every second for UX display) ──────────────
     recordingTimerRef.current = setInterval(() => {
@@ -367,10 +434,7 @@ export default function DashboardPage() {
     autoStopTimerRef.current = setTimeout(() => {
       if (!isVoiceRecordingRef.current) return;
       toast({ title: 'تم إيقاف التسجيل تلقائياً', description: 'الحد الأقصى للتسجيل هو 60 ثانية.' });
-      setRecordingState(false);
-      stopAudioVisualization();
-      stopRecordingTimers();
-      safeStopMediaRecorder();
+      stopVoiceRecording();
     }, 60_000);
   };
 
@@ -702,10 +766,13 @@ export default function DashboardPage() {
             </Link>
 
             {/* ── صوت ── */}
-            <div
-              onClick={isVoiceLoading ? undefined : handleToggleVoiceRecording}
+            {/* button حقيقي (لا div): iOS Safari قد لا يُطلق click على العناصر غير التفاعلية */}
+            <button
+              type="button"
+              onClick={handleToggleVoiceRecording}
+              disabled={isVoiceLoading}
               className={cn(
-                "flex flex-col items-center justify-center gap-2 p-3 rounded-xl group transition-colors",
+                "flex flex-col items-center justify-center gap-2 p-3 rounded-xl group transition-colors touch-manipulation select-none",
                 isVoiceLoading ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
               )}
             >
@@ -718,19 +785,19 @@ export default function DashboardPage() {
                 {isVoiceLoading ? (
                   <Loader2 className="w-7 h-7 animate-spin" />
                 ) : isVoiceRecording ? (
-                  <VoiceWaveBars level={audioLevel} className="w-8 h-8" />
+                  <VoiceWaveBars barsRef={waveBarsRef} className="w-8 h-8" />
                 ) : (
                   <Mic className="w-7 h-7" />
                 )}
               </span>
-              <p className="font-semibold text-sm tabular-nums">
+              <span className="font-semibold text-sm tabular-nums">
                 {isVoiceLoading
                   ? 'تحليل...'
                   : isVoiceRecording
                     ? `${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, '0')}`
                     : 'صوت'}
-              </p>
-            </div>
+              </span>
+            </button>
 
             <VoiceReviewComponent open={isVoiceReviewOpen} onOpenChange={setIsVoiceReviewOpen}>
               {isMobile ? (
