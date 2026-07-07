@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User, Eye, EyeOff } from 'lucide-react';
 import { recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
@@ -22,10 +22,6 @@ import { logEvent } from 'firebase/analytics';
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
   password: z.string().min(6, { message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' }),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: 'كلمتا المرور غير متطابقتين',
-  path: ['confirmPassword'],
 });
 type SignupFormData = z.infer<typeof signupSchema>;
 
@@ -37,12 +33,6 @@ const GoogleIcon = () => (
     <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.591 44 30.033 44 24c0-1.341-.138-2.65-.389-3.917z"/>
   </svg>
 );
-
-const perks = [
-  'مزامنة بياناتك على كل أجهزتك',
-  'نسخ احتياطي تلقائي آمن',
-  'إحصائيات وتقارير ذكية',
-];
 
 export default function SignupPage() {
   const { signUpWithEmailPassword, signInWithGoogle, signInAsGuest, user, loading: authLoading } = useAuth();
@@ -67,7 +57,6 @@ export default function SignupPage() {
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
   const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
@@ -167,21 +156,12 @@ export default function SignupPage() {
           <h1 className="text-3xl font-black tracking-tight">انضم إلى تدبير</h1>
           <p className="text-white/85 text-base mt-1.5">سجّل مجاناً وابدأ إدارة مصاريفك الآن</p>
         </div>
-        <div className="flex flex-col gap-2 w-full max-w-[280px]">
-          {perks.map(perk => (
-            <div key={perk} className="flex items-center gap-2.5 text-white/90 text-sm">
-              <CheckCircle2 className="h-4 w-4 text-white/70 shrink-0" />
-              {perk}
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* ── Card ──────────────────────────────────────────────── */}
       <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-5">
         <div className="text-center">
           <h2 className="text-xl font-bold">إنشاء حساب جديد</h2>
-          <p className="text-sm text-muted-foreground mt-1">مجاني تماماً</p>
         </div>
 
         {/* Google — primary CTA */}
@@ -239,27 +219,6 @@ export default function SignupPage() {
             </div>
             {form.formState.errors.password && (
               <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="confirmPassword" className="text-sm font-medium">تأكيد كلمة المرور</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'}
-                className="h-12 text-base focus:border-teal-400 pl-11"
-                {...form.register('confirmPassword')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(v => !v)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
-                tabIndex={-1}
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </button>
-            </div>
-            {form.formState.errors.confirmPassword && (
-              <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
             )}
           </div>
           <Button
