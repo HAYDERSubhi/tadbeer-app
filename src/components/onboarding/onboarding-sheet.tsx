@@ -165,6 +165,36 @@ export default function OnboardingSheet() {
     router.push("/add-expense");
   };
 
+  // من شاشة الترحيب مباشرة: تخطّي الخطوات الثلاث كاملة والذهاب فوراً لتسجيل أول مصروف
+  // (بلا المرور بشاشة «الانطلاق»). يحفظ نفس القيم الافتراضية التي يحفظها «تخطّي الباقي».
+  const skipToAddExpense = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await updateUserSettings(user.uid, {
+        profile: { monthlyIncome: parse(income), familyMembers: [] },
+        budget: {
+          totalBudget:         parse(totalBudget) || Math.round(parse(income) * 0.7),
+          weeklyBudget:        Math.round((parse(totalBudget) || parse(income) * 0.7) / 4),
+          zeroSpendDaysTarget: 4,
+        },
+      });
+      localStorage.setItem(ONBOARDING_KEY, "done");
+      window.dispatchEvent(new CustomEvent('onboarding-complete'));
+      queryClient.invalidateQueries({ queryKey: ["userSettings", user.uid] });
+      setOpen(false);
+      router.push("/add-expense");
+    } catch (e) {
+      console.error("Onboarding skip-to-app failed:", e);
+      toast({
+        title: "تعذّر الحفظ",
+        description: "تحقّق من اتصالك وحاول مجدداً.",
+        variant: "destructive",
+      });
+      setSaving(false);
+    }
+  };
+
   const canProceed = () => {
     if (step === 0) return parse(income) >= 1000;     // must enter income
     if (step === 1) return true;                       // budget optional (auto-calc)
@@ -230,9 +260,22 @@ export default function OnboardingSheet() {
             <Button
               className="w-full h-13 text-base font-semibold mt-7"
               onClick={() => setPhase("steps")}
+              disabled={saving}
             >
               يلا نبدأ <ChevronLeft className="h-5 w-5 mr-1" />
             </Button>
+
+            <button
+              onClick={skipToAddExpense}
+              disabled={saving}
+              className="w-full text-center text-sm font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50 mt-3 py-1"
+            >
+              {saving ? (
+                <span className="inline-flex items-center gap-1.5"><Loader2 className="h-4 w-4 animate-spin" /> جاري التحضير...</span>
+              ) : (
+                "تخطّي الإعداد والمتابعة للتطبيق"
+              )}
+            </button>
           </div>
         )}
 
@@ -277,9 +320,18 @@ export default function OnboardingSheet() {
               {step === 0 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5 text-primary shrink-0" />
-                      <h3 className="font-bold text-lg text-foreground">ما هو دخلك الشهري؟</h3>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5 text-primary shrink-0" />
+                        <h3 className="font-bold text-lg text-foreground">ما هو دخلك الشهري؟</h3>
+                      </div>
+                      <button
+                        onClick={handleFinish}
+                        disabled={saving}
+                        className="text-sm font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50 shrink-0"
+                      >
+                        تخطي
+                      </button>
                     </div>
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
                       منه نحسب تنبيهات ميزانيتك <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
