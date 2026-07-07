@@ -113,6 +113,16 @@ export default function DashboardPage() {
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null); // النص المُفرّغ (P5)
+
+  // مستخدم أنهى/تخطّى معالج الإعداد بلا أي مصروف (اختار «لاحقاً») ووصل للرئيسية —
+  // نفعّل الجولة التعريفية له أيضاً، لا تبقى مؤجَّلة للأبد بانتظار أول مصروف لن يأتي.
+  // الحدث يصل من onboarding-sheet.tsx عند الإنهاء/التخطي/الإغلاق (وليس عند الانتقال لتسجيل مصروف).
+  const [justFinishedOnboarding, setJustFinishedOnboarding] = useState(false);
+  useEffect(() => {
+    const handler = () => setJustFinishedOnboarding(true);
+    window.addEventListener('onboarding-complete', handler);
+    return () => window.removeEventListener('onboarding-complete', handler);
+  }, []);
   
   // --- Voice Recording State & Refs ---
   const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
@@ -689,8 +699,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-3 pb-24">
       {/* ملاحظة: OnboardingSheet انتقل إلى (main)/layout.tsx كي لا تُفكِّكه بوّابة pageReady. */}
-      {/* الجولة تُؤجَّل حتى يضيف المستخدم أول مصروف — فتظهر على لوحة فيها محتوى حقيقي يُشرَح */}
-      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses} />
+      {/* الجولة تظهر بعد أول مصروف حقيقي (اللحظة المثالية)، أو فور إغلاق معالج الإعداد
+          بلا أي مصروف (تخطّي/«لاحقاً») كي لا تبقى معلّقة للأبد بلا محفّز — انظر justFinishedOnboarding أعلاه. */}
+      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses || justFinishedOnboarding} />
 
       <GreetingHeader />
 
