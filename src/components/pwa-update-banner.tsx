@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { reloadWhenIdle } from '@/lib/reload-when-idle';
 
 export function PwaUpdateBanner() {
   const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
@@ -43,7 +44,7 @@ export function PwaUpdateBanner() {
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!refreshing) {
         refreshing = true;
-        window.location.reload();
+        reloadWhenIdle();
       }
     });
   }, []);

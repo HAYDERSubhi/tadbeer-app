@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reloadWhenIdle } from '@/lib/reload-when-idle';
 
 // بصمة البناء — تتغير مع كل نشر على Vercel
 const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID || 'dev';
@@ -18,15 +19,15 @@ export function SWUpdater() {
       if (seen !== null && 'caches' in window) {
         caches.keys()
           .then(keys => Promise.all(keys.map(k => caches.delete(k))))
-          .then(() => window.location.reload());
+          .then(() => reloadWhenIdle());
         return;
       }
     }
 
     if (!('serviceWorker' in navigator)) return;
 
-    // إعادة تحميل فور استلام SW جديد للتحكم
-    const handleControllerChange = () => window.location.reload();
+    // إعادة تحميل فور استلام SW جديد للتحكم — مؤجّلة لحين إغلاق أي نافذة/معالج مفتوح
+    const handleControllerChange = () => reloadWhenIdle();
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
 
     // طلب فحص تحديثات SW عند كل فتح/عودة للتطبيق

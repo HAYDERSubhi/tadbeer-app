@@ -4,14 +4,16 @@
 "use client";
 
 import { useEffect } from 'react';
+import { reloadWhenIdle } from '@/lib/reload-when-idle';
 
 export function useSwUpdate() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
-    // When a new SW activates and claims this client, reload once.
+    // When a new SW activates and claims this client, reload once —
+    // لكن نؤجّل لحين إغلاق أي نافذة/معالج مفتوح (لا نقطع onboarding أو نموذج نشط).
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
+      reloadWhenIdle();
     });
 
     // Also check for a waiting SW on mount and activate it immediately.
