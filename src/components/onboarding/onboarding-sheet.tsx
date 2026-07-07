@@ -243,15 +243,13 @@ export default function OnboardingSheet() {
             <SheetHeader className="px-5 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <SheetTitle className="text-lg font-bold">إعداد تدبير</SheetTitle>
-                {step > 0 && (
-                  <button
-                    onClick={handleFinish}
-                    disabled={saving}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                  >
-                    تخطّي الباقي
-                  </button>
-                )}
+                <button
+                  onClick={handleFinish}
+                  disabled={saving}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                >
+                  تخطّي الباقي
+                </button>
               </div>
               <SheetDescription className="text-sm text-right">
                 3 خطوات سريعة لتفعيل كل ميزات الميزانية
