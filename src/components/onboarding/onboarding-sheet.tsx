@@ -27,11 +27,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Wallet, Target, Users, ChevronLeft, ChevronRight,
   CheckCircle2, Loader2, Baby, UserRound, Plus, Minus,
-  Sparkles, Zap, Wrench, Info, Lock,
+  Sparkles, Zap, Wrench, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
@@ -50,20 +49,8 @@ const parse = (s: string) => {
   return isNaN(n) || n < 0 ? 0 : n;
 };
 
-/* تنويه موحّد «ليش نسأل؟» — سبب جمع كل معلومة، بنبرة وأيقونة ثابتة */
-const WhyNote = ({ children }: { children: React.ReactNode }) => (
-  <div className="flex items-start gap-2.5 bg-primary/5 rounded-lg px-3 py-2.5">
-    <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-    <p className="text-sm text-primary/90 leading-relaxed">{children}</p>
-  </div>
-);
-
-/* ─── Step indicators ─────────────────────────────────────── */
-const steps = [
-  { icon: Wallet, label: "الدخل" },
-  { icon: Target, label: "الميزانية" },
-  { icon: Users,  label: "الأسرة" },
-];
+/* عناوين الخطوات — تُعرض في عدّاد التقدّم */
+const stepTitles = ["الدخل", "الميزانية", "الأسرة"];
 
 export default function OnboardingSheet() {
   const { user }          = useAuth();
@@ -275,23 +262,9 @@ export default function OnboardingSheet() {
                   style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-2">
-                {steps.map((s, i) => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={i} className={cn(
-                      "flex items-center gap-1.5 text-xs transition-colors",
-                      i === step ? "text-primary font-semibold" :
-                      i < step   ? "text-primary/60" : "text-muted-foreground"
-                    )}>
-                      {i < step
-                        ? <CheckCircle2 className="h-4 w-4" />
-                        : <Icon className="h-4 w-4" />}
-                      {s.label}
-                    </div>
-                  );
-                })}
-              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                الخطوة {step + 1} من {TOTAL_STEPS} — <span className="text-primary font-semibold">{stepTitles[step]}</span>
+              </p>
             </div>
 
             {/* Step content */}
@@ -299,22 +272,18 @@ export default function OnboardingSheet() {
 
               {/* ── Step 0: Income ─────────────────────────────── */}
               {step === 0 && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="bg-primary/5 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Wallet className="h-5 w-5" />
-                      <h3 className="font-bold text-base">ما هو دخلك الشهري؟</h3>
+                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-primary shrink-0" />
+                      <h3 className="font-bold text-lg text-foreground">ما هو دخلك الشهري؟</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      ليش نسأل؟ منه نحسب نسبة إنفاقك وننبّهك قبل ما تتجاوز ميزانيتك.
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد.
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
+                      منه نحسب تنبيهات ميزانيتك <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">الدخل الشهري (د.ع)</Label>
+                  <div className="space-y-3">
                     <div className="relative">
                       <Input
                         type="text"
@@ -325,13 +294,13 @@ export default function OnboardingSheet() {
                           const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setIncome(fmt(Number(raw)) || "");
                         }}
-                        className="h-12 text-base pl-16 font-mono"
+                        className="h-14 text-2xl font-bold pl-16 font-mono"
                         autoFocus
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
                     </div>
                     {/* Quick picks — تسميات عربية واضحة بدل صيغة K الإنجليزية */}
-                    <div className="flex gap-2 flex-wrap pt-1">
+                    <div className="flex gap-2 flex-wrap">
                       {[
                         { v: 500_000,   label: "500 ألف" },
                         { v: 750_000,   label: "750 ألف" },
@@ -342,7 +311,7 @@ export default function OnboardingSheet() {
                           key={v}
                           onClick={() => setIncome(fmt(v))}
                           className={cn(
-                            "px-3 py-1 rounded-full text-xs border transition-colors",
+                            "px-4 py-2 rounded-full text-sm border transition-colors",
                             income === fmt(v)
                               ? "bg-primary text-white border-primary"
                               : "bg-muted border-transparent hover:border-primary/40"
@@ -358,19 +327,18 @@ export default function OnboardingSheet() {
 
               {/* ── Step 1: Budget ─────────────────────────────── */}
               {step === 1 && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="bg-primary/5 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Target className="h-5 w-5" />
-                      <h3 className="font-bold text-base">ما هي ميزانيتك الشهرية؟</h3>
+                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary shrink-0" />
+                      <h3 className="font-bold text-lg text-foreground">ما هي ميزانيتك الشهرية؟</h3>
                     </div>
-                    <WhyNote>
-                      ليش نسأل؟ هي خطّك الأحمر الشهري — منها يشتغل شريط الميزانية وتنبيهات التجاوز.
-                    </WhyNote>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      خطّك الأحمر الشهري — منها تشتغل تنبيهات التجاوز.
+                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">الميزانية الشهرية (د.ع)</Label>
+                  <div className="space-y-3">
                     <div className="relative">
                       <Input
                         type="text"
@@ -381,64 +349,34 @@ export default function OnboardingSheet() {
                           const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setTotalBudget(fmt(Number(raw)) || "");
                         }}
-                        className="h-12 text-base pl-16 font-mono"
+                        className="h-14 text-2xl font-bold pl-16 font-mono"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">د.ع</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
                     </div>
 
                     {/* تلميح: الحقل اختياري ويُحسب تلقائياً إن تُرك فارغاً */}
-                    <p className="text-sm text-muted-foreground/80">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       اتركها فارغة وسنحسبها لك تلقائياً
-                      {parse(income) > 0 && <> (70% من دخلك = {fmt(Math.round(parse(income) * 0.7))} د.ع)</>}
+                      {parse(income) > 0 && <> (70% من دخلك = <span className="font-semibold text-foreground">{fmt(Math.round(parse(income) * 0.7))}</span> د.ع)</>}
                     </p>
-
-                    {parse(income) > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <p className="text-sm text-muted-foreground">اقتراحات بناءً على دخلك:</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {[
-                            { label: "70% (موصى به)", pct: 0.7 },
-                            { label: "60% (توفير أكثر)", pct: 0.6 },
-                            { label: "80%", pct: 0.8 },
-                          ].map(({ label, pct }) => {
-                            const val = Math.round(parse(income) * pct);
-                            return (
-                              <button
-                                key={pct}
-                                onClick={() => setTotalBudget(fmt(val))}
-                                className={cn(
-                                  "px-3 py-1.5 rounded-lg text-[11px] border transition-colors text-right",
-                                  totalBudget === fmt(val)
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-muted border-transparent hover:border-primary/40"
-                                )}
-                              >
-                                <span className="font-semibold">{fmt(val)}</span>
-                                <span className="text-[10px] opacity-70 mr-1">— {label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
 
               {/* ── Step 2: Family ─────────────────────────────── */}
               {step === 2 && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="bg-primary/5 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-primary">
-                      <Users className="h-5 w-5" />
-                      <h3 className="font-bold text-base">حجم الأسرة</h3>
+                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary shrink-0" />
+                      <h3 className="font-bold text-lg text-foreground">حجم الأسرة</h3>
                     </div>
-                    <WhyNote>
-                      ليش نسأل؟ نخصّص لك توصيات أدقّ حسب عدد أفراد بيتك (اختياري).
-                    </WhyNote>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      نخصّص لك توصيات أدقّ حسب عدد أفراد بيتك (اختياري).
+                    </p>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     {/* Adults */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -453,16 +391,16 @@ export default function OnboardingSheet() {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setAdults(a => Math.max(1, a - 1))}
-                          className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
+                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
                         >
-                          <Minus className="h-3.5 w-3.5" />
+                          <Minus className="h-4 w-4" />
                         </button>
                         <span className="w-6 text-center font-bold text-lg">{adults}</span>
                         <button
                           onClick={() => setAdults(a => Math.min(6, a + 1))}
-                          className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
+                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -481,31 +419,18 @@ export default function OnboardingSheet() {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => setChildren(c => Math.max(0, c - 1))}
-                          className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
+                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
                         >
-                          <Minus className="h-3.5 w-3.5" />
+                          <Minus className="h-4 w-4" />
                         </button>
                         <span className="w-6 text-center font-bold text-lg">{children}</span>
                         <button
                           onClick={() => setChildren(c => Math.min(10, c + 1))}
-                          className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
+                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
                         >
-                          <Plus className="h-3.5 w-3.5" />
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
-                    </div>
-
-                    {/* Summary badge */}
-                    <div className="flex items-center gap-2 bg-muted/60 rounded-lg px-3 py-2">
-                      <Users className="h-4 w-4 text-primary shrink-0" />
-                      <p className="text-sm text-muted-foreground">
-                        أسرة مكوّنة من{" "}
-                        <span className="font-bold text-foreground">
-                          {adults + children === 1 ? "شخص واحد" : adults + children === 2 ? "شخصين" : `${adults + children} أشخاص`}
-                        </span>
-                        {" "}({adults === 1 ? "بالغ واحد" : adults === 2 ? "بالغين" : `${adults} بالغين`}
-                        {children > 0 ? ` و${children === 1 ? "طفل واحد" : children === 2 ? "طفلين" : `${children} أطفال`}` : ""})
-                      </p>
                     </div>
                   </div>
                 </div>
