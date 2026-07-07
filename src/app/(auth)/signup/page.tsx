@@ -16,6 +16,8 @@ import { recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
+import { analytics } from '@/lib/firebase';
+import { logEvent } from 'firebase/analytics';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -98,6 +100,7 @@ export default function SignupPage() {
       if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
     }
 
+    if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'password' }); } catch {} }
     toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
     router.push('/');
     setIsLoading(false);
@@ -129,6 +132,7 @@ export default function SignupPage() {
     if (isNewUser && userCredential.user) {
       const refUid = sessionStorage.getItem('tadbeer-ref');
       if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
+      if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
       toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
     } else {
       toast({ title: 'أهلاً بعودتك!' });
