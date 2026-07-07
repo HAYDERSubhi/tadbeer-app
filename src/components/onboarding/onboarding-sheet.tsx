@@ -80,8 +80,13 @@ export default function OnboardingSheet() {
     if (!isSettingsFetched) return;
     decidedRef.current = true;             // قرّرنا الآن — لا نُعيد التقييم مع كل تغيّر لاحق لـ userSettings
     if (localStorage.getItem(ONBOARDING_KEY)) return;
-    // مستخدم عائد لديه دخل مسجّل فعلاً (جهاز جديد/بعد مسح الكاش) → لا تُظهر المعالج
-    if ((userSettings?.profile?.monthlyIncome ?? 0) > 0) {
+    // مستخدم عائد = دخل **وميزانية** مسجّلان معاً. الميزانية لا تُكتب إلا عند إنهاء
+    // المعالج (handleFinish يحسبها 70% تلقائياً إن تُركت فارغة)، بينما الدخل يُحفظ
+    // جزئياً فور تجاوز خطوته — فوجود دخل بلا ميزانية يعني معالجاً انقطع بمنتصفه
+    // (إعادة تحميل بسبب تحديث SW، إغلاق تاب...) → أعد فتحه ليُكمل (الدخل يُعبّأ مسبقاً).
+    const hasIncome = (userSettings?.profile?.monthlyIncome ?? 0) > 0;
+    const hasBudget = (userSettings?.budget?.totalBudget    ?? 0) > 0;
+    if (hasIncome && hasBudget) {
       localStorage.setItem(ONBOARDING_KEY, "done");
       return;
     }
