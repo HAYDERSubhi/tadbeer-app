@@ -138,7 +138,11 @@ export default function OnboardingSheet() {
       });
 
       localStorage.setItem(ONBOARDING_KEY, "done");
-      window.dispatchEvent(new CustomEvent('onboarding-complete'));
+      // ⚠️ لا نُطلِق onboarding-complete هنا: الـ Sheet لا يُغلَق بهذي اللحظة، فقط ينتقل
+      // لطور «الانطلاق» ويبقى مفتوحاً. لو أطلقناه هنا، الجولة التعريفية (المستمعة لهذا
+      // الحدث بالرئيسية) تحاول تفتح فوق شاشة «الانطلاق» وهي ما زالت مفتوحة وتحجب أزرارها
+      // («سجّل أول مصروف»/«لاحقاً» يصيران بلا استجابة). الحدث يُطلَق فقط من goAddExpense
+      // و dismiss — اللحظتان الحقيقيتان لإغلاق الـ Sheet.
       // ⚠️ لا نستدعي invalidateQueries هنا: إعادة جلب الإعدادات تقلب pageReady=false
       // في اللوحة فتُفكِّك هذا الـ Sheet ويختفي طور «الانطلاق». نؤجّلها إلى لحظة الخروج
       // (goAddExpense / dismiss). البيانات محفوظة في Firestore فعلاً؛ التحديث المرئي يكفي عند الخروج.
@@ -158,41 +162,14 @@ export default function OnboardingSheet() {
   };
 
   // زر «سجّل أول مصروف»: أغلق الـ Sheet ثم انتقل (القاعدة الذهبية #3) — انتقال ناعم بلا overlay عالق.
+  // هنا فعلياً يُغلَق الـ Sheet، فهذي اللحظة الصحيحة لإطلاق onboarding-complete (تُفعِّل
+  // الجولة التعريفية لو المستخدم عاد للرئيسية لاحقاً بلا مصروف محفوظ).
   const goAddExpense = () => {
     // حدّث الإعدادات الآن (عند الخروج) فقط — لا أثناء عرض الانطلاق (يُفكِّك الـ Sheet).
     if (user) queryClient.invalidateQueries({ queryKey: ["userSettings", user.uid] });
     setOpen(false);
+    window.dispatchEvent(new CustomEvent('onboarding-complete'));
     router.push("/add-expense");
-  };
-
-  // من شاشة الترحيب مباشرة: تخطّي الخطوات الثلاث كاملة والذهاب فوراً لتسجيل أول مصروف
-  // (بلا المرور بشاشة «الانطلاق»). يحفظ نفس القيم الافتراضية التي يحفظها «تخطّي الباقي».
-  const skipToAddExpense = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      await updateUserSettings(user.uid, {
-        profile: { monthlyIncome: parse(income), familyMembers: [] },
-        budget: {
-          totalBudget:         parse(totalBudget) || Math.round(parse(income) * 0.7),
-          weeklyBudget:        Math.round((parse(totalBudget) || parse(income) * 0.7) / 4),
-          zeroSpendDaysTarget: 4,
-        },
-      });
-      localStorage.setItem(ONBOARDING_KEY, "done");
-      window.dispatchEvent(new CustomEvent('onboarding-complete'));
-      queryClient.invalidateQueries({ queryKey: ["userSettings", user.uid] });
-      setOpen(false);
-      router.push("/add-expense");
-    } catch (e) {
-      console.error("Onboarding skip-to-app failed:", e);
-      toast({
-        title: "تعذّر الحفظ",
-        description: "تحقّق من اتصالك وحاول مجدداً.",
-        variant: "destructive",
-      });
-      setSaving(false);
-    }
   };
 
   const canProceed = () => {
@@ -266,12 +243,12 @@ export default function OnboardingSheet() {
             </Button>
 
             <button
-              onClick={skipToAddExpense}
+              onClick={handleFinish}
               disabled={saving}
               className="w-full text-center text-sm font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50 mt-3 py-1"
             >
               {saving ? (
-                <span className="inline-flex items-center gap-1.5"><Loader2 className="h-4 w-4 animate-spin" /> جاري التحضير...</span>
+                <span className="inline-flex items-center gap-1.5"><Loader2 className="h-4 w-4 animate-spin" /> جاري الحفظ...</span>
               ) : (
                 "تخطّي الإعداد والمتابعة للتطبيق"
               )}
