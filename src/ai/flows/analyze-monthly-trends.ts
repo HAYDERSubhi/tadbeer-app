@@ -18,7 +18,7 @@ const MonthDataSchema = z.object({
   })),
 });
 
-export const AnalyzeMonthlyTrendsInputSchema = z.object({
+const AnalyzeMonthlyTrendsInputSchema = z.object({
   currentMonth: MonthDataSchema,
   previousMonth: MonthDataSchema,
   budget: z.number().optional(),
@@ -33,7 +33,7 @@ const TrendInsightSchema = z.object({
   sentiment: z.enum(['positive', 'warning', 'neutral']),
 });
 
-export const AnalyzeMonthlyTrendsOutputSchema = z.object({
+const AnalyzeMonthlyTrendsOutputSchema = z.object({
   overallTrend: z.enum(['improving', 'worsening', 'stable']),
   insights: z.array(TrendInsightSchema).min(2).max(3),
 });
