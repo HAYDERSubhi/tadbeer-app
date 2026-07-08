@@ -46,6 +46,7 @@ import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
+import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -110,6 +111,7 @@ export default function DashboardPage() {
 
   const { expenses, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
 
+  const [isQuickSetupOpen, setIsQuickSetupOpen] = useState(false);
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
   const [voiceExpenseData, setVoiceExpenseData] = useState<Partial<Expense> | null>(null);
   const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null); // النص المُفرّغ (P5)
@@ -755,14 +757,16 @@ export default function DashboardPage() {
         <Card>
             <CardContent className="p-4 text-center">
                <h3 className='font-semibold text-sm'>أهلاً بك في تدبير</h3>
-               <p className='text-xs text-muted-foreground'>ابدأ بتحديد ميزانية شهرية من الإعدادات لإطلاق العنان لقوة التطبيق.</p>
-               <Button asChild size="sm" className='mt-3'>
-                    <Link href="/settings">الذهاب إلى الإعدادات</Link>
+               <p className='text-xs text-muted-foreground'>حدّد ميزانية شهرية لإطلاق العنان لقوة التطبيق.</p>
+               <Button size="sm" className='mt-3' onClick={() => setIsQuickSetupOpen(true)}>
+                    أكمل إعداد ميزانيتك
                </Button>
             </CardContent>
         </Card>
       )}
-      
+
+      <QuickBudgetSetupSheet open={isQuickSetupOpen} onOpenChange={setIsQuickSetupOpen} />
+
       <ZeroStreakCard />
 
       <Card id="expense-input-card" className="overflow-hidden">

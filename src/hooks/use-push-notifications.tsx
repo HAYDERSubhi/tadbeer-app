@@ -12,6 +12,36 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
+// Requests notification permission (must run inside a user gesture handler,
+// e.g. a Switch's onCheckedChange) and subscribes to push if granted.
+// Returns whether the subscription succeeded.
+export async function requestAndSubscribePush(user: { getIdToken: () => Promise<string> }): Promise<boolean> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return false;
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') return false;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return false;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    const idToken = await user.getIdToken();
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Silently registers push subscription if permission already granted.
 // Permission request itself happens in settings toggle (user gesture required).
 export function usePushNotifications() {
