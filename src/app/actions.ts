@@ -55,19 +55,29 @@ export async function financialCoachAction(
 
 /**
  * A Server Action to securely call the recordExpenseWithText AI flow from the client.
+ *
+ * Returns a discriminated result object instead of throwing, because Next.js
+ * strips thrown error messages in production builds (replacing them with a
+ * generic "Server Components render" message). Returning the error as a value
+ * lets the real message cross the server/client boundary intact.
  */
+export type RecordExpenseActionResult =
+  | { ok: true; data: RecordExpenseWithTextOutput }
+  | { ok: false; error: string };
+
 export async function recordExpenseAction(
   input: RecordExpenseWithTextInput
-): Promise<RecordExpenseWithTextOutput> {
+): Promise<RecordExpenseActionResult> {
   try {
-    const result = await recordExpenseWithText(input);
-    return result;
+    const data = await recordExpenseWithText(input);
+    return { ok: true, data };
   } catch (error) {
     console.error('Error in recordExpenseAction:', error);
-    if (error instanceof Error) {
-      throw new Error(`Failed to process expense: ${error.message}`);
-    }
-    throw new Error('An unknown error occurred while processing the expense.');
+    const message =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : String(error);
+    return { ok: false, error: message };
   }
 }
 

@@ -121,8 +121,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
           expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
           categories: categoryMapForAI,
         });
-        if (result.category) {
-          form.setValue('category', result.category, { shouldValidate: true });
+        if (result.ok && result.data.category) {
+          form.setValue('category', result.data.category, { shouldValidate: true });
         }
       } catch (error) {
         console.error("Failed to get category suggestion:", error);
