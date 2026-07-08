@@ -458,7 +458,7 @@ function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
     <>
       <div className={type === 'recurring' ? '' : 'hidden'}>
         <div className="space-y-2">
-          <Label className="text-xs">يوم الاستلام من الشهر</Label>
+          <Label className="text-xs">يوم الاستلام (اختياري)</Label>
           <Controller name="dayOfMonth" control={control} render={({ field }) => (
             <Select onValueChange={(v) => field.onChange(Number(v))} value={field.value?.toString()}>
               <SelectTrigger className="text-xs h-9"><SelectValue placeholder="اختر اليوم" /></SelectTrigger>
@@ -470,6 +470,9 @@ function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
             </Select>
           )} />
           {errors.dayOfMonth && <p className="text-xs text-destructive mt-1">{errors.dayOfMonth.message}</p>}
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            دخلك غير ثابت (يومي/أسبوعي)؟ اتركه فارغاً واكتب بالأعلى معدله الشهري التقريبي.
+          </p>
         </div>
       </div>
       <div className={type !== 'recurring' ? '' : 'hidden'}>
@@ -918,10 +921,6 @@ export default function SettingsPage() {
   const onIncomeSubmit = (data: IncomeFormData) => {
     if (!user) return;
 
-    if (data.type === 'recurring' && !data.dayOfMonth) {
-      incomeForm.setError('dayOfMonth', { message: 'يوم الاستلام مطلوب' });
-      return;
-    }
     if (data.type === 'one-time' && !data.date) {
       incomeForm.setError('date', { message: 'التاريخ مطلوب' });
       return;
@@ -1425,7 +1424,7 @@ export default function SettingsPage() {
                                             <div>
                                                 <p className="font-semibold text-sm">{income.title}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {income.type === 'recurring' ? `شهري - يوم ${income.dayOfMonth ?? '?'}` : income.date ? `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}` : 'لمرة واحدة'}
+                                                    {income.type === 'recurring' ? (income.dayOfMonth ? `متكرر - يوم ${income.dayOfMonth}` : 'متكرر') : income.date ? `في ${format(new Date(income.date), 'd MMM yyyy', {locale: arIQ})}` : 'لمرة واحدة'}
                                                 </p>
                                             </div>
                                         </div>
@@ -1473,7 +1472,7 @@ export default function SettingsPage() {
                                 <div className="space-y-2"><Label htmlFor="income-title" className="text-xs">اسم المصدر</Label><Input id="income-title" {...incomeForm.register('title')} placeholder="مثال: راتب شهري، مشروع..." className="text-xs h-9" />{incomeForm.formState.errors.title && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.title.message}</p>}</div>
                                 <div className="space-y-2"><Label htmlFor="income-amount" className="text-xs">المبلغ (د.ع)</Label><Controller name="amount" control={incomeForm.control} render={({ field: { onChange, value, ...restField } }) => (<Input {...restField} id="income-amount" type="text" inputMode="decimal" placeholder="مثال: 1,500,000" className="text-xs h-9" value={value === 0 ? '' : formatNumberWithCommas(value)} onChange={(e) => { const parsed = parseFormattedNumber(e.target.value); if (parsed === '' || !isNaN(Number(parsed))) { onChange(parsed === '' ? 0 : Number(parsed)); } }} />)} />{incomeForm.formState.errors.amount && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.amount.message}</p>}</div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2"><Label htmlFor="income-type" className="text-xs">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={(v) => { field.onChange(v); incomeForm.setValue('date', undefined); incomeForm.setValue('dayOfMonth', undefined); }} value={field.value}><SelectTrigger id="income-type" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">شهري متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
+                                    <div className="space-y-2"><Label htmlFor="income-type" className="text-xs">النوع</Label><Controller name="type" control={incomeForm.control} render={({ field }) => (<Select onValueChange={(v) => { field.onChange(v); incomeForm.setValue('date', undefined); incomeForm.setValue('dayOfMonth', undefined); }} value={field.value}><SelectTrigger id="income-type" className="text-xs h-9"><SelectValue placeholder="اختر النوع" /></SelectTrigger><SelectContent><SelectItem value="recurring">متكرر</SelectItem><SelectItem value="one-time">لمرة واحدة</SelectItem></SelectContent></Select>)} />{incomeForm.formState.errors.type && <p className="text-xs text-destructive mt-1">{incomeForm.formState.errors.type.message}</p>}</div>
                                     <IncomeTypeField control={incomeForm.control} errors={incomeForm.formState.errors} />
                                 </div>
                                 <Button type="submit" className="w-full text-xs h-9" disabled={addIncomeMutation.isPending || updateIncomeMutation.isPending}>{(addIncomeMutation.isPending || updateIncomeMutation.isPending) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}{editingIncomeId ? <><Save className="ml-2 h-4 w-4" /> تحديث</> : <><UserPlus className="ml-2 h-4 w-4" /> إضافة</>}</Button>

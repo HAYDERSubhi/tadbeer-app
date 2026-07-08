@@ -313,6 +313,9 @@ export default function OnboardingSheet() {
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
                       منه نحسب تنبيهات ميزانيتك <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
                     </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      دخلك متغيّر؟ (يومي أو أسبوعي) اكتب تقدير معدله الشهري تقريباً.
+                    </p>
                   </div>
 
                   <div className="space-y-3">
