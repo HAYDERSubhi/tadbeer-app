@@ -455,9 +455,14 @@ function DebtCard({ debt, onPayment, onUndo, onDeleteRequest, onEditRequest }: {
               </button>
             )}
             <button onClick={openPay}
-              className="flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
-              <Check className="h-3 w-3" />
-              {paidAmount > 0 ? 'سجّل دفعة' : isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
+              className="flex flex-col items-center gap-0.5 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
+              <span className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                {paidAmount > 0 ? 'سجّل دفعة' : isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
+              </span>
+              {paidAmount === 0 && (
+                <span className="text-[9px] opacity-60 leading-none">كامل أو جزئي</span>
+              )}
             </button>
             <button onClick={() => onEditRequest(debt)} className="text-muted-foreground/40 hover:text-primary transition-colors p-1">
               <Pencil className="h-3.5 w-3.5" />
