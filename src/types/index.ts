@@ -140,6 +140,11 @@ export type InstallmentPlan = {
   createdAt: string;
 };
 
+export type DebtPayment = {
+  amount: number;
+  date: string;
+};
+
 export type Debt = {
   id: string;
   uid: string;
@@ -152,6 +157,8 @@ export type Debt = {
   phone?: string;
   isSettled: boolean;
   settledAt?: string;
+  paidAmount?: number;
+  payments?: DebtPayment[];
   createdAt: string;
 };
 

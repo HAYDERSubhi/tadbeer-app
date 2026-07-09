@@ -786,7 +786,12 @@ export const getDebts = async (uid: string): Promise<Debt[]> => {
             direction: data.direction,
             reason: data.reason,
             date: data.date,
+            dueDate: data.dueDate,
+            phone: data.phone,
             isSettled: data.isSettled ?? false,
+            settledAt: data.settledAt,
+            paidAmount: data.paidAmount ?? 0,
+            payments: data.payments ?? [],
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
         } as Debt;
     });
@@ -799,14 +804,47 @@ export const addDebt = async (uid: string, data: Omit<Debt, 'id' | 'uid' | 'crea
     return ref.id;
 };
 
-export const settleDebt = async (uid: string, debtId: string): Promise<void> => {
+export type DebtEditableFields = { name: string; amount: number; reason?: string; dueDate?: string; phone?: string };
+
+export const updateDebt = async (uid: string, debtId: string, data: DebtEditableFields, debt: Debt): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
-    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: true, settledAt: new Date().toISOString() });
+    const paidAmount = debt.paidAmount ?? 0;
+    const isSettled  = paidAmount >= data.amount;
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), {
+        name: data.name,
+        amount: data.amount,
+        reason: data.reason ?? null,
+        dueDate: data.dueDate ?? null,
+        phone: data.phone ?? null,
+        isSettled,
+        settledAt: isSettled ? (debt.settledAt ?? new Date().toISOString()) : null,
+    });
 };
 
-export const unsettleDebt = async (uid: string, debtId: string): Promise<void> => {
+export const recordDebtPayment = async (uid: string, debtId: string, paymentAmount: number, debt: Debt): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
-    await updateDoc(doc(db, 'users', uid, 'debts', debtId), { isSettled: false, settledAt: null });
+    const payments = [...(debt.payments ?? []), { amount: paymentAmount, date: new Date().toISOString() }];
+    const paidAmount = (debt.paidAmount ?? 0) + paymentAmount;
+    const isSettled = paidAmount >= debt.amount;
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), {
+        payments,
+        paidAmount,
+        isSettled,
+        settledAt: isSettled ? new Date().toISOString() : null,
+    });
+};
+
+export const undoLastDebtPayment = async (uid: string, debtId: string, debt: Debt): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const payments = (debt.payments ?? []).slice(0, -1);
+    const paidAmount = payments.reduce((s, p) => s + p.amount, 0);
+    const isSettled = debt.amount > 0 && paidAmount >= debt.amount;
+    await updateDoc(doc(db, 'users', uid, 'debts', debtId), {
+        payments,
+        paidAmount,
+        isSettled,
+        settledAt: isSettled ? new Date().toISOString() : null,
+    });
 };
 
 // ── خطة الزواج (مستند واحد لكل مستخدم) ──────────────────────────

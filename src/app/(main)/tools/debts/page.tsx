@@ -3,8 +3,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
-import { getDebts, addDebt, settleDebt, unsettleDebt, deleteDebt } from '@/services/firestore';
-import { ChevronRight, Plus, MessageCircle, Check, Trash2, Bell, X, ChevronDown, AlertTriangle } from 'lucide-react';
+import { getDebts, addDebt, updateDebt, recordDebtPayment, undoLastDebtPayment, deleteDebt } from '@/services/firestore';
+import type { DebtEditableFields } from '@/services/firestore';
+import { ChevronRight, Plus, MessageCircle, Check, Trash2, Bell, X, ChevronDown, AlertTriangle, Undo2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import type { Debt } from '@/types';
 import { normalizeDigits } from '@/lib/normalize-digits';
@@ -55,32 +56,47 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
 
-// ── Add Sheet ──────────────────────────────────────────────────
-function AddSheet({ onClose, onSave }: {
+// ── Add / Edit Sheet ─────────────────────────────────────────────
+function DebtSheet({ debt, onClose, onSaveNew, onSaveEdit }: {
+  debt?: Debt; // موجود = وضع تعديل، غائب = دين جديد
   onClose: () => void;
-  onSave: (data: Omit<Debt,'id'|'uid'|'createdAt'>) => void;
+  onSaveNew: (data: Omit<Debt,'id'|'uid'|'createdAt'>) => void;
+  onSaveEdit: (data: DebtEditableFields) => void;
 }) {
-  const [direction, setDirection] = useState<'to-me' | 'from-me'>('to-me');
-  const [name,    setName]    = useState('');
-  const [amount,  setAmount]  = useState('');
-  const [reason,  setReason]  = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [phone,   setPhone]   = useState('');
-  const [showPhone, setShowPhone] = useState(false);
+  const isEdit = !!debt;
+  const [direction] = useState<'to-me' | 'from-me'>(debt?.direction ?? 'to-me');
+  const [newDirection, setNewDirection] = useState<'to-me' | 'from-me'>('to-me');
+  const dir = isEdit ? direction : newDirection;
+  const [name,    setName]    = useState(debt?.name ?? '');
+  const [amount,  setAmount]  = useState(debt ? Math.round(debt.amount).toString() : '');
+  const [reason,  setReason]  = useState(debt?.reason ?? '');
+  const [dueDate, setDueDate] = useState(debt?.dueDate ?? '');
+  const [phone,   setPhone]   = useState(debt?.phone ?? '');
+  const [showPhone, setShowPhone] = useState(!!debt?.phone);
+
+  const paidAmount = debt?.paidAmount ?? 0;
+  const parsedAmount = parseFloat(amount.replace(/,/g, ''));
+  const belowPaid = isEdit && parsedAmount > 0 && parsedAmount < paidAmount;
 
   function handleSave() {
-    const parsed = parseFloat(amount.replace(/,/g, ''));
-    if (!name.trim() || !parsed) return;
-    onSave({
+    if (!name.trim() || !parsedAmount || belowPaid) return;
+    const shared = {
       name: name.trim(),
-      amount: parsed,
-      direction,
       reason:  reason.trim() || undefined,
-      date:    new Date().toISOString().split('T')[0],
       dueDate: dueDate || undefined,
       phone:   phone.trim() || undefined,
-      isSettled: false,
-    });
+    };
+    if (isEdit) {
+      onSaveEdit({ ...shared, amount: parsedAmount });
+    } else {
+      onSaveNew({
+        ...shared,
+        amount: parsedAmount,
+        direction: dir,
+        date: new Date().toISOString().split('T')[0],
+        isSettled: false,
+      });
+    }
   }
 
   return (
@@ -93,34 +109,46 @@ function AddSheet({ onClose, onSave }: {
         <div className="shrink-0 px-5 pt-3 pb-2">
           <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-3" />
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold">إضافة دين جديد</h2>
+            <h2 className="text-base font-bold">{isEdit ? 'تعديل الدين' : 'إضافة دين جديد'}</h2>
             <button onClick={onClose} className="text-muted-foreground p-1"><X className="h-5 w-5" /></button>
           </div>
 
-          {/* اتجاه الدين */}
-          <div className="flex gap-2 mb-1">
-            <button onClick={() => setDirection('to-me')}
-              className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${
-                direction === 'to-me'
-                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-              ↙ أقرضت (لي)
-            </button>
-            <button onClick={() => setDirection('from-me')}
-              className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${
-                direction === 'from-me'
-                  ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700'
-                  : 'bg-muted text-muted-foreground'
-              }`}>
-              ↗ اقترضت (علي)
-            </button>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center mb-2">
-            {direction === 'to-me'
-              ? 'سلّفت شخصاً — هو مدين لك'
-              : 'شخص سلّفك — أنت مدين له'}
-          </p>
+          {/* اتجاه الدين — ثابت وغير قابل للتعديل بعد الإنشاء */}
+          {isEdit ? (
+            <div className={`text-center py-2 rounded-xl text-sm font-semibold mb-2 ${
+              dir === 'to-me'
+                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+            }`}>
+              {dir === 'to-me' ? '↙ أقرضته (لي)' : '↗ اقترضت منه (علي)'}
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 mb-1">
+                <button onClick={() => setNewDirection('to-me')}
+                  className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${
+                    dir === 'to-me'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                  ↙ أقرضت (لي)
+                </button>
+                <button onClick={() => setNewDirection('from-me')}
+                  className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${
+                    dir === 'from-me'
+                      ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                  ↗ اقترضت (علي)
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center mb-2">
+                {dir === 'to-me'
+                  ? 'سلّفت شخصاً — هو مدين لك'
+                  : 'شخص سلّفك — أنت مدين له'}
+              </p>
+            </>
+          )}
         </div>
 
         {/* حقول الإدخال — قابلة للتمرير */}
@@ -129,7 +157,7 @@ function AddSheet({ onClose, onSave }: {
 
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">
-                {direction === 'to-me' ? 'اسم الشخص المدين *' : 'اسم الشخص الدائن *'}
+                {dir === 'to-me' ? 'اسم الشخص المدين *' : 'اسم الشخص الدائن *'}
               </label>
               <input value={name} onChange={e => setName(e.target.value)}
                 placeholder="مثال: أحمد محمد"
@@ -146,6 +174,11 @@ function AddSheet({ onClose, onSave }: {
                 }}
                 inputMode="numeric" placeholder="أدخل المبلغ"
                 className="w-full bg-muted/50 border border-border rounded-xl px-3 py-3 text-sm text-right outline-none focus:border-primary" />
+              {belowPaid && (
+                <p className="text-[10px] text-destructive mt-1">
+                  لا يمكن أن يكون المبلغ أقل من المستلم فعلياً ({fmt(paidAmount)} د.ع)
+                </p>
+              )}
             </div>
 
             <div>
@@ -198,9 +231,9 @@ function AddSheet({ onClose, onSave }: {
         {/* زر الحفظ — ثابت في الأسفل */}
         <div className="shrink-0 px-5 pt-2 pb-4 border-t border-border bg-background">
           <button onClick={handleSave}
-            disabled={!name.trim() || !amount}
+            disabled={!name.trim() || !amount || belowPaid}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm disabled:opacity-40 active:scale-[0.98] transition-all">
-            حفظ الدين
+            {isEdit ? 'حفظ التعديلات' : 'حفظ الدين'}
           </button>
         </div>
       </div>
@@ -236,14 +269,34 @@ function DeleteConfirm({ debt, onConfirm, onCancel }: {
 }
 
 // ── Debt Card ──────────────────────────────────────────────────
-function DebtCard({ debt, onSettle, onUnsettle, onDeleteRequest }: {
+function DebtCard({ debt, onPayment, onUndo, onDeleteRequest, onEditRequest }: {
   debt: Debt;
-  onSettle: (id: string) => void;
-  onUnsettle: (id: string) => void;
+  onPayment: (debt: Debt, amount: number) => void;
+  onUndo: (debt: Debt) => void;
   onDeleteRequest: (debt: Debt) => void;
+  onEditRequest: (debt: Debt) => void;
 }) {
-  // تأكيد قبل التسوية لمنع الضغط الخاطئ
-  const [confirmSettle, setConfirmSettle] = useState(false);
+  const paidAmount = debt.paidAmount ?? 0;
+  const remaining  = Math.max(debt.amount - paidAmount, 0);
+  const payments   = debt.payments ?? [];
+
+  // إدخال دفعة (كاملة أو جزئية) بدل التسوية الثنائية القديمة
+  const [payMode, setPayMode] = useState(false);
+  const [payInput, setPayInput] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+
+  function openPay() {
+    setPayInput(remaining ? Math.round(remaining).toString() : '');
+    setPayMode(true);
+  }
+
+  function confirmPay() {
+    const parsed = parseFloat(payInput.replace(/,/g, ''));
+    if (!parsed || parsed <= 0) return;
+    onPayment(debt, Math.min(parsed, remaining));
+    setPayMode(false);
+  }
+
   const days = debt.dueDate ? daysUntil(debt.dueDate) : null;
   const isOverdue  = days !== null && days < 0;
   const isDueSoon  = days !== null && days >= 0 && days <= 7;
@@ -265,29 +318,53 @@ function DebtCard({ debt, onSettle, onUnsettle, onDeleteRequest }: {
 
   if (debt.isSettled) {
     return (
-      <div className="bg-muted/30 border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 opacity-50 ${avatarColor(debt.name)}`}>
-            {initials(debt.name)}
+      <div className="bg-muted/30 border border-border rounded-2xl px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 opacity-50 ${avatarColor(debt.name)}`}>
+              {initials(debt.name)}
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground line-through">{debt.name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                تمّت التسوية
+                {debt.settledAt && ` · ${new Date(debt.settledAt).toLocaleDateString('ar-IQ', { day:'numeric', month:'short' })}`}
+                {payments.length > 1 && ` · على ${payments.length} دفعات`}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground line-through">{debt.name}</p>
-            <p className="text-[10px] text-muted-foreground">
-              تمّت التسوية
-              {debt.settledAt && ` · ${new Date(debt.settledAt).toLocaleDateString('ar-IQ', { day:'numeric', month:'short' })}`}
-            </p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{fmt(debt.amount)} د.ع</span>
+            <button onClick={() => onUndo(debt)}
+              className="text-[10px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5 transition-colors">
+              تراجع
+            </button>
+            <button onClick={() => onEditRequest(debt)} className="text-muted-foreground/40 hover:text-primary transition-colors p-1">
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">{fmt(debt.amount)} د.ع</span>
-          <button onClick={() => onUnsettle(debt.id)}
-            className="text-[10px] text-primary border border-primary/30 rounded-lg px-2 py-1 hover:bg-primary/5 transition-colors">
-            تراجع
+
+        {payments.length > 1 && (
+          <button onClick={() => setShowHistory(s => !s)}
+            className="text-[10px] text-muted-foreground/70 mt-1.5 flex items-center gap-1">
+            سجل الدفعات ({payments.length})
+            <ChevronDown className={`h-3 w-3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
           </button>
-          <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        )}
+        {payments.length > 1 && showHistory && (
+          <div className="mt-2 flex flex-col gap-1 border-t border-border pt-2">
+            {payments.map((p, i) => (
+              <div key={i} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{new Date(p.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span className="font-medium text-foreground">{fmt(p.amount)} د.ع</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -315,26 +392,45 @@ function DebtCard({ debt, onSettle, onUnsettle, onDeleteRequest }: {
         </div>
         <div className="text-left">
           <p className={`text-base font-bold ${isToMe ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-            {isToMe ? '+' : '-'}{fmt(debt.amount)}
+            {isToMe ? '+' : '-'}{fmt(remaining)}
           </p>
-          <p className="text-[10px] text-muted-foreground">د.ع</p>
+          <p className="text-[10px] text-muted-foreground">
+            {paidAmount > 0 ? `د.ع · من أصل ${fmt(debt.amount)}` : 'د.ع'}
+          </p>
         </div>
       </div>
 
-      {confirmSettle ? (
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <span className="text-[11px] text-muted-foreground">
-            {isToMe ? 'تأكيد استحصال المبلغ؟' : 'تأكيد سداد المبلغ؟'}
-          </span>
+      {payMode ? (
+        <div className="flex flex-col gap-2 pt-1">
           <div className="flex items-center gap-2">
-            <button onClick={() => setConfirmSettle(false)}
-              className="text-[11px] rounded-lg px-3 py-1.5 border border-border text-muted-foreground">
-              إلغاء
+            <span className="text-[11px] text-muted-foreground shrink-0">
+              {isToMe ? 'المبلغ المستلم' : 'المبلغ المدفوع'}
+            </span>
+            <input
+              value={payInput ? (parseInt(payInput.replace(/,/g,'')||'0')).toLocaleString('en-US') : ''}
+              onChange={e => {
+                const raw = normalizeDigits(e.target.value).replace(/,/g,'').replace(/[^\d]/g,'');
+                setPayInput(raw);
+              }}
+              inputMode="numeric"
+              className="flex-1 bg-muted/50 border border-border rounded-lg px-2 py-1.5 text-sm text-right outline-none focus:border-primary"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <button onClick={() => setPayInput(remaining ? Math.round(remaining).toString() : '')}
+              className="text-[10px] text-primary">
+              كامل المتبقي ({fmt(remaining)})
             </button>
-            <button onClick={() => { setConfirmSettle(false); onSettle(debt.id); }}
-              className="text-[11px] rounded-lg px-3 py-1.5 bg-primary text-primary-foreground font-semibold">
-              تأكيد
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPayMode(false)}
+                className="text-[11px] rounded-lg px-3 py-1.5 border border-border text-muted-foreground">
+                إلغاء
+              </button>
+              <button onClick={confirmPay}
+                className="text-[11px] rounded-lg px-3 py-1.5 bg-primary text-primary-foreground font-semibold">
+                تأكيد
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -358,15 +454,45 @@ function DebtCard({ debt, onSettle, onUnsettle, onDeleteRequest }: {
                 واتساب
               </button>
             )}
-            <button onClick={() => setConfirmSettle(true)}
+            <button onClick={openPay}
               className="flex items-center gap-1 text-[11px] rounded-lg px-2 py-1.5 active:scale-95 transition-transform border border-border bg-card text-muted-foreground hover:border-primary hover:text-primary">
               <Check className="h-3 w-3" />
-              {isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
+              {paidAmount > 0 ? 'سجّل دفعة' : isToMe ? 'سجّل استحصال' : 'سجّل سداد'}
+            </button>
+            <button onClick={() => onEditRequest(debt)} className="text-muted-foreground/40 hover:text-primary transition-colors p-1">
+              <Pencil className="h-3.5 w-3.5" />
             </button>
             <button onClick={() => onDeleteRequest(debt)} className="text-muted-foreground/40 hover:text-destructive transition-colors p-1">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
+        </div>
+      )}
+
+      {payments.length > 0 && !payMode && (
+        <div className="mt-2 pt-2 border-t border-border">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setShowHistory(s => !s)}
+              className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+              سجل الدفعات ({payments.length})
+              <ChevronDown className={`h-3 w-3 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+            </button>
+            <button onClick={() => onUndo(debt)}
+              className="text-[10px] text-muted-foreground/70 flex items-center gap-1 hover:text-primary">
+              <Undo2 className="h-3 w-3" />
+              تراجع عن آخر دفعة
+            </button>
+          </div>
+          {showHistory && (
+            <div className="mt-1.5 flex flex-col gap-1">
+              {payments.map((p, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{new Date(p.date).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  <span className="font-medium text-foreground">{fmt(p.amount)} د.ع</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -379,6 +505,7 @@ export default function DebtsPage() {
   const qc        = useQueryClient();
   const [filter,  setFilter]  = useState<Filter>('all');
   const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<Debt | null>(null);
   const [toDelete, setToDelete] = useState<Debt | null>(null);
 
   const { data: debts = [], isLoading } = useQuery({
@@ -392,13 +519,18 @@ export default function DebtsPage() {
     onSuccess:  () => { qc.invalidateQueries({ queryKey: ['debts', user?.uid] }); setShowAdd(false); },
   });
 
-  const settleMutation = useMutation({
-    mutationFn: (id: string) => settleDebt(user!.uid, id),
+  const editMutation = useMutation({
+    mutationFn: ({ debt, data }: { debt: Debt; data: DebtEditableFields }) => updateDebt(user!.uid, debt.id, data, debt),
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: ['debts', user?.uid] }); setEditing(null); },
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: ({ debt, amount }: { debt: Debt; amount: number }) => recordDebtPayment(user!.uid, debt.id, amount, debt),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['debts', user?.uid] }),
   });
 
-  const unsettleMutation = useMutation({
-    mutationFn: (id: string) => unsettleDebt(user!.uid, id),
+  const undoMutation = useMutation({
+    mutationFn: (debt: Debt) => undoLastDebtPayment(user!.uid, debt.id, debt),
     onSuccess:  () => qc.invalidateQueries({ queryKey: ['debts', user?.uid] }),
   });
 
@@ -412,8 +544,8 @@ export default function DebtsPage() {
   const fromMe   = active.filter(d => d.direction === 'from-me');
   const settled  = debts.filter(d => d.isSettled);
 
-  const totalToMe   = toMe.reduce((s, d)  => s + d.amount, 0);
-  const totalFromMe = fromMe.reduce((s, d) => s + d.amount, 0);
+  const totalToMe   = toMe.reduce((s, d)  => s + Math.max(d.amount - (d.paidAmount ?? 0), 0), 0);
+  const totalFromMe = fromMe.reduce((s, d) => s + Math.max(d.amount - (d.paidAmount ?? 0), 0), 0);
   const netBalance  = totalToMe - totalFromMe;
 
   const urgentDebts = active.filter(d => {
@@ -555,18 +687,29 @@ export default function DebtsPage() {
           <DebtCard
             key={debt.id}
             debt={debt}
-            onSettle={id => settleMutation.mutate(id)}
-            onUnsettle={id => unsettleMutation.mutate(id)}
+            onPayment={(d, amount) => paymentMutation.mutate({ debt: d, amount })}
+            onUndo={d => undoMutation.mutate(d)}
             onDeleteRequest={d => setToDelete(d)}
+            onEditRequest={d => setEditing(d)}
           />
         ))}
       </div>
 
       {/* ── Sheets & Dialogs ── */}
       {showAdd && (
-        <AddSheet
+        <DebtSheet
           onClose={() => setShowAdd(false)}
-          onSave={data => addMutation.mutate(data)}
+          onSaveNew={data => addMutation.mutate(data)}
+          onSaveEdit={() => {}}
+        />
+      )}
+
+      {editing && (
+        <DebtSheet
+          debt={editing}
+          onClose={() => setEditing(null)}
+          onSaveNew={() => {}}
+          onSaveEdit={data => editMutation.mutate({ debt: editing, data })}
         />
       )}
 
