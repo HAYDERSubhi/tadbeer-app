@@ -17,6 +17,7 @@ import { getBadgeDef, type BadgeId } from '@/lib/badges';
 import { parseISO, differenceInCalendarDays, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
+import { trackMetaCustomEvent } from '@/lib/meta-pixel';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -171,8 +172,9 @@ export function useBadges() {
 
             // حدث تحويل لقياس قمع التسويق (زيارة → تسجيل → أول مصروف) — أول مرة فقط
             // بفضل نفس حارس earnedIds/getToastedSet أعلاه، بلا أي قراءة إضافية من Firestore.
-            if (id === 'first_expense' && analytics) {
-                try { logEvent(analytics, 'first_expense_logged'); } catch {}
+            if (id === 'first_expense') {
+                if (analytics) { try { logEvent(analytics, 'first_expense_logged'); } catch {} }
+                trackMetaCustomEvent('FirstExpenseAdded');
             }
 
             const def = getBadgeDef(id);

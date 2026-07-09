@@ -39,6 +39,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useCurrency } from '@/hooks/use-currency';
+import { analytics } from '@/lib/firebase';
+import { logEvent } from 'firebase/analytics';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -191,6 +193,16 @@ export default function AddExpensePage() {
                 title: "تمت الإضافة بنجاح!",
                 description: `تم إضافة مصروف "${variables.title}".`,
             });
+
+            if (analytics) {
+                try {
+                    logEvent(analytics, 'expense_added', {
+                        category: variables.category,
+                        amount: variables.amount,
+                        input_method: 'manual',
+                    });
+                } catch {}
+            }
 
             // Duplicate detection (household only)
             if (householdId) {

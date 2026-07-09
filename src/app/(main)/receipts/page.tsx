@@ -36,6 +36,8 @@ import { normalizeDigits } from '@/lib/normalize-digits';
 import { useCategories } from '@/hooks/use-categories';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { analytics } from '@/lib/firebase';
+import { logEvent } from 'firebase/analytics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -414,6 +416,18 @@ export default function DetailedReceiptPage() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
       toast({ title: 'تم الحفظ ✅', description: `تم حفظ ${vars.length} مصروف بنجاح.` });
+      if (analytics) {
+        const a = analytics;
+        try {
+          vars.forEach(v => {
+            logEvent(a, 'expense_added', {
+              category: v.category,
+              amount: v.amount,
+              input_method: 'receipt',
+            });
+          });
+        } catch {}
+      }
       setImages([]); setAnalyzedItems([]); setStoreInfo({ name: '', date: null }); setReceiptTotal(null);
     },
     onError: () => toast({ title: 'خطأ في الحفظ', variant: 'destructive' }),

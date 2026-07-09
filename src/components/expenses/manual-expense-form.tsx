@@ -43,6 +43,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { analytics } from '@/lib/firebase';
+import { logEvent } from 'firebase/analytics';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -195,6 +197,16 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
           title: "تمت الإضافة بنجاح!",
           description: `تم إضافة مصروف "${variables.title}" بمبلغ ${variables.amount.toLocaleString()} د.ع.`,
         });
+        // هذا المكوّن يُستخدم حصراً كنموذج مراجعة التسجيل الصوتي (شوف صفحة الرئيسية) — لا نموذج إضافة يدوي منفصل حالياً.
+        if (analytics) {
+            try {
+                logEvent(analytics, 'expense_added', {
+                    category: variables.category,
+                    amount: variables.amount,
+                    input_method: 'voice',
+                });
+            } catch {}
+        }
         form.reset();
     }
   });

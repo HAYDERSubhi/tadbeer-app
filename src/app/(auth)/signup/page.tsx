@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/co
 import React from 'react';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
+import { trackMetaEvent } from '@/lib/meta-pixel';
 
 const signupSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح' }),
@@ -90,6 +91,7 @@ export default function SignupPage() {
     }
 
     if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'password' }); } catch {} }
+    trackMetaEvent('CompleteRegistration', { content_name: 'password' });
     toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
     router.push('/');
     setIsLoading(false);
@@ -122,6 +124,7 @@ export default function SignupPage() {
       const refUid = sessionStorage.getItem('tadbeer-ref');
       if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
       if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
+      trackMetaEvent('CompleteRegistration', { content_name: 'google' });
       toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
     } else {
       toast({ title: 'أهلاً بعودتك!' });
