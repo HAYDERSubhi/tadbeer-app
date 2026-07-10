@@ -48,6 +48,16 @@ firestore-debug.log
 /public/sw.js
 /public/workbox-*.js
 /public/swe-worker-*.js
+/public/worker-*.js
 # Local documents
 *.docx
 *.pdf
+/creative-studio/
+
+# بيانات حساسة (إيميلات/رسائل مختبِرين) — محلية فقط، لا تُرفع أبداً
+testers-emails.txt
+tadbeer-messages-review.xlsx
+
+# ملفات تجريبية/مؤقتة بجذر المشروع
+chunks.txt
+page.html
