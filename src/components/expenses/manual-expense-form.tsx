@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2Icon, Save } from 'lucide-react';
+import { CalendarIcon, Loader2Icon, Save, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
 import { useCategories } from '@/hooks/use-categories';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { CategoryEditDialog } from '@/components/categories/category-edit-dialog';
+import { useSaveCategory } from '@/hooks/use-save-category';
 import { findDuplicateExpense } from '@/lib/duplicate-check';
 import {
   AlertDialog,
@@ -72,7 +75,10 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const { categories, getIconComponent } = useCategories();
   // Holds the expense awaiting user confirmation when a duplicate is detected.
   const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);
-  
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const { addCategory } = useSaveCategory();
+
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
@@ -328,6 +334,17 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
                             <p className="text-xs font-medium break-words leading-tight">{cat.name}</p>
                         </div>
                     ))}
+
+                    {/* بطاقة إضافة فئة جديدة — تفتح نفس نافذة الفئة المشتركة */}
+                    <div
+                        onClick={() => setIsCategoryDialogOpen(true)}
+                        className="flex flex-col items-center justify-center gap-1.5 p-2 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer transition-all duration-200 hover:bg-primary/10"
+                    >
+                        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-background text-primary">
+                            <Plus className="h-5 w-5" />
+                        </span>
+                        <p className="text-xs font-medium break-words leading-tight text-primary">فئة جديدة</p>
+                    </div>
                 </div>
             )}
         />
@@ -386,6 +403,27 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* نافذة إضافة فئة جديدة — بعد الحفظ تُختار الفئة تلقائياً للمصروف الحالي */}
+      <CategoryEditDialog
+        isOpen={isCategoryDialogOpen}
+        setIsOpen={setIsCategoryDialogOpen}
+        isMobile={isMobile}
+        category={null}
+        onSave={async (data) => {
+          try {
+            const newCat = await addCategory(data);
+            form.setValue('category', newCat.id, { shouldValidate: true });
+            setIsCategoryDialogOpen(false);
+          } catch {
+            toast({
+              title: "خطأ",
+              description: "تعذر حفظ الفئة الجديدة. حاول مرة أخرى.",
+              variant: "destructive",
+            });
+          }
+        }}
+      />
 
     </form>
   );

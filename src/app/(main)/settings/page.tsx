@@ -44,6 +44,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { CategoryEditDialog } from '@/components/categories/category-edit-dialog';
 import { useToast } from "@/hooks/use-toast";
 import type { Expense, UserProfile, FamilyMember, UserSettings, Income, RecurringPayment, AppTone, Category } from '@/types';
 import { cn } from '@/lib/utils';
@@ -340,83 +341,8 @@ const MappingDialog = ({
 
 
 // --- Category Edit/Add Dialog ---
-const categorySchema = z.object({
-  name: z.string().min(2, "الاسم مطلوب (حرفين على الأقل)").max(25, "الاسم طويل جدًا"),
-  icon: z.string().min(1, "الرمز مطلوب"),
-});
-type CategoryFormData = z.infer<typeof categorySchema>;
-
-const CategoryEditDialog = ({
-  isOpen,
-  setIsOpen,
-  isMobile,
-  onSave,
-  category,
-}: {
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  isMobile: boolean;
-  onSave: (data: CategoryFormData) => void;
-  category: Category | null;
-}) => {
-  
-  const form = useForm<CategoryFormData>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: category?.name || "",
-      icon: category?.icon || "",
-    },
-  });
-
-  useEffect(() => {
-    form.reset({
-      name: category?.name || "",
-      icon: category?.icon || "",
-    })
-  }, [category, form])
-
-  const onSubmit = (data: CategoryFormData) => {
-    onSave(data);
-    form.reset();
-  };
-
-  const DialogComponent = isMobile ? Sheet : Dialog;
-  const DialogContentComponent = isMobile ? SheetContent : DialogContent;
-
-  return (
-    <DialogComponent open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContentComponent className={isMobile ? "flex flex-col" : ""} onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle className="text-sm">{category ? 'تعديل الفئة' : 'إضافة فئة جديدة'}</DialogTitle>
-          <DialogDescription className="text-xs">
-            {category?.isDefault ? "يمكنك تعديل اسم ورمز الفئات الافتراضية." : "أضف اسمًا ورمزًا (Emoji) لفئتك الجديدة."}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto p-1 py-4">
-          <form id="category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cat-name" className="text-xs">اسم الفئة</Label>
-              <Input id="cat-name" {...form.register('name')} placeholder="مثال: مصاريف الجامعة" className="text-xs h-9" />
-              {form.formState.errors.name && <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>}
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="cat-icon" className="text-xs">الرمز (Emoji)</Label>
-              <Input id="cat-icon" {...form.register('icon')} placeholder="مثال: 🎓" className="text-xs h-9" />
-               {form.formState.errors.icon && <p className="text-sm text-destructive mt-1">{form.formState.errors.icon.message}</p>}
-            </div>
-          </form>
-        </div>
-        <DialogFooter className="pt-4 border-t">
-          <Button variant="ghost" onClick={() => setIsOpen(false)} className="text-xs h-9">إلغاء</Button>
-          <Button type="submit" form="category-form" className="text-xs h-9">
-            <Save className="ml-2 h-4 w-4" />
-            حفظ
-          </Button>
-        </DialogFooter>
-      </DialogContentComponent>
-    </DialogComponent>
-  );
-};
+// المكوّن المشترك في src/components/categories/category-edit-dialog.tsx
+// (يُستخدم هنا وفي شاشة إضافة المصروف وفورم مراجعة التسجيل الصوتي).
 
 
 

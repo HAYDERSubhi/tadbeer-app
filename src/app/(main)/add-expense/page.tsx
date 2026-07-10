@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Save, CalendarIcon, Loader2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, CalendarIcon, Loader2, Clock, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useCurrency } from '@/hooks/use-currency';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { CategoryEditDialog } from '@/components/categories/category-edit-dialog';
+import { useSaveCategory } from '@/hooks/use-save-category';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
 
@@ -81,6 +84,10 @@ export default function AddExpensePage() {
     const [isCategorizing, setIsCategorizing] = useState(false);
     const [showFrequent, setShowFrequent] = useState(false);
     const [showExtras, setShowExtras] = useState(false);
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+
+    const isMobile = useIsMobile();
+    const { addCategory } = useSaveCategory();
 
     // Build frequent expenses from history (top 6 most used)
     const frequentExpenses = useMemo(() => {
@@ -330,6 +337,17 @@ export default function AddExpensePage() {
                                 </p>
                             </div>
                         ))}
+
+                        {/* بطاقة إضافة فئة جديدة — تفتح نفس نافذة الفئة المشتركة */}
+                        <div
+                            onClick={() => setIsCategoryDialogOpen(true)}
+                            className="flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 cursor-pointer transition-all duration-200 active:scale-95 select-none hover:bg-primary/10"
+                        >
+                            <span className="flex items-center justify-center w-11 h-11 rounded-full bg-background text-primary">
+                                <Plus className="h-5 w-5" />
+                            </span>
+                            <p className="text-[11px] font-medium leading-tight text-primary">فئة جديدة</p>
+                        </div>
                     </div>
 
                     {form.formState.errors.category && (
@@ -515,6 +533,27 @@ export default function AddExpensePage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* نافذة إضافة فئة جديدة — بعد الحفظ تُختار الفئة تلقائياً للمصروف الحالي */}
+            <CategoryEditDialog
+                isOpen={isCategoryDialogOpen}
+                setIsOpen={setIsCategoryDialogOpen}
+                isMobile={isMobile}
+                category={null}
+                onSave={async (data) => {
+                    try {
+                        const newCat = await addCategory(data);
+                        form.setValue('category', newCat.id, { shouldValidate: true });
+                        setIsCategoryDialogOpen(false);
+                    } catch {
+                        toast({
+                            title: "خطأ",
+                            description: "تعذر حفظ الفئة الجديدة. حاول مرة أخرى.",
+                            variant: "destructive",
+                        });
+                    }
+                }}
+            />
         </div>
     );
 }
