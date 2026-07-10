@@ -665,7 +665,7 @@ export default function SettingsPage() {
   };
 
   const updateSettingsMutation = useMutation({
-      mutationFn: (newSettings: Partial<UserSettings>) => updateUserSettings(user!.uid, newSettings),
+      mutationFn: (newSettings: Partial<UserSettings>) => updateUserSettings(user!.uid, newSettings, householdId),
       onSuccess: (_, variables: Partial<UserSettings> & { _silent?: boolean }) => {
           queryClient.invalidateQueries({ queryKey: ['userSettings', user?.uid] });
           if (!variables._silent) {
