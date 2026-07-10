@@ -1,7 +1,7 @@
 // src/app/(main)/report/page.tsx
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, type ReactNode } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
@@ -35,6 +35,7 @@ function ReportCard({
     topCategories,
     currency,
     householdName,
+    renderIcon,
 }: {
     month: Date;
     totalSpent: number;
@@ -42,6 +43,7 @@ function ReportCard({
     topCategories: { name: string; icon: string; amount: number; color: string }[];
     currency: (n: number) => string;
     householdName?: string;
+    renderIcon: (icon: string) => ReactNode;
 }) {
     const remaining = totalBudget - totalSpent;
     const usagePct = pct(totalSpent, totalBudget);
@@ -109,7 +111,7 @@ function ReportCard({
                         <div className="flex flex-col gap-2">
                             {topCategories.slice(0, 4).map((cat, i) => (
                                 <div key={i} className="flex items-center gap-3">
-                                    <span className="text-xl w-7">{cat.icon}</span>
+                                    <span className="text-xl w-7 flex items-center justify-center">{renderIcon(cat.icon)}</span>
                                     <div className="flex-1">
                                         <div className="flex justify-between text-xs mb-1">
                                             <span className="text-slate-300">{cat.name}</span>
@@ -145,7 +147,7 @@ function ReportCard({
 
 export default function ReportPage() {
     const { expenses, userSettings, household } = useAppData();
-    const { categories } = useCategories();
+    const { categories, getIconComponent } = useCategories();
     const { format: formatCurrency } = useCurrency();
     const { toast } = useToast();
     const { user } = useAuth();
@@ -301,6 +303,7 @@ export default function ReportPage() {
                     topCategories={topCategories}
                     currency={formatCurrency}
                     householdName={household?.name}
+                    renderIcon={getIconComponent}
                 />
             )}
 

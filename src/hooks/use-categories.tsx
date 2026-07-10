@@ -5,13 +5,11 @@ import { useMemo } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import type { Category } from '@/types';
-import { Briefcase, ShoppingCart, Bus, UtensilsCrossed, GraduationCap, Gamepad2, HeartPulse, Car, Tv, Gift, Gem, Puzzle, type LucideIcon } from 'lucide-react';
+import { CATEGORY_ICON_MAP } from '@/lib/category-icons';
 import React from 'react';
 
-// A map to get the component from the string name
-const ICON_MAP: Record<string, LucideIcon> = {
-  Briefcase, ShoppingCart, Bus, UtensilsCrossed, GraduationCap, Gamepad2, HeartPulse, Car, Tv, Gift, Gem, Puzzle
-};
+// خريطة الأيقونات المركزية (Lucide) — مصدر واحد مشترك مع منتقي نافذة الفئة.
+const ICON_MAP = CATEGORY_ICON_MAP;
 
 /**
  * A custom hook to get the final, merged list of expense categories.
