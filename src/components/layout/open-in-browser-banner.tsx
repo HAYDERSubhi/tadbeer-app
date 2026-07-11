@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { X, MoreVertical, ChevronUp } from 'lucide-react';
+import { X, MoreVertical } from 'lucide-react';
 
 /**
  * ينبّه المستخدمين القادمين من داخل متصفّح فيسبوك/إنستغرام المدمج (جمهور إعلانات Meta)
  * لفتح التطبيق في متصفّحهم الحقيقي — لأن التثبيت على الشاشة الرئيسية ودخول جوجل (النافذة
- * المنبثقة) لا يعملان بشكل موثوق داخل المتصفّحات المدمجة. قياس وتوجيه فقط، بلا أي تغيير
- * على منطق الدخول. يظهر مرة لكل جلسة، وقابل للإغلاق.
+ * المنبثقة) لا يعملان بشكل موثوق داخل المتصفّحات المدمجة. توجيه فقط، بلا أي تغيير على منطق
+ * الدخول. يظهر ضمن تدفّق الصفحة (يدفع المحتوى للأسفل بلا تراكب)، مرة لكل جلسة، وقابل للإغلاق.
  */
 export function OpenInBrowserBanner() {
   const [visible, setVisible] = useState(false);
@@ -38,19 +38,10 @@ export function OpenInBrowserBanner() {
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[60] px-3 animate-in slide-in-from-top-2 duration-300"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      className="px-3 pt-3 animate-in fade-in slide-in-from-top-2 duration-300"
       role="alert"
       aria-label="افتح التطبيق في متصفّحك"
     >
-      {/* سهم يشير لأعلى نحو زر ⋮ في شريط المتصفّح المدمج (أعلى اليمين) */}
-      <div className="flex justify-start pr-3 pt-1" aria-hidden="true">
-        <ChevronUp
-          className="h-6 w-6 text-white animate-bounce drop-shadow"
-          strokeWidth={3}
-        />
-      </div>
-
       <div className="flex items-start gap-3 rounded-2xl bg-primary px-4 py-3 shadow-xl">
         {/* الشعار */}
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
