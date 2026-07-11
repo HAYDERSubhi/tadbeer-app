@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
+import { OpenInBrowserBanner } from '@/components/layout/open-in-browser-banner';
 
 const INPUT_METHODS = [
   {
@@ -70,6 +71,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir="rtl">
+      <OpenInBrowserBanner />
 
       {/* ── HERO ─────────────────────────────────────── */}
       <section className="relative bg-primary overflow-hidden px-6 pt-12 pb-16 text-center">
