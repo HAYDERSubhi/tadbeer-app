@@ -100,6 +100,9 @@ export default function SignupPage() {
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     setUnauthorizedDomain(null);
+    // قياس بحت: نعدّ كل نقرة على زر جوجل (المحاولة) لنقارنها بنجاحات sign_up(google)
+    // ونكشف نسبة فشل نافذة جوجل المنبثقة (خصوصاً داخل متصفّحات التطبيقات).
+    if (analytics) { try { logEvent(analytics, 'signup_google_click'); } catch {} }
     let userCredential: any;
     try {
       userCredential = await signInWithGoogle();
