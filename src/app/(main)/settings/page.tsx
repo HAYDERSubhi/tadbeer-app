@@ -200,9 +200,14 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
               <Send className="h-9 w-9 text-primary" />
             </div>
-            <div className="space-y-2">
-              <p className="font-bold text-xl">شكراً لك!</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">وصلتنا ملاحظتك وسنعمل على مراجعتها</p>
+            <div className="space-y-3 max-w-sm">
+              <p className="font-bold text-xl">وصلت رسالتك 🌿</p>
+              <p className="text-sm text-foreground/80 leading-relaxed">
+                رسالتك وصلت فريق تدبير، وراح تُراجَع بكل اهتمام ودراسة.
+              </p>
+              <p className="text-xs text-muted-foreground leading-relaxed bg-muted/60 rounded-lg px-4 py-3">
+                قد لا يصلك ردّ مباشر على هذه الرسالة، لكن كن مطمئناً: كل ملاحظة تُقرأ ولها أثر في تطوير تدبير. صوتك مسموع 💚
+              </p>
             </div>
             <Button onClick={handleClose} className="mt-2 px-8">إغلاق</Button>
           </div>
