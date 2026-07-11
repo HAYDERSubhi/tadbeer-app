@@ -33,22 +33,6 @@ const INPUT_METHODS = [
   },
 ];
 
-const FEATURES = [
-  { icon: '📊', title: 'تحليل ذكي', desc: 'رسوم بيانية واضحة مع نصائح AI تساعدك على التوفير' },
-  { icon: '🎯', title: 'ميزانية شهرية', desc: 'حدّد ميزانيتك وتدبير ينبّهك قبل تجاوز الحد' },
-  { icon: '👨‍👩‍👧', title: 'حساب عائلي', desc: 'شارك ميزانيتك مع أفراد عائلتك في حساب مشترك واحد' },
-  { icon: '🏆', title: 'شارات وإنجازات', desc: 'اكسب شارات عند تحقيق أهدافك المالية' },
-];
-
-const TOOLS = [
-  { icon: '🤔', title: 'هل يستحق؟', desc: 'قيّم أي قرار شراء قبل الدفع' },
-  { icon: '💱', title: 'العملات', desc: 'تحويل فوري IQD · USD · AED · SAR' },
-  { icon: '☕', title: 'تكلفة عاداتي', desc: 'اكتشف كم تكلفك عاداتك سنوياً' },
-  { icon: '📦', title: 'أقساطي', desc: 'احسب قسطك الشهري لأي قرض' },
-  { icon: '💍', title: 'حاسبة زواجي', desc: 'خطط لميزانية زفافك بذكاء' },
-  { icon: '💳', title: 'دفتر الديون', desc: 'تتبع ما لك وما عليك بسهولة' },
-];
-
 const SCREENSHOTS = [
   { src: '/screenshots/screenshot-home.jpg', label: 'الرئيسية' },
   { src: '/screenshots/screenshot-manual.jpg', label: 'إدخال يدوي' },
@@ -132,48 +116,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── PHONE PREVIEW (hero screenshot) ─────────── */}
-      <section className="bg-primary/5 flex justify-center px-6 py-10">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/10 blur-2xl rounded-full scale-75 translate-y-4" />
-          <img
-            src="/screenshots/screenshot-home.jpg"
-            alt="واجهة تطبيق تدبير"
-            className="relative w-52 rounded-3xl shadow-2xl border-2 border-primary/20"
-            style={{ maxHeight: 440, objectFit: 'cover', objectPosition: 'top' }}
-          />
-        </div>
-      </section>
-
-      {/* ── GROWTH BADGE ─────────────────────────────── */}
-      <section className="bg-primary text-white py-7 text-center">
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-2xl">📈</span>
-          <p className="text-xl font-bold">ينمو شهرياً</p>
-        </div>
-        <p className="text-white/70 text-sm">مجتمع عربي متنامٍ من العراق والعالم العربي</p>
-      </section>
-
-      {/* ── FEATURES ─────────────────────────────────── */}
-      <section className="px-5 py-10">
-        <div className="text-center mb-6">
-          <span className="text-xs text-primary bg-primary/10 px-3 py-1 rounded-full">المميزات</span>
-          <h2 className="text-xl font-bold text-foreground mt-2">كل ما تحتاجه في مكان واحد</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="bg-muted/50 rounded-2xl p-4 flex flex-col gap-2">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-xl">
-                {f.icon}
-              </div>
-              <h3 className="font-semibold text-sm text-foreground">{f.title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── SCREENSHOTS CAROUSEL ─────────────────────── */}
       <section className="py-8 bg-muted/30">
         <div className="px-5 mb-4">
@@ -193,34 +135,6 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* ── TOOLS SECTION ────────────────────────────── */}
-      <section className="px-5 py-10">
-        <div className="text-center mb-6">
-          <span className="text-xs text-primary bg-primary/10 px-3 py-1 rounded-full">الأدوات المالية</span>
-          <h2 className="text-xl font-bold text-foreground mt-2">أدوات سريعة لقرارات أذكى</h2>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          {TOOLS.map((t) => (
-            <div key={t.title} className="bg-muted/40 rounded-2xl p-3 text-center flex flex-col items-center gap-1.5">
-              <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center text-2xl">
-                {t.icon}
-              </div>
-              <p className="text-xs font-semibold text-foreground leading-tight">{t.title}</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">{t.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── TESTIMONIAL / TRUST ──────────────────────── */}
-      <section className="mx-5 mb-10 bg-primary/5 border border-primary/20 rounded-2xl p-5">
-        <p className="text-sm text-foreground leading-relaxed text-center">
-          "أخيراً تطبيق مالي عربي يفهمني — سجّل بصوتي وصنّف تلقائياً بدون تعقيد"
-        </p>
-        <p className="text-xs text-muted-foreground text-center mt-3">— مستخدم من العراق</p>
       </section>
 
       {/* ── FINAL CTA ────────────────────────────────── */}
