@@ -46,7 +46,7 @@ export function OpenInBrowserBanner() {
       {/* سهم يشير لأعلى نحو زر ⋮ في شريط المتصفّح المدمج (أعلى اليمين) */}
       <div className="flex justify-start pr-3 pt-1" aria-hidden="true">
         <ChevronUp
-          className="h-6 w-6 text-primary animate-bounce drop-shadow"
+          className="h-6 w-6 text-white animate-bounce drop-shadow"
           strokeWidth={3}
         />
       </div>
@@ -62,10 +62,10 @@ export function OpenInBrowserBanner() {
           <p className="text-sm font-bold leading-snug text-white">
             افتح تدبير في متصفّحك
           </p>
-          <p className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] leading-relaxed text-white/90">
-            <span>للتثبيت ودخول جوجل بسلاسة، اضغط</span>
-            <MoreVertical className="inline-block h-4 w-4 flex-shrink-0 align-middle" aria-hidden="true" />
-            <span>بالأعلى ثم «فتح في المتصفّح»</span>
+          <p className="mt-1 text-[13px] leading-relaxed text-white/90">
+            للتثبيت ودخول جوجل بسلاسة، اضغط زر{' '}
+            <MoreVertical className="inline-block h-4 w-4 align-text-bottom" aria-hidden="true" />
+            {' '}بالأعلى ثم «فتح في المتصفّح»
           </p>
         </div>
 
