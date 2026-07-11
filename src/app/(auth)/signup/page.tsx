@@ -137,6 +137,7 @@ export default function SignupPage() {
     setIsGuestLoading(true);
     try {
       await signInAsGuest();
+      if (analytics) { try { logEvent(analytics, 'guest_signin'); } catch {} }
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
