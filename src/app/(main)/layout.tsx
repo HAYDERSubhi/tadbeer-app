@@ -35,10 +35,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const { user, loading, authError } = useAuth();
   const router = useRouter();
 
-  // Redirect to login once auth settles and there's no user.
+  // Redirect straight to signup once auth settles and there's no user.
+  // (صفحة الهبوط رُفعت من المسار الافتراضي — الزائر يصل التسجيل مباشرة.
+  //  كود /landing محفوظ وقابل للاسترجاع بتغيير هذا السطر فقط.)
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/landing');
+      router.push('/signup');
     }
   }, [user, loading, router]);
 

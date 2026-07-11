@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, Eye, EyeOff } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User, Eye, EyeOff, Lock } from 'lucide-react';
 import { recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
@@ -161,7 +161,10 @@ export default function SignupPage() {
         </div>
         <div>
           <h1 className="text-3xl font-black tracking-tight">انضم إلى تدبير</h1>
-          <p className="text-white/85 text-base mt-1.5">سجّل مجاناً وابدأ إدارة مصاريفك الآن</p>
+          <p className="text-white/85 text-base mt-1.5">سجّل مصاريفك بصوتك أو من فاتورة — وتدبير يتولّى الباقي</p>
+          <div className="inline-block bg-white/15 text-white/90 text-xs px-3 py-1 rounded-full mt-3">
+            مجاني تماماً · عربي 100٪ · بدون تثبيت
+          </div>
         </div>
       </div>
 
@@ -268,6 +271,12 @@ export default function SignupPage() {
             لديك حساب؟ ادخل ←
           </Link>
         </div>
+
+        {/* سطر ثقة — طمأنة أمان لتطبيق مالي */}
+        <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground pt-1">
+          <Lock className="h-3 w-3" />
+          بياناتك آمنة ولا نشاركها مع أحد
+        </p>
       </div>
 
     </div>
