@@ -187,10 +187,6 @@ export default function SignupPage() {
 
       {/* ── Card ──────────────────────────────────────────────── */}
       <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-5">
-        <div className="text-center">
-          <h2 className="text-xl font-bold">إنشاء حساب جديد</h2>
-        </div>
-
         {/* Google — primary CTA */}
         <Button
           variant="outline"
@@ -201,7 +197,7 @@ export default function SignupPage() {
           {isGoogleLoading
             ? <Loader2Icon className="h-5 w-5 animate-spin" />
             : <GoogleIcon />}
-          التسجيل بـ Google (الأسرع)
+          التسجيل بـ Google
         </Button>
 
         {/* إرشاد سياقي: يظهر فقط إن تعذّر دخول جوجل داخل متصفّح مدمج */}
