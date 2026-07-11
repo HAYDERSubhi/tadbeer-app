@@ -177,10 +177,10 @@ export default function SignupPage() {
           <img src="/logo.png" alt="تدبير" className="w-full h-full object-contain" />
         </div>
         <div>
-          <h1 className="text-3xl font-black tracking-tight">انضم إلى تدبير</h1>
-          <p className="text-white/85 text-base mt-1.5">سجّل مصاريفك بصوتك أو من فاتورة — وتدبير يتولّى الباقي</p>
+          <h1 className="text-3xl font-black tracking-tight">أهلاً بك في تدبير</h1>
+          <p className="text-white/85 text-base mt-1.5">نظّم مصاريفك بسهولة، بالعربي</p>
           <div className="inline-block bg-white/15 text-white/90 text-xs px-3 py-1 rounded-full mt-3">
-            مجاني تماماً · عربي 100٪ · بدون تثبيت
+            مجاني تماماً · بدون تثبيت
           </div>
         </div>
       </div>
@@ -284,27 +284,30 @@ export default function SignupPage() {
           </Alert>
         )}
 
-        {/* Footer links */}
-        <div className="flex items-center justify-between pt-1 text-sm text-muted-foreground">
+        {/* سطر الثقة — أسفل النموذج مباشرة، لا معزولاً */}
+        <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+          <Lock className="h-3 w-3" />
+          بياناتك آمنة ولا نشاركها مع أحد
+        </p>
+
+        {/* خيارات ثانوية — كلٌّ بسطره، مفصولة بوضوح */}
+        <div className="border-t border-gray-100 pt-4 space-y-3 text-center text-sm">
           <button
             type="button"
             onClick={handleGuestSignIn}
             disabled={anyLoading}
-            className="flex items-center gap-1.5 hover:text-teal-600 transition-colors disabled:opacity-50 py-1"
+            className="w-full flex items-center justify-center gap-1.5 text-muted-foreground hover:text-teal-600 transition-colors disabled:opacity-50"
           >
             {isGuestLoading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
-            دخول كزائر
+            الدخول كزائر — جرّب بدون حساب
           </button>
-          <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-700 py-1">
-            لديك حساب؟ ادخل ←
-          </Link>
+          <p className="text-muted-foreground">
+            لديك حساب؟{' '}
+            <Link href="/login" className="font-semibold text-teal-600 hover:text-teal-700">
+              سجّل الدخول
+            </Link>
+          </p>
         </div>
-
-        {/* سطر ثقة — طمأنة أمان لتطبيق مالي */}
-        <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground pt-1">
-          <Lock className="h-3 w-3" />
-          بياناتك آمنة ولا نشاركها مع أحد
-        </p>
       </div>
 
     </div>
