@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, Mic, ScanText, Wallet, Eye, EyeOff } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, Mic, ScanText, Wallet, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import React from 'react';
 
@@ -37,7 +37,7 @@ const features = [
 ];
 
 export default function LoginPage() {
-  const { signInWithEmailPassword, signInWithGoogle, signInAsGuest, user, loading: authLoading } = useAuth();
+  const { signInWithEmailPassword, signInWithGoogle, user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // مستخدم مسجّل أصلاً وصل لصفحة الدخول؟ حوّله للتطبيق مباشرة —
@@ -48,12 +48,11 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading]             = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
-  const anyLoading = isLoading || isGoogleLoading || isGuestLoading;
+  const anyLoading = isLoading || isGoogleLoading;
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -88,16 +87,6 @@ export default function LoginPage() {
         toast({ title: 'خطأ في تسجيل الدخول', description, variant: 'destructive' });
       }
     } finally { setIsGoogleLoading(false); }
-  };
-
-  const handleGuestSignIn = async () => {
-    setIsGuestLoading(true);
-    try {
-      await signInAsGuest();
-      router.push('/');
-    } catch (error: any) {
-      toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
-    } finally { setIsGuestLoading(false); }
   };
 
   // أثناء تحديد حالة الدخول أو عند وجود مستخدم (سيُحوَّل فوراً) لا تعرض النموذج —
@@ -218,19 +207,11 @@ export default function LoginPage() {
           </Alert>
         )}
 
-        {/* Footer links */}
-        <div className="flex items-center justify-between pt-1 text-sm text-muted-foreground">
-          <button
-            type="button"
-            onClick={handleGuestSignIn}
-            disabled={anyLoading}
-            className="flex items-center gap-1.5 hover:text-teal-600 transition-colors disabled:opacity-50 py-1"
-          >
-            {isGuestLoading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
-            دخول كزائر
-          </button>
-          <Link href="/signup" className="font-semibold text-teal-600 hover:text-teal-700 py-1">
-            إنشاء حساب ←
+        {/* Footer link — مخرج لمن لا يملك حساباً */}
+        <div className="pt-1 text-center text-sm text-muted-foreground">
+          ليس لديك حساب؟{' '}
+          <Link href="/signup" className="font-semibold text-teal-600 hover:text-teal-700">
+            أنشئ حساب
           </Link>
         </div>
       </div>

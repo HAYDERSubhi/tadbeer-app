@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, Mail, LogIn, Lock } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, User, Mail, LogIn, Mic, ScanText, Wallet } from 'lucide-react';
 import { recordReferral } from '@/services/firestore';
 import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
@@ -22,6 +22,12 @@ const GoogleIcon = () => (
     <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.591 44 30.033 44 24c0-1.341-.138-2.65-.389-3.917z"/>
   </svg>
 );
+
+const features = [
+  { icon: Mic,      text: 'سجّل مصاريفك بصوتك' },
+  { icon: ScanText, text: 'اقرأ الفواتير تلقائياً' },
+  { icon: Wallet,   text: 'تتبّع ميزانيتك بذكاء' },
+];
 
 export default function SignupPage() {
   const { signInWithGoogle, signInAsGuest, user, loading: authLoading } = useAuth();
@@ -111,17 +117,26 @@ export default function SignupPage() {
     <div className="w-full max-w-sm flex flex-col gap-7">
 
       {/* ── Hero ── */}
-      <div className="flex flex-col items-center gap-4 text-white text-center">
-        <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl p-3 shadow-xl ring-2 ring-white/30">
-          <img src="/logo.png" alt="تدبير" className="w-full h-full object-contain" />
-        </div>
+      <div className="flex flex-col items-center gap-5 text-white text-center">
+        <img
+          src="/logo.png"
+          alt="تدبير"
+          className="w-24 h-24 object-contain"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
         <div>
-          <h1 className="text-3xl font-black tracking-tight">أهلاً بك في تدبير</h1>
-          <p className="text-white/85 text-base mt-1.5">نظّم مصاريفك بسهولة، بالعربي</p>
-          <div className="inline-flex items-center gap-1.5 bg-white/15 text-white/90 text-xs px-3 py-1 rounded-full mt-3">
-            <Lock className="h-3 w-3" />
-            مجاني تماماً · بياناتك آمنة
-          </div>
+          <h1 className="text-4xl font-black tracking-tight">تدبير</h1>
+          <p className="text-white/85 text-base mt-1.5">مساعدك المالي الذكي</p>
+        </div>
+        <div className="flex gap-5 mt-1">
+          {features.map(({ icon: Icon, text }) => (
+            <div key={text} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xs text-white/80 leading-tight text-center max-w-[68px]">{text}</span>
+            </div>
+          ))}
         </div>
       </div>
 
