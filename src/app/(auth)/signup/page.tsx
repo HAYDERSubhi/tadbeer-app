@@ -57,6 +57,7 @@ export default function SignupPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading]   = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [webviewHelp, setWebviewHelp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
@@ -103,13 +104,29 @@ export default function SignupPage() {
     // قياس بحت: نعدّ كل نقرة على زر جوجل (المحاولة) لنقارنها بنجاحات sign_up(google)
     // ونكشف نسبة فشل نافذة جوجل المنبثقة (خصوصاً داخل متصفّحات التطبيقات).
     if (analytics) { try { logEvent(analytics, 'signup_google_click'); } catch {} }
+    // داخل متصفّح فيسبوك/إنستغرام المدمج قد تفشل نافذة جوجل أو تعلّق بصمت.
+    const inApp = typeof navigator !== 'undefined' && /FBAN|FBAV|FB_IAB|Instagram/i.test(navigator.userAgent || '');
     let userCredential: any;
     try {
-      userCredential = await signInWithGoogle();
+      const googlePromise = signInWithGoogle();
+      if (inApp) {
+        // نمنع unhandled rejection لو فاز المؤقّت ثم رُفضت النافذة لاحقاً.
+        googlePromise.catch(() => {});
+        // مؤقّت يلتقط التعليق الصامت (بلا خطأ) داخل المتصفّح المدمج.
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('inapp-timeout')), 8000)
+        );
+        userCredential = await Promise.race([googlePromise, timeout]);
+      } else {
+        userCredential = await googlePromise;
+      }
     } catch (error: any) {
       console.error('google signup error:', error?.code, error);
       if (error.code === 'auth/unauthorized-domain') {
         setUnauthorizedDomain(window.location.hostname);
+      } else if (inApp) {
+        // متصفّح مدمج: الأرجح أن النافذة لا تعمل — إرشاد سياقي بدل رسالة خطأ عامة.
+        setWebviewHelp(true);
       } else {
         let description = 'فشل إنشاء الحساب باستخدام Google.';
         if (error.code === 'auth/popup-closed-by-user') description = 'أغلقت نافذة Google قبل اكتمال التسجيل.';
@@ -186,6 +203,17 @@ export default function SignupPage() {
             : <GoogleIcon />}
           التسجيل بـ Google (الأسرع)
         </Button>
+
+        {/* إرشاد سياقي: يظهر فقط إن تعذّر دخول جوجل داخل متصفّح مدمج */}
+        {webviewHelp && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[13px] leading-relaxed text-amber-900">
+            <p className="font-bold">جوجل قد لا يعمل داخل إنستغرام/فيسبوك</p>
+            <p className="mt-1">
+              افتح تدبير في متصفّحك: اضغط <span className="font-bold">⋮</span> بالأعلى ثم «فتح في المتصفّح» —
+              أو ببساطة <span className="font-bold">سجّل بالبريد بالأسفل</span>.
+            </p>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="relative">
