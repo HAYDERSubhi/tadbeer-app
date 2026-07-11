@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { X, MoreVertical } from 'lucide-react';
+import { X, MoreVertical, ExternalLink } from 'lucide-react';
 
 /**
  * ينبّه المستخدمين القادمين من داخل متصفّح فيسبوك/إنستغرام المدمج (جمهور إعلانات Meta)
- * لفتح التطبيق في متصفّحهم الحقيقي — لأن التثبيت على الشاشة الرئيسية ودخول جوجل (النافذة
- * المنبثقة) لا يعملان بشكل موثوق داخل المتصفّحات المدمجة. توجيه فقط، بلا أي تغيير على منطق
- * الدخول. يظهر ضمن تدفّق الصفحة (يدفع المحتوى للأسفل بلا تراكب)، مرة لكل جلسة، وقابل للإغلاق.
+ * لفتح التطبيق في متصفّحهم الحقيقي — لأن دخول جوجل والتثبيت لا يعملان بشكل موثوق داخل
+ * المتصفّحات المدمجة. توجيه فقط، بلا أي تغيير على منطق الدخول. بطاقة بيضاء ضمن تدفّق
+ * الصفحة (لا تتراكب مع المحتوى)، مرة لكل جلسة، وقابلة للإغلاق.
  */
 export function OpenInBrowserBanner() {
   const [visible, setVisible] = useState(false);
@@ -38,36 +38,32 @@ export function OpenInBrowserBanner() {
 
   return (
     <div
-      className="px-3 pt-3 animate-in fade-in slide-in-from-top-2 duration-300"
+      className="px-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-300"
       role="alert"
-      aria-label="افتح التطبيق في متصفّحك"
+      aria-label="افتح في المتصفّح"
     >
-      <div className="flex items-start gap-3 rounded-2xl bg-primary px-4 py-3 shadow-xl">
-        {/* الشعار */}
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-          <img src="/logo.png" alt="تدبير" className="h-7 w-7 object-contain" />
+      <div className="flex items-center gap-2.5 rounded-xl border border-black/5 bg-white px-3 py-2.5 shadow-lg">
+        {/* أيقونة "فتح خارجي" */}
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <ExternalLink className="h-4 w-4" strokeWidth={2.5} />
         </div>
 
-        {/* النص — يلتفّ بأمان مع الخطوط الكبيرة */}
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold leading-snug text-white">
-            افتح تدبير في متصفّحك
-          </p>
-          <p className="mt-1 text-[13px] leading-relaxed text-white/90">
-            للتثبيت ودخول جوجل بسلاسة، اضغط زر{' '}
-            <MoreVertical className="inline-block h-4 w-4 align-text-bottom" aria-hidden="true" />
-            {' '}بالأعلى ثم «فتح في المتصفّح»
-          </p>
-        </div>
+        {/* نص قصير — يلتفّ بأمان مع الخطوط الكبيرة */}
+        <p className="min-w-0 flex-1 text-[13px] leading-snug text-gray-800">
+          <span className="font-bold">للدخول:</span> اضغط{' '}
+          <MoreVertical className="inline-block h-4 w-4 align-text-bottom text-primary" aria-hidden="true" />
+          {' '}بالأعلى ثم «فتح في المتصفّح»
+          <span className="text-gray-400"> · Open in Chrome</span>
+        </p>
 
         {/* إغلاق */}
         <button
           type="button"
           onClick={handleDismiss}
-          className="-mr-1 mt-0.5 flex-shrink-0 rounded-full p-1.5 text-white/70 transition-colors active:bg-white/20"
+          className="flex-shrink-0 rounded-full p-1 text-gray-400 transition-colors active:bg-gray-100"
           aria-label="إغلاق"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>
