@@ -1,9 +1,31 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Star, ExternalLink, Copy, Check, Chrome, Compass } from 'lucide-react';
+import { Star, ExternalLink, Copy, Check } from 'lucide-react';
 
 type Platform = 'android' | 'ios' | null;
+
+/** شعار Chrome الملوّن الرسمي */
+const ChromeLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M10.144 16 A16 16 0 0 1 37.856 16" fill="none" stroke="#EA4335" strokeWidth="9" strokeLinecap="butt" />
+    <path d="M37.856 16 A16 16 0 0 1 24 40" fill="none" stroke="#FBBC05" strokeWidth="9" strokeLinecap="butt" />
+    <path d="M24 40 A16 16 0 0 1 10.144 16" fill="none" stroke="#34A853" strokeWidth="9" strokeLinecap="butt" />
+    <circle cx="24" cy="24" r="10.5" fill="#fff" />
+    <circle cx="24" cy="24" r="8" fill="#4285F4" />
+  </svg>
+);
+
+/** شعار Safari (بوصلة زرقاء بإبرة حمراء) */
+const SafariLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true">
+    <circle cx="24" cy="24" r="21" fill="#1e88e5" />
+    <circle cx="24" cy="24" r="18" fill="#fff" />
+    <path d="M33 15 L29 29 L19 19 Z" fill="#ff5150" />
+    <path d="M15 33 L29 29 L19 19 Z" fill="#d7dde3" />
+    <circle cx="24" cy="24" r="1.8" fill="#1e88e5" />
+  </svg>
+);
 
 /**
  * يظهر فقط داخل متصفّح إنستغرام/فيسبوك المدمج (WebView) — حيث يتعذّر تثبيت التطبيق.
@@ -64,9 +86,7 @@ export function OpenInBrowserBanner() {
           <span className="inline-flex items-center gap-1 bg-teal-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
             <Star className="h-3 w-3" /> موصى به
           </span>
-          {isAndroid
-            ? <Chrome className="h-6 w-6 text-blue-500" />
-            : <Compass className="h-6 w-6 text-sky-500" />}
+          {isAndroid ? <ChromeLogo /> : <SafariLogo />}
         </div>
 
         <p className="text-[13px] font-semibold text-amber-900 leading-snug mb-2.5">
