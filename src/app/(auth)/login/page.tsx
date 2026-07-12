@@ -101,7 +101,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Card ──────────────────────────────────────────────── */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-5">
+      <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-5">
         <div className="text-center">
           <h2 className="text-xl font-bold">تسجيل الدخول</h2>
           <p className="text-sm text-muted-foreground mt-1">أهلاً بعودتك!</p>
@@ -110,7 +110,7 @@ export default function LoginPage() {
         {/* Google — primary CTA */}
         <Button
           variant="outline"
-          className="w-full h-12 border-2 border-border hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-base font-semibold"
+          className="w-full h-12 border-2 border-border hover:border-teal-400 hover:bg-teal-50 transition-all gap-2 text-base font-semibold rounded-[14px]"
           onClick={handleGoogleSignIn}
           disabled={anyLoading}
         >
@@ -136,7 +136,7 @@ export default function LoginPage() {
             <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
             <Input
               id="email" type="email" placeholder="email@example.com"
-              className="h-12 text-base focus:border-teal-400"
+              className="h-12 text-base bg-slate-50 border-slate-200 rounded-[14px] focus:border-teal-400 focus:bg-white transition-colors"
               {...form.register('email')}
             />
             {form.formState.errors.email && (
@@ -148,7 +148,7 @@ export default function LoginPage() {
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'}
-                className="h-12 text-base focus:border-teal-400 pl-11"
+                className="h-12 text-base bg-slate-50 border-slate-200 rounded-[14px] focus:border-teal-400 focus:bg-white transition-colors pl-11"
                 {...form.register('password')}
               />
               <button
@@ -166,7 +166,7 @@ export default function LoginPage() {
           </div>
           <Button
             type="submit"
-            className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold text-base"
+            className="w-full h-12 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-semibold text-base rounded-[14px] shadow-[0_8px_18px_rgba(13,148,136,0.38)]"
             disabled={anyLoading}
           >
             {isLoading ? <><Loader2Icon className="animate-spin ml-2 h-5 w-5" /> جاري الدخول...</> : 'دخول'}

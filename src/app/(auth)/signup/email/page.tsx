@@ -83,20 +83,18 @@ export default function EmailSignupPage() {
 
       {/* Hero */}
       <div className="flex flex-col items-center gap-3 text-white text-center">
-        <div className="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl p-2.5 shadow-xl ring-2 ring-white/30">
-          <img src="/logo.png" alt="تدبير" className="w-full h-full object-contain" />
-        </div>
+        <img src="/logo.png" alt="تدبير" className="w-16 h-16 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
         <h1 className="text-2xl font-black tracking-tight">أنشئ حسابك</h1>
       </div>
 
       {/* Card */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-5">
+      <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-5">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</Label>
             <Input
               id="email" type="email" placeholder="email@example.com"
-              className="h-12 text-base focus:border-teal-400"
+              className="h-12 text-base bg-slate-50 border-slate-200 rounded-[14px] focus:border-teal-400 focus:bg-white transition-colors"
               {...form.register('email')}
             />
             {form.formState.errors.email && (
@@ -108,7 +106,7 @@ export default function EmailSignupPage() {
             <div className="relative">
               <Input
                 id="password" type={showPassword ? 'text' : 'password'}
-                className="h-12 text-base focus:border-teal-400 pl-11"
+                className="h-12 text-base bg-slate-50 border-slate-200 rounded-[14px] focus:border-teal-400 focus:bg-white transition-colors pl-11"
                 {...form.register('password')}
               />
               <button
@@ -126,7 +124,7 @@ export default function EmailSignupPage() {
           </div>
           <Button
             type="submit"
-            className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold text-base"
+            className="w-full h-12 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white font-semibold text-base rounded-[14px] shadow-[0_8px_18px_rgba(13,148,136,0.38)]"
             disabled={isLoading}
           >
             {isLoading

@@ -141,12 +141,12 @@ export default function SignupPage() {
       </div>
 
       {/* ── Options card ── */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-6 space-y-3">
+      <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-3">
 
         {/* 1. Google — recommended */}
         <Button
           variant="outline"
-          className="w-full h-12 border-2 border-teal-400 bg-teal-50 hover:bg-teal-100 text-teal-800 gap-2 text-base font-semibold transition-colors"
+          className="w-full h-12 border-2 border-teal-400 bg-teal-50 hover:bg-teal-100 text-teal-800 gap-2 text-base font-semibold transition-colors rounded-[14px]"
           onClick={handleGoogleSignUp}
           disabled={anyLoading}
         >
@@ -166,7 +166,7 @@ export default function SignupPage() {
         <Button
           asChild
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium"
+          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
         >
           <Link href="/login">
             <LogIn className="h-5 w-5 text-teal-600" />
@@ -178,7 +178,7 @@ export default function SignupPage() {
         <Button
           asChild
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium"
+          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
         >
           <Link href="/signup/email">
             <Mail className="h-5 w-5 text-teal-600" />
@@ -189,7 +189,7 @@ export default function SignupPage() {
         {/* 4. Guest */}
         <Button
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium"
+          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
           onClick={handleGuestSignIn}
           disabled={anyLoading}
         >
