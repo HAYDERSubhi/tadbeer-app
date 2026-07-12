@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/co
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { trackMetaEvent } from '@/lib/meta-pixel';
+import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
@@ -139,6 +140,9 @@ export default function SignupPage() {
           ))}
         </div>
       </div>
+
+      {/* إرشاد الخروج من متصفّح إنستا/فيس — يظهر داخلهما فقط */}
+      <OpenInBrowserBanner />
 
       {/* ── Options card ── */}
       <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-3">

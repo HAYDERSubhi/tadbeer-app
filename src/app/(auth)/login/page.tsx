@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
+import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 import React from 'react';
 
 const loginSchema = z.object({
@@ -99,6 +100,9 @@ export default function LoginPage() {
           style={{ filter: 'brightness(0) invert(1)' }}
         />
       </div>
+
+      {/* إرشاد الخروج من متصفّح إنستا/فيس — يظهر داخلهما فقط */}
+      <OpenInBrowserBanner />
 
       {/* ── Card ──────────────────────────────────────────────── */}
       <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-5">
