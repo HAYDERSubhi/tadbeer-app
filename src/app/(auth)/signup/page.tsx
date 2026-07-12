@@ -144,13 +144,13 @@ export default function SignupPage() {
       {/* إرشاد الخروج من متصفّح إنستا/فيس — يظهر داخلهما فقط */}
       <OpenInBrowserBanner />
 
-      {/* ── Options card ── */}
-      <div className="bg-card text-card-foreground rounded-[26px] shadow-[0_18px_40px_rgba(4,52,44,0.28)] p-6 space-y-3">
+      {/* ── الخيارات — أزرار تطفو بلا بطاقة ── */}
+      <div className="space-y-3">
 
         {/* 1. Google — recommended */}
         <Button
           variant="outline"
-          className="w-full h-12 border-2 border-teal-400 bg-teal-50 hover:bg-teal-100 text-teal-800 gap-2 text-base font-semibold transition-colors rounded-[14px]"
+          className="w-full h-12 border border-teal-100 bg-white hover:bg-teal-50 text-teal-800 gap-2 text-base font-semibold transition-colors rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.20)]"
           onClick={handleGoogleSignUp}
           disabled={anyLoading}
         >
@@ -170,7 +170,7 @@ export default function SignupPage() {
         <Button
           asChild
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
+          className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
         >
           <Link href="/login">
             <LogIn className="h-5 w-5 text-teal-600" />
@@ -182,7 +182,7 @@ export default function SignupPage() {
         <Button
           asChild
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
+          className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
         >
           <Link href="/signup/email">
             <Mail className="h-5 w-5 text-teal-600" />
@@ -193,7 +193,7 @@ export default function SignupPage() {
         {/* 4. Guest */}
         <Button
           variant="outline"
-          className="w-full h-12 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px]"
+          className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
           onClick={handleGuestSignIn}
           disabled={anyLoading}
         >
