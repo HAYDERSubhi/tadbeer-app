@@ -3,6 +3,9 @@
       "target": {
         "namespace": "android_app",
         "package_name": "app.tadbeer.www.twa",
-        "sha256_cert_fingerprints": ["9F:BB:FD:1A:0D:43:8B:79:22:06:EB:FA:1D:48:64:7A:35:A4:43:26:C9:62:CF:9A:58:0A:A6:2D:8B:FA:99:BC"]
+        "sha256_cert_fingerprints": [
+          "DB:08:B0:2F:9D:B7:AD:8A:3B:E8:72:E7:7B:8E:22:87:1C:98:A6:6B:10:20:D1:F4:04:D6:07:55:89:DC:08:5C",
+          "9F:BB:FD:1A:0D:43:8B:79:22:06:EB:FA:1D:48:64:7A:35:A4:43:26:C9:62:CF:9A:58:0A:A6:2D:8B:FA:99:BC"
+        ]
       }
     }]
