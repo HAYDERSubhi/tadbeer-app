@@ -32,7 +32,7 @@ export default function PageNavigation() {
   const hasNewBadge = useNewBadgeDot();
 
   return (
-    <nav id="main-navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav id="main-navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="mx-auto grid h-16 max-w-md grid-cols-5 items-center px-1">
         {navItems.map((item) => {
           const isActive =

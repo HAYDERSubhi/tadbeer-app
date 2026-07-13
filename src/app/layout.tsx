@@ -87,6 +87,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // يمدّ المحتوى تحت شريطي النظام (الحالة والإيماءات) ويفعّل env(safe-area-inset-*)
+  // ضروري للـ TWA على أندرويد 15 (edge-to-edge مفروضة) — الهيدر والشريط السفلي
+  // يعالجان الحواف عبر padding آمن أدناه.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
