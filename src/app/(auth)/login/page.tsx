@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
+import { isInAppBrowser } from '@/lib/in-app-browser';
 import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 import React from 'react';
 
@@ -45,6 +46,7 @@ export default function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [webviewHelp, setWebviewHelp] = useState(false);
 
   const form = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
   const anyLoading = isLoading || isGoogleLoading;
@@ -67,21 +69,30 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
     setUnauthorizedDomain(null);
+    setWebviewHelp(false);
+    // داخل متصفّح فيسبوك/إنستغرام المدمج جوجل تمنع الدخول نهائياً — أرشد فوراً.
+    if (isInAppBrowser()) {
+      setWebviewHelp(true);
+      return;
+    }
+    setIsGoogleLoading(true);
     try {
+      // تحويل كامل الصفحة لجوجل — عند النجاح تغادر الصفحة ولا يُنفَّذ ما بعدها.
+      // ترحيب العودة يعالَج عند الرجوع في use-auth (getRedirectResult).
       await signInWithGoogle();
-      toast({ title: 'أهلاً بعودتك!' });
-      router.push('/');
     } catch (error: any) {
-      if (error.code === 'auth/unauthorized-domain') {
+      if (error?.code === 'auth/unauthorized-domain') {
         setUnauthorizedDomain(window.location.hostname);
       } else {
-        let description = 'فشل تسجيل الدخول باستخدام Google.';
-        if (error.code === 'auth/popup-closed-by-user') description = 'أغلقت نافذة Google قبل اكتمال الدخول.';
+        const description = error?.code === 'auth/network-request-failed'
+          ? 'فشل الاتصال بالشبكة. تحقق من الإنترنت وحاول مجدداً.'
+          : 'تعذّر فتح صفحة Google. حاول مجدداً.';
         toast({ title: 'خطأ في تسجيل الدخول', description, variant: 'destructive' });
       }
-    } finally { setIsGoogleLoading(false); }
+      setIsGoogleLoading(false);
+    }
+    // لا نُطفئ التحميل عند النجاح: الصفحة تغادر لجوجل والمؤشّر الدوّار هو التغذية الصحيحة.
   };
 
   // أثناء تحديد حالة الدخول أو عند وجود مستخدم (سيُحوَّل فوراً) لا تعرض النموذج —
@@ -123,6 +134,14 @@ export default function LoginPage() {
             : <GoogleIcon />}
           الدخول بـ Google
         </Button>
+
+        {/* إرشاد سياقي: يظهر فقط إن تعذّر دخول جوجل داخل متصفّح مدمج */}
+        {webviewHelp && (
+          <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-[13px] leading-relaxed text-amber-900">
+            <p className="font-bold">جوجل لا يعمل داخل إنستغرام/فيسبوك</p>
+            <p className="mt-1">افتح تدبير في متصفّحك (⋮ ← فتح في المتصفّح) — أو سجّل الدخول بالبريد أدناه.</p>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="relative">

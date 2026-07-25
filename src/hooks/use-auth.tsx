@@ -10,13 +10,19 @@ import {
   signOut,
   FirebaseError,
   Auth,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  getAdditionalUserInfo,
   UserCredential,
   signInAnonymously,
-  linkWithPopup,
+  linkWithRedirect,
   updateProfile
 } from 'firebase/auth';
-import { auth as firebaseAuth, googleProvider } from '@/lib/firebase';
+import { logEvent } from 'firebase/analytics';
+import { auth as firebaseAuth, googleProvider, analytics } from '@/lib/firebase';
+import { recordReferral } from '@/services/firestore';
+import { trackMetaEvent } from '@/lib/meta-pixel';
+import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: User | null;
@@ -24,14 +30,18 @@ interface AuthContextType {
   authError: FirebaseError | null;
   signInWithEmailPassword: (email: string, password: string) => Promise<any>;
   signUpWithEmailPassword: (email: string, password: string) => Promise<any>;
-  signInWithGoogle: () => Promise<UserCredential>;
+  signInWithGoogle: () => Promise<void>;
   signInAsGuest: () => Promise<UserCredential>;
   signOutUser: () => Promise<void>;
-  linkGuestWithGoogle: () => Promise<UserCredential>;
+  linkGuestWithGoogle: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// حارس على مستوى الوحدة (لا يُصفَّر بإعادة تركيب StrictMode في التطوير):
+// يضمن معالجة نتيجة العودة من تحويل جوجل مرة واحدة فقط لكل تحميل صفحة.
+let redirectResultHandled = false;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize synchronously from the Firebase-cached auth state so we never
@@ -73,6 +83,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [auth]);
 
+  // الدخول بجوجل يتم بالتحويل (Redirect) — الصفحة تغادر لجوجل وترجع، لذا
+  // كل منطق "ما بعد النجاح" (حدث القياس، الإحالة، البكسل، الترحيب) يعالَج هنا
+  // عند العودة، مرة واحدة عند إقلاع التطبيق. getRedirectResult ترجع null في
+  // التحميل العادي (لا عودة من تحويل) فلا أثر لها.
+  useEffect(() => {
+    if (!auth || redirectResultHandled) return;
+    redirectResultHandled = true;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (!result) return; // تحميل عادي
+        // ترقية زائر → حساب Google (نفس uid، البيانات محفوظة)
+        if (result.operationType === 'link') {
+          toast({ title: 'تم حفظ حسابك! ✅', description: 'بياناتك الآن آمنة ومُزامنة على كل أجهزتك.' });
+          return;
+        }
+        const isNewUser = getAdditionalUserInfo(result)?.isNewUser;
+        if (isNewUser) {
+          const refUid = sessionStorage.getItem('tadbeer-ref');
+          if (refUid) { recordReferral(refUid, result.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
+          if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
+          trackMetaEvent('CompleteRegistration', { content_name: 'google' });
+          toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
+        } else {
+          toast({ title: 'أهلاً بعودتك!' });
+        }
+      })
+      .catch((error: any) => {
+        console.error('google redirect result error:', error?.code, error);
+        let description = 'تعذّر إكمال الدخول بـ Google. حاول مجدداً.';
+        if (error?.code === 'auth/credential-already-in-use')
+          description = 'حساب Google هذا مرتبط بحساب تدبير آخر — سجّل الدخول به مباشرةً.';
+        else if (error?.code === 'auth/account-exists-with-different-credential')
+          description = 'يوجد حساب بنفس البريد بطريقة دخول أخرى — جرّب الدخول بالبريد.';
+        else if (error?.code === 'auth/network-request-failed')
+          description = 'فشل الاتصال بالشبكة. تحقق من الإنترنت وحاول مجدداً.';
+        else if (error?.code === 'auth/unauthorized-domain')
+          description = 'النطاق الحالي غير مصرّح في Firebase Authorized Domains.';
+        toast({ title: 'لم يكتمل الدخول', description, variant: 'destructive' });
+      });
+  }, [auth]);
+
   const signInWithEmailPassword = (email: string, password: string) => {
     if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signInWithEmailAndPassword(auth, email, password);
@@ -83,11 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
-  const signInWithGoogle = (): Promise<UserCredential> => {
+  // تحويل كامل الصفحة لجوجل — الطريقة الموثوقة على الجوال (جمهور تدبير حصراً).
+  // لا يعود بنتيجة: النتيجة تُلتقط عند العودة عبر getRedirectResult أعلاه.
+  const signInWithGoogle = (): Promise<void> => {
     if (!googleProvider || !auth) {
       return Promise.reject(new Error("Google Auth provider or Firebase Auth not initialized."));
     }
-    return signInWithPopup(auth, googleProvider);
+    return signInWithRedirect(auth, googleProvider);
   }
   
   const signInAsGuest = async (): Promise<UserCredential> => {
@@ -104,12 +157,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return signOut(auth);
   }
 
-  // يحوّل حساب الزائر (المجهول) إلى حساب Google دائم — يحافظ على نفس uid وكل البيانات
-  const linkGuestWithGoogle = (): Promise<UserCredential> => {
+  // يحوّل حساب الزائر (المجهول) إلى حساب Google دائم — يحافظ على نفس uid وكل البيانات.
+  // بالتحويل أيضاً: الإكمال والترحيب يعالَجان عند العودة (operationType === 'link').
+  const linkGuestWithGoogle = (): Promise<void> => {
     if (!auth?.currentUser || !googleProvider) {
       return Promise.reject(new Error("لا يوجد مستخدم زائر لربطه."));
     }
-    return linkWithPopup(auth.currentUser, googleProvider);
+    return linkWithRedirect(auth.currentUser, googleProvider);
   }
 
   // يحفظ الاسم الذي يُنادى به المستخدم (اختياري) — نص فارغ يزيل الاسم

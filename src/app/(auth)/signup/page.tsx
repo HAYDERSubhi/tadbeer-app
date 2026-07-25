@@ -7,12 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2Icon, AlertTriangle, User, Mail, LogIn } from 'lucide-react';
-import { recordReferral } from '@/services/firestore';
-import { getAdditionalUserInfo } from 'firebase/auth';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
-import { trackMetaEvent } from '@/lib/meta-pixel';
+import { isInAppBrowser } from '@/lib/in-app-browser';
 import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 
 const GoogleIcon = () => (
@@ -47,52 +45,33 @@ export default function SignupPage() {
   const anyLoading = isGoogleLoading || isGuestLoading;
 
   const handleGoogleSignUp = async () => {
-    setIsGoogleLoading(true);
     setUnauthorizedDomain(null);
     setWebviewHelp(false);
     if (analytics) { try { logEvent(analytics, 'signup_google_click'); } catch {} }
-    // داخل متصفّح فيسبوك/إنستغرام المدمج قد تفشل نافذة جوجل أو تعلّق بصمت.
-    const inApp = typeof navigator !== 'undefined' && /FBAN|FBAV|FB_IAB|Instagram/i.test(navigator.userAgent || '');
-    let userCredential: any;
+    // داخل متصفّح فيسبوك/إنستغرام المدمج جوجل تمنع الدخول نهائياً —
+    // لا نحاول أصلاً: نعرض الإرشاد فوراً بدل انتظارٍ محكوم بالفشل.
+    if (isInAppBrowser()) {
+      setWebviewHelp(true);
+      return;
+    }
+    setIsGoogleLoading(true);
     try {
-      const googlePromise = signInWithGoogle();
-      if (inApp) {
-        googlePromise.catch(() => {});
-        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('inapp-timeout')), 8000));
-        userCredential = await Promise.race([googlePromise, timeout]);
-      } else {
-        userCredential = await googlePromise;
-      }
+      // تحويل كامل الصفحة لجوجل — عند النجاح تغادر الصفحة ولا يُنفَّذ ما بعدها.
+      // منطق "ما بعد التسجيل" (القياس/الإحالة/الترحيب) يعالَج عند العودة في use-auth.
+      await signInWithGoogle();
     } catch (error: any) {
       console.error('google signup error:', error?.code, error);
-      if (error.code === 'auth/unauthorized-domain') {
+      if (error?.code === 'auth/unauthorized-domain') {
         setUnauthorizedDomain(window.location.hostname);
-      } else if (inApp) {
-        setWebviewHelp(true);
       } else {
-        let description = 'فشل إنشاء الحساب باستخدام Google.';
-        if (error.code === 'auth/popup-closed-by-user') description = 'أغلقت نافذة Google قبل اكتمال التسجيل.';
-        else if (error.code === 'auth/popup-blocked') description = 'المتصفح منع النافذة المنبثقة. اسمح بها وحاول مجدداً.';
-        else if (error.code === 'auth/network-request-failed') description = 'فشل الاتصال بالشبكة.';
+        const description = error?.code === 'auth/network-request-failed'
+          ? 'فشل الاتصال بالشبكة. تحقق من الإنترنت وحاول مجدداً.'
+          : 'تعذّر فتح صفحة Google. حاول مجدداً.';
         toast({ title: 'خطأ في إنشاء الحساب', description, variant: 'destructive' });
       }
       setIsGoogleLoading(false);
-      return;
     }
-
-    const additionalInfo = getAdditionalUserInfo(userCredential);
-    const isNewUser = additionalInfo?.isNewUser;
-    if (isNewUser && userCredential.user) {
-      const refUid = sessionStorage.getItem('tadbeer-ref');
-      if (refUid) { recordReferral(refUid, userCredential.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
-      if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
-      trackMetaEvent('CompleteRegistration', { content_name: 'google' });
-      toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
-    } else {
-      toast({ title: 'أهلاً بعودتك!' });
-    }
-    router.push('/');
-    setIsGoogleLoading(false);
+    // لا نُطفئ التحميل عند النجاح: الصفحة تغادر لجوجل والمؤشّر الدوّار هو التغذية الصحيحة.
   };
 
   const handleGuestSignIn = async () => {

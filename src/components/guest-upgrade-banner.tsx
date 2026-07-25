@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { isInAppBrowser } from '@/lib/in-app-browser';
 import { ShieldAlert, Loader2, X } from 'lucide-react';
 
 // شريط يُعرض لمستخدم الزائر (المجهول) لحثّه على حفظ حسابه قبل فقدان بياناته
@@ -15,19 +16,24 @@ export function GuestUpgradeBanner() {
   if (!user?.isAnonymous || dismissed) return null;
 
   async function save() {
+    // داخل متصفّح فيسبوك/إنستغرام المدمج جوجل تمنع الدخول نهائياً — أرشد بدل محاولة فاشلة.
+    if (isInAppBrowser()) {
+      toast({
+        title: 'افتح تدبير في المتصفّح',
+        description: 'حفظ الحساب بجوجل لا يعمل داخل متصفّح إنستغرام/فيسبوك — افتح tadbeer.app في Chrome أو Safari.',
+      });
+      return;
+    }
     setLoading(true);
     try {
+      // تحويل كامل الصفحة لجوجل — عند النجاح تغادر الصفحة وترجع، والترحيب/الأخطاء
+      // يعالَجان عند العودة في use-auth. البانر يختفي تلقائياً لأن المستخدم لن يبقى مجهولاً.
       await linkGuestWithGoogle();
-      toast({ title: 'تم حفظ حسابك! ✅', description: 'بياناتك الآن آمنة ومُزامنة على كل أجهزتك.' });
-      setDismissed(true);
     } catch (e: any) {
-      let desc = 'تعذّر حفظ الحساب. حاول مجدداً.';
-      if (e?.code === 'auth/credential-already-in-use') desc = 'هذا الحساب مرتبط بمستخدم آخر. سجّل الدخول به مباشرةً.';
-      else if (e?.code === 'auth/popup-closed-by-user') desc = 'أُغلقت نافذة Google قبل الإكمال.';
-      toast({ title: 'لم يكتمل الحفظ', description: desc, variant: 'destructive' });
-    } finally {
+      toast({ title: 'لم يكتمل الحفظ', description: 'تعذّر فتح صفحة Google. حاول مجدداً.', variant: 'destructive' });
       setLoading(false);
     }
+    // لا نُطفئ التحميل عند النجاح: الصفحة تغادر لجوجل والمؤشّر الدوّار هو التغذية الصحيحة.
   }
 
   return (
