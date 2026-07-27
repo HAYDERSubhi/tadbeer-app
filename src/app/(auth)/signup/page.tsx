@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2Icon, AlertTriangle, User, Mail, LogIn } from 'lucide-react';
+import { Loader2Icon, AlertTriangle, Mail, LogIn } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
@@ -79,6 +79,12 @@ export default function SignupPage() {
     try {
       await signInAsGuest();
       if (analytics) { try { logEvent(analytics, 'guest_signin'); } catch {} }
+      // تنبيه أمين: البيانات مؤقتة (نفس صياغة GuestUpgradeBanner المنشورة).
+      // يُطلَق قبل الانتقال ويبقى مرئياً في الرئيسية لأن Toaster فوق كل التطبيق.
+      toast({
+        title: 'تجربة بدون حفظ سحابي',
+        description: 'بياناتك مؤقتة على هذا الجهاز فقط وقد تُفقد عند مسح المتصفّح أو تغيير الهاتف. تقدر تحفظها بحساب Google من الإعدادات وقتما تشاء.',
+      });
       router.push('/');
     } catch (error: any) {
       toast({ title: 'خطأ في الدخول كزائر', description: error.message, variant: 'destructive' });
@@ -153,16 +159,18 @@ export default function SignupPage() {
           </Link>
         </Button>
 
-        {/* 4. Guest */}
-        <Button
-          variant="outline"
-          className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
-          onClick={handleGuestSignIn}
-          disabled={anyLoading}
-        >
-          {isGuestLoading ? <Loader2Icon className="h-5 w-5 animate-spin" /> : <User className="h-5 w-5 text-teal-600" />}
-          الدخول كزائر — جرّب بدون حساب
-        </Button>
+        {/* 4. Guest — رابط ثانوي هادئ، وزن بصري أقل بكثير من جوجل/البريد */}
+        <div className="text-center pt-1">
+          <button
+            type="button"
+            onClick={handleGuestSignIn}
+            disabled={anyLoading}
+            className="inline-flex items-center gap-2 text-white/90 hover:text-white text-sm underline underline-offset-4 disabled:opacity-60 transition-colors"
+          >
+            {isGuestLoading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : null}
+            جرّب بدون إنشاء حساب
+          </button>
+        </div>
 
         {unauthorizedDomain && (
           <Alert variant="destructive" className="p-3">

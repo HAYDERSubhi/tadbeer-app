@@ -707,7 +707,7 @@ export default function DashboardPage() {
 
       <GreetingHeader />
 
-      <GuestUpgradeBanner />
+      <GuestUpgradeBanner expenseCount={expenses?.length ?? 0} />
 
       <UpcomingBillsCard />
 

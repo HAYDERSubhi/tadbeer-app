@@ -50,6 +50,7 @@ import type { Expense, UserProfile, FamilyMember, UserSettings, Income, Recurrin
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
 import { useAuth } from '@/hooks/use-auth';
+import { isInAppBrowser } from '@/lib/in-app-browser';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateUserSettings, addExpensesBatch, deleteCollection, addIncome, deleteIncome, updateIncome, exportUserData, importUserData } from '@/services/firestore';
 import { Separator } from '@/components/ui/separator';
@@ -430,7 +431,7 @@ function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
 }
 
 export default function SettingsPage() {
-  const { user, signOutUser, updateDisplayName } = useAuth();
+  const { user, signOutUser, updateDisplayName, linkGuestWithGoogle } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -442,6 +443,26 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
+  const [isLinkingGuest, setIsLinkingGuest] = useState(false);
+
+  // حفظ حساب الضيف بـ Google — طريق دائم متاح بأي وقت (لا يعتمد على عتبة البانر).
+  // نفس منطق GuestUpgradeBanner: تحويل كامل الصفحة، مع إرشاد داخل متصفّح فيسبوك المدمج.
+  const handleSaveGuestAccount = async () => {
+    if (isInAppBrowser()) {
+      toast({
+        title: 'افتح تدبير في المتصفّح',
+        description: 'حفظ الحساب بجوجل لا يعمل داخل متصفّح إنستغرام/فيسبوك — افتح tadbeer.app في Chrome أو Safari.',
+      });
+      return;
+    }
+    setIsLinkingGuest(true);
+    try {
+      await linkGuestWithGoogle();
+    } catch {
+      toast({ title: 'لم يكتمل الحفظ', description: 'تعذّر فتح صفحة Google. حاول مجدداً.', variant: 'destructive' });
+      setIsLinkingGuest(false);
+    }
+  };
   const [totalBudgetInput, setTotalBudgetInput] = useState<string>("");
   const [zeroSpendDaysTargetInput, setZeroSpendDaysTargetInput] = useState<string>("");
   
@@ -1283,12 +1304,18 @@ export default function SettingsPage() {
             </div>
         </CardContent>
         {isAnonymous && (
-             <CardFooter className="p-0">
-                 <Alert variant="destructive" className="border-0 border-t rounded-t-none">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitleComponent className="text-sm">بياناتك غير محفوظة!</AlertTitleComponent>
-                    <AlertDescriptionComponent className="text-xs">احفظ حسابك من الصفحة الرئيسية للاحتفاظ ببياناتك ومزامنتها — دون فقدان ما أدخلته.</AlertDescriptionComponent>
-                </Alert>
+             <CardFooter className="p-0 flex-col items-stretch gap-2 border-t p-4">
+                 <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                    <div>
+                       <p className="text-sm font-semibold text-destructive">بياناتك غير محفوظة!</p>
+                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">احفظ حسابك بـ Google للاحتفاظ ببياناتك ومزامنتها — دون فقدان ما أدخلته.</p>
+                    </div>
+                 </div>
+                 <Button onClick={handleSaveGuestAccount} disabled={isLinkingGuest} className="w-full h-10 bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                    {isLinkingGuest ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />}
+                    احفظ حسابك بـ Google
+                 </Button>
              </CardFooter>
         )}
       </Card>
