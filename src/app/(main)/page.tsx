@@ -37,6 +37,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useExitConfirm } from '@/hooks/use-exit-confirm';
 import Image from 'next/image';
 import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
@@ -108,6 +109,9 @@ export default function DashboardPage() {
   const isMobile = useIsMobile();
   const { categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
+
+  // الشاشة الجذر: زر الرجوع بأندرويد كان يُغلق التطبيق من أول ضغطة (رصدها المختبرون).
+  useExitConfirm();
 
   const { expenses, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
 

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, Bell, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight, UserX } from "lucide-react";
+import { Palette, SlidersHorizontal, DatabaseZap, Info, Save, Link as LinkIcon, Trash2, Users, UserPlus, Loader2, Wallet, Repeat, Pencil, LogOut, AlertTriangle, Handshake, CircleDollarSign, CreditCard, ArrowLeft, Tag, Trophy, Target, Moon, Sun, Bell, MessageSquare, Send, Lightbulb, Bug, Heart, ChevronRight, UserX, Star } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -1939,9 +1939,26 @@ export default function SettingsPage() {
               <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
             </div>
 
+            {/* تقييم التطبيق على المتجر — يفتح صفحة تدبير مباشرةً بتطبيق Play على أندرويد.
+                رابط https (لا market://) حتى يبقى صالحاً على الويب وسطح المكتب أيضاً. */}
+            <Button
+              asChild
+              variant="outline"
+              className="w-full text-xs h-11 gap-2"
+            >
+              <a
+                href="https://play.google.com/store/apps/details?id=app.tadbeer.www.twa"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Star className="h-4 w-4" />
+                قيّم تدبير على المتجر
+              </a>
+            </Button>
+
             <Button
               variant="outline"
-              className="w-full text-xs h-9 gap-2"
+              className="w-full text-xs h-11 gap-2"
               onClick={() => setIsFeedbackOpen(true)}
             >
               <MessageSquare className="h-4 w-4" />
