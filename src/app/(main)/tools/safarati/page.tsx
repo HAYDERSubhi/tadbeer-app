@@ -2,7 +2,7 @@
 
 // ═══════════════════════ سفراتي — ميزانية سفراتك ═══════════════════════
 // النمط المرجعي: tools/silftna (قائمة + لوحة تفصيلية بنفس الصفحة، بلا مسارات
-// ديناميكية). كل الأصناف منسوخة من نظام تصميم تدبير القائم — بلا أكواد Hex،
+// ديناميكية). كل الأصناف منسوخة من نظام تصميم تدبير القائم — بلا ألوان Hex،
 // وبخصائص RTL منطقية (ms/me/ps/pe/start/end) حصراً.
 //
 // مصروف السفرة سجل Expense واحد بالمسار النشط لمصاريف تدبير (شخصي أو عائلي)،
@@ -237,7 +237,7 @@ function ListView({ onOpen, onCreate }: { onOpen: (id: string) => void; onCreate
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Luggage className="h-14 w-14 text-muted-foreground/40 mb-4" strokeWidth={1.25} />
             <p className="text-sm font-semibold">سفرتك الأولى تنتظرك</p>
-            <p className="text-xs text-muted-foreground mt-1">حدّد ميزانيتها وتابع مصاريفها أولاً بأول</p>
+            <p className="text-sm text-muted-foreground mt-1">حدّد ميزانيتها وتابع مصاريفها أولاً بأول</p>
             <button onClick={onCreate}
               className="mt-4 flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-semibold px-5 py-3 rounded-2xl active:scale-[0.98] transition-all">
               <Plus className="h-4 w-4" /> سفرة جديدة
@@ -303,7 +303,7 @@ function TripCard({ trip, expenses, onClick }: { trip: Trip; expenses: Expense[]
         <span className="shrink-0">
           {totals.isOverBudget
             ? <>تجاوز <Money value={totals.overBy} className="text-destructive" /></>
-            : <>متبقّي <Money value={totals.remaining} /></>}
+            : <>المتبقي <Money value={totals.remaining} /></>}
         </span>
       </div>
 
@@ -380,9 +380,9 @@ function TripForm({ value, onChange, error }: {
           {value.countsInBudget && <CheckMark />}
         </span>
         <span className="min-w-0">
-          <span className="text-xs font-medium block">احتسب مصاريف هذي السفرة ضمن ميزانية تدبير الشهرية</span>
+          <span className="text-sm font-medium block">احتسب مصاريف هذه السفرة ضمن ميزانية تدبير الشهرية</span>
           <span className="text-xs text-muted-foreground block mt-0.5 leading-relaxed">
-            إذا شلت التأشير، مصاريف السفرة راح تظهر بتدبير مثل أي مصروف، بس ما تنحسب من ميزانية شهرك.
+            عند إلغاء التأشير، تظهر مصاريف السفرة في تدبير كأي مصروف، لكنها لا تُحتسب ضمن ميزانية شهرك.
           </span>
         </span>
       </button>
@@ -398,7 +398,7 @@ function validateTrip(v: { name: string; startDate: string; endDate: string; bud
   const start = localDateFromInput(v.startDate);
   const end = localDateFromInput(v.endDate);
   if (!start) return 'اختر تاريخ بداية السفرة';
-  if (!end || end <= start) return 'تاريخ النهاية لازم يكون بعد تاريخ البداية';
+  if (!end || end <= start) return 'يجب أن يكون تاريخ النهاية بعد تاريخ البداية';
   if (v.budget <= 0) return 'أدخل مبلغ ميزانية أكبر من صفر';
   return '';
 }
@@ -427,7 +427,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
       });
     },
     onSuccess: (id) => { invalidate(); onDone(id); },
-    onError: () => setError('تعذّر حفظ السفرة. تحقّق من الاتصال وحاول مرة ثانية.'),
+    onError: () => setError('عذراً، تعذر حفظ السفرة. يرجى التحقق من الاتصال.'),
   });
 
   function submit() {
@@ -438,7 +438,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
 
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
-      <ToolHeader title="سفرة جديدة" subtitle="حدّد ميزانيتها قبل ما تبدأ" onBack={onCancel} />
+      <ToolHeader title="سفرة جديدة" subtitle="حدّد ميزانيتها قبل السفر" onBack={onCancel} />
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-3 min-h-0 pb-4">
         <TripForm value={form} onChange={patch} error={error} />
         <button onClick={submit} disabled={save.isPending}
@@ -500,7 +500,7 @@ function EditTripView({ id, onDone }: { id: string; onDone: () => void }) {
       if (count >= 0) setNote(`تم تحديث ${fmt(count)} مصروف`);
       onDone();
     },
-    onError: () => setError('تعذّر حفظ التعديلات. تحقّق من الاتصال وحاول مرة ثانية.'),
+    onError: () => setError('عذراً، تعذر حفظ التعديلات. يرجى التحقق من الاتصال.'),
   });
 
   function submit() {
@@ -596,13 +596,13 @@ function ExpenseView({ tripId, expenseId, onDone }: {
       return updateExpense(user!.uid, expenseId, payload, householdId);
     },
     onSuccess: () => { invalidate(); onDone(); },
-    onError: () => setError('تعذّر حفظ المصروف. تحقّق من الاتصال وحاول مرة ثانية.'),
+    onError: () => setError('عذراً، تعذر حفظ المصروف. يرجى التحقق من الاتصال.'),
   });
 
   const remove = useMutation({
     mutationFn: () => deleteExpense(user!.uid, expenseId, householdId),
     onSuccess: () => { invalidate(); onDone(); },
-    onError: () => { setConfirmDelete(false); setError('تعذّر حذف المصروف. حاول مرة ثانية.'); },
+    onError: () => { setConfirmDelete(false); setError('عذراً، لم نتمكن من حذف المصروف. يرجى المحاولة مرة أخرى.'); },
   });
 
   function submit() {
@@ -712,7 +712,7 @@ function ExpenseView({ tripId, expenseId, onDone }: {
       {pendingDuplicate && (
         <ConfirmDialog
           title="مصروف مكرر محتمل"
-          body={`يوجد مصروف مسجَّل بنفس اليوم بنفس الوصف والمبلغ والفئة ("${pendingDuplicate}"). تريد الحفظ على أي حال؟`}
+          body={`يوجد مصروف مسجَّل بنفس اليوم بنفس الوصف والمبلغ والفئة ("${pendingDuplicate}"). هل تريد الحفظ على أي حال؟`}
           confirmLabel="احفظ على أي حال"
           onCancel={() => setPendingDuplicate(null)}
           onConfirm={() => { setPendingDuplicate(null); save.mutate(); }}
@@ -771,7 +771,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
   // القسم الثالث يتبع طور السفرة بثلاث حالات:
   // «مصاريف اليوم» تنفع **فقط** والمستخدم مسافر فعلاً. قبلها وبعدها المفيد هو
   // الصورة الكاملة — وإلا سجّل سفرة ماضية بعشرة مصاريف، فتح لوحتها، ووجد
-  // الأرقام صحيحة فوق وقائمة فارغة تحت («ما أكو مصروف مسجَّل اليوم»).
+  // الأرقام صحيحة في الأعلى وقائمة فارغة في الأسفل («لا توجد مصاريف مسجّلة اليوم»).
   const isBeforeStart = status === 'PLANNED';
   const isTravelingNow = !isClosed && isWithinTripDays(trip);
   const shownExpenses = isTravelingNow ? todaysExpenses(expenses) : expenses;
@@ -844,7 +844,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
         {/* ── القسم الثاني: أين ذهبت ميزانيتي؟ ── */}
         {breakdown.length > 0 && (
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
-            <p className="text-sm font-semibold mb-3">أين ذهبت ميزانيتي؟</p>
+            <p className="text-sm font-semibold mb-3">أين ذهبت الميزانية؟</p>
             <div className="flex flex-col gap-2.5">
               {breakdown.map(row => {
                 const Icon = TRIP_CATEGORY_ICON[row.key];
@@ -870,7 +870,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
         {/* ── القسم الثالث: يتغيّر حسب طور السفرة ──
             قبل بداية السفرة يعرض «الحجوزات» (كل ما وُسم لحد الآن: تذكرة، تأشيرة)،
             لا «مصاريف اليوم» — وإلا وسم المستخدم تذكرة طيران ثم فتح السفرة فوجد
-            «لسّه ما سجّلت مصروفاً»، وهي رسالة مقلقة وغلط. بهذا تصير السفرة مفيدة
+            «لم تسجّل أي مصروف بعد»، وهي رسالة مقلقة وخاطئة. بهذا تصير السفرة مفيدة
             من يوم إنشائها لا من يوم انطلاقها. */}
         <div className="bg-card border border-border rounded-2xl px-4 py-3">
           <p className="text-sm font-semibold mb-3">{sectionTitle}</p>
@@ -879,11 +879,11 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
 
           {/* نص خبري بحت — التسجيل كله يتم من شاشة تدبير (السطر الإرشادي أدناه). */}
           {!expensesLoading && expenses.length === 0 && (
-            <p className="text-sm text-muted-foreground py-3 text-center">لسّه ما سجّلت مصروفاً</p>
+            <p className="text-sm text-muted-foreground py-3 text-center">لم تسجّل أي مصروف بعد</p>
           )}
 
           {!expensesLoading && expenses.length > 0 && shownExpenses.length === 0 && (
-            <p className="text-sm text-muted-foreground py-3 text-center">ما أكو مصروف مسجَّل اليوم</p>
+            <p className="text-sm text-muted-foreground py-3 text-center">لا توجد مصاريف مسجّلة اليوم</p>
           )}
 
           {shownExpenses.map(e => {
@@ -945,7 +945,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
       {confirmClose && (
         <ConfirmDialog
           title="إنهاء السفرة؟"
-          body="متأكد تريد تنهي هذي السفرة؟ بعدها ما تقدر تضيف أو تعدّل مصاريفها ولا تعدّل بياناتها"
+          body="هل تريد إنهاء هذه السفرة؟ بعد الإنهاء لن تتمكن من إضافة مصاريف أو تعديلها، ولا من تعديل بيانات السفرة."
           confirmLabel="إنهاء" danger
           onCancel={() => setConfirmClose(false)}
           onConfirm={() => close.mutate()}
@@ -1020,7 +1020,7 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
 
         {!hasExpenses ? (
           <div className="bg-card border border-border rounded-2xl px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">ما سجّلت أي مصروف بهذي السفرة</p>
+            <p className="text-sm text-muted-foreground">لم تُسجَّل أي مصاريف في هذه السفرة</p>
           </div>
         ) : (
           <>
@@ -1057,7 +1057,7 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
                 الانطلاق وقد تكون أكبر بنود السفرة. فصلها يجيب على سؤال يغيّر
                 تخطيط السفرة القادمة: كم من كلفتي انصرف قبل ما أطلع من البيت؟ */}
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
-              <p className="text-sm font-semibold mb-3">وين انصرفت الفلوس؟</p>
+              <p className="text-sm font-semibold mb-3">أين ذهبت الميزانية؟</p>
 
               <div className="flex flex-col gap-2.5">
                 <div>
@@ -1078,7 +1078,7 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
 
               {phases.before.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                  <bdi>{Math.round(phases.beforeShare)}%</bdi> من كلفة سفرتك انصرفت قبل ما تطلع من البيت
+                  <bdi>{Math.round(phases.beforeShare)}%</bdi> من تكلفة سفرتك أُنفقت قبل السفر
                   (<bdi>{phases.before.length}</bdi> حجز).
                 </p>
               )}
@@ -1086,7 +1086,7 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
 
             {/* القسم الثالث: تحليلات ما بعد السفرة */}
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
-              <p className="text-sm font-semibold mb-3">بعد ما رجعت</p>
+              <p className="text-sm font-semibold mb-3">بعد العودة</p>
               {/* كل سطر يذكر مبلغه — «أعلى فئة» بلا رقم تصف ولا تقيس. */}
               <div className="flex flex-col gap-3 text-sm">
                 {topCategory && (
@@ -1123,9 +1123,9 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
           <div className="bg-card border border-border rounded-2xl px-4 py-3">
             {trip.countsInBudget ? (
               <>
-                <p className="text-xs font-medium mb-1">مصاريف هذي السفرة محتسبة ضمن ميزانية تدبير</p>
+                <p className="text-sm font-medium mb-1">مصاريف هذه السفرة محتسبة ضمن ميزانية تدبير</p>
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  تقدر ترجّعها خارج الميزانية — تبقى ظاهرة بمصاريفك بس ما تنحسب من ميزانية شهرك.
+                  يمكنك إرجاعها خارج الميزانية — تبقى ظاهرة في مصاريفك، لكنها لا تُحتسب ضمن ميزانية شهرك.
                 </p>
                 <button onClick={() => toggleBudget.mutate()} disabled={toggleBudget.isPending}
                   className="flex-1 w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground active:scale-[0.98] disabled:opacity-60">
@@ -1134,9 +1134,9 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
               </>
             ) : (
               <>
-                <p className="text-xs font-medium mb-1">احتسب مصاريف هذي السفرة ضمن ميزانية تدبير</p>
+                <p className="text-sm font-medium mb-1">احتسب مصاريف هذه السفرة ضمن ميزانية تدبير</p>
                 <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  راح تنضاف لميزانية الأشهر اللي صرفتها بيها.
+                  تُضاف إلى ميزانية الأشهر التي أُنفقت فيها.
                 </p>
                 <button onClick={() => toggleBudget.mutate()} disabled={toggleBudget.isPending}
                   className="w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-60">
