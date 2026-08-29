@@ -31,7 +31,7 @@ import type { Expense, Trip, TripCategory, TripType } from '@/types';
 import {
   actualTripDays, categoryBreakdown, dayCounter, effectiveStatus, fmt, initialStatus,
   inputValueFromDate, localDateFromInput, localDateTimeFromInput, localDateTimeInputValue,
-  startOfLocalDay, todaysExpenses, topSpendingDay, tripTotals,
+  splitByPhase, startOfLocalDay, todaysExpenses, topSpendingDay, tripTotals,
   TRIP_CATEGORIES, TRIP_CATEGORY_LABEL, TRIP_TYPES, TRIP_TYPE_LABEL, tripTypeLabel,
 } from './calc';
 import { TRIP_CATEGORY_ICON, TRIP_TYPE_ICON, tripTypeIcon } from './icons';
@@ -138,7 +138,8 @@ type View =
   | { name: 'create' }
   | { name: 'detail'; id: string }
   | { name: 'edit'; id: string }
-  | { name: 'expense'; tripId: string; expenseId?: string }
+  // تعديل فقط — الإضافة تتم من شاشات تدبير حصراً، لا من الأداة.
+  | { name: 'expense'; tripId: string; expenseId: string }
   | { name: 'summary'; id: string };
 
 export default function SafaratiPage() {
@@ -159,7 +160,6 @@ export default function SafaratiPage() {
       return <DetailView id={view.id}
                          onBack={() => setView({ name: 'list' })}
                          onEdit={() => setView({ name: 'edit', id: view.id })}
-                         onAddExpense={() => setView({ name: 'expense', tripId: view.id })}
                          onEditExpense={(eid) => setView({ name: 'expense', tripId: view.id, expenseId: eid })}
                          onSummary={() => setView({ name: 'summary', id: view.id })} />;
     default:
@@ -537,13 +537,18 @@ function EditTripView({ id, onDone }: { id: string; onDone: () => void }) {
 }
 
 // ═══════════════════════ شاشة 4 — إضافة / تعديل مصروف ═══════════════════════
+/**
+ * شاشة تعديل مصروف سفرة — **تعديل وحذف فقط، لا إضافة**.
+ * الإضافة تتم من شاشات تدبير الاعتيادية حصراً (يدوي/صوت/فاتورة): فعل متكرر
+ * تُبنى عادته هناك. أمّا التعديل فنادر وتصحيحي، فلا يبني عادة منافسة —
+ * ولأنه سجل واحد، أي تعديل هنا يظهر بتدبير فوراً بلا مزامنة.
+ */
 function ExpenseView({ tripId, expenseId, onDone }: {
-  tripId: string; expenseId?: string; onDone: () => void;
+  tripId: string; expenseId: string; onDone: () => void;
 }) {
   const { user } = useAuth();
   const { householdId } = useAppData();
   const invalidate = useInvalidateAll();
-  const isEdit = !!expenseId;
 
   const { data: trip } = useQuery({
     queryKey: ['trip', user?.uid, tripId],
@@ -565,12 +570,12 @@ function ExpenseView({ tripId, expenseId, onDone }: {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pendingDuplicate, setPendingDuplicate] = useState<string | null>(null);
 
-  if (!form && (!isEdit || existing)) {
+  if (!form && existing) {
     setForm({
-      amount: existing?.amount ?? 0,
-      category: (existing?.tripCategory ?? 'food') as TripCategory,
-      description: existing?.title ?? '',
-      when: localDateTimeInputValue(existing ? new Date(existing.date) : new Date()),
+      amount: existing.amount,
+      category: (existing.tripCategory ?? 'other') as TripCategory,
+      description: existing.title,
+      when: localDateTimeInputValue(new Date(existing.date)),
     });
   }
 
@@ -588,15 +593,14 @@ function ExpenseView({ tripId, expenseId, onDone }: {
         tripId,
         tripCategory: f.category,
       };
-      if (isEdit) return updateExpense(user!.uid, expenseId!, payload, householdId);
-      return addExpense(user!.uid, payload, householdId);
+      return updateExpense(user!.uid, expenseId, payload, householdId);
     },
     onSuccess: () => { invalidate(); onDone(); },
     onError: () => setError('تعذّر حفظ المصروف. تحقّق من الاتصال وحاول مرة ثانية.'),
   });
 
   const remove = useMutation({
-    mutationFn: () => deleteExpense(user!.uid, expenseId!, householdId),
+    mutationFn: () => deleteExpense(user!.uid, expenseId, householdId),
     onSuccess: () => { invalidate(); onDone(); },
     onError: () => { setConfirmDelete(false); setError('تعذّر حذف المصروف. حاول مرة ثانية.'); },
   });
@@ -608,7 +612,7 @@ function ExpenseView({ tripId, expenseId, onDone }: {
     setError('');
 
     // كاشف التكرار المركزي يُستدعى كما هو، بلا أي استثناء للأداة.
-    const others = isEdit ? expenses.filter(e => e.id !== expenseId) : expenses;
+    const others = expenses.filter(e => e.id !== expenseId);
     const dup = findDuplicateExpense(others, {
       title: f.description.trim(), amount: f.amount,
       category: TRAVEL_CATEGORY_ID, date: localDateTimeFromInput(f.when)!.toISOString(),
@@ -620,7 +624,7 @@ function ExpenseView({ tripId, expenseId, onDone }: {
   if (!trip || !form) {
     return (
       <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto">
-        <ToolHeader title={isEdit ? 'تعديل مصروف' : 'إضافة مصروف'} onBack={onDone} />
+        <ToolHeader title='تعديل مصروف' onBack={onDone} />
         <div className="h-64 bg-muted rounded-2xl animate-pulse mx-1" />
       </div>
     );
@@ -628,7 +632,7 @@ function ExpenseView({ tripId, expenseId, onDone }: {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
-      <ToolHeader title={isEdit ? 'تعديل مصروف' : 'إضافة مصروف'} subtitle={trip.name} onBack={onDone} />
+      <ToolHeader title='تعديل مصروف' subtitle={trip.name} onBack={onDone} />
 
       <div className="flex-1 overflow-y-auto px-1 flex flex-col gap-3 min-h-0 pb-4">
         <div className="bg-card border border-border rounded-2xl px-4 py-3 flex flex-col gap-3">
@@ -684,10 +688,10 @@ function ExpenseView({ tripId, expenseId, onDone }: {
           className="w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-60">
           {save.isPending
             ? <span className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> جاري الحفظ...</span>
-            : isEdit ? 'حفظ التعديلات' : 'إضافة المصروف'}
+            : 'حفظ التعديلات'}
         </button>
 
-        {isEdit && (
+                  {(
           <button onClick={() => setConfirmDelete(true)}
             className="flex-1 py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold flex items-center justify-center gap-2">
             <Trash2 className="h-4 w-4" /> حذف المصروف
@@ -719,9 +723,9 @@ function ExpenseView({ tripId, expenseId, onDone }: {
 }
 
 // ═══════════════════════ شاشة 3 — لوحة السفرة ═══════════════════════
-function DetailView({ id, onBack, onEdit, onAddExpense, onEditExpense, onSummary }: {
+function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
   id: string; onBack: () => void; onEdit: () => void;
-  onAddExpense: () => void; onEditExpense: (expenseId: string) => void; onSummary: () => void;
+  onEditExpense: (expenseId: string) => void; onSummary: () => void;
 }) {
   const { user } = useAuth();
   const { householdId } = useAppData();
@@ -763,8 +767,10 @@ function DetailView({ id, onBack, onEdit, onAddExpense, onEditExpense, onSummary
   const totals = tripTotals(trip, expenses);
   const days = dayCounter(trip);
   const breakdown = categoryBreakdown(expenses);
-  const today = todaysExpenses(expenses);
   const TypeIcon = tripTypeIcon(trip.type);
+  // قبل يوم البداية نعرض الحجوزات (كل ما وُسم)، وبعده مصاريف اليوم فقط.
+  const isBeforeStart = status === 'PLANNED';
+  const shownExpenses = isBeforeStart ? expenses : todaysExpenses(expenses);
 
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
@@ -854,23 +860,26 @@ function DetailView({ id, onBack, onEdit, onAddExpense, onEditExpense, onSummary
           </div>
         )}
 
-        {/* ── القسم الثالث: مصاريف اليوم ── */}
+        {/* ── القسم الثالث: يتغيّر حسب طور السفرة ──
+            قبل بداية السفرة يعرض «الحجوزات» (كل ما وُسم لحد الآن: تذكرة، تأشيرة)،
+            لا «مصاريف اليوم» — وإلا وسم المستخدم تذكرة طيران ثم فتح السفرة فوجد
+            «لسّه ما سجّلت مصروفاً»، وهي رسالة مقلقة وغلط. بهذا تصير السفرة مفيدة
+            من يوم إنشائها لا من يوم انطلاقها. */}
         <div className="bg-card border border-border rounded-2xl px-4 py-3">
-          <p className="text-sm font-semibold mb-3">مصاريف اليوم</p>
+          <p className="text-sm font-semibold mb-3">{isBeforeStart ? 'الحجوزات' : 'مصاريف اليوم'}</p>
 
           {expensesLoading && <div className="h-12 bg-muted rounded-xl animate-pulse" />}
 
-          {/* نص خبري بحت: زر «إضافة مصروف» الكبير أدناه هو الفعل الوحيد —
-              رابط «ابدأ الآن» كان يكرّر نفس الفعل بمكانين. */}
+          {/* نص خبري بحت — التسجيل كله يتم من شاشة تدبير (السطر الإرشادي أدناه). */}
           {!expensesLoading && expenses.length === 0 && (
             <p className="text-sm text-muted-foreground py-3 text-center">لسّه ما سجّلت مصروفاً</p>
           )}
 
-          {!expensesLoading && expenses.length > 0 && today.length === 0 && (
-            <p className="text-xs text-muted-foreground py-3 text-center">ما أكو مصروف مسجَّل اليوم</p>
+          {!expensesLoading && expenses.length > 0 && shownExpenses.length === 0 && (
+            <p className="text-sm text-muted-foreground py-3 text-center">ما أكو مصروف مسجَّل اليوم</p>
           )}
 
-          {today.map(e => {
+          {shownExpenses.map(e => {
             const Icon = TRIP_CATEGORY_ICON[e.tripCategory || 'other'];
             const row = (
               <>
@@ -903,10 +912,15 @@ function DetailView({ id, onBack, onEdit, onAddExpense, onEditExpense, onSummary
           </button>
         ) : (
           <>
-            <button onClick={onAddExpense}
-              className="w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-              <Plus className="h-4 w-4" /> إضافة مصروف
-            </button>
+            {/* سطر إرشادي بلا زر — مقصود.
+                زر إضافة هنا (حتى لو فتح شاشة تدبير) يعلّم المستخدم أن مسار
+                التسجيل يبدأ من الأداة، فيترسّخ مسار أطول وينشأ حاجز كسل عند
+                كل مصروف. النص يرفع الحيرة بلا أن ينشئ عادة منافسة. */}
+            <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                سجّل مصاريفك من شاشة تدبير مثل أي مصروف — تظهر هنا تلقائياً.
+              </p>
+            </div>
             <div className="flex gap-2">
               <button onClick={onEdit}
                 className="flex-1 py-2.5 rounded-xl border border-border text-sm text-muted-foreground active:scale-[0.98] flex items-center justify-center gap-2">
@@ -976,7 +990,12 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
   const hasExpenses = expenses.length > 0;
   const breakdown = categoryBreakdown(expenses);
   const topCategory = breakdown[0];
-  const topDay = topSpendingDay(expenses);
+  const phases = splitByPhase(trip, expenses);
+  // «أعلى يوم إنفاقاً» يُحسب من مصاريف **أيام السفرة فقط**، لا من الحجوزات:
+  // ١) يوم الحجز سابق لبداية السفرة فيعطي رقم يوم سالباً («اليوم -1»).
+  // ٢) تذكرة الطيران غالباً أكبر مبلغ مفرد، فيصير الجواب دائماً «يوم شراء
+  //    التذكرة» — معلومة بلا فائدة. الحجوزات مغطّاة بقسم «قبل السفر» أعلاه.
+  const topDay = topSpendingDay(phases.during);
   const days = actualTripDays(trip);
   const dailyAverage = totals.spent / days;
   const topDayIndex = topDay
@@ -1024,7 +1043,38 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
               </div>
             </div>
 
-            {/* القسم الثاني: تحليلات ما بعد السفرة */}
+            {/* قبل السفر / أثناء السفر — الحجوزات (تذكرة، تأشيرة) تُدفع قبل
+                الانطلاق وقد تكون أكبر بنود السفرة. فصلها يجيب على سؤال يغيّر
+                تخطيط السفرة القادمة: كم من كلفتي انصرف قبل ما أطلع من البيت؟ */}
+            <div className="bg-card border border-border rounded-2xl px-4 py-3">
+              <p className="text-sm font-semibold mb-3">وين انصرفت الفلوس؟</p>
+
+              <div className="flex flex-col gap-2.5">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm">قبل السفر (حجوزات)</span>
+                    <Money value={phases.beforeTotal} className="text-sm font-semibold shrink-0" />
+                  </div>
+                  <ProgressBar percent={phases.beforeShare} over={false} thin />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm">أثناء السفر</span>
+                    <Money value={phases.duringTotal} className="text-sm font-semibold shrink-0" />
+                  </div>
+                  <ProgressBar percent={100 - phases.beforeShare} over={false} thin />
+                </div>
+              </div>
+
+              {phases.before.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                  <bdi>{Math.round(phases.beforeShare)}%</bdi> من كلفة سفرتك انصرفت قبل ما تطلع من البيت
+                  (<bdi>{phases.before.length}</bdi> حجز).
+                </p>
+              )}
+            </div>
+
+            {/* القسم الثالث: تحليلات ما بعد السفرة */}
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
               <p className="text-sm font-semibold mb-3">بعد ما رجعت</p>
               <div className="flex flex-col gap-2.5 text-xs">

@@ -94,7 +94,7 @@ export default function AddExpensePage() {
     const { addCategory } = useSaveCategory();
 
     // ── سفراتي: لا يظهر أي شيء بغياب سفرة فعّالة ──
-    const { activeTrips } = useActiveTrips();
+    const { activeTrips, travelingTrip } = useActiveTrips();
     // مؤشَّر افتراضياً أثناء وجود سفرة فعّالة (القرار ١١): يطابق منطق المستخدم،
     // ويُبقي أي خطأ مرئياً أمامه لا صامتاً.
     const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
@@ -104,10 +104,12 @@ export default function AddExpensePage() {
     const [tripDefaultApplied, setTripDefaultApplied] = useState(false);
     useEffect(() => {
         if (!tripDefaultApplied && activeTrips.length > 0) {
-            setSelectedTripId(activeTrips[0].id);
+            // التأشير الافتراضي **فقط** إن كان اليوم ضمن أيام السفرة الفعلية.
+            // قبل السفر (حجوزات) وبعد العودة: المربع يظهر غير مؤشَّر.
+            if (travelingTrip) setSelectedTripId(travelingTrip.id);
             setTripDefaultApplied(true);
-        }
-    }, [activeTrips, tripDefaultApplied]);
+            }
+    }, [activeTrips, travelingTrip, tripDefaultApplied]);
     const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
 
     // Build frequent expenses from history (top 6 most used)

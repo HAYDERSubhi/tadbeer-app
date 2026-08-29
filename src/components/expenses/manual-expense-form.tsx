@@ -79,17 +79,19 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const { selectableCategories: categories, getIconComponent } = useCategories();
 
   // ── سفراتي: لا يظهر أي شيء بغياب سفرة فعّالة ──
-  const { activeTrips } = useActiveTrips();
+  const { activeTrips, travelingTrip } = useActiveTrips();
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [tripCategory, setTripCategory] = useState<TripCategory>('food');
   // التأشير الافتراضي مرة واحدة فقط، وإلا استحال على المستخدم شيله.
   const [tripDefaultApplied, setTripDefaultApplied] = useState(false);
   useEffect(() => {
     if (!tripDefaultApplied && activeTrips.length > 0) {
-      setSelectedTripId(activeTrips[0].id);
+      // التأشير الافتراضي **فقط** إن كان اليوم ضمن أيام السفرة الفعلية.
+      // قبل السفر (حجوزات) وبعد العودة: المربع يظهر غير مؤشَّر.
+      if (travelingTrip) setSelectedTripId(travelingTrip.id);
       setTripDefaultApplied(true);
-    }
-  }, [activeTrips, tripDefaultApplied]);
+      }
+  }, [activeTrips, travelingTrip, tripDefaultApplied]);
   const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
   // Holds the expense awaiting user confirmation when a duplicate is detected.
   const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);

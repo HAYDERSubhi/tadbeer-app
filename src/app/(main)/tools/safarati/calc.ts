@@ -61,6 +61,48 @@ export function effectiveStatus(trip: Trip, today: Date = new Date()): TripStatu
   return startOfLocalDay(today) < start ? 'PLANNED' : 'ACTIVE';
 }
 
+/**
+ * هل اليوم واقع ضمن أيام السفرة الفعلية (من البداية للنهاية، شاملةً الطرفين)؟
+ *
+ * هذا **وحده** ما يقرّر التأشير الافتراضي لمربع «ضمن سفرة» بشاشات الإدخال:
+ * - قبل البداية (حجوزات: تذاكر، تأشيرة): المربع يظهر لكن **غير مؤشَّر** —
+ *   حياة المستخدم اليومية عادية، ومصروف السفرة استثناء يؤشّره بنفسه.
+ * - ضمن الأيام: **مؤشَّر** — أغلب ما يُصرف أثناء السفر يخصّ السفرة.
+ * - بعد النهاية وقبل الإغلاق: **غير مؤشَّر** — رجع البيت، فيرجع الافتراضي طبيعياً
+ *   (وإلا ظلّت مصاريف بيته تُوسم بصمت لو نسي يغلق السفرة).
+ */
+export function isWithinTripDays(trip: Trip, today: Date = new Date()): boolean {
+  const t = startOfLocalDay(today);
+  return t >= startOfLocalDay(new Date(trip.startDate))
+      && t <= startOfLocalDay(new Date(trip.endDate));
+}
+
+/** هل المصروف من طور الحجوزات (قبل يوم بداية السفرة)؟ */
+export function isPreTripExpense(trip: Trip, expense: Expense): boolean {
+  return startOfLocalDay(new Date(expense.date)) < startOfLocalDay(new Date(trip.startDate));
+}
+
+/**
+ * تقسيم مصاريف السفرة: ما قبل السفر (حجوزات) وما أثناءه.
+ * القيمة للمستخدم: يرى «٦٥٪ من كلفة سفرتي انصرفت قبل ما أطلع من البيت» —
+ * معلومة تغيّر تخطيطه للسفرة القادمة.
+ */
+export function splitByPhase(trip: Trip, expenses: Expense[]): {
+  before: Expense[]; during: Expense[]; beforeTotal: number; duringTotal: number; beforeShare: number;
+} {
+  const before: Expense[] = [];
+  const during: Expense[] = [];
+  expenses.forEach(e => (isPreTripExpense(trip, e) ? before : during).push(e));
+  const sum = (list: Expense[]) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const beforeTotal = sum(before);
+  const duringTotal = sum(during);
+  const grand = beforeTotal + duringTotal;
+  return {
+    before, during, beforeTotal, duringTotal,
+    beforeShare: grand > 0 ? (beforeTotal / grand) * 100 : 0,
+  };
+}
+
 /** الحالة المبدئية عند الإنشاء. */
 export function initialStatus(startDate: Date, today: Date = new Date()): TripStatus {
   return startOfLocalDay(today) < startOfLocalDay(startDate) ? 'PLANNED' : 'ACTIVE';
