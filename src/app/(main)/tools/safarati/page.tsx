@@ -31,7 +31,7 @@ import type { Expense, Trip, TripCategory, TripType } from '@/types';
 import {
   actualTripDays, categoryBreakdown, dayCounter, effectiveStatus, fmt, initialStatus,
   inputValueFromDate, localDateFromInput, localDateTimeFromInput, localDateTimeInputValue,
-  splitByPhase, startOfLocalDay, todaysExpenses, topSpendingDay, tripTotals,
+  isWithinTripDays, splitByPhase, startOfLocalDay, todaysExpenses, topSpendingDay, tripTotals,
   TRIP_CATEGORIES, TRIP_CATEGORY_LABEL, TRIP_TYPES, TRIP_TYPE_LABEL, tripTypeLabel,
 } from './calc';
 import { TRIP_CATEGORY_ICON, TRIP_TYPE_ICON, tripTypeIcon } from './icons';
@@ -768,9 +768,16 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
   const days = dayCounter(trip);
   const breakdown = categoryBreakdown(expenses);
   const TypeIcon = tripTypeIcon(trip.type);
-  // قبل يوم البداية نعرض الحجوزات (كل ما وُسم)، وبعده مصاريف اليوم فقط.
+  // القسم الثالث يتبع طور السفرة بثلاث حالات:
+  // «مصاريف اليوم» تنفع **فقط** والمستخدم مسافر فعلاً. قبلها وبعدها المفيد هو
+  // الصورة الكاملة — وإلا سجّل سفرة ماضية بعشرة مصاريف، فتح لوحتها، ووجد
+  // الأرقام صحيحة فوق وقائمة فارغة تحت («ما أكو مصروف مسجَّل اليوم»).
   const isBeforeStart = status === 'PLANNED';
-  const shownExpenses = isBeforeStart ? expenses : todaysExpenses(expenses);
+  const isTravelingNow = !isClosed && isWithinTripDays(trip);
+  const shownExpenses = isTravelingNow ? todaysExpenses(expenses) : expenses;
+  const sectionTitle = isBeforeStart ? 'الحجوزات'
+    : isTravelingNow ? 'مصاريف اليوم'
+    : 'كل مصاريف السفرة';
 
   return (
     <div className="flex flex-col h-[calc(100dvh-8rem)] max-w-md mx-auto overflow-hidden">
@@ -866,7 +873,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
             «لسّه ما سجّلت مصروفاً»، وهي رسالة مقلقة وغلط. بهذا تصير السفرة مفيدة
             من يوم إنشائها لا من يوم انطلاقها. */}
         <div className="bg-card border border-border rounded-2xl px-4 py-3">
-          <p className="text-sm font-semibold mb-3">{isBeforeStart ? 'الحجوزات' : 'مصاريف اليوم'}</p>
+          <p className="text-sm font-semibold mb-3">{sectionTitle}</p>
 
           {expensesLoading && <div className="h-12 bg-muted rounded-xl animate-pulse" />}
 
