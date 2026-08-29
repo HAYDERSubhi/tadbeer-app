@@ -33,13 +33,17 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
-import type { Expense } from '@/types';
+import type { Expense, TripCategory } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateExpense } from '@/services/firestore';
 import { useCategories } from '@/hooks/use-categories';
+import { useActiveTrips } from '@/hooks/use-active-trips';
+import { TripExpenseToggle } from '@/components/expenses/trip-expense-field';
+import { TRIP_CATEGORIES, TRIP_CATEGORY_LABEL } from '@/app/(main)/tools/safarati/calc';
+import { TRAVEL_CATEGORY_ID } from '@/lib/constants';
 
 const expenseSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -57,8 +61,18 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
   const { householdId } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { categories, getIconComponent } = useCategories();
-  
+  // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+  const { selectableCategories: categories, getIconComponent } = useCategories();
+
+  // ── سفراتي: بالتعديل، الحالة الابتدائية تعكس المصروف نفسه ولا تُؤشَّر افتراضياً.
+  // تأشير مصروف قائم تلقائياً معناه إعادة وسمه بصمت — عكس المطلوب تماماً.
+  const { activeTrips } = useActiveTrips();
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(expense.tripId ?? null);
+  const [tripCategory, setTripCategory] = useState<TripCategory>(expense.tripCategory ?? 'other');
+  const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
+  // مصروف يتبع سفرة منتهية: لا تُعرض أي أداة وسم، وتبقى حقوله كما هي عند الحفظ.
+  const belongsToClosedTrip = !!expense.tripId && !activeTrips.some(t => t.id === expense.tripId);
+
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
@@ -105,6 +119,29 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
     catch { return ''; }
   })();
 
+  /**
+   * يبني حمولة الحفظ حسب حالة الوسم:
+   * - سفرة منتهية: لا تُمرَّر حقول السفرة إطلاقاً فتبقى كما هي بالمستند.
+   * - موسوم بسفرة فعّالة: الفئة تُقفَل على «سفر» وحالة الميزانية مشتقّة منها.
+   * - فُكّ الوسم: يُفرَّغ tripId بنص فارغ (لا undefined — فـFirestore مضبوط على
+   *   تجاهل غير المعرَّف فلا يُحذف الحقل)، وتُستعمل الفئة التي اختارها المستخدم.
+   */
+  const buildPayload = (data: ExpenseFormData) => {
+    const base = { ...data, date: data.date.toISOString() };
+    if (belongsToClosedTrip) return base;
+    if (selectedTrip) {
+      return {
+        ...base,
+        category: TRAVEL_CATEGORY_ID,
+        tripId: selectedTrip.id,
+        tripCategory,
+        isOutOfBudget: !selectedTrip.countsInBudget,
+      };
+    }
+    if (expense.tripId) return { ...base, tripId: '', tripCategory: undefined };
+    return base;
+  };
+
   const onSubmit = (data: ExpenseFormData) => {
     if (!user) return;
     // Editing a past month changes historical reports — confirm first.
@@ -112,7 +149,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
       setPendingPastEdit(data);
       return;
     }
-    updateExpenseMutation.mutate({ ...data, date: data.date.toISOString() });
+    updateExpenseMutation.mutate(buildPayload(data));
   };
 
   return (
@@ -146,6 +183,19 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
         </div>
         <div>
           <Label htmlFor="category">الفئة</Label>
+          {selectedTrip || belongsToClosedTrip ? (
+            <Select value={tripCategory} disabled={belongsToClosedTrip}
+                    onValueChange={v => setTripCategory(v as TripCategory)}>
+              <SelectTrigger id="category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TRIP_CATEGORIES.map(c => (
+                  <SelectItem key={c} value={c}>{TRIP_CATEGORY_LABEL[c]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
           <Controller
             name="category"
             control={form.control}
@@ -165,9 +215,17 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
               </Select>
             )}
           />
+          )}
           {form.formState.errors.category && <p className="text-sm text-destructive mt-1">{form.formState.errors.category.message}</p>}
         </div>
       </div>
+
+      {/* ─── سفراتي: وسم/فكّ وسم مصروف قائم ─── */}
+      {belongsToClosedTrip ? (
+        <p className="text-xs text-muted-foreground">هذا المصروف ضمن سفرة منتهية — وسمه لا يتغيّر.</p>
+      ) : (
+        <TripExpenseToggle activeTrips={activeTrips} selectedTripId={selectedTripId} onSelect={setSelectedTripId} />
+      )}
       
       <div>
         <Label htmlFor="date">التاريخ</Label>
@@ -246,7 +304,7 @@ export default function EditExpenseForm({ expense, setOpen }: { expense: Expense
             <AlertDialogAction
               onClick={() => {
                 if (pendingPastEdit) {
-                  updateExpenseMutation.mutate({ ...pendingPastEdit, date: pendingPastEdit.date.toISOString() });
+                  updateExpenseMutation.mutate(buildPayload(pendingPastEdit));
                 }
                 setPendingPastEdit(null);
               }}

@@ -23,3 +23,22 @@ export const DEFAULT_CATEGORIES: Record<string, DefaultCategory> = {
   "home_maintenance": { name: "إدامة المنزل", icon: "Briefcase", id: "home_maintenance", color: "1" },
   "other": { name: "متفرقة", icon: "Puzzle", id: "other", color: "2" },
 };
+
+// ═══════════════ فئات نظامية — تُعرَض ولا تُختار ═══════════════
+// «سفر» هي فئة أداة «سفراتي»: تُعيَّن برمجياً على مصاريف السفرات فقط، ولا تظهر
+// بأي قائمة اختيار فئة، ولا تُمرَّر لاقتراح الفئة بالذكاء الاصطناعي، ولا تُحفظ
+// ضمن فئات المستخدم بالإعدادات (راجع الحارس في services/firestore.ts).
+//
+// التعريف كامل عمداً (اسم + أيقونة Lucide + لون مخطط) لا معرّفاً عارياً: شاشتا
+// الإحصائيات والتقرير الشهري تقرآن الثلاثة من هنا عبر use-categories، فلو نقص
+// أحدها ظهرت الفئة بأيقونة احتياطية ولون عشوائي.
+// الأيقونة Plane موجودة أصلاً بسجل category-icons.tsx — لم تُضَف أيقونة جديدة.
+// اللون "2" من نفس نطاق "1".."5" المستعمل بالفئات الاثنتي عشرة أعلاه.
+export const TRAVEL_CATEGORY_ID = 'سفر';
+
+export const SYSTEM_CATEGORIES: Record<string, DefaultCategory> = {
+  [TRAVEL_CATEGORY_ID]: { name: 'سفر', icon: 'Plane', id: TRAVEL_CATEGORY_ID, color: '2' },
+};
+
+/** معرّفات الفئات النظامية — للاستثناء السريع من قوائم الاختيار والحفظ. */
+export const SYSTEM_CATEGORY_IDS = new Set<string>(Object.keys(SYSTEM_CATEGORIES));

@@ -12,6 +12,7 @@ import {z} from 'zod';
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
 import { arIQ, formatYearMonth } from '@/lib/arabic-date';
+import { SYSTEM_CATEGORIES } from '@/lib/constants';
 
 const PieChartDataItemSchema = z.object({
   name: z.string(),
@@ -78,6 +79,16 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
         acc[cat.id] = cat;
         return acc;
     }, {});
+    // الفئات النظامية («سفر» لأداة سفراتي) لا تُحفَظ ضمن فئات المستخدم عمداً —
+    // حارس updateUserSettings يمنع ذلك. وهذا الملف الوحيد بالتطبيق الذي يبني
+    // خريطة الفئات من الإعدادات المحفوظة مباشرةً لا من hooks/use-categories،
+    // فبلا هذه البذرة تُعرَض الفئة باسمها الصحيح لكن بأيقونة «❓» ولون عشوائي.
+    // التعريف يُقرأ من نفس المصدر المركزي — لا يُكتب اسم ولا أيقونة ولا لون هنا.
+    // بذرة عرض بحتة: لا تمسّ أي مجموع أو نسبة، وفئات المستخدم لها الأولوية.
+    Object.values(SYSTEM_CATEGORIES).forEach(cat => {
+        if (!categoryMap[cat.id]) categoryMap[cat.id] = cat;
+    });
+
     const categoryBudgets = userSettings.categoryBudgets || {};
     const chartColors = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'];
 

@@ -18,8 +18,8 @@ import {
     arrayUnion,
     arrayRemove,
 } from 'firebase/firestore';
-import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan, Silftna } from '@/types';
-import { DEFAULT_CATEGORIES } from '@/lib/constants';
+import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan, Silftna, Trip } from '@/types';
+import { DEFAULT_CATEGORIES, SYSTEM_CATEGORY_IDS } from '@/lib/constants';
 
 // ─── Path helper: household or personal ────────────────────────────────────
 function basePath(uid: string, householdId?: string | null): [string, string] {
@@ -362,6 +362,16 @@ export const updateUserSettings = async (uid: string, settingsData: Partial<User
     if (!db) throw new Error("Firestore is not initialized");
 
     const dataToSave = JSON.parse(JSON.stringify(settingsData));
+
+    // حارس: الفئات النظامية («سفر» لسفراتي) لا تُحفَظ أبداً ضمن فئات المستخدم.
+    // هي معرَّفة مركزياً بـ lib/constants ولا تُملَك ولا تُعدَّل ولا تُحذف من
+    // الإعدادات. شبكة أمان أخيرة لو مرّت قائمة شاملة من أي شاشة حفظ.
+    if (Array.isArray(dataToSave.categories)) {
+        dataToSave.categories = dataToSave.categories.filter(
+            (c: Category) => !SYSTEM_CATEGORY_IDS.has(c?.id)
+        );
+    }
+
     if (dataToSave.recurringPayments) {
         dataToSave.recurringPayments = dataToSave.recurringPayments.map((p: RecurringPayment) => ({
             ...p,
@@ -904,4 +914,169 @@ export const addFeedback = async (uid: string, feedback: { type?: string; subjec
         sentAt: new Date().toISOString(),
         createdAt: serverTimestamp(),
     });
+};
+
+// =================================
+// سفراتي — Trips Service
+// =================================
+// مستند السفرة شخصي دائماً: users/{uid}/trips/{tripId}
+// (قاعدة users/{uid}/{document=**} تغطّيه — لا تعديل على firestore.rules).
+// أمّا مصاريف السفرة فهي سجلات Expense عادية بالمسار النشط (basePath)، فتنتقل
+// مع بقية المصاريف عند الانضمام لعائلة أو مغادرتها ويبقى ربطها بـ tripId سليماً.
+
+function tripsCol(uid: string) {
+    return collection(db!, 'users', uid, 'trips');
+}
+
+function toTrip(id: string, data: any, uid: string): Trip {
+    const iso = (v: any, fallback: string | null = null) =>
+        v instanceof Timestamp ? v.toDate().toISOString() : (v ? String(v) : fallback);
+    return {
+        id,
+        uid: (data.uid as string) || uid,
+        name: data.name || '',
+        // أي نوع قديم خارج الثلاثة المعتمدة (القرار ١٥) يُطبَّع إلى «أخرى».
+        type: ['abroad', 'domestic', 'other'].includes(data.type) ? data.type : 'other',
+        startDate: iso(data.startDate, new Date().toISOString())!,
+        endDate: iso(data.endDate, new Date().toISOString())!,
+        totalBudget: Number(data.totalBudget) || 0,
+        // السفرات القديمة (لو وُجدت) تُعامل كمُحتسَبة — نفس الافتراضي المعتمد.
+        countsInBudget: data.countsInBudget !== false,
+        currency: 'IQD',
+        status: data.status || 'PLANNED',
+        closedAt: iso(data.closedAt),
+        createdAt: iso(data.createdAt, new Date().toISOString())!,
+        updatedAt: iso(data.updatedAt, new Date().toISOString())!,
+    };
+}
+
+export const getTrips = async (uid: string): Promise<Trip[]> => {
+    if (!db) return [];
+    const snap = await getDocs(query(tripsCol(uid), orderBy('startDate', 'desc')));
+    return snap.docs.map(d => toTrip(d.id, d.data(), uid));
+};
+
+export const getTrip = async (uid: string, tripId: string): Promise<Trip | null> => {
+    if (!db) return null;
+    const snap = await getDoc(doc(db, 'users', uid, 'trips', tripId));
+    return snap.exists() ? toTrip(snap.id, snap.data(), uid) : null;
+};
+
+export const addTrip = async (
+    uid: string,
+    data: Omit<Trip, 'id' | 'uid' | 'createdAt' | 'updatedAt'>
+): Promise<string> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const ref = await addDoc(tripsCol(uid), {
+        ...data,
+        uid,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+        closedAt: data.closedAt ? new Date(data.closedAt) : null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return ref.id;
+};
+
+export const updateTrip = async (
+    uid: string,
+    tripId: string,
+    patch: Partial<Omit<Trip, 'id' | 'uid' | 'createdAt'>>
+): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const payload: { [key: string]: any } = { ...patch, updatedAt: serverTimestamp() };
+    if (patch.startDate) payload.startDate = new Date(patch.startDate);
+    if (patch.endDate) payload.endDate = new Date(patch.endDate);
+    if (patch.closedAt !== undefined) payload.closedAt = patch.closedAt ? new Date(patch.closedAt) : null;
+    await updateDoc(doc(db, 'users', uid, 'trips', tripId), payload);
+};
+
+export const deleteTrip = async (uid: string, tripId: string): Promise<void> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    await deleteDoc(doc(db, 'users', uid, 'trips', tripId));
+};
+
+/**
+ * مصاريف سفرة واحدة — استعلام مستقل بالمسار النشط، لا من سياق use-app-data
+ * (المحدود بآخر ٦ أشهر) وإلا عرضت سفرة قديمة من الأرشيف صفراً.
+ * الترتيب بالجافاسكربت عمداً: where + orderBy يتطلب فهرساً مركّباً جديداً.
+ */
+export const getTripExpenses = async (
+    uid: string,
+    tripId: string,
+    householdId?: string | null
+): Promise<Expense[]> => {
+    if (!db) return [];
+    const [p1, p2] = basePath(uid, householdId);
+    const snap = await getDocs(query(collection(db, p1, p2, 'expenses'), where('tripId', '==', tripId)));
+    const out: Expense[] = [];
+    snap.forEach(d => {
+        const data = d.data();
+        out.push({
+            id: d.id,
+            ...data,
+            uid: (data.uid as string) || uid,
+            date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+        } as Expense);
+    });
+    return out.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+/**
+ * مصاريف عدة سفرات باستعلام واحد — لبناء شريط التقدّم بقائمة السفرات بلا
+ * استعلام مستقل لكل سفرة. Firestore يحدّ عامل `in` بثلاثين قيمة، فنُقسّم.
+ */
+export const getExpensesForTrips = async (
+    uid: string,
+    tripIds: string[],
+    householdId?: string | null
+): Promise<Expense[]> => {
+    if (!db || tripIds.length === 0) return [];
+    const [p1, p2] = basePath(uid, householdId);
+    const col = collection(db, p1, p2, 'expenses');
+    const out: Expense[] = [];
+
+    for (let i = 0; i < tripIds.length; i += 30) {
+        const snap = await getDocs(query(col, where('tripId', 'in', tripIds.slice(i, i + 30))));
+        snap.forEach(d => {
+            const data = d.data();
+            out.push({
+                id: d.id,
+                ...data,
+                uid: (data.uid as string) || uid,
+                date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : (data.date ? String(data.date) : new Date().toISOString()),
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+            } as Expense);
+        });
+    }
+    return out.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+/**
+ * إعادة وسم كل مصاريف السفرة دفعةً واحدة عند تغيير خيار «تُحتسب ضمن الميزانية».
+ * يقلب حالة عرض السجلات نفسها — لا يُنشئ ولا يحذف أي سجل. يُرجع عدد المتأثرة.
+ */
+export const setTripExpensesBudgetFlag = async (
+    uid: string,
+    tripId: string,
+    isOutOfBudget: boolean,
+    householdId?: string | null
+): Promise<number> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const [p1, p2] = basePath(uid, householdId);
+    const snap = await getDocs(query(collection(db, p1, p2, 'expenses'), where('tripId', '==', tripId)));
+    const ids = snap.docs.map(d => d.id);
+
+    for (let i = 0; i < ids.length; i += BATCH_CHUNK_SIZE) {
+        const batch = writeBatch(db);
+        ids.slice(i, i + BATCH_CHUNK_SIZE).forEach(id => {
+            batch.update(doc(db!, p1, p2, 'expenses', id), { isOutOfBudget, updatedAt: serverTimestamp() });
+        });
+        await batch.commit();
+    }
+    return ids.length;
 };

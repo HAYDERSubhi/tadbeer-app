@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
-import type { Expense } from '@/types';
+import type { Expense, TripCategory } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
@@ -32,6 +32,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
 import { useCategories } from '@/hooks/use-categories';
+import { useActiveTrips } from '@/hooks/use-active-trips';
+import { TripCategoryPicker, TripExpenseToggle } from '@/components/expenses/trip-expense-field';
+import { TRAVEL_CATEGORY_ID } from '@/lib/constants';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { CategoryEditDialog } from '@/components/categories/category-edit-dialog';
 import { useSaveCategory } from '@/hooks/use-save-category';
@@ -72,7 +75,22 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const { householdId, expenses: recentExpenses } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { categories, getIconComponent } = useCategories();
+  // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+  const { selectableCategories: categories, getIconComponent } = useCategories();
+
+  // ── سفراتي: لا يظهر أي شيء بغياب سفرة فعّالة ──
+  const { activeTrips } = useActiveTrips();
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [tripCategory, setTripCategory] = useState<TripCategory>('food');
+  // التأشير الافتراضي مرة واحدة فقط، وإلا استحال على المستخدم شيله.
+  const [tripDefaultApplied, setTripDefaultApplied] = useState(false);
+  useEffect(() => {
+    if (!tripDefaultApplied && activeTrips.length > 0) {
+      setSelectedTripId(activeTrips[0].id);
+      setTripDefaultApplied(true);
+    }
+  }, [activeTrips, tripDefaultApplied]);
+  const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
   // Holds the expense awaiting user confirmation when a duplicate is detected.
   const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -104,6 +122,13 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
       });
   }, [initialData, form]);
 
+  // ضمن سفرة: تُملأ الفئة العامة برمجياً بـ«سفر» ليمرّ التحقّق، وتُفرَّغ عند
+  // إلغاء التأشير ليعود المستخدم لاختيار فئة تدبير بنفسه.
+  useEffect(() => {
+    if (selectedTrip) form.setValue('category', TRAVEL_CATEGORY_ID, { shouldValidate: true });
+    else if (form.getValues('category') === TRAVEL_CATEGORY_ID) form.setValue('category', '');
+  }, [selectedTrip, form]);
+
   const categoryMapForAI = useMemo(() => {
     return categories.reduce((acc, cat) => {
       acc[cat.id] = cat.name;
@@ -121,6 +146,8 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     if (initialData?.title || !debouncedTitle || form.getValues('category')) {
       return;
     }
+    // ضمن سفرة: الفئة مقفولة برمجياً على «سفر» — لا اقتراح ولا كتابة فوقها.
+    if (selectedTrip) return;
 
     const getCategorySuggestion = async () => {
       setIsCategorizing(true);
@@ -140,7 +167,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
     };
 
     getCategorySuggestion();
-  }, [debouncedTitle, categoryMapForAI, form, initialData]);
+  }, [debouncedTitle, categoryMapForAI, form, initialData, selectedTrip]);
 
   const addExpenseMutation = useMutation({
     mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
@@ -220,10 +247,21 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
   const onSubmit = (data: ExpenseFormData) => {
     if (!user) return;
 
-    const newExpenseData = {
+    const base = {
       ...data,
       date: data.date.toISOString(),
     };
+    // ضمن سفرة: الفئة العامة مقفولة على «سفر»، والتفصيل بـtripCategory،
+    // وحالة الميزانية مشتقّة من إعداد السفرة.
+    const newExpenseData = selectedTrip
+      ? {
+          ...base,
+          category: TRAVEL_CATEGORY_ID,
+          tripId: selectedTrip.id,
+          tripCategory,
+          isOutOfBudget: !selectedTrip.countsInBudget,
+        }
+      : base;
 
     // Pre-save duplicate check: same amount + category + title + day.
     const duplicate = findDuplicateExpense(recentExpenses, newExpenseData);
@@ -308,6 +346,11 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         </div>
       </div>
       
+      {/* ─── سفراتي: لا يُرسَم أي شيء بغياب سفرة فعّالة ─── */}
+      <TripExpenseToggle activeTrips={activeTrips} selectedTripId={selectedTripId} onSelect={setSelectedTripId} />
+      {selectedTrip && <TripCategoryPicker value={tripCategory} onChange={setTripCategory} />}
+
+      {!selectedTrip && (
       <div className="space-y-3">
         <Label className={cn(isCategorizing && 'animate-pulse')}>
             {isCategorizing ? 'جاري تصنيف الفئة...' : 'الفئة'}
@@ -350,6 +393,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         />
         {form.formState.errors.category && <p className="text-sm text-destructive mt-1 text-center">{form.formState.errors.category.message}</p>}
       </div>
+      )}
 
       <div className="flex items-center space-x-2 space-x-reverse pt-2">
         <Controller

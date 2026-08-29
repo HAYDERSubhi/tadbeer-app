@@ -107,7 +107,8 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { categories, categoryMap, getIconComponent } = useCategories();
+  // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+  const { selectableCategories: categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
   // الشاشة الجذر: زر الرجوع بأندرويد كان يُغلق التطبيق من أول ضغطة (رصدها المختبرون).

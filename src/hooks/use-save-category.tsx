@@ -19,7 +19,8 @@ import type { Category } from '@/types';
 export const useSaveCategory = () => {
     const { user } = useAuth();
     const { householdId } = useAppData();
-    const { categories } = useCategories();
+    // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+    const { selectableCategories: categories } = useCategories();
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
