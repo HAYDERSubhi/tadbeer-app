@@ -997,7 +997,10 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
   //    التذكرة» — معلومة بلا فائدة. الحجوزات مغطّاة بقسم «قبل السفر» أعلاه.
   const topDay = topSpendingDay(phases.during);
   const days = actualTripDays(trip);
-  const dailyAverage = totals.spent / days;
+  // من مصاريف **أيام السفرة فقط**، لا من الحجوزات: التسمية تُقرأ «كم أصرف باليوم
+  // وأنا هناك»، وإدخال حجز الفندق بالقسمة كان يضخّم الرقم أضعافاً (٤٠٠ ألف حجز
+  // ÷ ٤ أيام = ١١٥ ألف/يوم، بينما الصرف الفعلي هناك ١٥ ألف/يوم).
+  const dailyAverage = phases.duringTotal / days;
   const topDayIndex = topDay
     ? differenceInCalendarDays(topDay.date, startOfLocalDay(new Date(trip.startDate))) + 1
     : 0;
@@ -1077,22 +1080,29 @@ function SummaryView({ id, onDone }: { id: string; onDone: () => void }) {
             {/* القسم الثالث: تحليلات ما بعد السفرة */}
             <div className="bg-card border border-border rounded-2xl px-4 py-3">
               <p className="text-sm font-semibold mb-3">بعد ما رجعت</p>
-              <div className="flex flex-col gap-2.5 text-xs">
+              {/* كل سطر يذكر مبلغه — «أعلى فئة» بلا رقم تصف ولا تقيس. */}
+              <div className="flex flex-col gap-3 text-sm">
                 {topCategory && (
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground shrink-0">أعلى فئة إنفاقاً</span>
-                    <span className="font-semibold truncate">{TRIP_CATEGORY_LABEL[topCategory.key]}</span>
-                  </div>
-                )}
-                {topDay && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground shrink-0">أعلى يوم إنفاقاً</span>
-                    <span className="font-semibold truncate">
-                      اليوم <bdi>{topDayIndex}</bdi> (<bdi>{fmtDay(topDay.date.toISOString())}</bdi>)
+                    <span className="text-end min-w-0">
+                      <span className="font-semibold block truncate">{TRIP_CATEGORY_LABEL[topCategory.key]}</span>
+                      <Money value={topCategory.amount} className="text-xs text-muted-foreground" />
                     </span>
                   </div>
                 )}
-                <div className="flex items-center justify-between gap-2">
+                {topDay && (
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground shrink-0">أعلى يوم إنفاقاً</span>
+                    <span className="text-end min-w-0">
+                      <span className="font-semibold block truncate">
+                        اليوم <bdi>{topDayIndex}</bdi> (<bdi>{fmtDay(topDay.date.toISOString())}</bdi>)
+                      </span>
+                      <Money value={topDay.amount} className="text-xs text-muted-foreground" />
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground shrink-0">متوسط الإنفاق اليومي</span>
                   <Money value={dailyAverage} className="font-semibold" />
                 </div>
