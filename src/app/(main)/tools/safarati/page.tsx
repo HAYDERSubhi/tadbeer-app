@@ -19,8 +19,9 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
 import {
-  addExpense, addTrip, deleteExpense, getExpensesForTrips, getTrip, getTripExpenses,
-  getTrips, setTripExpensesBudgetFlag, updateExpense, updateTrip,
+  addExpense, addTrip, deleteExpense, deleteExpensesBatch, deleteTrip, getExpensesForTrips,
+  getTrip, getTripExpenses, getTrips, setTripExpensesBudgetFlag, unlinkTripExpenses,
+  updateExpense, updateTrip,
 } from '@/services/firestore';
 import { arIQ } from '@/lib/arabic-date';
 import { normalizeDigits } from '@/lib/normalize-digits';
@@ -29,7 +30,7 @@ import { findDuplicateExpense } from '@/lib/duplicate-check';
 import type { Expense, Trip, TripCategory, TripType } from '@/types';
 
 import {
-  actualTripDays, categoryBreakdown, dayCounter, effectiveStatus, fmt, initialStatus,
+  actualTripDays, categoryBreakdown, dayCounter, effectiveStatus, expenseCountLabel, fmt, initialStatus,
   inputValueFromDate, localDateFromInput, localDateTimeFromInput, localDateTimeInputValue,
   isWithinTripDays, splitByPhase, startOfLocalDay, todaysExpenses, topSpendingDay, tripTotals,
   TRIP_CATEGORIES, TRIP_CATEGORY_LABEL, TRIP_TYPES, TRIP_TYPE_LABEL, tripTypeLabel,
@@ -100,6 +101,72 @@ function ConfirmDialog({ title, body, confirmLabel, danger, onConfirm, onCancel 
               danger ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'
             }`}>
             {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * نافذة حذف السفرة — خياران لا خيار واحد.
+ *
+ * النيّتان مختلفتان ولا تُخمَّنان: «أنشأتها بالغلط» يريد محو كل شيء، و«ما عدت
+ * أتابعها كسفرة» مصاريفه حقيقية ويجب أن تبقى. الحذف الجبري يخدم الأولى ويدمّر
+ * الثانية بضغطة واحدة بلا رجعة.
+ *
+ * ثلاث احتياطات: العدد والمبلغ منصوصان (العاقبة ملموسة لا مجرّدة)، والإبقاء
+ * هو الخيار الأبرز والحذف الشامل بلون الخطر، وبسفرة فارغة يسقط الخياران معاً.
+ */
+function DeleteTripDialog({ count, total, pending, onKeep, onDeleteAll, onCancel }: {
+  count: number; total: number; pending: boolean;
+  onKeep: () => void; onDeleteAll: () => void; onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 pb-16">
+      <div className="absolute inset-0 bg-black/40" onClick={pending ? undefined : onCancel} />
+      <div className="relative bg-background rounded-2xl border border-border px-5 py-5 w-full max-w-xs z-10">
+        <div className="flex items-center gap-3 mb-2">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+          <p className="font-semibold text-sm">حذف السفرة؟</p>
+        </div>
+
+        {count > 0 ? (
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+            بهذه السفرة <bdi className="font-semibold text-foreground">{expenseCountLabel(count)}</bdi>
+            {' '}بمجموع <Money value={total} className="font-semibold text-foreground" />.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+            لا توجد مصاريف مرتبطة بها. سيُحذف سجل السفرة فقط.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {count > 0 && (
+            <>
+              <button onClick={onKeep} disabled={pending}
+                className="w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground active:scale-[0.98] disabled:opacity-60">
+                احذف السفرة وأبقِ مصاريفها
+              </button>
+              <button onClick={onDeleteAll} disabled={pending}
+                className="w-full py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-60">
+                {/* بلا عدد هنا عمداً: «ومصروفان» بعد العطف خطأ نحوي (الصواب
+                    «مصروفين»)، وصياغة صحيحة لكل الحالات تحتاج إعراباً ثانياً.
+                    العدد والمبلغ منصوصان بالسطر أعلاه فالعاقبة ملموسة أصلاً. */}
+                احذف السفرة ومصاريفها
+              </button>
+            </>
+          )}
+          {count === 0 && (
+            <button onClick={onDeleteAll} disabled={pending}
+              className="w-full py-2.5 rounded-xl bg-destructive text-destructive-foreground text-sm font-semibold active:scale-[0.98] disabled:opacity-60">
+              حذف السفرة
+            </button>
+          )}
+          <button onClick={onCancel} disabled={pending}
+            className="w-full py-2.5 rounded-xl text-sm text-muted-foreground active:scale-[0.98] disabled:opacity-60">
+            إلغاء
           </button>
         </div>
       </div>
@@ -731,6 +798,7 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
   const { householdId } = useAppData();
   const invalidate = useInvalidateAll();
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: trip, isLoading } = useQuery({
     queryKey: ['trip', user?.uid, id],
@@ -751,6 +819,28 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
       status: 'COMPLETED', closedAt: new Date().toISOString(),
     }),
     onSuccess: () => { invalidate(); setConfirmClose(false); onSummary(); },
+  });
+
+  /**
+   * حذف السفرة بأحد وضعين:
+   * - `keep`: تُفكّ مصاريفها فقط وتبقى بتدبير كما هي (المبلغ والتاريخ والوصف)،
+   *   وفئتها تظل «سفر» — فالفلوس كانت مصروف سفر فعلاً سواء بقي المستند أو لا.
+   * - `all`: تُحذف المصاريف ثم السفرة.
+   * المصاريف أولاً بالحالتين: لو انقطع الاتصال بينهما بقيت السفرة ومعها مصاريفها
+   * ظاهرة، بدل أن تُحذف السفرة وتبقى مصاريف يتيمة لا يصلها المستخدم.
+   */
+  const removeTrip = useMutation({
+    mutationFn: async (mode: 'keep' | 'all') => {
+      if (mode === 'all') {
+        const ids = expenses.map(e => e.id);
+        if (ids.length > 0) await deleteExpensesBatch(user!.uid, ids, householdId);
+      } else {
+        await unlinkTripExpenses(user!.uid, id, householdId);
+      }
+      await deleteTrip(user!.uid, id);
+    },
+    onSuccess: () => { invalidate(); setConfirmDelete(false); onBack(); },
+    onError: () => setConfirmDelete(false),
   });
 
   if (isLoading || !trip) {
@@ -940,6 +1030,14 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
             </div>
           </>
         )}
+
+        {/* حذف السفرة — متاح بكل الحالات (نشطة ومنتهية): الحالة الأشيع تنظيف
+            سفرات قديمة من الأرشيف، وهي للقراءة فقط فيما عدا هذا الفعل.
+            مفصول بصرياً وبأسلوب هادئ حتى لا ينافس الأفعال الاعتيادية. */}
+        <button onClick={() => setConfirmDelete(true)}
+          className="w-full mt-2 py-2.5 rounded-xl border border-destructive/40 text-sm text-destructive active:scale-[0.98] flex items-center justify-center gap-2">
+          <Trash2 className="h-3.5 w-3.5" /> حذف السفرة
+        </button>
       </div>
 
       {confirmClose && (
@@ -949,6 +1047,17 @@ function DetailView({ id, onBack, onEdit, onEditExpense, onSummary }: {
           confirmLabel="إنهاء" danger
           onCancel={() => setConfirmClose(false)}
           onConfirm={() => close.mutate()}
+        />
+      )}
+
+      {confirmDelete && (
+        <DeleteTripDialog
+          count={expenses.length}
+          total={totals.spent}
+          pending={removeTrip.isPending}
+          onCancel={() => setConfirmDelete(false)}
+          onKeep={() => removeTrip.mutate('keep')}
+          onDeleteAll={() => removeTrip.mutate('all')}
         />
       )}
     </div>
