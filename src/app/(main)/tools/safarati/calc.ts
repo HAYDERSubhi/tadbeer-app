@@ -191,6 +191,17 @@ export function todaysExpenses(expenses: Expense[], today: Date = new Date()): E
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+/**
+ * صيغة جمع «مصروف» بالعربية الصحيحة — تُستعمل بنافذة حذف السفرة حيث يجب أن
+ * تكون العاقبة ملموسة بالنص لا مجرّدة («هل أنت متأكد؟» لا تخبر بشيء).
+ */
+export function expenseCountLabel(n: number): string {
+  if (n === 1) return 'مصروف واحد';
+  if (n === 2) return 'مصروفان';
+  if (n >= 3 && n <= 10) return `${fmt(n)} مصاريف`;
+  return `${fmt(n)} مصروفاً`;
+}
+
 // ═══════════════ تسميات ثابتة ═══════════════
 // المصطلح المعتمد بكل نص يراه المستخدم: «سفرة/سفرات» حصراً — لا أي مرادف آخر.
 

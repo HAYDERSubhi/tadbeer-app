@@ -998,6 +998,33 @@ export const deleteTrip = async (uid: string, tripId: string): Promise<void> => 
 };
 
 /**
+ * فكّ ارتباط مصاريف السفرة بها دون حذفها — تبقى بتدبير كما هي.
+ * يُفرَّغ `tripId` بنص فارغ لا بـundefined: Firestore مضبوط على
+ * `ignoreUndefinedProperties` فتجاهُل الحقل يعني إبقاءه كما هو لا حذفه.
+ * `tripCategory` يُترك: لا يُقرأ إطلاقاً بغياب الارتباط، وحذفه بلا فائدة.
+ * يُرجع عدد المصاريف المتأثرة.
+ */
+export const unlinkTripExpenses = async (
+    uid: string,
+    tripId: string,
+    householdId?: string | null
+): Promise<number> => {
+    if (!db) throw new Error("Firestore is not initialized");
+    const [p1, p2] = basePath(uid, householdId);
+    const snap = await getDocs(query(collection(db, p1, p2, 'expenses'), where('tripId', '==', tripId)));
+    const ids = snap.docs.map(d => d.id);
+
+    for (let i = 0; i < ids.length; i += BATCH_CHUNK_SIZE) {
+        const batch = writeBatch(db);
+        ids.slice(i, i + BATCH_CHUNK_SIZE).forEach(id => {
+            batch.update(doc(db!, p1, p2, 'expenses', id), { tripId: '', updatedAt: serverTimestamp() });
+        });
+        await batch.commit();
+    }
+    return ids.length;
+};
+
+/**
  * مصاريف سفرة واحدة — استعلام مستقل بالمسار النشط، لا من سياق use-app-data
  * (المحدود بآخر ٦ أشهر) وإلا عرضت سفرة قديمة من الأرشيف صفراً.
  * الترتيب بالجافاسكربت عمداً: where + orderBy يتطلب فهرساً مركّباً جديداً.
