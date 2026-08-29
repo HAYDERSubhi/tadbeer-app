@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
-import { DEFAULT_CATEGORIES } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, SYSTEM_CATEGORIES, SYSTEM_CATEGORY_IDS } from '@/lib/constants';
 import type { Category } from '@/types';
 import { CATEGORY_ICON_MAP } from '@/lib/category-icons';
 import React from 'react';
@@ -43,6 +43,19 @@ export const useCategories = () => {
         // 3. Ensure any category referenced in an expense exists in the final list
         // This prevents crashes if a category was deleted after being used.
         expenses.forEach(expense => {
+            // فئة نظامية (مثل «سفر» لأداة سفراتي): تُدرَج بتعريفها الكامل من
+            // constants (اسم + أيقونة + لون مخطط) بدل أن يبتلعها فرع «محذوفة»
+            // أدناه فتظهر بالإحصائيات والتقرير باسم «محذوفة (سفر)» وأيقونة سلّة.
+            // تُستثنى بعدها من قوائم الاختيار عبر selectableCategories أدناه.
+            if (SYSTEM_CATEGORY_IDS.has(expense.category)) {
+                if (!allCategoriesMap.has(expense.category)) {
+                    allCategoriesMap.set(expense.category, {
+                        ...SYSTEM_CATEGORIES[expense.category],
+                        isDefault: true,
+                    });
+                }
+                return;
+            }
             if (!allCategoriesMap.has(expense.category)) {
                 // If an expense's category is missing, add a fallback "deleted" category
                 allCategoriesMap.set(expense.category, {
@@ -68,6 +81,18 @@ export const useCategories = () => {
         return finalCategories;
     }, [userSettings?.categories, expenses]);
 
+    /**
+     * القائمة المخصّصة للاختيار اليدوي — بلا الفئات النظامية («سفر» لسفراتي).
+     * مصدر واحد يستهلكه: كل قوائم اختيار الفئة، وخريطة الفئات المُمرَّرة لاقتراح
+     * الفئة بالذكاء الاصطناعي، وكل حفظ يُعيد كتابة فئات المستخدم بالإعدادات.
+     * حصر الاستثناء هنا (لا تكراره بست شاشات) يمنع نسيانه بأي شاشة إدخال لاحقة.
+     * لمستخدم بلا مصاريف سفر، محتواها مطابق تماماً لـ categories.
+     */
+    const selectableCategories = useMemo(
+        () => categories.filter(c => !SYSTEM_CATEGORY_IDS.has(c.id)),
+        [categories]
+    );
+
     const categoryMap = useMemo(() => {
       return categories.reduce((acc, cat) => {
         acc[cat.id] = cat;
@@ -84,5 +109,5 @@ export const useCategories = () => {
         return iconName; // Fallback to rendering the emoji/string directly
     };
 
-    return { categories, categoryMap, getIconComponent };
+    return { categories, selectableCategories, categoryMap, getIconComponent };
 };

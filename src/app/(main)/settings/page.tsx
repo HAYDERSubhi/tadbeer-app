@@ -438,7 +438,9 @@ export default function SettingsPage() {
   const isMobile = useIsMobile();
 
   const { userSettings, expenses, incomes, householdId } = useAppData();
-  const { categories, getIconComponent } = useCategories();
+  // الافتراضي هنا القائمة القابلة للاختيار (القوائم، ميزانيات الفئات، وكل حفظ
+  // يُعيد كتابة فئات المستخدم). allCategories شاملة «سفر» النظامية — للعرض فقط.
+  const { categories: allCategories, selectableCategories: categories, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
   const { theme, setTheme } = useTheme();
 
@@ -1012,7 +1014,7 @@ export default function SettingsPage() {
     const dataToExport = expenses.map((exp) => ({
       'اسم التاجر': exp.title,
       'المبلغ': exp.amount,
-      'الفئة': categories.find(c => c.id === exp.category)?.name || exp.category,
+      'الفئة': allCategories.find(c => c.id === exp.category)?.name || exp.category,
       'التاريخ': new Date(exp.date),
       'الوصف': exp.description || '',
     }));

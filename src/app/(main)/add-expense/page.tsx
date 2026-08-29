@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
-import type { Expense } from '@/types';
+import type { Expense, TripCategory } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +25,9 @@ import { recordExpenseAction } from '@/app/actions';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
+import { useActiveTrips } from '@/hooks/use-active-trips';
+import { TripCategoryPicker, TripExpenseToggle } from '@/components/expenses/trip-expense-field';
+import { TRAVEL_CATEGORY_ID } from '@/lib/constants';
 import { Textarea } from '@/components/ui/textarea';
 import { useAppData } from '@/hooks/use-app-data';
 import { findDuplicateExpense } from '@/lib/duplicate-check';
@@ -75,7 +78,8 @@ export default function AddExpensePage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const { toast } = useToast();
-    const { categories, getIconComponent } = useCategories();
+    // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+    const { selectableCategories: categories, getIconComponent } = useCategories();
     const { expenses, householdId } = useAppData();
     // Holds the expense awaiting user confirmation when a duplicate is detected.
     const [pendingDuplicate, setPendingDuplicate] = useState<{ data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>; existingTitle: string } | null>(null);
@@ -89,10 +93,33 @@ export default function AddExpensePage() {
     const isMobile = useIsMobile();
     const { addCategory } = useSaveCategory();
 
+    // ── سفراتي: لا يظهر أي شيء بغياب سفرة فعّالة ──
+    const { activeTrips, travelingTrip } = useActiveTrips();
+    // مؤشَّر افتراضياً أثناء وجود سفرة فعّالة (القرار ١١): يطابق منطق المستخدم،
+    // ويُبقي أي خطأ مرئياً أمامه لا صامتاً.
+    const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+    const [tripCategory, setTripCategory] = useState<TripCategory>('food');
+    // التأشير الافتراضي يُطبَّق **مرة واحدة** عند وصول السفرات. بلا هذا الحارس
+    // يُعيد الأثر التأشير فوراً بعد كل إلغاء، فيستحيل على المستخدم شيله.
+    const [tripDefaultApplied, setTripDefaultApplied] = useState(false);
+    useEffect(() => {
+        if (!tripDefaultApplied && activeTrips.length > 0) {
+            // التأشير الافتراضي **فقط** إن كان اليوم ضمن أيام السفرة الفعلية.
+            // قبل السفر (حجوزات) وبعد العودة: المربع يظهر غير مؤشَّر.
+            if (travelingTrip) setSelectedTripId(travelingTrip.id);
+            setTripDefaultApplied(true);
+            }
+    }, [activeTrips, travelingTrip, tripDefaultApplied]);
+    const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
+
     // Build frequent expenses from history (top 6 most used)
     const frequentExpenses = useMemo(() => {
         const freq: Record<string, { title: string; amount: number; category: string; count: number }> = {};
         expenses.forEach(e => {
+            // الحالة الحدّية ١٧: مصاريف السفرات مستبعَدة من الاقتراحات السريعة —
+            // الضغط على اقتراح يملأ category بالقيمة النظامية «سفر» على مصروف
+            // عادي بلا tripId، فينتج سطر «سفر» كاذب بتقرير الشهر.
+            if (e.tripId) return;
             const key = e.title.toLowerCase().trim();
             if (!freq[key]) freq[key] = { title: e.title, amount: e.amount, category: e.category, count: 0 };
             freq[key].count++;
@@ -114,6 +141,13 @@ export default function AddExpensePage() {
         },
     });
 
+    // ضمن سفرة: تُملأ الفئة العامة برمجياً بـ«سفر» ليمرّ التحقّق، وتُفرَّغ عند
+    // إلغاء التأشير ليعود المستخدم لاختيار فئة تدبير الاعتيادية بنفسه.
+    useEffect(() => {
+        if (selectedTrip) form.setValue('category', TRAVEL_CATEGORY_ID, { shouldValidate: true });
+        else if (form.getValues('category') === TRAVEL_CATEGORY_ID) form.setValue('category', '');
+    }, [selectedTrip, form]);
+
     const expenseTitle = form.watch('title');
     const debouncedTitle = useDebounce(expenseTitle, 500);
 
@@ -126,6 +160,9 @@ export default function AddExpensePage() {
 
     useEffect(() => {
         if (!debouncedTitle) return;
+        // ضمن سفرة: الفئة مقفولة برمجياً على «سفر» — فلا يُستدعى اقتراح الفئة
+        // أصلاً، ولا يُسمح له بالكتابة فوقها.
+        if (selectedTrip) return;
 
         const getCategorySuggestion = async () => {
             setIsCategorizing(true);
@@ -145,7 +182,7 @@ export default function AddExpensePage() {
         };
 
         getCategorySuggestion();
-    }, [debouncedTitle, categoryMapForAI, form]);
+    }, [debouncedTitle, categoryMapForAI, form, selectedTrip]);
 
     const addExpenseMutation = useMutation({
         mutationFn: (newExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>) =>
@@ -241,7 +278,18 @@ export default function AddExpensePage() {
 
     const onSubmit = (data: ExpenseFormData) => {
         if (!user) return;
-        const payload = { ...data, date: data.date.toISOString() };
+        const base = { ...data, date: data.date.toISOString() };
+        // ضمن سفرة: الفئة العامة تُقفَل على «سفر»، والتفصيل بـtripCategory،
+        // وحالة الميزانية مشتقّة من إعداد السفرة لا من اختيار مستقل هنا.
+        const payload = selectedTrip
+            ? {
+                ...base,
+                category: TRAVEL_CATEGORY_ID,
+                tripId: selectedTrip.id,
+                tripCategory,
+                isOutOfBudget: !selectedTrip.countsInBudget,
+              }
+            : base;
 
         // Pre-save duplicate check: same amount + category + title + day.
         const duplicate = findDuplicateExpense(expenses, payload);
@@ -298,7 +346,20 @@ export default function AddExpensePage() {
                     </div>
                 )}
 
+                {/* ─── سفراتي: لا يُرسَم أي شيء بغياب سفرة فعّالة ─── */}
+                <TripExpenseToggle
+                    activeTrips={activeTrips}
+                    selectedTripId={selectedTripId}
+                    onSelect={setSelectedTripId}
+                />
+
+                {/* ضمن سفرة: التصنيف الثماني يحلّ محل فئات تدبير الاثنتي عشرة */}
+                {selectedTrip && (
+                    <TripCategoryPicker value={tripCategory} onChange={setTripCategory} />
+                )}
+
                 {/* ─── 2. Category Grid — FIRST ─── */}
+                {!selectedTrip && (
                 <div className="space-y-2">
                     <p className={cn(
                         "text-xs font-medium text-muted-foreground flex items-center gap-1.5 h-4",
@@ -354,6 +415,7 @@ export default function AddExpensePage() {
                         <p className="text-sm text-destructive text-center">{form.formState.errors.category.message}</p>
                     )}
                 </div>
+                )}
 
                 {/* ─── 3. Title + Amount + Date ─── */}
                 <div className="space-y-3">

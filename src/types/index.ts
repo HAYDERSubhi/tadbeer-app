@@ -10,6 +10,13 @@ export type Expense = {
   description?: string;
   isOutOfBudget?: boolean;
   outOfBudgetDetails?: string;
+  // ── سفراتي (اختياريان، فارغان لأي مصروف عادي) ──
+  // لا كيان TripExpense منفصل: مصروف السفرة هو نفس سجل Expense بحقلين إضافيين،
+  // فالحذف/التعديل من أي شاشة يصيب السجل الوحيد — بلا أي منطق مزامنة.
+  tripId?: string;
+  // التصنيف التفصيلي للسفرة. الحقل العام category يبقى مقفولاً على «سفر» دائماً
+  // حتى لا يختلط «طعام السفرة» بـ«طعام» الحياة اليومية في تقارير تدبير.
+  tripCategory?: TripCategory;
   createdAt: string; // ISO string format
   updatedAt: string; // ISO string format
 };
@@ -246,4 +253,49 @@ export type SilftnaReserveSpend = {
   amount: number;
   reason: string;
   date: string;
+};
+
+// ═══════════════ سفراتي — ميزانية السفر ═══════════════
+// المستند شخصي دائماً: users/{uid}/trips/{tripId} (المشاركة العائلية مؤجّلة لـV3).
+// أمّا مصاريف السفرة فتتبع مسار مصاريف تدبير النشط (شخصي أو عائلي حسب
+// householdId) حتى لا تنفصل السفرة عن مصاريفها عند الانضمام لعائلة أو المغادرة.
+
+// ثلاثة أنواع فقط (القرار ١٥): قائمة الأنواع تُقرأ كإعلان عن نطاق الأداة، فأي
+// نوع زائد يدعو لسفرات فارغة تتراكم. «الطلعة» تُستوعَب تحت «أخرى» بلا إعلان.
+export type TripType = 'abroad' | 'domestic' | 'other';
+
+export type TripStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED';
+
+// التصنيفات الثمانية الثابتة لمصاريف السفرة (تُعرض بأيقونات Lucide خطّية).
+export type TripCategory =
+  | 'transport'    // تذاكر ومواصلات السفر
+  | 'stay'         // السكن
+  | 'food'         // الطعام والشراب
+  | 'local'        // التنقّل المحلي
+  | 'shopping'     // التسوّق والهدايا
+  | 'activities'   // الترفيه والأنشطة
+  | 'emergency'    // الطوارئ
+  | 'other';       // أخرى
+
+export type Trip = {
+  id: string;
+  uid: string;
+  name: string;
+  type: TripType;
+  startDate: string;   // ISO
+  endDate: string;     // ISO — النهاية المخطَّطة
+  totalBudget: number; // بالدينار — قابل للتعديل حتى بعد وجود مصاريف
+  /**
+   * هل تُحتسب مصاريف السفرة ضمن ميزانية تدبير الشهرية؟ الافتراضي true.
+   * false ⇒ كل مصروف بالسفرة يُحفظ بـ isOutOfBudget=true: يظهر بشاشة المصاريف
+   * كالمعتاد لكنه لا يدخل شريط الميزانية ولا الإحصائيات. «تظهر ولا تُحتسب»
+   * وليس «لا تظهر» — الإخفاء الكامل يخلق مصاريف شبح.
+   */
+  countsInBudget: boolean;
+  currency: 'IQD';     // ثابتة بـV0 — بلا واجهة اختيار (تعدّد العملات لـV2)
+  status: TripStatus;
+  /** وقت تأكيد «إنهاء السفرة» — يُعتمد بحساب المتوسط اليومي بدل endDate. */
+  closedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

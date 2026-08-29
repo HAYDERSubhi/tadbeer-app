@@ -66,6 +66,16 @@ const TOOLS = [
     gradient: 'linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)',
     shimmer: 'linear-gradient(135deg, #5eead4 0%, #14b8a6 100%)',
   },
+  {
+    href: '/tools/safarati',
+    label: 'سفراتي',
+    sub: 'ميزانية سفراتك',
+    icon: '✈️',
+    image: '/tools/safarati.png',
+    // تدرّج سماوي بقرار صاحب المشروع — يوحي بالسماء ويميّزها عن فيروزي سلفتنا.
+    gradient: 'linear-gradient(135deg, #60a5fa 0%, #1d4ed8 100%)',
+    shimmer: 'linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)',
+  },
 ];
 
 export default function ToolsPage() {

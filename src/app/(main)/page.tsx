@@ -107,7 +107,8 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const { categories, categoryMap, getIconComponent } = useCategories();
+  // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+  const { selectableCategories: categories, categoryMap, getIconComponent } = useCategories();
   const { format: formatCurrency } = useCurrency();
 
   // الشاشة الجذر: زر الرجوع بأندرويد كان يُغلق التطبيق من أول ضغطة (رصدها المختبرون).
@@ -900,6 +901,7 @@ export default function DashboardPage() {
               { href: '/tools/wedding',      label: 'زواجي',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', image: '/tools/debts.png', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
               { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', image: '/tools/silftna.png', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
+              { href: '/tools/safarati',     label: 'سفراتي',    icon: '✈️', image: '/tools/safarati.png', bg: 'linear-gradient(135deg,#60a5fa,#1d4ed8)' },
             ].map(t => (
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden ${t.image ? '' : 'shadow-sm'}`} style={{ background: t.image ? 'transparent' : t.bg }}>

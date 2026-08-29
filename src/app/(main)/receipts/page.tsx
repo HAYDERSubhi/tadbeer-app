@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
-import type { Expense } from '@/types';
+import type { Expense, TripCategory } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,10 @@ import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
 import { useCategories } from '@/hooks/use-categories';
+import { useActiveTrips } from '@/hooks/use-active-trips';
+import { TripExpenseToggle } from '@/components/expenses/trip-expense-field';
+import { TRIP_CATEGORIES, TRIP_CATEGORY_LABEL } from '@/app/(main)/tools/safarati/calc';
+import { TRAVEL_CATEGORY_ID } from '@/lib/constants';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { analytics } from '@/lib/firebase';
@@ -142,7 +146,24 @@ export default function DetailedReceiptPage() {
   const { householdId } = useAppData();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { categories } = useCategories();
+  // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
+  const { selectableCategories: categories } = useCategories();
+
+  // ── سفراتي: لا يظهر أي شيء بغياب سفرة فعّالة ──
+  const { activeTrips, travelingTrip } = useActiveTrips();
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [itemTripCats, setItemTripCats] = useState<Record<string, TripCategory>>({});
+  // التأشير الافتراضي مرة واحدة فقط، وإلا استحال على المستخدم شيله.
+  const [tripDefaultApplied, setTripDefaultApplied] = useState(false);
+  useEffect(() => {
+    if (!tripDefaultApplied && activeTrips.length > 0) {
+      // التأشير الافتراضي **فقط** إن كان اليوم ضمن أيام السفرة الفعلية.
+      // قبل السفر (حجوزات) وبعد العودة: المربع يظهر غير مؤشَّر.
+      if (travelingTrip) setSelectedTripId(travelingTrip.id);
+      setTripDefaultApplied(true);
+      }
+  }, [activeTrips, travelingTrip, tripDefaultApplied]);
+  const selectedTrip = activeTrips.find(t => t.id === selectedTripId) ?? null;
 
   const [viewState, setViewState] = useState<ViewState>('initial');
   const [images, setImages] = useState<ImageEntry[]>([]);
@@ -435,13 +456,25 @@ export default function DetailedReceiptPage() {
 
   const handleSaveAll = () => {
     if (!user) return;
-    const toSave = analyzedItems.map(item => ({
-      title: item.name,
-      amount: item.price,
-      category: item.suggestedCategory,
-      date: storeInfo.date ? new Date(storeInfo.date).toISOString() : new Date().toISOString(),
-      description: storeInfo.name ? `فاتورة: ${storeInfo.name}` : 'مصروف من فاتورة',
-    }));
+    const toSave = analyzedItems.map(item => {
+      const base = {
+        title: item.name,
+        amount: item.price,
+        category: item.suggestedCategory,
+        date: storeInfo.date ? new Date(storeInfo.date).toISOString() : new Date().toISOString(),
+        description: storeInfo.name ? `فاتورة: ${storeInfo.name}` : 'مصروف من فاتورة',
+      };
+      // ضمن سفرة: اختيار واحد يُطبَّق على كل عناصر الفاتورة.
+      return selectedTrip
+        ? {
+            ...base,
+            category: TRAVEL_CATEGORY_ID,
+            tripId: selectedTrip.id,
+            tripCategory: itemTripCats[item.id] ?? ('other' as TripCategory),
+            isOutOfBudget: !selectedTrip.countsInBudget,
+          }
+        : base;
+    });
     if (toSave.some(e => !e.title || e.amount <= 0)) {
       toast({ title: 'بيانات غير مكتملة', description: 'تأكد أن كل عنصر له اسم وسعر صحيح.', variant: 'destructive' });
       return;
@@ -797,6 +830,9 @@ export default function DetailedReceiptPage() {
               </div>
             </div>
 
+            {/* ─── سفراتي: اختيار واحد يُطبَّق على كل مصاريف الفاتورة ─── */}
+            <TripExpenseToggle activeTrips={activeTrips} selectedTripId={selectedTripId} onSelect={setSelectedTripId} />
+
             {/* Items list */}
             <div className="space-y-2 max-h-[55vh] overflow-y-auto">
               {analyzedItems.map((item, idx) => {
@@ -836,12 +872,26 @@ export default function DetailedReceiptPage() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px] text-muted-foreground">الفئة</Label>
+                        {/* ضمن سفرة: التصنيف الثماني يحلّ محل فئات تدبير، وتُحفظ
+                            الفئة العامة «سفر» برمجياً عند الحفظ. */}
+                        {selectedTrip ? (
+                          <Select value={itemTripCats[item.id] ?? 'other'}
+                                  onValueChange={v => setItemTripCats(p => ({ ...p, [item.id]: v as TripCategory }))}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {TRIP_CATEGORIES.map(c => (
+                                <SelectItem key={c} value={c} className="text-xs">{TRIP_CATEGORY_LABEL[c]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                         <Select value={item.suggestedCategory} onValueChange={v => handleItemChange(item.id, 'suggestedCategory', v)}>
                           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {categories.map(c => <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        )}
                       </div>
                     </div>
                   </div>
