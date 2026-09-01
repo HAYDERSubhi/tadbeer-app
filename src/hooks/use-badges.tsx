@@ -14,7 +14,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { getUserBadges, saveBadge, getReferralCount } from '@/services/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getBadgeDef, type BadgeId } from '@/lib/badges';
-import { parseISO, differenceInCalendarDays, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { parseISO, differenceInCalendarDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { trackMetaCustomEvent } from '@/lib/meta-pixel';
@@ -38,22 +38,8 @@ function hasConsecutiveDays(dates: string[], count: number): boolean {
     return false;
 }
 
-function hadZeroSpendDay(expenseDates: string[]): boolean {
-    if (expenseDates.length === 0) return false;
-    const dateSet = new Set(expenseDates.map(d => d.slice(0, 10)));
-    const earliest = expenseDates.map(d => d.slice(0, 10)).sort()[0];
-    const today = format(new Date(), 'yyyy-MM-dd');
-    // Walk from earliest to yesterday and check if any day has 0 expenses
-    let cur = new Date(earliest);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    while (cur <= yesterday) {
-        const key = format(cur, 'yyyy-MM-dd');
-        if (!dateSet.has(key)) return true;
-        cur.setDate(cur.getDate() + 1);
-    }
-    return false;
-}
+// أُزيل hadZeroSpendDay مع وسام «يوم الصفر» — كان يرجع true لمجرد وجود يوم
+// بلا مصروف مسجَّل، وهذا لا يميّز بين من لم يصرف ومن لم يفتح التطبيق.
 
 function finishedMonthUnderBudget(
     expenseDates: string[],
@@ -193,7 +179,6 @@ export function useBadges() {
         const checks: Array<[BadgeId, boolean]> = [
             ['first_expense',  expenses.length > 0],
             ['week_logger',    hasConsecutiveDays(expenseDates, 7)],
-            ['zero_day',       hadZeroSpendDay(expenseDates)],
             ['family_leader',  !!householdId],
             ['month_saver',    finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0)],
             ['big_saver',      finishedMonthUnderBudget(expenseDates, expenseAmounts, budget, 0.2)],

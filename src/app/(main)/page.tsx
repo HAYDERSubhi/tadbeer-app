@@ -43,7 +43,6 @@ import { useCategories } from '@/hooks/use-categories';
 import BudgetSummaryCard from '@/components/dashboard/budget-summary-card';
 import { useCurrency } from '@/hooks/use-currency';
 import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
-import { ZeroStreakCard } from '@/components/dashboard/zero-streak-card';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
@@ -771,8 +770,6 @@ export default function DashboardPage() {
       )}
 
       <QuickBudgetSetupSheet open={isQuickSetupOpen} onOpenChange={setIsQuickSetupOpen} />
-
-      <ZeroStreakCard />
 
       <Card id="expense-input-card" className="overflow-hidden">
         <CardContent className="py-2 px-4 space-y-3">

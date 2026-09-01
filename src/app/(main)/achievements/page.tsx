@@ -49,8 +49,12 @@ export default function AchievementsPage() {
         }
     };
 
-    const earnedIds = new Set(earnedBadges.map(b => b.id));
-    const earnedCount = earnedBadges.length;
+    // يُحتسب فقط ما له تعريف قائم في BADGES. وسام أُزيل من التطبيق يبقى محفوظاً
+    // في حساب المستخدم، فعدّه ضمن المكتسَب مع اختفائه من القائمة يعطي «8 من 7»
+    // وشريط تقدّم يتجاوز 100%.
+    const knownIds = new Set<string>(BADGES.map(b => b.id));
+    const earnedIds = new Set(earnedBadges.map(b => b.id).filter(id => knownIds.has(id)));
+    const earnedCount = earnedIds.size;
     const totalCount = BADGES.length;
 
     // Referral link

@@ -1,10 +1,13 @@
 // src/lib/badges.ts
 
+// ملاحظة: كان هنا وسام 'zero_day' («يوم الصفر») وأُزيل عمداً.
+// شرطه كان «مرّ يوم بلا أي مصروف مسجَّل» — وهذا لا يميّز بين من لم يصرف
+// ومن لم يفتح التطبيق، فكان يُمنح لمجرد نسيان التسجيل يوماً واحداً.
+// أي وسام محفوظ بهذا المعرّف يُتجاهَل تلقائياً لأن العرض يُبنى من BADGES.
 export type BadgeId =
   | 'first_expense'   // أول مصروف
   | 'week_logger'     // 7 أيام متتالية بتسجيل
   | 'month_saver'     // أنهى شهراً تحت الميزانية
-  | 'zero_day'        // يوم كامل بدون مصاريف
   | 'family_leader'   // أنشأ/انضم لحساب عائلي
   | 'report_viewer'   // فتح التقرير الشهري
   | 'big_saver'       // وفّر 20%+ من الميزانية
@@ -43,14 +46,6 @@ export const BADGES: BadgeDef[] = [
     icon: '💰',
     color: 'bg-green-100 dark:bg-green-900/30',
     textColor: 'text-green-700 dark:text-green-300',
-  },
-  {
-    id: 'zero_day',
-    name: 'يوم الصفر',
-    description: 'مررت بيوم كامل بدون أي مصروف',
-    icon: '🎯',
-    color: 'bg-blue-100 dark:bg-blue-900/30',
-    textColor: 'text-blue-700 dark:text-blue-300',
   },
   {
     id: 'family_leader',

@@ -1,6 +1,6 @@
 // سفراتي — حسابات الأداة (نقية، بلا React وبلا استدعاءات شبكة).
 // كل مقارنات التواريخ بالتوقيت المحلي لا UTC — تدبير عانى من هذا الخطأ سابقاً
-// بسلاسل التسجيل (use-logging-streak / use-zero-streak).
+// بسلسلة التسجيل (use-logging-streak).
 
 import { differenceInCalendarDays } from 'date-fns';
 import type { Expense, Trip, TripCategory, TripStatus, TripType } from '@/types';
