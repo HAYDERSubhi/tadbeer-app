@@ -6,7 +6,7 @@ import {
   baghdadPreviousDayRange,
   expensesPath,
   fetchExpensesInRange,
-  formatAmount,
+  formatMoney,
   resolvePushSettings,
   sumAmounts,
 } from '@/lib/push-server';
@@ -92,19 +92,27 @@ async function handler(req: NextRequest) {
       }
 
       const isShared = !!settings.householdId;
+      const money = formatMoney(yesterdayTotal, settings.currency);
 
       // العنوان خطّاف قصير والنص داعم — بلا تكرار اسم التطبيق (يظهر أصلاً في الترويسة).
+      // النص العام لا يفترض النسيان: اليوم بلا إنفاق خيار مشروع يكافئه التطبيق
+      // نفسه («اليوم الصفري»)، فصياغته سؤالاً تصلح للحالتين معاً.
       const { title, body } = yesterdayTotal > 0
         ? {
             title: 'تتبّع إنفاقك اليوم 📊',
             body: isShared
-              ? `أمس سجّلت عائلتك ${formatAmount(yesterdayTotal)} د.ع — ماذا عن اليوم؟`
-              : `أمس أنفقت ${formatAmount(yesterdayTotal)} د.ع — ماذا عن اليوم؟`,
+              ? `أمس سجّلت عائلتك ${money} — ماذا عن اليوم؟`
+              : `أمس أنفقت ${money} — ماذا عن اليوم؟`,
           }
-        : {
-            title: isShared ? 'لم يُسجَّل أي مصروف اليوم 📝' : 'لم تسجّل أي مصروف اليوم 📝',
-            body: 'دقيقة واحدة تكفي لتتبّع إنفاقك.',
-          };
+        : isShared
+          ? {
+              title: 'كيف كان إنفاق عائلتكم اليوم؟ 📝',
+              body: 'سجّلوا مصاريفكم، أو أنهوا يوم صفر إنفاق 🎯',
+            }
+          : {
+              title: 'كيف كان إنفاقك اليوم؟ 📝',
+              body: 'سجّل مصاريفك، أو أنهِ يوم صفر إنفاق 🎯',
+            };
 
       try {
         await webpush.sendNotification(

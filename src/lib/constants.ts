@@ -1,4 +1,5 @@
 // src/lib/constants.ts
+import type { CurrencyCode } from '@/types';
 // Note: This file now represents the *default* categories for new users.
 // The actual categories used in the app will be a combination of these and user-defined ones.
 
@@ -42,3 +43,21 @@ export const SYSTEM_CATEGORIES: Record<string, DefaultCategory> = {
 
 /** معرّفات الفئات النظامية — للاستثناء السريع من قوائم الاختيار والحفظ. */
 export const SYSTEM_CATEGORY_IDS = new Set<string>(Object.keys(SYSTEM_CATEGORIES));
+
+// ── العملات ──────────────────────────────────────────────────────────────
+// مصدر واحد للحقيقة: تستهلكه واجهة التطبيق عبر use-currency، ومهام الإشعارات
+// المجدولة عبر lib/push-server. وُضِع هنا لأن هذا الملف بلا أي تبعية على
+// React أو المتصفّح، فيصلح للخادم والعميل معاً.
+// ملاحظة: التطبيق لا يحوّل المبالغ بين العملات — يعرض الرقم كما هو مع رمز
+// العملة التي اختارها المستخدم.
+export const CURRENCIES: Record<CurrencyCode, { symbol: string; name: string; position: 'before' | 'after' }> = {
+  IQD: { symbol: 'د.ع', name: 'دينار عراقي', position: 'after' },
+  SAR: { symbol: 'ر.س', name: 'ريال سعودي', position: 'after' },
+  KWD: { symbol: 'د.ك', name: 'دينار كويتي', position: 'after' },
+  AED: { symbol: 'د.إ', name: 'درهم إماراتي', position: 'after' },
+  EGP: { symbol: 'ج.م', name: 'جنيه مصري', position: 'after' },
+  USD: { symbol: '$', name: 'دولار أمريكي', position: 'before' },
+  EUR: { symbol: '€', name: 'يورو', position: 'before' },
+  GBP: { symbol: '£', name: 'جنيه إسترليني', position: 'before' },
+  TRY: { symbol: '₺', name: 'ليرة تركية', position: 'before' },
+};

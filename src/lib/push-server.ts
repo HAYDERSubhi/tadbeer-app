@@ -4,6 +4,8 @@
 // ⚠️ خادم فقط — تعتمد على firebase-admin، فلا تُستورَد في أي مكوّن عميل.
 
 import type { Firestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import type { CurrencyCode } from '@/types';
+import { CURRENCIES } from '@/lib/constants';
 
 /**
  * كل مستخدمي تدبير في العراق، وتوقيت بغداد ثابت UTC+3 بلا توقيت صيفي.
@@ -146,6 +148,7 @@ export type PushSettings = {
   dailyReminderEnabled: boolean;
   reminderSlot: string;
   totalBudget: number;
+  currency: CurrencyCode;
 };
 
 /**
@@ -172,15 +175,32 @@ export async function resolvePushSettings(
     totalBudget = hhSnap.data()?.budget?.totalBudget;
   }
 
+  // العملة تفضيل شخصي دائماً (تُحفَظ في مستند المستخدم حتى داخل العائلة)،
+  // فيرى كل عضو الرمز الذي اختاره هو.
+  const currency: CurrencyCode =
+    userData.currency && userData.currency in CURRENCIES ? userData.currency : 'IQD';
+
   return {
     householdId,
     dailyReminderEnabled: !!userData.notifications?.dailyReminderEnabled,
     reminderSlot: userData.notifications?.reminderSlot ?? 'evening',
     totalBudget: typeof totalBudget === 'number' && Number.isFinite(totalBudget) ? totalBudget : 0,
+    currency,
   };
 }
 
 /** تنسيق المبالغ بالأرقام اللاتينية — نفس ما تعرضه شاشات التطبيق. */
 export function formatAmount(n: number): string {
   return new Intl.NumberFormat('en-US').format(Math.round(n));
+}
+
+/**
+ * مبلغ مع رمز عملة المستخدم وموضعه الصحيح (د.ع بعد الرقم، $ قبله).
+ * التطبيق لا يحوّل بين العملات — الرقم كما هو والرمز حسب اختيار المستخدم،
+ * تماماً كما تعرضه الشاشات عبر use-currency.
+ */
+export function formatMoney(n: number, code: CurrencyCode = 'IQD'): string {
+  const { symbol, position } = CURRENCIES[code] ?? CURRENCIES.IQD;
+  const num = formatAmount(n);
+  return position === 'before' ? `${symbol}${num}` : `${num} ${symbol}`;
 }

@@ -2,18 +2,11 @@
 import { useMemo } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import type { CurrencyCode } from '@/types';
+// الجدول انتقل إلى lib/constants ليقرأه الخادم أيضاً (مهام الإشعارات) بلا
+// سحب تبعيات React. يُعاد تصديره هنا حفاظاً على مسار الاستيراد القديم.
+import { CURRENCIES } from '@/lib/constants';
 
-export const CURRENCIES: Record<CurrencyCode, { symbol: string; name: string; position: 'before' | 'after' }> = {
-  IQD: { symbol: 'د.ع', name: 'دينار عراقي', position: 'after' },
-  SAR: { symbol: 'ر.س', name: 'ريال سعودي', position: 'after' },
-  KWD: { symbol: 'د.ك', name: 'دينار كويتي', position: 'after' },
-  AED: { symbol: 'د.إ', name: 'درهم إماراتي', position: 'after' },
-  EGP: { symbol: 'ج.م', name: 'جنيه مصري', position: 'after' },
-  USD: { symbol: '$', name: 'دولار أمريكي', position: 'before' },
-  EUR: { symbol: '€', name: 'يورو', position: 'before' },
-  GBP: { symbol: '£', name: 'جنيه إسترليني', position: 'before' },
-  TRY: { symbol: '₺', name: 'ليرة تركية', position: 'before' },
-};
+export { CURRENCIES };
 
 export const useCurrency = () => {
   const { userSettings } = useAppData();

@@ -5,7 +5,7 @@ import {
   baghdadMonthInfo,
   expensesPath,
   fetchExpensesInRange,
-  formatAmount,
+  formatMoney,
   resolvePushSettings,
   sumAmounts,
 } from '@/lib/push-server';
@@ -86,9 +86,10 @@ async function handler(req: NextRequest) {
         // لا ترسل إذا تجاوز الميزانية بالفعل
         if (remaining <= 0) { skipped++; continue; }
 
+        const money = formatMoney(remaining, settings.currency);
         const body = daysLeft === 0
-          ? `آخر يوم في الشهر — تبقى لك ${formatAmount(remaining)} د.ع. أحسنت!`
-          : `تبقى ${remainingDaysPhrase(daysLeft)} على نهاية الشهر — ميزانيتك المتبقية ${formatAmount(remaining)} د.ع 💪`;
+          ? `آخر يوم في الشهر — تبقى لك ${money}. أحسنت!`
+          : `تبقى ${remainingDaysPhrase(daysLeft)} على نهاية الشهر — ميزانيتك المتبقية ${money} 💪`;
 
         await webpush.sendNotification(
           subscription,
