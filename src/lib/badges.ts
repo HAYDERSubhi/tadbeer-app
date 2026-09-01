@@ -33,7 +33,7 @@ export const BADGES: BadgeDef[] = [
   },
   {
     id: 'week_logger',
-    name: 'مستمر لاسبوع',
+    name: 'مستمر لأسبوع',
     description: 'سجّلت مصاريفك 7 أيام متتالية',
     icon: '🔥',
     color: 'bg-orange-100 dark:bg-orange-900/30',
@@ -65,7 +65,7 @@ export const BADGES: BadgeDef[] = [
   },
   {
     id: 'big_saver',
-    name: 'موفر كبير',
+    name: 'موفّر كبير',
     description: 'وفّرت 20% أو أكثر من ميزانيتك في شهر واحد',
     icon: '💎',
     color: 'bg-cyan-100 dark:bg-cyan-900/30',
