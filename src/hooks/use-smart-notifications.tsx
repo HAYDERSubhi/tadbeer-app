@@ -59,13 +59,18 @@ export function useSmartNotifications() {
     const todayStr = format(now, 'yyyy-MM-dd');
     const reminderKey = `${LAST_REMINDER_KEY}-${todayStr}`;
 
+    // e.date محفوظ بصيغة ISO بتوقيت غرينتش، و todayStr بتوقيت الجهاز.
+    // مقارنة النص مباشرةً تُسقِط مصاريف ما بعد منتصف الليل (بغداد UTC+3)
+    // فيصل التذكير لمن سجّل فعلاً — لذلك نحوّل التاريخ للتوقيت المحلي أولاً.
+    const isLoggedToday = (iso: string) => {
+      try { return format(parseISO(iso), 'yyyy-MM-dd') === todayStr; } catch { return false; }
+    };
+
     // Only schedule once per day
     if (localStorage.getItem(reminderKey)) return;
 
     const scheduleReminder = () => {
-      const hasTodayExpense = expenses.some(e => {
-        try { return e.date.startsWith(todayStr); } catch { return false; }
-      });
+      const hasTodayExpense = expenses.some(e => isLoggedToday(e.date));
       if (hasTodayExpense) {
         localStorage.setItem(reminderKey, 'logged');
         return;
@@ -73,9 +78,7 @@ export function useSmartNotifications() {
       requestPermission().then(granted => {
         if (!granted) return;
         // Re-check right before sending
-        const stillNoExpense = !expenses.some(e => {
-          try { return e.date.startsWith(todayStr); } catch { return false; }
-        });
+        const stillNoExpense = !expenses.some(e => isLoggedToday(e.date));
         if (stillNoExpense) {
           sendNotification(
             'لم تسجّل أي مصروف اليوم 📝',

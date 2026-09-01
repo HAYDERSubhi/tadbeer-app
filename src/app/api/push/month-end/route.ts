@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { adminDb } from '@/lib/firebase-admin';
-import { startOfMonth, endOfMonth, getDaysInMonth, getDate } from 'date-fns';
+import {
+  baghdadMonthInfo,
+  expensesPath,
+  fetchExpensesInRange,
+  formatAmount,
+  resolvePushSettings,
+  sumAmounts,
+} from '@/lib/push-server';
 
 export const runtime = 'nodejs';
 
@@ -16,16 +23,22 @@ function ensureVapid() {
   vapidReady = true;
 }
 
+/** صياغة عربية سليمة للمدّة المتبقية (المدى هنا من يوم إلى خمسة). */
+function remainingDaysPhrase(daysLeft: number): string {
+  if (daysLeft === 1) return 'يوم واحد';
+  if (daysLeft === 2) return 'يومان';
+  return `${daysLeft} أيام`;
+}
+
 async function handler(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const now = new Date();
-  const dayOfMonth = getDate(now);
-  const daysInMonth = getDaysInMonth(now);
-  const daysLeft = daysInMonth - dayOfMonth;
+  // حدود الشهر وموقع اليوم منه بتوقيت بغداد لا بتوقيت الخادم.
+  const month = baghdadMonthInfo();
+  const daysLeft = month.daysLeft;
 
   // يرسل فقط في آخر 5 أيام من الشهر
   if (daysLeft > 5) {
@@ -46,31 +59,36 @@ async function handler(req: NextRequest) {
       };
       if (!subscription || !userId) continue;
 
-      // تحقق أن المستخدم مفعّل التذكيرات
       try {
-        const settingsSnap = await db.doc(`users/${userId}/settings/main`).get();
-        const data = settingsSnap.data() ?? {};
-        if (!data.notifications?.dailyReminderEnabled) { skipped++; continue; }
+        // تحقق أن المستخدم مفعّل التذكيرات.
+        // الميزانية تُقرأ من العائلة عند وجودها — المستند الشخصي يحتفظ بنسخة
+        // قديمة منها بعد الانضمام، وقراءتها منه تعطي رقماً خاطئاً.
+        const settings = await resolvePushSettings(db, userId);
+        if (!settings || !settings.dailyReminderEnabled) { skipped++; continue; }
 
-        // احسب إجمالي الإنفاق هذا الشهر مقارنةً بالميزانية
-        const budget = data.budget?.totalBudget ?? 0;
+        const budget = settings.totalBudget;
         if (!budget) { skipped++; continue; }
 
-        const monthStart = startOfMonth(now).toISOString();
-        const monthEnd   = endOfMonth(now).toISOString();
-        const expSnap = await db.collection(`users/${userId}/expenses`)
-          .where('date', '>=', monthStart)
-          .where('date', '<=', monthEnd)
-          .get();
-        const spent = expSnap.docs.reduce((s, d) => s + (d.data().amount ?? 0), 0);
+        // احسب إجمالي الإنفاق هذا الشهر مقارنةً بالميزانية.
+        // ⚠️ عند فشل القراءة لا نرسل — رقم متبقٍّ خاطئ أسوأ من عدم الإرسال.
+        const path = expensesPath(userId, settings.householdId);
+        let spent: number;
+        try {
+          spent = sumAmounts(await fetchExpensesInRange(db, path, month));
+        } catch (readErr) {
+          console.error('month-end: spending lookup failed', userId, readErr);
+          skipped++;
+          continue;
+        }
+
         const remaining = budget - spent;
 
         // لا ترسل إذا تجاوز الميزانية بالفعل
         if (remaining <= 0) { skipped++; continue; }
 
         const body = daysLeft === 0
-          ? `آخر يوم في الشهر — تبقى لك ${remaining.toLocaleString('ar-IQ')} د.ع. أحسنت!`
-          : `تبقى ${daysLeft} أيام على نهاية الشهر — ميزانيتك المتبقية ${remaining.toLocaleString('ar-IQ')} د.ع 💪`;
+          ? `آخر يوم في الشهر — تبقى لك ${formatAmount(remaining)} د.ع. أحسنت!`
+          : `تبقى ${remainingDaysPhrase(daysLeft)} على نهاية الشهر — ميزانيتك المتبقية ${formatAmount(remaining)} د.ع 💪`;
 
         await webpush.sendNotification(
           subscription,

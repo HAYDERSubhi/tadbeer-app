@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { adminDb } from '@/lib/firebase-admin';
-import { startOfDay, endOfDay, subDays } from 'date-fns';
+import {
+  baghdadDayRange,
+  baghdadPreviousDayRange,
+  expensesPath,
+  fetchExpensesInRange,
+  formatAmount,
+  resolvePushSettings,
+  sumAmounts,
+} from '@/lib/push-server';
 
 export const runtime = 'nodejs';
 
@@ -31,6 +39,12 @@ async function handler(req: NextRequest) {
     ensureVapid();
     const db = adminDb();
     const subsSnap = await db.collection('pushSubscriptions').get();
+
+    // حدود اليوم وأمس بتوقيت بغداد — تُحسَب مرّة واحدة فيرى كل المستخدمين
+    // نفس اليوم مهما طال تنفيذ المهمة.
+    const today = baghdadDayRange();
+    const yesterday = baghdadPreviousDayRange();
+
     let sent = 0;
     let skipped = 0;
 
@@ -42,41 +56,53 @@ async function handler(req: NextRequest) {
       if (!subscription || !userId) continue;
 
       // تحقق من إعداد المستخدم — هل يريد إشعاراً في هذا الوقت؟
+      let settings;
       try {
-        const settingsSnap = await db.doc(`users/${userId}/settings/main`).get();
-        const notifications = settingsSnap.data()?.notifications ?? {};
-        if (!notifications.dailyReminderEnabled) { skipped++; continue; }
-        const userSlot = notifications.reminderSlot ?? 'evening';
-        if (userSlot !== slot) { skipped++; continue; }
-      } catch { skipped++; continue; }
+        settings = await resolvePushSettings(db, userId);
+      } catch (err) {
+        console.error('push send: settings read failed', userId, err);
+        skipped++;
+        continue;
+      }
+      if (!settings || !settings.dailyReminderEnabled) { skipped++; continue; }
+      if (settings.reminderSlot !== slot) { skipped++; continue; }
 
-      // لا ترسل إذا سجّل مصروفاً اليوم بالفعل
-      const todayStart = startOfDay(new Date()).toISOString();
-      const todayEnd   = endOfDay(new Date()).toISOString();
-      const expSnap = await db.collection(`users/${userId}/expenses`)
-        .where('date', '>=', todayStart)
-        .where('date', '<=', todayEnd)
-        .get();
-      if (!expSnap.empty) { skipped++; continue; }
+      // المسار المزدوج: عضو العائلة مصاريفه في الحاوية المشتركة لا الشخصية.
+      const path = expensesPath(userId, settings.householdId);
 
-      // جلب مصاريف أمس لتخصيص نص الإشعار
-      const yesterday = subDays(new Date(), 1);
-      const yStart = startOfDay(yesterday).toISOString();
-      const yEnd   = endOfDay(yesterday).toISOString();
-      const ySnap = await db.collection(`users/${userId}/expenses`)
-        .where('date', '>=', yStart)
-        .where('date', '<=', yEnd)
-        .get();
-      const yesterdayTotal = ySnap.docs.reduce((s, d) => s + (d.data().amount ?? 0), 0);
+      // لا ترسل إذا سُجِّل مصروف اليوم بالفعل.
+      // ⚠️ عند فشل القراءة لا نرسل — تفويت تذكير أهون من اتّهام المستخدم
+      // بأنه لم يسجّل شيئاً وهو سجّل.
+      let loggedToday: number;
+      try {
+        loggedToday = (await fetchExpensesInRange(db, path, today)).length;
+      } catch (err) {
+        console.error('push send: today lookup failed', userId, err);
+        skipped++;
+        continue;
+      }
+      if (loggedToday > 0) { skipped++; continue; }
+
+      // جلب مصاريف أمس لتخصيص نص الإشعار (فشلها يُسقِط التخصيص فقط).
+      let yesterdayTotal = 0;
+      try {
+        yesterdayTotal = sumAmounts(await fetchExpensesInRange(db, path, yesterday));
+      } catch (err) {
+        console.error('push send: yesterday lookup failed', userId, err);
+      }
+
+      const isShared = !!settings.householdId;
 
       // العنوان خطّاف قصير والنص داعم — بلا تكرار اسم التطبيق (يظهر أصلاً في الترويسة).
       const { title, body } = yesterdayTotal > 0
         ? {
             title: 'تتبّع إنفاقك اليوم 📊',
-            body: `أمس أنفقت ${yesterdayTotal.toLocaleString('ar-IQ')} د.ع — ماذا عن اليوم؟`,
+            body: isShared
+              ? `أمس سجّلت عائلتك ${formatAmount(yesterdayTotal)} د.ع — ماذا عن اليوم؟`
+              : `أمس أنفقت ${formatAmount(yesterdayTotal)} د.ع — ماذا عن اليوم؟`,
           }
         : {
-            title: 'لم تسجّل أي مصروف اليوم 📝',
+            title: isShared ? 'لم يُسجَّل أي مصروف اليوم 📝' : 'لم تسجّل أي مصروف اليوم 📝',
             body: 'دقيقة واحدة تكفي لتتبّع إنفاقك.',
           };
 
