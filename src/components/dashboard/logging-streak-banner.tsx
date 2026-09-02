@@ -40,20 +40,17 @@ export function LoggingStreakBanner() {
           : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
       )}
     >
+      {/* رمز واحد فقط: أيقونة اللهب. هي الوحيدة التي تحمل معلومة — لونها
+          يتبدّل مع الحالة (أخضر للسلسلة القائمة، برتقالي عند خطر انقطاعها)،
+          بخلاف إيموجي ثابتة. كان الشريط يعرض ثلاثة رموز، اثنان منها لهب. */}
       <span className="flex items-center gap-1.5">
         <Flame
-          className={cn('h-3.5 w-3.5', isAtRisk ? 'text-amber-500' : 'text-emerald-500')}
+          className={cn('h-3.5 w-3.5 shrink-0', isAtRisk ? 'text-amber-500' : 'text-emerald-500')}
           fill="currentColor"
         />
         {isAtRisk
           ? `استمر بالتسجيل! سجّل مصروف اليوم — ${daysStreakPhrase(streak)}`
-          : `${daysStreakPhrase(streak)} من التسجيل 🎯`}
-      </span>
-      <span className={cn(
-        'font-black text-sm leading-none',
-        isAtRisk ? 'text-amber-600 dark:text-amber-300' : 'text-emerald-600 dark:text-emerald-300'
-      )}>
-        🔥
+          : `${daysStreakPhrase(streak)} من التسجيل`}
       </span>
     </div>
   );
