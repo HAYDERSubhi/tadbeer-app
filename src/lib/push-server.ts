@@ -127,6 +127,8 @@ export async function fetchExpensesInRange(
     .get();
   if (!byTimestamp.empty) return byTimestamp.docs;
 
+  // doctor-ok: المقارنة النصّية هنا مقصودة — شبكة أمان للمستندات القديمة
+  // النادرة التي خُزِّن تاريخها نصاً، ولا تُنفَّذ إلا بعد خلوّ استعلام Timestamp.
   const byString = await db
     .collection(path)
     .where('date', '>=', range.start.toISOString())
