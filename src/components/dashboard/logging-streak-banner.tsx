@@ -4,17 +4,19 @@ import { useLoggingStreak } from '@/hooks/use-logging-streak';
 import { useAppData } from '@/hooks/use-app-data';
 import { cn } from '@/lib/utils';
 import { Flame } from 'lucide-react';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 
 /**
- * صياغة عربية سليمة لعدد الأيام — الوصف يطابق المعدود:
+ * عدد الأيام مع وصف «متتالية» مطابقاً للمعدود:
  * يوم واحد · يومان متتاليان · 3 أيام متتالية · 11 يوماً متتالياً.
- * («2 أيام» و«11 أيام» ليستا عربية.)
+ * قاعدة العدد نفسها في lib/arabic-plural، والوصف يُضاف هنا لأنه خاص بهذا النص.
  */
 function daysStreakPhrase(days: number): string {
-  if (days === 1) return 'يوم واحد';
-  if (days === 2) return 'يومان متتاليان';
-  if (days <= 10) return `${days} أيام متتالية`;
-  return `${days} يوماً متتالياً`;
+  const n = arabicPlural(days, DAY);
+  if (days === 1) return n;
+  if (days === 2) return `${n} متتاليان`;
+  if (days <= 10) return `${n} متتالية`;
+  return `${n} متتالياً`;
 }
 
 export function LoggingStreakBanner() {

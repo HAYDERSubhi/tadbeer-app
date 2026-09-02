@@ -9,6 +9,7 @@ import {
   resolvePushSettings,
   sumAmounts,
 } from '@/lib/push-server';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 
 export const runtime = 'nodejs';
 
@@ -21,13 +22,6 @@ function ensureVapid() {
     process.env.VAPID_PRIVATE_KEY!
   );
   vapidReady = true;
-}
-
-/** صياغة عربية سليمة للمدّة المتبقية (المدى هنا من يوم إلى خمسة). */
-function remainingDaysPhrase(daysLeft: number): string {
-  if (daysLeft === 1) return 'يوم واحد';
-  if (daysLeft === 2) return 'يومان';
-  return `${daysLeft} أيام`;
 }
 
 async function handler(req: NextRequest) {
@@ -89,7 +83,8 @@ async function handler(req: NextRequest) {
         const money = formatMoney(remaining, settings.currency);
         const body = daysLeft === 0
           ? `آخر يوم في الشهر — تبقى لك ${money}. أحسنت!`
-          : `تبقى ${remainingDaysPhrase(daysLeft)} على نهاية الشهر — ميزانيتك المتبقية ${money} 💪`;
+          // «على» حرف جر، فالمثنّى مجرور: «تبقى يومين» لا «تبقى يومان».
+          : `تبقى ${arabicPlural(daysLeft, DAY, 'oblique')} على نهاية الشهر — ميزانيتك المتبقية ${money} 💪`;
 
         await webpush.sendNotification(
           subscription,

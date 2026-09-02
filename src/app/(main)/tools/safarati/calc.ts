@@ -195,6 +195,8 @@ export function todaysExpenses(expenses: Expense[], today: Date = new Date()): E
  * صيغة جمع «مصروف» بالعربية الصحيحة — تُستعمل بنافذة حذف السفرة حيث يجب أن
  * تكون العاقبة ملموسة بالنص لا مجرّدة («هل أنت متأكد؟» لا تخبر بشيء).
  */
+// doctor-ok: التمييز مطبَّق صحيحاً هنا (مفرد/مثنّى/جمع)، ولا تُستبدل بـ
+// lib/arabic-plural لأن هذه تمرّ بـ fmt الخاص بالأداة لتنسيق الرقم.
 export function expenseCountLabel(n: number): string {
   if (n === 1) return 'مصروف واحد';
   if (n === 2) return 'مصروفان';

@@ -15,6 +15,7 @@ import { getUpcomingPayments, isBillPaidThisCycle } from '@/lib/billing-utils';
 import type { Expense, RecurringPayment } from '@/types';
 import { format } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 
 const VISIBLE_COUNT = 2;
 
@@ -105,7 +106,7 @@ export function UpcomingBillsCard() {
   const urgencyLabel = (days: number) => {
     if (days === 0) return { label: 'اليوم!', cls: 'text-destructive font-bold' };
     if (days === 1) return { label: 'غداً', cls: 'text-orange-600 dark:text-orange-400 font-semibold' };
-    return { label: `بعد ${days} أيام`, cls: 'text-amber-600 dark:text-amber-400' };
+    return { label: `بعد ${arabicPlural(days, DAY, 'oblique')}`, cls: 'text-amber-600 dark:text-amber-400' };
   };
 
   const urgencyBorder = (days: number) => {

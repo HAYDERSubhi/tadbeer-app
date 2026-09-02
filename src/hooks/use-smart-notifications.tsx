@@ -13,6 +13,7 @@ import { useEffect, useCallback } from 'react';
 import { useAppData } from '@/hooks/use-app-data';
 import { isThisMonth, parseISO, differenceInHours, format } from 'date-fns';
 import { getUpcomingPayments } from '@/lib/billing-utils';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 
 const LAST_REMINDER_KEY = 'tadbeer-last-reminder';
 const LAST_MONTHLY_KEY = 'tadbeer-last-monthly';
@@ -196,7 +197,7 @@ export function useSmartNotifications() {
         const whenMsg =
           daysUntilDue === 0 ? 'اليوم!' :
           daysUntilDue === 1 ? 'غداً' :
-          `بعد ${daysUntilDue} أيام`;
+          `بعد ${arabicPlural(daysUntilDue, DAY, 'oblique')}`;
 
         sendNotification(
           `🔔 فاتورة قادمة — ${payment.title}`,

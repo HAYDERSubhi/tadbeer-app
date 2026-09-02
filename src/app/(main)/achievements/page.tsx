@@ -14,14 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
-
-/** صياغة عربية سليمة لعدد الشارات المتبقّية — «تبقّت 1 شارة» ليست عربية. */
-function remainingBadgesPhrase(count: number): string {
-    if (count === 1) return 'شارة واحدة';
-    if (count === 2) return 'شارتان';
-    if (count <= 10) return `${count} شارات`;
-    return `${count} شارة`;
-}
+import { arabicPlural, BADGE } from '@/lib/arabic-plural';
 
 export default function AchievementsPage() {
     const { user } = useAuth();
@@ -121,7 +114,7 @@ export default function AchievementsPage() {
                     <p className="text-xs text-muted-foreground mt-2 text-center">
                         {earnedCount === totalCount
                             ? '🎉 أحرزت جميع الشارات! أنت بطل!'
-                            : `تبقّت ${remainingBadgesPhrase(totalCount - earnedCount)} للاكتمال`}
+                            : `تبقّت ${arabicPlural(totalCount - earnedCount, BADGE)} للاكتمال`}
                     </p>
                 </CardContent>
             </Card>

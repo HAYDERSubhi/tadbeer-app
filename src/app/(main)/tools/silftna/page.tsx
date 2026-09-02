@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { normalizeDigits } from '@/lib/normalize-digits';
+import { arabicPlural, SHARE, TIME } from '@/lib/arabic-plural';
 import type {
   Silftna, SilftnaMember, SilftnaPeriod, SilftnaMethod, SilftnaPaymentStatus,
   SilftnaMemberStatus, SilftnaCycle,
@@ -1048,7 +1049,9 @@ function DetailView({ id, onBack }: { id: string; onBack: () => void }) {
                       ); })()}
                     </div>
                     <p className="text-[10px] text-muted-foreground">
-                      {m.shares > 1 ? `${m.shares} أسهم · يستلم ${receiveCount} مرات` : 'سهم واحد'}
+                      {m.shares > 1
+                        ? `${arabicPlural(m.shares, SHARE)} · يستلم ${arabicPlural(receiveCount, TIME, 'oblique')}`
+                        : 'سهم واحد'}
                       {m.phone && ' · لديه واتساب'}
                     </p>
                   </div>

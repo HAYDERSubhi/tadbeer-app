@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getUserBadges } from '@/services/firestore';
 import { getBadgeDef } from '@/lib/badges';
 import { getUpcomingPayments } from '@/lib/billing-utils';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 import { isThisMonth, parseISO, format, differenceInDays } from 'date-fns';
 
 export type NotifType = 'budget' | 'bill' | 'badge' | 'goal' | 'streak';
@@ -94,7 +95,7 @@ export function useNotificationsFeed(): { notifications: AppNotification[]; unre
       const whenMsg =
         daysUntilDue === 0 ? 'اليوم!' :
         daysUntilDue === 1 ? 'غداً' :
-        `بعد ${daysUntilDue} أيام`;
+        `بعد ${arabicPlural(daysUntilDue, DAY, 'oblique')}`;
       items.push({
         id: `bill-${payment.id}-${format(now, 'yyyy-MM')}`,
         type: 'bill',

@@ -9,6 +9,7 @@ import { ChevronRight, Plus, MessageCircle, Check, Trash2, Bell, X, ChevronDown,
 import Link from 'next/link';
 import type { Debt } from '@/types';
 import { normalizeDigits } from '@/lib/normalize-digits';
+import { arabicPlural, DAY } from '@/lib/arabic-plural';
 
 type Filter = 'all' | 'to-me' | 'from-me' | 'settled';
 
@@ -309,10 +310,10 @@ function DebtCard({ debt, onPayment, onUndo, onDeleteRequest, onEditRequest }: {
 
   function dueDateLabel() {
     if (!debt.dueDate) return null;
-    if (isOverdue)  return `متأخر ${Math.abs(days!)} يوم`;
+    if (isOverdue)  return `متأخر ${arabicPlural(days!, DAY, 'oblique')}`;
     if (days === 0) return 'اليوم';
     if (days === 1) return 'غداً';
-    if (isDueSoon)  return `بعد ${days} أيام`;
+    if (isDueSoon)  return `بعد ${arabicPlural(days, DAY, 'oblique')}`;
     return new Date(debt.dueDate).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
