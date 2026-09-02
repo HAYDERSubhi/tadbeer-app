@@ -5,6 +5,7 @@
  *   npm run doctor            تقرير كامل
  *   npm run doctor -- --brief خلاصة فقط بلا تفاصيل
  *   npm run doctor -- --json  مخرَج JSON للأتمتة
+ *   npm run doctor -- --no-lint  تخطّي lint (الأسرع)
  *
  * ⚠️ الفاحص يقرأ ولا يكتب — لا يعدّل أي ملف ولا يتصل بالشبكة.
  *
@@ -253,12 +254,38 @@ if (tsErrors.length) {
   );
 }
 
-/* هل أداة lint مهيّأة؟ غيابها يعطّل فئة كاملة من الفحوصات. */
-if (!['.eslintrc.json', '.eslintrc.js', '.eslintrc', 'eslint.config.js', 'eslint.config.mjs']
-      .some(f => existsSync(join(ROOT, f)))) {
+/* أداة lint — تكشف فئة لا يكشفها الفحص النصّي (اعتماديات الخطّافات،
+ * الوصولية، قواعد React/Next). تُتخطّى بـ --no-lint لأنها الأبطأ. */
+const LINT_CONFIGS = ['.eslintrc.json', '.eslintrc.js', '.eslintrc', 'eslint.config.js', 'eslint.config.mjs'];
+if (!LINT_CONFIGS.some(f => existsSync(join(ROOT, f)))) {
   project('yellow', 'أداة lint غير مهيّأة',
     '     npm run lint يطلب إعداداً تفاعلياً ولا يعمل',
     'تهيئتها تفتح فئة كاملة من الفحوصات مجاناً');
+} else if (!ARGS.includes('--no-lint')) {
+  let lintOut = '';
+  try {
+    lintOut = execSync('npx next lint', { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', timeout: 180000 });
+  } catch (e) {
+    lintOut = `${e.stdout || ''}${e.stderr || ''}`;
+  }
+  const lines = lintOut.split('\n');
+  const errs = lines.filter(l => /\bError:/.test(l));
+  const warns = lines.filter(l => /\bWarning:/.test(l));
+  const byRule = arr => {
+    const m = new Map();
+    for (const l of arr) {
+      const r = l.trim().match(/([@a-z][\w@/-]*)\s*$/);
+      const k = r ? r[1] : 'أخرى';
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `     ${String(n).padStart(4)}  ${k}`).join('\n');
+  };
+  if (errs.length) {
+    project('yellow', `lint: ${errs.length} خطأ`, byRule(errs), 'شغّل npm run lint للتفاصيل مع أرقام الأسطر');
+  }
+  if (warns.length) {
+    project('blue', `lint: ${warns.length} تحذيراً`, byRule(warns), 'شغّل npm run lint للتفاصيل مع أرقام الأسطر');
+  }
 }
 
 /* مكتبات مثبَّتة بلا استعمال — وزن وسطح هجوم بلا مقابل. */

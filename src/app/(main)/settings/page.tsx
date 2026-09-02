@@ -1409,7 +1409,7 @@ export default function SettingsPage() {
                             </div>
                             <AlertDialogTitle>حذف مصدر الدخل</AlertDialogTitle>
                             <AlertDialogDescription>
-                                سيتم حذف <span className="font-medium text-foreground">"{incomeToDelete?.title}"</span> نهائياً
+                                سيتم حذف <span className="font-medium text-foreground">«{incomeToDelete?.title}»</span> نهائياً
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

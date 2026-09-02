@@ -192,7 +192,7 @@ export default function AllExpensesPage() {
             </div>
             <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف <span className="font-medium text-foreground">"{deleteTargetTitle}"</span> نهائياً
+              سيتم حذف <span className="font-medium text-foreground">«{deleteTargetTitle}»</span> نهائياً
               {deleteTargetIsPastMonth && (
                 <span className="block mt-2 text-amber-600 dark:text-amber-400 text-xs">
                   هذا المصروف من شهر منتهٍ — حذفه سيؤثر على تقاريرك السابقة

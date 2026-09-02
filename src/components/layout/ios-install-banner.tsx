@@ -43,7 +43,7 @@ export function IosInstallBanner() {
             اضغط على{' '}
             <Share className="inline-block h-4 w-4 align-middle mx-0.5" />
             {' '}ثم اختر{' '}
-            <span className="font-semibold">"أضف إلى الشاشة الرئيسية"</span>
+            <span className="font-semibold">«أضف إلى الشاشة الرئيسية»</span>
           </p>
         </div>
 

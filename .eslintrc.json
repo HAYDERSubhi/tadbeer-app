@@ -1,0 +1,13 @@
+{
+  "extends": "next/core-web-vitals",
+  "ignorePatterns": [
+    "creative-studio/**",
+    "public/**",
+    ".next/**",
+    "scripts/**"
+  ],
+  "rules": {
+    "@next/next/no-img-element": "warn",
+    "jsx-a11y/alt-text": "warn"
+  }
+}

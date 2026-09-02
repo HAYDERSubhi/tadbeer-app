@@ -578,7 +578,7 @@ export default function DashboardPage() {
               </div>
               <AlertDialogTitle>حذف المصروف</AlertDialogTitle>
               <AlertDialogDescription>
-                سيتم حذف <span className="font-medium text-foreground">"{expense.title}"</span> نهائياً
+                سيتم حذف <span className="font-medium text-foreground">«{expense.title}»</span> نهائياً
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
