@@ -90,6 +90,18 @@ export default function AchievementsPage() {
         } catch { return null; }
     };
 
+    /** لحظة كسب الوسام كرقم — تاريخ تالف أو مفقود يُدفَع للأسفل بلا انهيار. */
+    const earnedAtMs = (badgeId: string): number => {
+        const b = earnedBadges.find(e => e.id === badgeId);
+        const t = b ? new Date(b.earnedAt).getTime() : NaN;
+        return Number.isFinite(t) ? t : 0;
+    };
+
+    // الأحدث أولاً — ترتيب التعريف كان يضع وساماً من حزيران بعد آخر من تموز.
+    const earnedBadgeDefs = BADGES.filter(b => earnedIds.has(b.id))
+        .sort((a, b) => earnedAtMs(b.id) - earnedAtMs(a.id));
+    const lockedBadgeDefs = BADGES.filter(b => !earnedIds.has(b.id));
+
     return (
         <div className="space-y-4 pb-24">
             {/* Header */}
@@ -117,7 +129,7 @@ export default function AchievementsPage() {
             {/* Badges Grid */}
             <div className="grid grid-cols-1 gap-3">
                 {/* Earned first */}
-                {BADGES.filter(b => earnedIds.has(b.id)).map(badge => (
+                {earnedBadgeDefs.map(badge => (
                     <div
                         key={badge.id}
                         className={cn(
@@ -133,7 +145,7 @@ export default function AchievementsPage() {
                             <p className={cn('font-bold text-sm', badge.textColor)}>{badge.name}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">{badge.description}</p>
                         </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                        <div className="text-start shrink-0 flex flex-col items-end gap-1">
                             <p className="text-[10px] text-muted-foreground">
                                 {getEarnedDate(badge.id)}
                             </p>
@@ -151,7 +163,7 @@ export default function AchievementsPage() {
                 ))}
 
                 {/* Locked */}
-                {BADGES.filter(b => !earnedIds.has(b.id)).map(badge => (
+                {lockedBadgeDefs.map(badge => (
                     <div
                         key={badge.id}
                         className="flex items-center gap-3 rounded-xl p-3 border border-dashed border-border bg-muted/30 opacity-60"
@@ -186,7 +198,7 @@ export default function AchievementsPage() {
                                 <p className="text-xs text-muted-foreground">الأصدقاء المدعوون</p>
                                 <p className="text-3xl font-bold text-primary">{referralCount}</p>
                             </div>
-                            <div className="text-right">
+                            <div className="text-start">
                                 {referralCount >= 3 ? (
                                     <p className="text-xs text-emerald-500 font-medium">✓ ناشر تدبير مكتملة!</p>
                                 ) : (

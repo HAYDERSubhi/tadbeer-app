@@ -5,6 +5,18 @@ import { useAppData } from '@/hooks/use-app-data';
 import { cn } from '@/lib/utils';
 import { Flame } from 'lucide-react';
 
+/**
+ * صياغة عربية سليمة لعدد الأيام — الوصف يطابق المعدود:
+ * يوم واحد · يومان متتاليان · 3 أيام متتالية · 11 يوماً متتالياً.
+ * («2 أيام» و«11 أيام» ليستا عربية.)
+ */
+function daysStreakPhrase(days: number): string {
+  if (days === 1) return 'يوم واحد';
+  if (days === 2) return 'يومان متتاليان';
+  if (days <= 10) return `${days} أيام متتالية`;
+  return `${days} يوماً متتالياً`;
+}
+
 export function LoggingStreakBanner() {
   const { isExpensesFetched } = useAppData();
   const { streak, loggedToday, loggedYesterday } = useLoggingStreak();
@@ -34,14 +46,14 @@ export function LoggingStreakBanner() {
           fill="currentColor"
         />
         {isAtRisk
-          ? `لا تكسر سلسلتك! سجّل مصروف اليوم — ${streak} يوم متتالٍ`
-          : `${streak} أيام تسجيل متتالية 🎯`}
+          ? `استمر بالتسجيل! سجّل مصروف اليوم — ${daysStreakPhrase(streak)}`
+          : `${daysStreakPhrase(streak)} من التسجيل 🎯`}
       </span>
       <span className={cn(
         'font-black text-sm leading-none',
         isAtRisk ? 'text-amber-600 dark:text-amber-300' : 'text-emerald-600 dark:text-emerald-300'
       )}>
-        🔥 {streak}
+        🔥
       </span>
     </div>
   );
