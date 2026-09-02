@@ -18,7 +18,7 @@
  *   🔵 تجميلي — نظافة كود واتساق
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { execSync } from 'node:child_process';
 
@@ -369,6 +369,103 @@ console.log(`     🔵 تجميلي : ${blue === 0 ? C.green('لا شيء') : C.
 console.log('');
 console.log(C.dim('     الفاحص يشير ولا يحكم — بعض النتائج مقصودة، تُراجَع قبل أي إصلاح.'));
 console.log(C.dim('     الملفات المقفلة مستثناة من العدّ (تُعرض للعلم فقط).'));
+
+/* ── تقرير HTML ──────────────────────────────────────────────────────────
+ * طرفية ويندوز لا تشكّل العربية ولا تعكس اتجاهها، فتظهر الحروف مقلوبة
+ * ومفكّكة — أي أن التقرير النصّي أعلاه غير مقروء لصاحب المشروع أصلاً.
+ * لذلك المخرَج الأساسي صفحة تُفتح بالمتصفّح، وسطر المسار وحده لاتيني ليبقى
+ * مقروءاً في كل الأحوال. */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const SEV_HTML = { red: ['#dc2626', '🔴', 'عطل'], yellow: ['#d97706', '🟡', 'يستحق'], blue: ['#0891b2', '🔵', 'تجميلي'] };
+
+const htmlGroups = groups.map(g => {
+  const [color, icon, label] = SEV_HTML[g.sev];
+  const byFile = new Map();
+  for (const it of g.items) {
+    if (!byFile.has(it.file)) byFile.set(it.file, []);
+    byFile.get(it.file).push(it);
+  }
+  const rows = [...byFile.entries()]
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([file, items]) => `<tr${items[0].locked ? ' class="locked"' : ''}>
+        <td class="file">${esc(file)}${items[0].locked ? ' <span class="tag">مقفل</span>' : ''}</td>
+        <td class="ln">${items.slice(0, 6).map(i => i.line).join('، ')}${items.length > 6 ? ` +${items.length - 6}` : ''}</td>
+        <td class="n">${items.length}</td>
+      </tr>`).join('');
+  return `<section>
+      <h3 style="border-color:${color}"><span>${icon}</span> ${esc(g.check.title)}
+        <em>${g.items.length} موضعاً${g.items.filter(i => i.locked).length ? ` — منها ${g.items.filter(i => i.locked).length} في ملفات مقفلة` : ''}</em></h3>
+      ${g.hint ? `<p class="hint">${esc(g.hint)}</p>` : ''}
+      <div class="scroll"><table><tbody>${rows}</tbody></table></div>
+    </section>`;
+}).join('');
+
+const htmlProject = projectChecks.map(p => {
+  const [color, icon] = SEV_HTML[p.sev];
+  return `<section>
+      <h3 style="border-color:${color}"><span>${icon}</span> ${esc(p.title)}</h3>
+      ${p.detail ? `<pre>${esc(p.detail.replace(/^ {5}/gm, ''))}</pre>` : ''}
+      ${p.hint ? `<p class="hint">${esc(p.hint)}</p>` : ''}
+    </section>`;
+}).join('');
+
+const html = `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>فاحص تدبير — تقرير التشخيص</title>
+<style>
+  :root{--bg:#f7f8fa;--card:#fff;--tx:#111827;--mut:#6b7280;--line:#e5e7eb}
+  @media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--tx:#e5e7eb;--mut:#9ca3af;--line:#2b3039}}
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px 16px;background:var(--bg);color:var(--tx);
+       font:15px/1.7 "Segoe UI","Noto Naskh Arabic",system-ui,sans-serif}
+  .wrap{max-width:860px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .meta{color:var(--mut);font-size:13px;margin-bottom:22px}
+  .score{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:26px}
+  .score div{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);
+             border-radius:14px;padding:14px 16px}
+  .score b{display:block;font-size:26px;line-height:1.2}
+  .score span{color:var(--mut);font-size:13px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+          padding:14px 16px;margin-bottom:14px}
+  h3{margin:0 0 6px;font-size:16px;border-right:4px solid;padding-right:10px;
+     display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  h3 em{font-style:normal;font-weight:400;color:var(--mut);font-size:13px}
+  .hint{margin:6px 0 10px;color:var(--mut);font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top}
+  .scroll{overflow-x:auto}
+  .file{font-family:ui-monospace,Consolas,monospace;direction:ltr;text-align:start;white-space:nowrap}
+  .ln{color:var(--mut);direction:ltr;text-align:start;white-space:nowrap}
+  .n{text-align:end;color:var(--mut);white-space:nowrap}
+  tr.locked{opacity:.55}
+  .tag{background:var(--line);border-radius:6px;padding:1px 6px;font-size:11px;font-family:inherit}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;
+      overflow-x:auto;direction:ltr;text-align:start;font-size:12px;margin:6px 0}
+  footer{color:var(--mut);font-size:12px;margin-top:22px;line-height:2}
+</style>
+<div class="wrap">
+  <h1>فاحص تدبير — تقرير التشخيص</h1>
+  <div class="meta">${SOURCES.length} ملفاً · ${SOURCES.reduce((n, f) => n + f.lines.length, 0).toLocaleString('en-US')} سطراً · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</div>
+  <div class="score">
+    <div><b style="color:${SEV_HTML.red[0]}">${red || '—'}</b><span>🔴 عطل يصل أثره للمستخدم</span></div>
+    <div><b style="color:${SEV_HTML.yellow[0]}">${yellow || '—'}</b><span>🟡 يستحق الإصلاح</span></div>
+    <div><b style="color:${SEV_HTML.blue[0]}">${blue || '—'}</b><span>🔵 تجميلي</span></div>
+  </div>
+  ${htmlProject ? `<h2 style="font-size:15px;color:var(--mut);margin:0 0 10px">على مستوى المشروع</h2>${htmlProject}` : ''}
+  ${htmlGroups ? `<h2 style="font-size:15px;color:var(--mut);margin:22px 0 10px">نتائج المسح</h2>${htmlGroups}` : ''}
+  <footer>
+    الفاحص يشير ولا يحكم — بعض النتائج مقصودة، تُراجَع قبل أي إصلاح.<br>
+    الملفات المقفلة مستثناة من العدّ وتُعرض للعلم فقط.<br>
+    لاستثناء موضع بعينه: ضع تعليق <code>doctor-ok: السبب</code> فوقه في الكود.
+  </footer>
+</div>`;
+
+const REPORT = join(ROOT, 'doctor-report.html');
+writeFileSync(REPORT, html, 'utf8');
+console.log('');
+console.log(C.bold(`  >> ${REPORT}`));
+console.log(C.dim('     ^ open this file in your browser (terminals cannot render Arabic)'));
 console.log('');
 
 // دائماً 0 — الفاحص أداة تشخيص لا بوّابة نشر، فلا يوقف أي عملية.

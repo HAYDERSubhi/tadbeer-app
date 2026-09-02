@@ -61,3 +61,6 @@ tadbeer-messages-review.xlsx
 # ملفات تجريبية/مؤقتة بجذر المشروع
 chunks.txt
 page.html
+
+# تقرير الفاحص — يُولَّد محلياً بكل تشغيل
+doctor-report.html
