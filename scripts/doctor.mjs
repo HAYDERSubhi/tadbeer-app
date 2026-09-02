@@ -6,6 +6,7 @@
  *   npm run doctor -- --brief خلاصة فقط بلا تفاصيل
  *   npm run doctor -- --json  مخرَج JSON للأتمتة
  *   npm run doctor -- --no-lint  تخطّي lint (الأسرع)
+ *   npm run doctor -- --changed  الملفات المعدَّلة فقط (تنظيف تدريجي)
  *
  * ⚠️ الفاحص يقرأ ولا يكتب — لا يعدّل أي ملف ولا يتصل بالشبكة.
  *
@@ -28,6 +29,28 @@ const SRC = join(ROOT, 'src');
 const ARGS = process.argv.slice(2);
 const BRIEF = ARGS.includes('--brief');
 const AS_JSON = ARGS.includes('--json');
+const CHANGED_ONLY = ARGS.includes('--changed');
+
+/**
+ * الملفات التي تختلف عمّا هو منشور فعلاً — تشمل غير المدفوع وغير المودَع.
+ * فائدتها: بعض المخالفات (خصوصاً الاتجاه) واسعة جداً ولا تستحق حملة تنظيف
+ * على تطبيق حيّ، لكنها تستحق التنظيف كلما لُمس الملف لسبب آخر. هذا الوضع
+ * يجعل ذلك آلياً بدل الاعتماد على التذكّر.
+ */
+function changedFiles() {
+  const run = cmd => {
+    try {
+      return execSync(cmd, { cwd: ROOT, stdio: 'pipe', encoding: 'utf8' })
+        .split('\n').map(s => s.trim()).filter(Boolean);
+    } catch { return null; }
+  };
+  // مقابل المنشور أولاً؛ وإن تعذّر (لا اتصال/لا مرجع بعيد) فمقابل آخر إيداع.
+  const vsRemote = run('git diff --name-only origin/master');
+  const vsHead = run('git diff --name-only HEAD') ?? [];
+  const untracked = run('git ls-files --others --exclude-standard') ?? [];
+  const all = new Set([...(vsRemote ?? []), ...vsHead, ...untracked]);
+  return { list: [...all], comparedTo: vsRemote ? 'المنشور (origin/master)' : 'آخر إيداع محلي' };
+}
 
 // ملفات مقفلة بقرار صاحب المشروع — تُفحص ويُنبَّه عليها، لكن لا تُعدّ أعطالاً
 // تستوجب إصلاحاً. راجع ملفات الذاكرة قبل المساس بها.
@@ -60,7 +83,11 @@ function walk(dir, out = []) {
 
 const FILES = existsSync(SRC) ? walk(SRC) : [];
 const rel = p => relative(ROOT, p).split(sep).join('/');
-const SOURCES = FILES.map(p => ({ path: rel(p), lines: readFileSync(p, 'utf8').split('\n') }));
+const ALL_SOURCES = FILES.map(p => ({ path: rel(p), lines: readFileSync(p, 'utf8').split('\n') }));
+
+const changed = CHANGED_ONLY ? changedFiles() : null;
+const changedSet = changed ? new Set(changed.list) : null;
+const SOURCES = changedSet ? ALL_SOURCES.filter(f => changedSet.has(f.path)) : ALL_SOURCES;
 const isLocked = p => LOCKED.includes(p);
 
 /* ── إطار الفحوصات ───────────────────────────────────────────────────────── */
@@ -244,6 +271,8 @@ try {
 } catch (e) {
   const out = `${e.stdout || ''}${e.stderr || ''}`;
   tsErrors = out.split('\n').filter(l => /error TS/.test(l) && l.startsWith('src/'));
+  // في وضع الملفات المعدَّلة: أخطاء الملفات الأخرى ليست من شغل هذه الجلسة.
+  if (changedSet) tsErrors = tsErrors.filter(l => changedSet.has(l.split('(')[0]));
 }
 if (tsErrors.length) {
   project(
@@ -261,7 +290,9 @@ if (!LINT_CONFIGS.some(f => existsSync(join(ROOT, f)))) {
   project('yellow', 'أداة lint غير مهيّأة',
     '     npm run lint يطلب إعداداً تفاعلياً ولا يعمل',
     'تهيئتها تفتح فئة كاملة من الفحوصات مجاناً');
-} else if (!ARGS.includes('--no-lint')) {
+} else if (!ARGS.includes('--no-lint') && !CHANGED_ONLY) {
+  // lint يفحص المشروع كاملاً ولا يقبل قصره على ملفات، فيُتخطّى في وضع
+  // الملفات المعدَّلة حتى يبقى الوضع سريعاً ومقصوراً على شغل الجلسة.
   let lintOut = '';
   try {
     lintOut = execSync('npx next lint', { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', timeout: 180000 });
@@ -289,8 +320,10 @@ if (!LINT_CONFIGS.some(f => existsSync(join(ROOT, f)))) {
 }
 
 /* مكتبات مثبَّتة بلا استعمال — وزن وسطح هجوم بلا مقابل. */
+// ⚠️ يقرأ من ALL_SOURCES لا SOURCES: الفحص طبيعته على مستوى المشروع، وقصره
+// على الملفات المعدَّلة يجعله يظنّ كل المكتبات بلا استعمال.
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-const allCode = SOURCES.map(f => f.lines.join('\n')).join('\n');
+const allCode = ALL_SOURCES.map(f => f.lines.join('\n')).join('\n');
 const IMPLICIT = new Set([ // تُستعمل بلا استيراد مباشر من الكود
   'next', 'react', 'react-dom', 'typescript', 'tailwindcss', 'postcss', 'autoprefixer',
   'tailwindcss-animate', 'eslint', 'eslint-config-next', '@types/node', '@types/react',
@@ -299,7 +332,7 @@ const IMPLICIT = new Set([ // تُستعمل بلا استيراد مباشر م
 const unused = Object.keys(pkg.dependencies || {}).filter(d =>
   !IMPLICIT.has(d) && !allCode.includes(`'${d}`) && !allCode.includes(`"${d}`) && !allCode.includes(`${d}/`)
 );
-if (unused.length) {
+if (unused.length && !CHANGED_ONLY) {
   project('blue', `${unused.length} مكتبة مثبَّتة بلا استعمال ظاهر`,
     '     ' + unused.join(' · '),
     'تحقّق يدوياً قبل الحذف — قد تُستعمل عبر إعداد لا استيراد');
@@ -307,7 +340,7 @@ if (unused.length) {
 
 /* حجم الشاشات — من مخرَج آخر بناء إن وُجد. */
 const appBuildManifest = join(ROOT, '.next', 'app-build-manifest.json');
-if (!existsSync(appBuildManifest)) {
+if (!existsSync(appBuildManifest) && !CHANGED_ONLY) {
   project('blue', 'لا يوجد بناء حديث لقياس أحجام الشاشات',
     '     شغّل npm run build ثم أعد الفاحص لقياس الأحجام', '');
 }
@@ -329,6 +362,10 @@ const line = '─'.repeat(72);
 console.log('');
 console.log(C.bold('  فاحص تدبير — تقرير التشخيص'));
 console.log(C.dim(`  ${SOURCES.length} ملفاً · ${SOURCES.reduce((n, f) => n + f.lines.length, 0).toLocaleString('en-US')} سطراً · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`));
+if (changed) {
+  console.log(C.yellow(`  ⟳ الملفات المعدَّلة فقط — مقارنةً بـ${changed.comparedTo}`));
+  if (SOURCES.length === 0) console.log(C.green('    لا ملفات معدَّلة داخل src — لا شيء يُفحص.'));
+}
 console.log(line);
 
 /* فحوصات المشروع أولاً */
@@ -473,7 +510,7 @@ const html = `<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
 </style>
 <div class="wrap">
   <h1>فاحص تدبير — تقرير التشخيص</h1>
-  <div class="meta">${SOURCES.length} ملفاً · ${SOURCES.reduce((n, f) => n + f.lines.length, 0).toLocaleString('en-US')} سطراً · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</div>
+  <div class="meta">${changed ? "⟳ الملفات المعدَّلة فقط · " : ""}${SOURCES.length} ملفاً · ${SOURCES.reduce((n, f) => n + f.lines.length, 0).toLocaleString('en-US')} سطراً · ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</div>
   <div class="score">
     <div><b style="color:${SEV_HTML.red[0]}">${red || '—'}</b><span>🔴 عطل يصل أثره للمستخدم</span></div>
     <div><b style="color:${SEV_HTML.yellow[0]}">${yellow || '—'}</b><span>🟡 يستحق الإصلاح</span></div>
