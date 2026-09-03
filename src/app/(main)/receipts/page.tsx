@@ -11,6 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles,
   AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
@@ -22,6 +26,7 @@ import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-r
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
+import { useCurrency } from '@/hooks/use-currency';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpensesBatch } from '@/services/firestore';
 import ReactCrop, { type Crop as CropRect, type PixelCrop } from 'react-image-crop';
@@ -138,6 +143,19 @@ const qualityMeta: Record<ImageQuality, { label: string; color: string; icon: Re
 // المتأخّرة المعقولة، ويمسك خطأ السنة الذي أضاع ٤٥ عنصراً في تاريخ 2023.
 const MAX_RECEIPT_AGE_DAYS = 30;
 
+// حدّ اعتبار الفرق بين مجموع العناصر والمجموع المطبوع «عدم تطابق».
+//
+// كان دينـاراً واحداً — أي أن أي تقريب يُطلق التحذير. وأول فاتورة حقيقية
+// أثبتت ذلك (2026-09-04): ٤٥ صنفاً فيها موزونات بالكيلو (2,166 و2,184)،
+// فارقها 564 د.ع من 128,750 أي 0.44% — تقريب لا خطأ. والتحذير الكاذب
+// المتكرّر يُعلّم المستخدم التجاهل، فيمرّ الخطأ الحقيقي بعده.
+//
+// النسبة وحدها لا تكفي في الفواتير الصغيرة، والمبلغ وحده لا يكفي في الكبيرة،
+// فيؤخذ الأوسع منهما. مُعايَر ليمرّر 564 على تلك الفاتورة (حدّها 1,931)،
+// ويمسك رقماً زائداً أو صنفاً مفقوداً ذا شأن.
+const MISMATCH_ABS_IQD = 1000;
+const MISMATCH_PCT = 0.015;
+
 const confidenceMeta = {
   high:   { label: 'مؤكد',    className: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',  dot: 'bg-green-500'  },
   medium: { label: 'مقبول',   className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300', dot: 'bg-yellow-500' },
@@ -149,6 +167,7 @@ const confidenceMeta = {
 export default function DetailedReceiptPage() {
   const { user } = useAuth();
   const { householdId } = useAppData();
+  const { format: formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   // الفئات القابلة للاختيار فقط — «سفر» النظامية مستثناة مركزياً (سفراتي).
@@ -180,6 +199,8 @@ export default function DetailedReceiptPage() {
   const [overallConfidence, setOverallConfidence] = useState<'high' | 'medium' | 'low'>('high');
   // التاريخ الذي قرأه الذكاء ورُفض لأنه مستبعد — يُعرض للمستخدم ولا يُبتلع.
   const [rejectedDate, setRejectedDate] = useState<string | null>(null);
+  // مصاريف بانتظار تأكيد صريح لأن أرقامها لا تطابق الفاتورة.
+  const [pendingSave, setPendingSave] = useState<Omit<Expense, 'id' | 'createdAt' | 'updatedAt' | 'uid'>[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
   const [error, setError] = useState<string | null>(null);
@@ -208,7 +229,22 @@ export default function DetailedReceiptPage() {
 
   // computed: sum of items vs receipt total
   const itemsSum = useMemo(() => analyzedItems.reduce((s, i) => s + (i.price || 0), 0), [analyzedItems]);
-  const totalMismatch = receiptTotal !== null && Math.abs(itemsSum - receiptTotal) > 1;
+  const mismatchDiff = receiptTotal !== null ? Math.abs(itemsSum - receiptTotal) : 0;
+  const mismatchAllowance = receiptTotal !== null
+    ? Math.max(MISMATCH_ABS_IQD, receiptTotal * MISMATCH_PCT)
+    : 0;
+  const totalMismatch = receiptTotal !== null && mismatchDiff > mismatchAllowance;
+
+  // (ب) لا مجموع مطبوع ⇒ لا مرجع للمقارنة. الصمت هنا كان يشبه «تحقّقنا ووجدناه
+  // سليماً» تماماً، فيُقال صراحةً بدل أن يُفهَم طمأنينةً.
+  const noPrintedTotal = analyzedItems.length > 0 && receiptTotal === null;
+
+  // (ج) عنصر واحد أغلى من الفاتورة كلّها مستحيل — رقم زائد غالباً. صفر إنذار
+  // كاذب: الشرط لا يتحقّق إلا بخطأ مؤكَّد.
+  const impossibleItems = useMemo(
+    () => (receiptTotal === null ? [] : analyzedItems.filter(i => (i.price || 0) > receiptTotal)),
+    [analyzedItems, receiptTotal],
+  );
   const lowConfidenceCount = analyzedItems.filter(i => i.confidence === 'low').length;
   const hasQualityWarning = images.some(i => i.quality === 'bad');
 
@@ -503,7 +539,20 @@ export default function DetailedReceiptPage() {
       toast({ title: 'بيانات غير مكتملة', description: 'تأكد أن كل عنصر له اسم وسعر صحيح.', variant: 'destructive' });
       return;
     }
+    // (أ) الرقم لا يطابق الفاتورة ⇒ قرار صريح لا ضغطة. كان التحذير يُخبر ولا
+    // يمنع، فزرّ «تأكيد وحفظ» يبقى فعّالاً — وهو نفس شكل عطل التاريخ: مرئي لو
+    // نظرتَ، ولا شيء يجبرك على النظر.
+    if (totalMismatch || impossibleItems.length > 0) {
+      setPendingSave(toSave);
+      return;
+    }
     addMultipleExpensesMutation.mutate(toSave);
+  };
+
+  const confirmPendingSave = () => {
+    if (!pendingSave) return;
+    addMultipleExpensesMutation.mutate(pendingSave);
+    setPendingSave(null);
   };
 
   const progressValue = processingStep === 'uploading' ? 25 : processingStep === 'analyzing' ? 65 : processingStep === 'extracting' ? 90 : 0;
@@ -808,12 +857,37 @@ export default function DetailedReceiptPage() {
                   </AlertDescription>
                 </Alert>
               )}
+              {/* (ج) عنصر أغلى من الفاتورة كلّها — خطأ مؤكَّد لا احتمال */}
+              {impossibleItems.length > 0 && (
+                <Alert variant="destructive" className="py-2">
+                  <TriangleAlert className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {impossibleItems.length === 1
+                      ? <>عنصر «{impossibleItems[0].name}» سعره <bdi className="font-semibold">{formatCurrency(impossibleItems[0].price)}</bdi> أي أغلى من الفاتورة كلّها — رقم زائد غالباً.</>
+                      : <>{impossibleItems.length} عناصر أسعارها أغلى من الفاتورة كلّها — أرقام زائدة غالباً.</>}
+                    {' '}صحّح السعر قبل الحفظ.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* (ب) لا مجموع مطبوع ⇒ لا فحص. يُقال بدل أن يُفهَم الصمت طمأنينةً */}
+              {noPrintedTotal && (
+                <Alert className="py-2 border-sky-300 bg-sky-50 dark:bg-sky-950/30">
+                  <Info className="h-4 w-4 text-sky-600" />
+                  <AlertDescription className="text-xs text-sky-800 dark:text-sky-200">
+                    لا يوجد مجموع كلّي مطبوع على هذه الفاتورة، فلم نستطع التحقّق من الأسعار —
+                    راجعها بنفسك قبل الحفظ.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Total mismatch warning */}
               {totalMismatch && (
                 <Alert className="py-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
                   <TriangleAlert className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
-                    مجموع العناصر ({itemsSum.toLocaleString()}) لا يطابق المجموع الكلي للفاتورة ({receiptTotal?.toLocaleString()}).
+                    فرق <bdi className="font-semibold">{formatCurrency(mismatchDiff)}</bdi> بين مجموع العناصر
+                    (<bdi>{itemsSum.toLocaleString()}</bdi>) والمجموع المطبوع (<bdi>{receiptTotal?.toLocaleString()}</bdi>).
                     راجع الأسعار أو أضف عناصر مفقودة.
                   </AlertDescription>
                 </Alert>
@@ -951,6 +1025,32 @@ export default function DetailedReceiptPage() {
                 {itemsSum.toLocaleString()} {receiptTotal !== null && `/ ${receiptTotal.toLocaleString()}`}
               </span>
             </div>
+            {/* (أ) نافذة تعرض الرقمين والفرق — يقرّر المستخدم على بيّنة */}
+            <AlertDialog open={!!pendingSave} onOpenChange={o => { if (!o) setPendingSave(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>الأرقام لا تطابق الفاتورة</AlertDialogTitle>
+                  <AlertDialogDescription className="text-xs leading-relaxed space-y-2">
+                    {totalMismatch && (
+                      <span className="block">
+                        مجموع العناصر <bdi className="font-semibold">{formatCurrency(itemsSum)}</bdi>،
+                        والمطبوع على الفاتورة <bdi className="font-semibold">{receiptTotal !== null ? formatCurrency(receiptTotal) : ''}</bdi> —
+                        بفرق <bdi className="font-semibold">{formatCurrency(mismatchDiff)}</bdi>.
+                      </span>
+                    )}
+                    {impossibleItems.length > 0 && (
+                      <span className="block">و{impossibleItems.length} عنصر سعره أغلى من الفاتورة كلّها.</span>
+                    )}
+                    <span className="block">تستطيع الحفظ كما هو، أو الرجوع لتصحيح الأسعار أولاً.</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>رجوع للتصحيح</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmPendingSave}>احفظ كما هو</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             <Button onClick={handleSaveAll} className="w-full h-12" disabled={addMultipleExpensesMutation.isPending}>
               {addMultipleExpensesMutation.isPending
                 ? <><Loader2 className="ml-2 h-4 w-4 animate-spin" /> جاري الحفظ...</>
