@@ -269,6 +269,11 @@ function PlannerContent() {
                     </Accordion>
                 </div>
                  <div className="p-3 bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-200 rounded-lg border border-teal-200 dark:border-teal-700 text-xs"><p className="font-bold">رسالة المدرب:</p><p>{plan.motivationalMessage}</p></div>
+                 {/* حدّ معلَن: الأرقام محسوبة برمجياً من مصاريف المستخدم، لكن التطبيق
+                     ليس جهة استشارة مرخّصة — والصياغة بلا هذا السطر تُقرأ كوعد. */}
+                 <p className="text-[10px] text-muted-foreground text-center leading-relaxed pt-1">
+                   اقتراحات إرشادية مبنية على مصاريفك المسجّلة — وليست استشارة مالية.
+                 </p>
             </CardContent>
         </Card>
     )

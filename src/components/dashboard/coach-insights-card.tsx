@@ -189,6 +189,13 @@ export function CoachInsightsCard({
             جارٍ تحليل بياناتك...
           </p>
         )}
+        {/* حدّ معلَن: كل الأرقام هنا محسوبة في الكود (computeSummary) لا بالذكاء،
+            لكن «المدرب» كلمة تُقرأ كاستشارة — فالحدّ يُذكر لا يُفترَض. */}
+        {insights.length > 0 && (
+          <p className="text-[10px] text-muted-foreground text-center leading-relaxed pt-3">
+            ملاحظات إرشادية مبنية على مصاريفك المسجّلة — وليست استشارة مالية.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
