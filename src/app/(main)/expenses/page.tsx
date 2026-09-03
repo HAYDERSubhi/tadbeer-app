@@ -100,8 +100,14 @@ export default function AllExpensesPage() {
 
   const filteredExpenses = useMemo(() => {
     return allSortedExpenses.filter(expense => {
-      const matchesSearch = searchQuery === '' ||
-        expense.title.toLowerCase().includes(searchQuery.toLowerCase());
+      // البحث يشمل الوصف لا الاسم وحده: مصاريف الفاتورة الواحدة تتشارك وصفاً
+      // موحّداً «فاتورة: اسم المحل» بينما أسماؤها مختلفة، فبحث واحد يجمعها كلها
+      // ويجعل «تحديد الكل» يعمل عليها دفعةً واحدة. بلا هذا كان تصحيح فاتورة
+      // من ٤٥ عنصراً يتطلّب ٤٥ ضغطة يدوية (حادثة 2026-09-03).
+      const q = searchQuery.trim().toLowerCase();
+      const matchesSearch = q === '' ||
+        expense.title.toLowerCase().includes(q) ||
+        (expense.description ?? '').toLowerCase().includes(q);
       const matchesCategory = selectedCategory === 'all' ||
         expense.category === selectedCategory;
       return matchesSearch && matchesCategory;
@@ -221,7 +227,7 @@ export default function AllExpensesPage() {
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن مصروف..."
+              placeholder="ابحث بالاسم أو اسم المحل..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-9"

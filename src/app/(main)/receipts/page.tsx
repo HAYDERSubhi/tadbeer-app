@@ -29,7 +29,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 import getCroppedImg from '@/lib/crop-image';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, isValid, differenceInCalendarDays } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
 import { normalizeDigits } from '@/lib/normalize-digits';
@@ -133,6 +133,11 @@ const qualityMeta: Record<ImageQuality, { label: string; color: string; icon: Re
   checking: { label: 'فحص...',   color: 'text-muted-foreground', icon: Loader2  },
 };
 
+// أقصى عمر مقبول لتاريخ فاتورة يقرأه الذكاء. ما تجاوزه يُستبدل بتاريخ اليوم
+// مع لافتة ظاهرة. الشهر قرار صاحب المشروع (2026-09-04) — يسع الفاتورة
+// المتأخّرة المعقولة، ويمسك خطأ السنة الذي أضاع ٤٥ عنصراً في تاريخ 2023.
+const MAX_RECEIPT_AGE_DAYS = 30;
+
 const confidenceMeta = {
   high:   { label: 'مؤكد',    className: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',  dot: 'bg-green-500'  },
   medium: { label: 'مقبول',   className: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300', dot: 'bg-yellow-500' },
@@ -173,6 +178,8 @@ export default function DetailedReceiptPage() {
   const [receiptTotal, setReceiptTotal] = useState<number | null>(null);
   const [receiptType, setReceiptType] = useState<'itemized' | 'simple'>('itemized');
   const [overallConfidence, setOverallConfidence] = useState<'high' | 'medium' | 'low'>('high');
+  // التاريخ الذي قرأه الذكاء ورُفض لأنه مستبعد — يُعرض للمستخدم ولا يُبتلع.
+  const [rejectedDate, setRejectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
   const [error, setError] = useState<string | null>(null);
@@ -368,7 +375,7 @@ export default function DetailedReceiptPage() {
       toast({ title: 'لا توجد صور', description: 'أضف صورة فاتورة واحدة على الأقل.', variant: 'destructive' });
       return;
     }
-    setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]);
+    setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]); setRejectedDate(null);
     try {
       // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
       const compressedImages = await Promise.all(imagesToAnalyze.map(i => compressDataUri(i.src)));
@@ -395,9 +402,26 @@ export default function DetailedReceiptPage() {
       const result = response.data;
 
       setProcessingStep('extracting');
-      const date = result.transactionDate
-        ? format(new Date(result.transactionDate), 'yyyy-MM-dd')
-        : format(new Date(), 'yyyy-MM-dd');
+      // ⚠️ تاريخ الفاتورة يقرأه الذكاء من صورة قد تكون باهتة أو ممزّقة، فيخطئ
+      // في السنة أحياناً. وقعت الحادثة فعلاً (2026-09-03): فاتورة اليوم حُفظت
+      // بتاريخ 2023، فذهبت ٤٥ عنصراً إلى أسفل القائمة ولم يتحرّك مجموع الشهر —
+      // والمستخدم رأى «تم الحفظ ✅» بحق، فالحفظ نجح والخطأ في تاريخ لم يُراجَع.
+      //
+      // فالتاريخ المستخرَج لا يُعتمد صامتاً: ما تجاوز شهراً أو كان مستقبلياً أو
+      // غير مفهوم يُستبدل بتاريخ اليوم، ويُعرض ما قُرئ في لافتة ليصحّحه المستخدم
+      // إن كانت الفاتورة قديمة فعلاً. (منتقي التاريخ اليدوي يمنع المستقبل أصلاً،
+      // وكان التاريخ المستخرَج يتخطّى ذلك المنع تماماً.)
+      const today = new Date();
+      const parsed = result.transactionDate ? new Date(result.transactionDate) : null;
+      const ageDays = parsed && isValid(parsed) ? differenceInCalendarDays(today, parsed) : null;
+      const dateIsSane = ageDays !== null && ageDays >= 0 && ageDays <= MAX_RECEIPT_AGE_DAYS;
+
+      const date = dateIsSane ? format(parsed!, 'yyyy-MM-dd') : format(today, 'yyyy-MM-dd');
+      setRejectedDate(
+        dateIsSane || !result.transactionDate
+          ? null
+          : parsed && isValid(parsed) ? format(parsed, 'yyyy-MM-dd') : String(result.transactionDate),
+      );
       setStoreInfo({ name: result.storeName || '', date });
       setReceiptTotal(result.totalAmount ?? null);
       setReceiptType(result.receiptType ?? 'itemized');
@@ -449,7 +473,7 @@ export default function DetailedReceiptPage() {
           });
         } catch {}
       }
-      setImages([]); setAnalyzedItems([]); setStoreInfo({ name: '', date: null }); setReceiptTotal(null);
+      setImages([]); setAnalyzedItems([]); setStoreInfo({ name: '', date: null }); setReceiptTotal(null); setRejectedDate(null);
     },
     onError: () => toast({ title: 'خطأ في الحفظ', variant: 'destructive' }),
   });
@@ -773,6 +797,17 @@ export default function DetailedReceiptPage() {
 
             {/* Warnings */}
             <div className="space-y-2 mt-2">
+              {/* تاريخ مستبعد: يُعرض ما قرأه الذكاء صراحةً بدل ابتلاعه */}
+              {rejectedDate && (
+                <Alert className="py-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                  <TriangleAlert className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                    قرأنا من الفاتورة تاريخ <bdi className="font-semibold">{rejectedDate}</bdi> وهو مستبعد —
+                    استُعمل <span className="font-semibold">تاريخ اليوم</span> بدلاً منه.
+                    عدّله من «تاريخ الفاتورة» أدناه إن كانت قديمة فعلاً.
+                  </AlertDescription>
+                </Alert>
+              )}
               {/* Total mismatch warning */}
               {totalMismatch && (
                 <Alert className="py-2 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
