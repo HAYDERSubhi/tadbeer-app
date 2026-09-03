@@ -460,23 +460,29 @@ export default function DashboardPage() {
     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
 
-  // Group expenses by date label
+  // Group expenses by date label + إجمالي كل مجموعة
   const groupedExpenses = useMemo(() => {
-    const recent = allSortedExpenses.slice(0, 5);
-    const groups: { label: string; expenses: typeof recent }[] = [];
+    const labelOf = (dateStr: string): string => {
+      const date = parseISO(dateStr);
+      if (isToday(date)) return 'اليوم';
+      if (isYesterday(date)) return 'أمس';
+      if (isThisWeek(date, { weekStartsOn: 6 })) return 'هذا الأسبوع';
+      return format(date, 'MMMM yyyy', { locale: arIQ });
+    };
+
+    // ⚠️ المجموع يُحسب من القائمة الكاملة لا من المعروض: هذه الشاشة تعرض آخر خمسة
+    // مصاريف فقط، فجمع الظاهر وحده يعطي رقماً ناقصاً في يوم فيه أكثر من خمسة —
+    // وهو خطأ صامت لا يشكو منه أحد لأنه يبدو معقولاً.
+    const labeled = allSortedExpenses.map(exp => ({ exp, label: labelOf(exp.date) }));
+    const totals = new Map<string, number>();
+    labeled.forEach(({ exp, label }) => totals.set(label, (totals.get(label) ?? 0) + (exp.amount || 0)));
+
+    const groups: { label: string; total: number; expenses: typeof allSortedExpenses }[] = [];
     const seen = new Set<string>();
-
-    recent.forEach(exp => {
-      const date = parseISO(exp.date);
-      let label: string;
-      if (isToday(date)) label = 'اليوم';
-      else if (isYesterday(date)) label = 'أمس';
-      else if (isThisWeek(date, { weekStartsOn: 6 })) label = 'هذا الأسبوع';
-      else label = format(date, 'MMMM yyyy', { locale: arIQ });
-
+    labeled.slice(0, 5).forEach(({ exp, label }) => {
       if (!seen.has(label)) {
         seen.add(label);
-        groups.push({ label, expenses: [] });
+        groups.push({ label, total: totals.get(label) ?? 0, expenses: [] });
       }
       groups.find(g => g.label === label)!.expenses.push(exp);
     });
@@ -935,9 +941,12 @@ export default function DashboardPage() {
             <div>
               {groupedExpenses.map(group => (
                 <div key={group.label}>
-                  <div className="px-4 py-1.5 bg-muted/40 border-y border-border/50">
+                  <div className="px-4 py-1.5 bg-muted/40 border-y border-border/50 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                       {group.label}
+                    </span>
+                    <span className="text-[11px] font-bold text-foreground tabular-nums">
+                      <bdi>{formatCurrency(group.total)}</bdi>
                     </span>
                   </div>
                   <ul className="divide-y divide-border/50">
