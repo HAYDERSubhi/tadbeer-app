@@ -78,7 +78,24 @@ const dataURItoBlob = (dataURI: string) => {
  * يقلّص حجم الرفع من ~4MB إلى ~400KB مع إبقاء نص الفاتورة مقروءاً —
  * يعالج بطء/تعليق التحليل واستهلاك الإنترنت (P1/H4).
  */
-const compressDataUri = (src: string, maxDim = 2000, quality = 0.82): Promise<string> =>
+/**
+ * دقّة الإرسال: المطلوب النصّ لا الصورة. تصغير الحافة الأطول لفاتورة طويلة
+ * يمحو الأرقام الصغيرة — وهو ما أنتج قراءة السنة 2023 بدل 2026.
+ *
+ * كان الحدّ 2000 ثابتاً: صورة الاستوديو من كاميرا الهاتف (≈4000px) تُنصَّف،
+ * بينما لقطة التطبيق (≤1920 غالباً) لا تُمسّ أصلاً — فكان الرفع أسوأ دقّةً
+ * من الالتقاط رغم أن مصدره كاميرا أفضل (بلاغ 2026-09-04).
+ *
+ * والحدّ يتدرّج بعدد الصور كي لا تنتفخ الحمولة وتتجاوز مهلة التحليل:
+ * صورة واحدة تحمل الفاتورة كلها فتحتاج أعلى دقّة، وعدة صور تعني أن كل
+ * واحدة تغطّي جزءاً — فنصّها كبير أصلاً ولا يحتاج نفس الحدّ.
+ */
+const maxDimForCount = (n: number) => (n <= 1 ? 3000 : n === 2 ? 2600 : 2200);
+
+// جودة JPEG أعلى قليلاً: ضغط النصّ الدقيق يولّد تشويشاً حول الحروف يربك القراءة.
+const JPEG_QUALITY_TEXT = 0.87;
+
+const compressDataUri = (src: string, maxDim = 2000, quality = JPEG_QUALITY_TEXT): Promise<string> =>
   new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => {
@@ -356,11 +373,27 @@ export default function DetailedReceiptPage() {
     setViewState('camera');
   };
 
+  // ⚠️ صورة الاستوديو تُفتح على شاشة القص كما لقطة الكاميرا بالضبط.
+  //
+  // كانت تُضاف كما هي: صورة هاتف عادية تشغل فيها الفاتورة جزءاً صغيراً من
+  // إطار فيه طاولة وأرضية. ثم يُصغَّر كل شيء قبل الإرسال، فيصل نصّ الفاتورة
+  // إلى الذكاء أصغر بكثير ممّا يصل من لقطة التطبيق — وهذا ما لاحظه صاحب
+  // المشروع (2026-09-04): الرفع أسوأ دقّةً من الالتقاط.
+  //
+  // شاشة القص كانت تدعم مصدر gallery أصلاً (زرّا «تخطي» و«تأكيد»)، لكن لا
+  // شيء كان يوجّه الصور المرفوعة إليها. والقص يجعل الفاتورة تملأ الإطار،
+  // فتذهب كل البكسلات إلى النصّ لا إلى الطاولة.
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => addImage(reader.result as string);
+    reader.onload = () => {
+      const entry = addImage(reader.result as string);
+      setCropRect(undefined); setCompletedCrop(null);
+      setImageToCrop(entry);
+      setCropSource('gallery');
+      setViewState('cropping');
+    };
     reader.readAsDataURL(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -414,7 +447,8 @@ export default function DetailedReceiptPage() {
     setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]); setRejectedDate(null);
     try {
       // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
-      const compressedImages = await Promise.all(imagesToAnalyze.map(i => compressDataUri(i.src)));
+      const maxDim = maxDimForCount(imagesToAnalyze.length);
+      const compressedImages = await Promise.all(imagesToAnalyze.map(i => compressDataUri(i.src, maxDim)));
 
       // مهلة client-side: تُلغي الطلب إن تجاوز 75 ثانية بدل التعليق اللانهائي.
       const controller = new AbortController();
@@ -601,8 +635,8 @@ export default function DetailedReceiptPage() {
         </div>
 
         <div className="absolute bottom-52 left-0 right-0 text-center px-6 pointer-events-none">
-          <p className="text-white text-sm font-medium opacity-95 drop-shadow">ضع الفاتورة كاملةً داخل الإطار</p>
-          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">فاتورة طويلة؟ صوّرها على دفعات — اللقطات تتجمع تلقائياً</p>
+          <p className="text-white text-sm font-medium opacity-95 drop-shadow">قرّب حتى تملأ الفاتورة عرض الإطار</p>
+          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">أطول من الإطار؟ صوّرها جزءاً جزءاً من الأعلى للأسفل — تُقرأ معاً</p>
         </div>
       </div>
 
