@@ -231,13 +231,11 @@ export default function DetailedReceiptPage() {
   // ── الكاميرا الاحترافية ──
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
-  // (١) وضع الفاتورة الطويلة: يرشد للتصوير جزءاً جزءاً بدل محاولة حشر
-  //     الفاتورة كلها في الإطار — وهو ما يدفع للابتعاد فيصغر النصّ.
-  const [longMode, setLongMode] = useState(false);
-  // (٣) نسبة أبعاد الفيديو الحقيقية: بها يُرسم الإطار على مساحة ما سيُلتقط
-  //     بالضبط، فيصير التصويب ذا معنى. بلا هذا كان الإطار مقاساً بـvw/vh
-  //     ولا علاقة له بمخرَج المستشعر.
-  const [videoAspect, setVideoAspect] = useState<number | null>(null);
+  // ⛔ حُذف «وضع الفاتورة الطويلة» (2026-09-04) بعد تجربتين على الجهاز:
+  //    شريطه العريض دعا لإدارة الفاتورة أفقياً فيقلب النصّ، وبحذف الشريط
+  //    لم يبقَ منه إلا عدّاد غامض بلا أثر. أُضيف بلا فائدة مُثبَتة فأُزيل.
+  //    البديل المقترح (التقاط تلقائي عند الوضوح) يحتاج معايرة على جهاز
+  //    حقيقي — لا يُبنى بالتخمين.
   const [isCapturing, setIsCapturing] = useState(false);  // وميض الالتقاط
   // مصدر فتح شاشة القص: بعد الالتقاط مباشرة (camera) أو من مصغّرات الشاشة الرئيسية (gallery)
   const [cropSource, setCropSource] = useState<'camera' | 'gallery'>('gallery');
@@ -288,10 +286,7 @@ export default function DetailedReceiptPage() {
         if (!mounted || !videoRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          const v = videoRef.current;
-          if (v?.videoWidth && v.videoHeight) setVideoAspect(v.videoWidth / v.videoHeight);
-        };
+
         videoRef.current.play();
         const track = stream.getVideoTracks()[0];
         // تركيز تلقائي مستمر — حاسم لوضوح نص الفاتورة عن قرب (يتجاهله المتصفح إن لم يدعمه)
@@ -613,15 +608,6 @@ export default function DetailedReceiptPage() {
         <Button variant="ghost" size="icon" onClick={() => setViewState('initial')} className="text-white hover:bg-white/10 hover:text-white">
           <ArrowRight />
         </Button>
-        <div className="flex items-center gap-2">
-        <button onClick={() => setLongMode(v => !v)} aria-label="وضع الفاتورة الطويلة"
-          className={cn(
-            "h-11 px-3 rounded-full flex items-center gap-1.5 text-xs font-medium transition-colors backdrop-blur-sm",
-            longMode ? "bg-primary text-primary-foreground" : "bg-white/15 text-white",
-          )}>
-          <Receipt className="h-4 w-4" />
-          فاتورة طويلة
-        </button>
         {torchSupported && (
           <button onClick={toggleTorch} aria-label="الفلاش"
             className={cn(
@@ -631,7 +617,6 @@ export default function DetailedReceiptPage() {
             {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
           </button>
         )}
-        </div>
       </header>
 
       <div className="flex-1 relative">
@@ -644,43 +629,19 @@ export default function DetailedReceiptPage() {
           isCapturing ? "opacity-70" : "opacity-0"
         )} />
 
-        {/* (٣) الإطار على مساحة ما سيُلتقط بالضبط: نسبة المستشعر نفسها، فلا
-            يبقى خارجه شيء يدخل الصورة خفيةً. وفي الوضع الطويل يتحوّل إلى
-            شريط أفقي يدفع للاقتراب بدل حشر الفاتورة كلها. */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div
-            className="relative max-w-full max-h-full"
-            style={videoAspect ? { aspectRatio: String(videoAspect), width: '100%' } : { width: '100%', height: '100%' }}
-          >
-            {/* زوايا L بارزة — نمط CamScanner */}
-            <span className="absolute top-1 right-1 w-9 h-9 border-t-4 border-r-4 border-white rounded-tr-2xl" />
-            <span className="absolute top-1 left-1 w-9 h-9 border-t-4 border-l-4 border-white rounded-tl-2xl" />
-            <span className="absolute bottom-1 right-1 w-9 h-9 border-b-4 border-r-4 border-white rounded-br-2xl" />
-            <span className="absolute bottom-1 left-1 w-9 h-9 border-b-4 border-l-4 border-white rounded-bl-2xl" />
-
-            {/* (١) عدّاد الجزء وحده — بلا شريط.
-                الشريط العريض القصير كان يدعو لإدارة الفاتورة أفقياً فيقلب
-                النصّ 90°، ويخسر 25% من دقّة الحرف (المحور القصير للمستشعر).
-                الإرشاد الصريح أنفع من شكل يُساء فهمه. */}
-            {longMode && (
-              <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
-                الجزء {images.length + 1}
-              </span>
-            )}
-          </div>
-        </div>
+        {/* لا إطار ولا أركان: المعاينة (object-contain) تعرض كامل ما سيُلتقط،
+            فرسم حدود حولها لا يضيف معلومة — بل يوحي بمنطقة داخلية لا وجود
+            لها، ويدفع المستخدم للتصويب على شيء ثابت لا يتحرّك (ملاحظة صاحب
+            المشروع 2026-09-04). ما تراه هو ما تحصل عليه، وهذا يكفي. */}
 
         <div className="absolute bottom-40 inset-x-4 text-center pointer-events-none">
           <div className="inline-block px-4 py-2.5 rounded-2xl bg-black/45 backdrop-blur-sm">
-          {/* سطر واحد قصير لكل حالة: أربعة أسطر كانت تغطّي الشريط نفسه
-              وتُقرأ «معقّدة» (ملاحظة صاحب المشروع). */}
+          {/* سطران قصيران لا أكثر: أربعة أسطر كانت تُقرأ «معقّدة». */}
           <p className="text-white text-sm font-medium drop-shadow">
-            {longMode
-              ? (images.length === 0 ? 'صوّر أعلى الفاتورة فقط — ثلثها يكفي' : 'تابع من آخر سطر صوّرته')
-              : 'قرّب حتى تملأ الفاتورة عرض الإطار'}
+            {images.length === 0 ? 'قرّب حتى تملأ الفاتورة الشاشة' : `التقطت ${images.length} — تابع بقية الفاتورة`}
           </p>
           <p className="text-white/60 text-[11px] mt-1 drop-shadow">
-            {longMode ? 'أبقِ الفاتورة عمودية ولا تُدرها — واقترب' : 'أطول من الإطار؟ فعّل «فاتورة طويلة»'}
+            أطول من الشاشة؟ صوّرها جزءاً جزءاً وهي عمودية
           </p>
           </div>
         </div>
