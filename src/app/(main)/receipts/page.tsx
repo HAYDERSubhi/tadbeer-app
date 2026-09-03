@@ -650,7 +650,7 @@ export default function DetailedReceiptPage() {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
             className="relative max-w-full max-h-full"
-            style={videoAspect ? { aspectRatio: String(videoAspect), width: '100%', height: '100%' } : { width: '100%', height: '100%' }}
+            style={videoAspect ? { aspectRatio: String(videoAspect), width: '100%' } : { width: '100%', height: '100%' }}
           >
             {/* زوايا L بارزة — نمط CamScanner */}
             <span className="absolute top-1 right-1 w-9 h-9 border-t-4 border-r-4 border-white rounded-tr-2xl" />
@@ -661,7 +661,7 @@ export default function DetailedReceiptPage() {
             {/* (١) شريط الجزء — يملأ العرض وثلث الارتفاع: أقرب ⇒ نصّ أكبر */}
             {longMode && (
               <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-1/3 rounded-xl border-2 border-primary"
-                   style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }}>
+                   style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.18)' }}>
                 <span className="absolute -top-7 start-0 text-primary text-xs font-bold drop-shadow">
                   الجزء {images.length + 1}
                 </span>
@@ -670,29 +670,18 @@ export default function DetailedReceiptPage() {
           </div>
         </div>
 
-        <div className="absolute bottom-52 inset-x-4 text-center pointer-events-none">
+        <div className="absolute bottom-40 inset-x-4 text-center pointer-events-none">
           <div className="inline-block px-4 py-2.5 rounded-2xl bg-black/45 backdrop-blur-sm">
-          {longMode ? (
-            <>
-              <p className="text-white text-sm font-medium opacity-95 drop-shadow">
-                {images.length === 0
-                  ? 'ضع أعلى الفاتورة داخل الشريط'
-                  : 'ابدأ من آخر سطر صوّرته — تداخل سطرين يكفي'}
-              </p>
-              <p className="text-white text-xs opacity-70 mt-1 drop-shadow">
-                {images.length === 0
-                  ? 'قرّب حتى تملأ الأسطر عرض الشريط — كلما اقتربت صار النصّ أوضح'
-                  : `التقطت ${images.length} — تابع نزولاً حتى آخر الفاتورة`}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-white text-sm font-medium opacity-95 drop-shadow">قرّب حتى تملأ الفاتورة عرض الإطار</p>
-              <p className="text-white text-xs opacity-70 mt-1 drop-shadow">أطول من الإطار؟ فعّل «فاتورة طويلة» وصوّرها جزءاً جزءاً</p>
-            </>
-          )}
-          {/* (٦) تلميح عملي — أكثر ما يفسد اللقطات: اليد والوهج */}
-          <p className="text-white/60 text-[11px] mt-2 drop-shadow">امسكها من حافتها لا من وسطها · تجنّب الأسطح اللامعة</p>
+          {/* سطر واحد قصير لكل حالة: أربعة أسطر كانت تغطّي الشريط نفسه
+              وتُقرأ «معقّدة» (ملاحظة صاحب المشروع). */}
+          <p className="text-white text-sm font-medium drop-shadow">
+            {longMode
+              ? (images.length === 0 ? 'صوّر أعلى الفاتورة داخل الشريط' : 'تابع من آخر سطر صوّرته')
+              : 'قرّب حتى تملأ الفاتورة عرض الإطار'}
+          </p>
+          <p className="text-white/60 text-[11px] mt-1 drop-shadow">
+            {longMode ? 'كلما اقتربت صار النصّ أوضح' : 'أطول من الإطار؟ فعّل «فاتورة طويلة»'}
+          </p>
           </div>
         </div>
       </div>
