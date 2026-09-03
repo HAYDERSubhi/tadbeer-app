@@ -658,14 +658,14 @@ export default function DetailedReceiptPage() {
             <span className="absolute bottom-1 right-1 w-9 h-9 border-b-4 border-r-4 border-white rounded-br-2xl" />
             <span className="absolute bottom-1 left-1 w-9 h-9 border-b-4 border-l-4 border-white rounded-bl-2xl" />
 
-            {/* (١) شريط الجزء — يملأ العرض وثلث الارتفاع: أقرب ⇒ نصّ أكبر */}
+            {/* (١) عدّاد الجزء وحده — بلا شريط.
+                الشريط العريض القصير كان يدعو لإدارة الفاتورة أفقياً فيقلب
+                النصّ 90°، ويخسر 25% من دقّة الحرف (المحور القصير للمستشعر).
+                الإرشاد الصريح أنفع من شكل يُساء فهمه. */}
             {longMode && (
-              <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-1/3 rounded-xl border-2 border-primary"
-                   style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.18)' }}>
-                <span className="absolute -top-7 start-0 text-primary text-xs font-bold drop-shadow">
-                  الجزء {images.length + 1}
-                </span>
-              </div>
+              <span className="absolute top-3 start-3 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow">
+                الجزء {images.length + 1}
+              </span>
             )}
           </div>
         </div>
@@ -676,11 +676,11 @@ export default function DetailedReceiptPage() {
               وتُقرأ «معقّدة» (ملاحظة صاحب المشروع). */}
           <p className="text-white text-sm font-medium drop-shadow">
             {longMode
-              ? (images.length === 0 ? 'صوّر أعلى الفاتورة داخل الشريط' : 'تابع من آخر سطر صوّرته')
+              ? (images.length === 0 ? 'صوّر أعلى الفاتورة فقط — ثلثها يكفي' : 'تابع من آخر سطر صوّرته')
               : 'قرّب حتى تملأ الفاتورة عرض الإطار'}
           </p>
           <p className="text-white/60 text-[11px] mt-1 drop-shadow">
-            {longMode ? 'كلما اقتربت صار النصّ أوضح' : 'أطول من الإطار؟ فعّل «فاتورة طويلة»'}
+            {longMode ? 'أبقِ الفاتورة عمودية ولا تُدرها — واقترب' : 'أطول من الإطار؟ فعّل «فاتورة طويلة»'}
           </p>
           </div>
         </div>
