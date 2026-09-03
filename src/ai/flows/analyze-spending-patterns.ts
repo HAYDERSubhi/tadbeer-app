@@ -11,6 +11,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {CURRENCIES} from '@/lib/constants';
+import type {CurrencyCode} from '@/types';
 
 const ExpenseItemSchema = z.object({
   title: z.string(),
@@ -29,6 +31,7 @@ const AnalyzeSpendingPatternsInputSchema = z.object({
   totalBudget: z.number().optional().describe("The user's total budget for the period (if applicable)."),
   periodDescription: z.string().describe("A description of the time period being analyzed (e.g., 'this month', 'the year 2023')."),
   appTone: z.enum(['formal', 'colloquial']).optional().describe("The desired tone. 'formal' = Modern Standard Arabic. 'colloquial' = friendly Iraqi dialect."),
+  currency: z.string().optional().describe("The user's currency code (IQD, USD, ...). Defaults to IQD."),
 });
 export type AnalyzeSpendingPatternsInput = z.infer<typeof AnalyzeSpendingPatternsInputSchema>;
 
@@ -49,9 +52,85 @@ const AnalyzeSpendingPatternsOutputSchema = z.object({
 export type AnalyzeSpendingPatternsOutput = z.infer<typeof AnalyzeSpendingPatternsOutputSchema>;
 export type AnalyzeSpendingPatternsResult = AnalyzeSpendingPatternsOutput | null;
 
+/**
+ * كل رقم يراه المستخدم في هذه البطاقة يُحسب هنا — لا في النموذج.
+ *
+ * سبب هذا حادثة حقيقية (2026-09-03): كانت البطاقة تسلّم قائمة المصاريف الخام
+ * وتطلب من النموذج أن يجمعها بنفسه، ومع `thinkingBudget:0` أي بلا استدلال.
+ * فظهر مجموع أيلول ٢٩٩٠٠٠ في «التحليل الذكي» بينما الشاشة الرئيسية تعرض رقماً
+ * آخر للشهر نفسه — رقمان متضاربان لنفس البيانات، وأحدهما تقدير لا عدّ. ونقص
+ * فارزة المراتب كان عَرَضاً لنفس السبب: الرقم كان يُكتب داخل جملة يؤلّفها
+ * النموذج، لا رقماً يُنسّقه التطبيق.
+ *
+ * نفس نمط `financial-coach.computeSummary`: دور النموذج الصياغة بالعربية،
+ * والحساب مسؤولية الكود وحده.
+ */
+function computeSummary(input: AnalyzeSpendingPatternsInput) {
+  const code = (input.currency ?? 'IQD') as CurrencyCode;
+  const { symbol, position } = CURRENCIES[code] ?? CURRENCIES.IQD;
+  // النصّ يُسلَّم للنموذج جاهزاً بفارزته ورمز عملته، فلا يعيد تنسيقه ولا يخترعه.
+  const money = (n: number) => {
+    const num = Math.round(n).toLocaleString('en-US');
+    return position === 'before' ? `${symbol}${num}` : `${num} ${symbol}`;
+  };
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const sum = (list: { amount: number }[]) => list.reduce((s, e) => s + (e.amount || 0), 0);
 
-const AnalyzeSpendingPatternsPromptInputSchema = AnalyzeSpendingPatternsInputSchema.extend({
+  const totalSpent = sum(input.expenses);
+
+  const byCategory = new Map<string, number>();
+  input.expenses.forEach(e => byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + (e.amount || 0)));
+  const categories = [...byCategory.entries()]
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      amountText: money(amount),
+      percentage: totalSpent > 0 ? round1((amount / totalSpent) * 100) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const top = categories[0] ?? { name: '—', amount: 0, amountText: money(0), percentage: 0 };
+
+  const prevTotal = input.previousPeriodExpenses?.length ? sum(input.previousPeriodExpenses) : null;
+  const change = prevTotal && prevTotal > 0 ? round1(((totalSpent - prevTotal) / prevTotal) * 100) : null;
+  const prevLabel = input.previousPeriodDescription ?? '';
+
+  const comparison = change === null ? null
+    : change > 0 ? `بارتفاع ${Math.abs(change)}% عن ${prevLabel}`
+    : change < 0 ? `بانخفاض ${Math.abs(change)}% عن ${prevLabel}`
+    : `بمستوى مماثل لـ${prevLabel}`;
+
+  return {
+    totalSpent,
+    totalSpentText: money(totalSpent),
+    budgetText: input.totalBudget ? money(input.totalBudget) : null,
+    categories,
+    top,
+    prevTotalText: prevTotal === null ? null : money(prevTotal),
+    changeAbs: change === null ? null : Math.abs(change),
+    comparison,
+    // جملة يبنيها الكود بالكامل — شبكةُ أمان لو حادت جملة النموذج عن الرقم.
+    fallbackSummary: `بلغ إجمالي إنفاقك ${money(totalSpent)} في ${input.periodDescription}${comparison ? `، ${comparison}` : ''}.`,
+  };
+}
+
+const SummarySchema = z.object({
+  totalSpentText: z.string(),
+  budgetText: z.string().nullable(),
+  categories: z.array(z.object({ name: z.string(), amountText: z.string(), percentage: z.number() })),
+  top: z.object({ name: z.string(), amountText: z.string(), percentage: z.number() }),
+  prevTotalText: z.string().nullable(),
+  changeAbs: z.number().nullable(),
+  comparison: z.string().nullable(),
+});
+
+// isColloquial تُحسب في الكود لا داخل القالب: قوالب Genkit تعمل بـ
+// knownHelpersOnly، فلا تعرف مساعداً اسمه eq وترفض القالب عند تجميعه.
+const AnalyzeSpendingPatternsPromptInputSchema = z.object({
+  periodDescription: z.string(),
+  previousPeriodDescription: z.string().optional(),
   isColloquial: z.boolean(),
+  summary: SummarySchema,
 });
 
 const prompt = ai.definePrompt({
@@ -63,33 +142,37 @@ const prompt = ai.definePrompt({
 **Tone:** {{#if isColloquial}}Use friendly Iraqi dialect (عامية عراقية). Short and warm.{{else}}Use professional Modern Standard Arabic (فصحى).{{/if}}
 
 ---
-**Current Period:** {{periodDescription}}
-{{#if totalBudget}}**Budget:** {{totalBudget}} د.ع{{/if}}
+CRITICAL: Every figure below is PRE-COMPUTED and VERIFIED by the application.
+- Copy the money strings EXACTLY as written — they already carry thousands separators and the correct currency symbol.
+- DO NOT recalculate, re-sum, re-derive, round, reformat, or convert any number.
+- DO NOT state any number that does not appear verbatim below.
+- DO NOT add, subtract, or combine two figures together.
 
-**Current Period Expenses:**
-{{#each expenses}}
-- {{this.amount}} د.ع | "{{this.category}}" | {{this.date}} | "{{this.title}}"
+**Period:** {{periodDescription}}
+**Total spent:** {{summary.totalSpentText}}
+{{#if summary.budgetText}}**Budget:** {{summary.budgetText}}{{/if}}
+
+**Spending by category (pre-computed, sorted highest first):**
+{{#each summary.categories}}- {{this.name}}: {{this.amountText}} ({{this.percentage}}%)
 {{/each}}
 
-{{#if previousPeriodExpenses}}
----
-**Previous Period ({{previousPeriodDescription}}) Expenses — for trend comparison only:**
-{{#each previousPeriodExpenses}}
-- {{this.amount}} د.ع | "{{this.category}}" | {{this.date}} | "{{this.title}}"
-{{/each}}
+{{#if summary.prevTotalText}}
+**Previous period ({{previousPeriodDescription}}):** {{summary.prevTotalText}}
+**Verified comparison phrase:** {{summary.comparison}}
 {{/if}}
 
 ---
 **Instructions:**
 
-1. **performanceSummary** — One neutral sentence: total spent, and if previous period data exists, compare totals (e.g., "ارتفع إنفاقك بنسبة 12% مقارنةً بـ {{previousPeriodDescription}}").
+1. **performanceSummary** — One neutral Arabic sentence stating the total spent for the period. It MUST contain the string "{{summary.totalSpentText}}" exactly as given.{{#if summary.comparison}} Then append the verified comparison, reusing "{{summary.comparison}}" as given.{{/if}}
 
-2. **highestSpendingCategory** — Category with highest spend: name, amount, percentage of total.
+2. **highestSpendingCategory** — Copy verbatim, do not compute:
+   - category: "{{summary.top.name}}"
+   - amount: the numeric value of {{summary.top.amountText}} without separators or symbol
+   - percentage: {{summary.top.percentage}}
 
-3. **keyObservations** — Exactly 2 factual observations. Priority:
-   - If previous period data exists: MUST include at least one trend comparison (e.g., "إنفاق فئة الطعام ارتفع 18% عن الشهر الماضي"). Icon: TrendingUp or TrendingDown.
-   - Otherwise: two interesting facts about the current period distribution.
-   - NEVER give advice. State facts only.
+3. **keyObservations** — Exactly 2 factual observations in Arabic. Each may reference AT MOST ONE category from the table above, quoting its amount or percentage exactly as listed. Never combine or total two categories. NEVER give advice — state facts only.
+   - Icons: TrendingUp / TrendingDown for trend statements, PieChart for distribution, Wallet for totals.
 
 Respond strictly in the specified JSON format.
 `,
@@ -102,11 +185,30 @@ const analyzeSpendingPatternsFlow = ai.defineFlow(
     outputSchema: AnalyzeSpendingPatternsOutputSchema,
   },
   async (input) => {
+    const summary = computeSummary(input);
+
     const {output} = await prompt(
-      { ...input, isColloquial: input.appTone === 'colloquial' },
+      {
+        periodDescription: input.periodDescription,
+        previousPeriodDescription: input.previousPeriodDescription,
+        isColloquial: input.appTone === 'colloquial',
+        summary,
+      },
       { config: { thinkingConfig: { thinkingBudget: 0 } } },
     );
-    return output!;
+    if (!output) throw new Error('لم يُرجع النموذج تحليلاً.');
+
+    // حارسان حاسمان: التوجيه وحده لا يكفي — ما يُعرض كرقم يُفرَض من الحساب.
+    output.highestSpendingCategory = {
+      category: summary.top.name,
+      amount: summary.top.amount,
+      percentage: summary.top.percentage,
+    };
+    if (!output.performanceSummary?.includes(summary.totalSpentText)) {
+      output.performanceSummary = summary.fallbackSummary;
+    }
+
+    return output;
   }
 );
 

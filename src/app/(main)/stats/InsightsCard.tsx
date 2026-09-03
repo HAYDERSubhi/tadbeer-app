@@ -19,6 +19,7 @@ async function fetchAnalysis(input: AnalyzeSpendingPatternsInput): Promise<Analy
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
+import { useCurrency } from '@/hooks/use-currency';
 import type { Expense } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ export function InsightsCard({
 }: InsightsCardProps) {
   const { userSettings, isLoading: isAppDataLoading } = useAppData();
   const { categoryMap } = useCategories();
+  const { currency, format: formatCurrency } = useCurrency();
 
   // ── Previous period expenses for trend comparison ─────────────────────────
   const { prevExpenses, prevDescription } = useMemo(() => {
@@ -94,15 +96,16 @@ export function InsightsCard({
       totalBudget: userSettings?.budget?.totalBudget,
       periodDescription,
       appTone: userSettings?.appTone ?? 'formal',
+      currency: currency.code,
     };
-  }, [filteredExpenses, prevExpenses, prevDescription, periodDescription, userSettings, categoryMap, isAppDataLoading]);
+  }, [filteredExpenses, prevExpenses, prevDescription, periodDescription, userSettings, categoryMap, isAppDataLoading, currency.code]);
 
   // Stable cache key — changes when the actual expense data changes
   const cacheKey = useMemo(() => {
     if (!analysisInput) return null;
     const hash = filteredExpenses.map(e => `${e.id}:${e.amount}`).join('|').slice(0, 300);
-    return `insights-${periodDescription}-${hash}`;
-  }, [analysisInput, filteredExpenses, periodDescription]);
+    return `insights-${periodDescription}-${currency.code}-${hash}`;
+  }, [analysisInput, filteredExpenses, periodDescription, currency.code]);
 
   const { data: analysis, isLoading, isError, refetch } = useQuery({
     queryKey: ['spending-analysis', cacheKey],
@@ -166,7 +169,7 @@ export function InsightsCard({
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="font-bold text-sm">{analysis.highestSpendingCategory.category}</p>
                   <p className="font-bold text-sm text-primary">
-                    {analysis.highestSpendingCategory.amount.toLocaleString()} د.ع
+                    <bdi>{formatCurrency(analysis.highestSpendingCategory.amount)}</bdi>
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
