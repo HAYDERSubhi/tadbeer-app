@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import type { UserProfile, Goal } from '@/types';
 import { financialPlanner, FinancialPlannerOutput, FinancialPlannerInput } from '@/ai/flows/financial-planner';
 import { subMonths, isAfter, parseISO as parseDateISO } from 'date-fns';
+import { arabicPlural, MINUTE, HOUR, DAY } from '@/lib/arabic-plural';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -132,6 +133,7 @@ function PlannerContent() {
     isFetching: isGenerating,
     error: planError,
     refetch: refetchPlan,
+    dataUpdatedAt: planBuiltAt,
   } = useQuery<FinancialPlannerOutput>({
     queryKey: ['financial-plan', planCacheKey],
     queryFn: async () => {
@@ -220,6 +222,26 @@ function PlannerContent() {
     if (!user) return;
     deleteGoalMutation.mutate(goalId);
   };
+
+  // «بُنيت قبل …» — الخطة تُبنى بمصاريف لحظتها ولا تتجدّد مع كل مصروف جديد،
+  // لأن كل توليد نداء مدفوع للذكاء. فبدل تجديد صامت أو صمت مضلِّل، يُعرض عمرها
+  // ليقرّر المستخدم بنفسه متى يستحق التحديث.
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!plan) return;
+    const id = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [plan]);
+
+  const planAgeLabel = useMemo(() => {
+    if (!plan || !planBuiltAt) return null;
+    const mins = Math.floor(Math.max(0, nowTick - planBuiltAt) / 60_000);
+    if (mins < 1) return 'بُنيت الآن';
+    if (mins < 60) return `بُنيت قبل ${arabicPlural(mins, MINUTE, 'oblique')}`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `بُنيت قبل ${arabicPlural(hours, HOUR, 'oblique')}`;
+    return `بُنيت قبل ${arabicPlural(Math.floor(hours / 24), DAY, 'oblique')}`;
+  }, [plan, planBuiltAt, nowTick]);
 
   const handleGeneratePlan = () => {
     if (planEnabled && plan) {
@@ -491,6 +513,11 @@ function PlannerContent() {
                         : <><Bot className="ml-2 h-4 w-4" /> أنشئ الخطة الذكية</>
                     }
                 </Button>
+                {planAgeLabel && !isGenerating && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                    <bdi>{planAgeLabel}</bdi> — اضغط لتحديث الخطة
+                  </p>
+                )}
             </CardContent>
         </Card>
       )}

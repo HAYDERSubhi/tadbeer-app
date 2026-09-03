@@ -60,3 +60,5 @@ export const BADGE: ArabicForms = { one: 'شارة واحدة', two: 'شارتا
 export const SHARE: ArabicForms = { one: 'سهم واحد',   two: 'سهمان',  twoOblique: 'سهمين',  few: 'أسهم',  many: 'سهماً' };
 export const TIME: ArabicForms  = { one: 'مرة واحدة',  two: 'مرتان',  twoOblique: 'مرتين',  few: 'مرات',  many: 'مرة' };
 export const MONTH: ArabicForms = { one: 'شهر واحد',   two: 'شهران',  twoOblique: 'شهرين',  few: 'أشهر',  many: 'شهراً' };
+export const MINUTE: ArabicForms= { one: 'دقيقة واحدة', two: 'دقيقتان', twoOblique: 'دقيقتين', few: 'دقائق', many: 'دقيقة' };
+export const HOUR: ArabicForms  = { one: 'ساعة واحدة',  two: 'ساعتان', twoOblique: 'ساعتين',  few: 'ساعات', many: 'ساعة' };
