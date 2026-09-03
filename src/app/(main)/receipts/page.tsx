@@ -231,6 +231,13 @@ export default function DetailedReceiptPage() {
   // ── الكاميرا الاحترافية ──
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  // (١) وضع الفاتورة الطويلة: يرشد للتصوير جزءاً جزءاً بدل محاولة حشر
+  //     الفاتورة كلها في الإطار — وهو ما يدفع للابتعاد فيصغر النصّ.
+  const [longMode, setLongMode] = useState(false);
+  // (٣) نسبة أبعاد الفيديو الحقيقية: بها يُرسم الإطار على مساحة ما سيُلتقط
+  //     بالضبط، فيصير التصويب ذا معنى. بلا هذا كان الإطار مقاساً بـvw/vh
+  //     ولا علاقة له بمخرَج المستشعر.
+  const [videoAspect, setVideoAspect] = useState<number | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);  // وميض الالتقاط
   // مصدر فتح شاشة القص: بعد الالتقاط مباشرة (camera) أو من مصغّرات الشاشة الرئيسية (gallery)
   const [cropSource, setCropSource] = useState<'camera' | 'gallery'>('gallery');
@@ -281,6 +288,10 @@ export default function DetailedReceiptPage() {
         if (!mounted || !videoRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          const v = videoRef.current;
+          if (v?.videoWidth && v.videoHeight) setVideoAspect(v.videoWidth / v.videoHeight);
+        };
         videoRef.current.play();
         const track = stream.getVideoTracks()[0];
         // تركيز تلقائي مستمر — حاسم لوضوح نص الفاتورة عن قرب (يتجاهله المتصفح إن لم يدعمه)
@@ -602,6 +613,15 @@ export default function DetailedReceiptPage() {
         <Button variant="ghost" size="icon" onClick={() => setViewState('initial')} className="text-white hover:bg-white/10 hover:text-white">
           <ArrowRight />
         </Button>
+        <div className="flex items-center gap-2">
+        <button onClick={() => setLongMode(v => !v)} aria-label="وضع الفاتورة الطويلة"
+          className={cn(
+            "h-11 px-3 rounded-full flex items-center gap-1.5 text-xs font-medium transition-colors backdrop-blur-sm",
+            longMode ? "bg-primary text-primary-foreground" : "bg-white/15 text-white",
+          )}>
+          <Receipt className="h-4 w-4" />
+          فاتورة طويلة
+        </button>
         {torchSupported && (
           <button onClick={toggleTorch} aria-label="الفلاش"
             className={cn(
@@ -611,10 +631,11 @@ export default function DetailedReceiptPage() {
             {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
           </button>
         )}
+        </div>
       </header>
 
       <div className="flex-1 relative">
-        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+        <video ref={videoRef} className="w-full h-full object-contain" autoPlay muted playsInline />
         <canvas ref={photoRef} className="hidden" />
 
         {/* وميض الالتقاط */}
@@ -623,20 +644,56 @@ export default function DetailedReceiptPage() {
           isCapturing ? "opacity-70" : "opacity-0"
         )} />
 
-        {/* إطار التوجيه — قناع داكن + زوايا ماسح ضوئي بيضاء */}
+        {/* (٣) الإطار على مساحة ما سيُلتقط بالضبط: نسبة المستشعر نفسها، فلا
+            يبقى خارجه شيء يدخل الصورة خفيةً. وفي الوضع الطويل يتحوّل إلى
+            شريط أفقي يدفع للاقتراب بدل حشر الفاتورة كلها. */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="relative w-[74vw] h-[70vh] rounded-2xl border border-white/40" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }}>
+          <div
+            className="relative max-w-full max-h-full"
+            style={videoAspect ? { aspectRatio: String(videoAspect), width: '100%', height: '100%' } : { width: '100%', height: '100%' }}
+          >
             {/* زوايا L بارزة — نمط CamScanner */}
-            <span className="absolute -top-[3px] -right-[3px] w-9 h-9 border-t-4 border-r-4 border-white rounded-tr-2xl" />
-            <span className="absolute -top-[3px] -left-[3px] w-9 h-9 border-t-4 border-l-4 border-white rounded-tl-2xl" />
-            <span className="absolute -bottom-[3px] -right-[3px] w-9 h-9 border-b-4 border-r-4 border-white rounded-br-2xl" />
-            <span className="absolute -bottom-[3px] -left-[3px] w-9 h-9 border-b-4 border-l-4 border-white rounded-bl-2xl" />
+            <span className="absolute top-1 right-1 w-9 h-9 border-t-4 border-r-4 border-white rounded-tr-2xl" />
+            <span className="absolute top-1 left-1 w-9 h-9 border-t-4 border-l-4 border-white rounded-tl-2xl" />
+            <span className="absolute bottom-1 right-1 w-9 h-9 border-b-4 border-r-4 border-white rounded-br-2xl" />
+            <span className="absolute bottom-1 left-1 w-9 h-9 border-b-4 border-l-4 border-white rounded-bl-2xl" />
+
+            {/* (١) شريط الجزء — يملأ العرض وثلث الارتفاع: أقرب ⇒ نصّ أكبر */}
+            {longMode && (
+              <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-1/3 rounded-xl border-2 border-primary"
+                   style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }}>
+                <span className="absolute -top-7 start-0 text-primary text-xs font-bold drop-shadow">
+                  الجزء {images.length + 1}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="absolute bottom-52 left-0 right-0 text-center px-6 pointer-events-none">
-          <p className="text-white text-sm font-medium opacity-95 drop-shadow">قرّب حتى تملأ الفاتورة عرض الإطار</p>
-          <p className="text-white text-xs opacity-70 mt-1 drop-shadow">أطول من الإطار؟ صوّرها جزءاً جزءاً من الأعلى للأسفل — تُقرأ معاً</p>
+        <div className="absolute bottom-52 inset-x-4 text-center pointer-events-none">
+          <div className="inline-block px-4 py-2.5 rounded-2xl bg-black/45 backdrop-blur-sm">
+          {longMode ? (
+            <>
+              <p className="text-white text-sm font-medium opacity-95 drop-shadow">
+                {images.length === 0
+                  ? 'ضع أعلى الفاتورة داخل الشريط'
+                  : 'ابدأ من آخر سطر صوّرته — تداخل سطرين يكفي'}
+              </p>
+              <p className="text-white text-xs opacity-70 mt-1 drop-shadow">
+                {images.length === 0
+                  ? 'قرّب حتى تملأ الأسطر عرض الشريط — كلما اقتربت صار النصّ أوضح'
+                  : `التقطت ${images.length} — تابع نزولاً حتى آخر الفاتورة`}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-white text-sm font-medium opacity-95 drop-shadow">قرّب حتى تملأ الفاتورة عرض الإطار</p>
+              <p className="text-white text-xs opacity-70 mt-1 drop-shadow">أطول من الإطار؟ فعّل «فاتورة طويلة» وصوّرها جزءاً جزءاً</p>
+            </>
+          )}
+          {/* (٦) تلميح عملي — أكثر ما يفسد اللقطات: اليد والوهج */}
+          <p className="text-white/60 text-[11px] mt-2 drop-shadow">امسكها من حافتها لا من وسطها · تجنّب الأسطح اللامعة</p>
+          </div>
         </div>
       </div>
 
@@ -754,6 +811,15 @@ export default function DetailedReceiptPage() {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+
+          {/* (٦) التلميحات قبل التصوير لا بعده. أكثر ثلاثة أسباب تفسد اللقطة في
+              صور صاحب المشروع: اليد على الأسطر، الوهج على السطح اللامع، والابتعاد. */}
+          <div className="rounded-lg bg-muted/50 border p-3 space-y-1.5">
+            <p className="text-[11px] font-semibold">للحصول على أدقّ قراءة</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">• امسك الفاتورة من حافتها — يدك على الأسطر تخفيها عن الذكاء</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">• ضعها على سطح غير لامع، ولا تستعمل الفلاش على الورق اللامع</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">• قرّب حتى تملأ عرض الإطار — والطويلة تُصوَّر جزءاً جزءاً</p>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={() => fileInputRef.current?.click()}>
