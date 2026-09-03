@@ -118,40 +118,86 @@ const compressDataUri = (src: string, maxDim = 2000, quality = JPEG_QUALITY_TEXT
     img.src = src;
   });
 
-/** Runs a quick brightness + contrast check on a data URI image. */
+/**
+ * فحص جودة الصورة: هل حروف الفاتورة كبيرة كفايةً لتُقرأ؟
+ *
+ * الفحص السابق كان يصغّر الصورة إلى 120×120 ثم يقيس السطوع والتباين — وبهذا
+ * الحجم لا وجود للحروف أصلاً. فوسم صورتَي فاتورة بـ«واضحة ✓» ثم قرأ النموذج
+ * سنتها 2023 بدل 2026 (2026-09-03). شارة تطمئن بلا أن تفحص أخطر من لا شارة.
+ *
+ * ⚠️ مقاييس «الحدّة» (تباين لابلاس) خاطئة لهذه المشكلة تحديداً، وأعطت فرقاً
+ * **مقلوباً** في ست تجارب على صورتي معايرة حقيقيتين: الحدّة تقيس كمّية التفاصيل
+ * الدقيقة، وصورة قريبة لحروف كبيرة تحوي تفاصيل أقل من لقطة بعيدة لطاولة مزدحمة.
+ * الصورتان مركّزتان كلتاهما — الفرق **مسافة** لا حدّة.
+ *
+ * المقياس الصحيح: **سُمك الحرف بالبكسل** = وسيط أطوال المقاطع الداكنة أفقياً.
+ * معايَر على صورتَي صاحب المشروع (2026-09-04) بدقّة موحَّدة 2000px:
+ *   قريبة واضحة = 4px  ·  بعيدة = 2px  ·  فصل ×2.00  ·  ~17ms للصورة
+ * (المتوسّط بدل الوسيط يعطي ×1.22 فقط، ودقّة 2500 تعطي ×1.67 — فالإعداد مثبَّت.)
+ *
+ * ⚠️ حدود الثقة: صورتان فقط، وقيم صحيحة صغيرة فالهامش ±1px. لذلك 3px منطقة
+ * «مقبولة» لا تُحسم، والنتيجة **تُخبر ولا تمنع** التحليل.
+ */
+const QUALITY_NORM_PX = 2000;   // دقّة موحَّدة: العتبة يجب ألّا تتغيّر بحجم الصورة
+const QUALITY_ROW_STEP = 8;     // عيّنة صفوف — نفس النتيجة بربع الزمن
+const STROKE_GOOD = 4;          // ≥ 4px: الحروف مقروءة
+const STROKE_BAD = 2;           // ≤ 2px: أصغر من أن تُقرأ
+
 const checkImageQuality = (src: string): Promise<ImageQuality> =>
   new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => {
-      const SIZE = 120;
+      const r = Math.min(QUALITY_NORM_PX / img.width, QUALITY_NORM_PX / img.height, 1);
+      const w = Math.round(img.width * r), h = Math.round(img.height * r);
       const canvas = document.createElement('canvas');
-      canvas.width = SIZE; canvas.height = SIZE;
+      canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve('good'); return; }
-      ctx.drawImage(img, 0, 0, SIZE, SIZE);
-      const { data } = ctx.getImageData(0, 0, SIZE, SIZE);
-      let totalBrightness = 0;
-      const pixels = data.length / 4;
-      for (let i = 0; i < data.length; i += 4)
-        totalBrightness += (data[i] + data[i + 1] + data[i + 2]) / 3;
-      const avg = totalBrightness / pixels;
-      let variance = 0;
-      for (let i = 0; i < data.length; i += 4)
-        variance += Math.pow((data[i] + data[i + 1] + data[i + 2]) / 3 - avg, 2);
-      variance /= pixels;
-      // variance < 150 → very uniform / blurry  |  avg < 55 → very dark
-      if (avg < 55 || variance < 150) resolve('bad');
-      else if (avg < 90 || variance < 400) resolve('warn');
-      else resolve('good');
+      ctx.drawImage(img, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
+
+      // صورة مظلمة جداً تفشل قبل أي كلام عن الحروف — يبقى هذا الفحص من السابق.
+      let total = 0;
+      for (let i = 0; i < data.length; i += 4) total += (data[i] + data[i + 1] + data[i + 2]) / 3;
+      if (total / (data.length / 4) < 55) { resolve('bad'); return; }
+
+      // أطوال المقاطع الداكنة أفقياً = سُمك الحرف. العتبة محلية لكل صف فتتكيّف
+      // مع الظلّ والإضاءة غير المتساوية على الورق.
+      const runs: number[] = [];
+      for (let y = 0; y < h; y += QUALITY_ROW_STEP) {
+        const base = y * w * 4;
+        let mn = 255, mx = 0;
+        for (let x = 0; x < w; x++) {
+          const p = base + x * 4;
+          const lum = data[p] * 0.299 + data[p + 1] * 0.587 + data[p + 2] * 0.114;
+          if (lum < mn) mn = lum;
+          if (lum > mx) mx = lum;
+        }
+        if (mx - mn < 60) continue; // صف بلا تباين — لا نصّ فيه
+        const th = mn + (mx - mn) * 0.55;
+        let run = 0;
+        for (let x = 0; x < w; x++) {
+          const p = base + x * 4;
+          const lum = data[p] * 0.299 + data[p + 1] * 0.587 + data[p + 2] * 0.114;
+          if (lum < th) run++;
+          else { if (run >= 1 && run <= 60) runs.push(run); run = 0; }
+        }
+      }
+      // لا نصّ يُقاس (صورة فارغة أو معتمة) — لا ندّعي جودة ولا نُفزع.
+      if (runs.length < 200) { resolve('warn'); return; }
+
+      runs.sort((a, b) => a - b);
+      const median = runs[runs.length >> 1];
+      resolve(median >= STROKE_GOOD ? 'good' : median <= STROKE_BAD ? 'bad' : 'warn');
     };
     img.onerror = () => resolve('good');
     img.src = src;
   });
 
 const qualityMeta: Record<ImageQuality, { label: string; color: string; icon: React.ElementType }> = {
-  good:     { label: 'واضحة',    color: 'text-green-500',  icon: ShieldCheck    },
-  warn:     { label: 'مقبولة',   color: 'text-yellow-500', icon: ShieldQuestion },
-  bad:      { label: 'ضعيفة',    color: 'text-red-500',    icon: ShieldAlert    },
+  good:     { label: 'واضحة',     color: 'text-green-500',  icon: ShieldCheck    },
+  warn:     { label: 'نصّ صغير',  color: 'text-yellow-500', icon: ShieldQuestion },
+  bad:      { label: 'اقترب',     color: 'text-red-500',    icon: ShieldAlert    },
   checking: { label: 'فحص...',   color: 'text-muted-foreground', icon: Loader2  },
 };
 
@@ -323,8 +369,8 @@ export default function DetailedReceiptPage() {
       setImages(prev => prev.map(img => img.id === entry.id ? { ...img, quality } : img));
       if (quality === 'bad') {
         toast({
-          title: '⚠️ جودة الصورة ضعيفة',
-          description: 'الصورة مظلمة أو ضبابية جداً. أعد التصوير في ضوء أفضل للحصول على نتائج دقيقة.',
+          title: '⚠️ النصّ أصغر من أن يُقرأ',
+          description: 'اقترب من الفاتورة حتى تملأ الشاشة، أو صوّرها جزءاً جزءاً. الأرقام الصغيرة تُقرأ خطأً.',
           variant: 'destructive',
         });
       }
