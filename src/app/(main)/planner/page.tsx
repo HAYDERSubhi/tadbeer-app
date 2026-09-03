@@ -78,7 +78,10 @@ function PlannerContent() {
   const { format: formatCurrency } = useCurrency();
   const goalIdFromQuery = searchParams.get('goalId');
 
-  const { goals, expenses, userSettings } = useAppData();
+  // ⚠️ householdId إلزامي لكل كتابة على الأهداف: القراءة (getGoals في
+  // use-app-data) تمرّره، فإسقاطه عند الكتابة يحفظ في المسار الشخصي بينما
+  // القائمة تقرأ من مسار العائلة — فيختفي الهدف بلا رسالة خطأ.
+  const { goals, expenses, userSettings, householdId } = useAppData();
 
   const [selectedGoalId, setSelectedGoalId] = useState<string>('');
   const [planEnabled, setPlanEnabled] = useState(false);
@@ -159,7 +162,7 @@ function PlannerContent() {
   });
 
   const addGoalMutation = useMutation({
-    mutationFn: (newGoal: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => addGoal(user!.uid, newGoal),
+    mutationFn: (newGoal: Omit<Goal, 'id' | 'createdAt' | 'uid'>) => addGoal(user!.uid, newGoal, householdId),
     onSuccess: (newGoalId) => {
         queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
         toast({
@@ -175,7 +178,7 @@ function PlannerContent() {
   });
 
   const deleteGoalMutation = useMutation({
-    mutationFn: (goalId: string) => deleteGoal(user!.uid, goalId),
+    mutationFn: (goalId: string) => deleteGoal(user!.uid, goalId, householdId),
     onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
       toast({ title: "تم الحذف", description: "تم حذف الهدف المالي بنجاح." });
@@ -188,7 +191,7 @@ function PlannerContent() {
 
   const updateSavingMutation = useMutation({
     mutationFn: ({ goalId, amount }: { goalId: string; amount: number }) =>
-      updateGoalSavedAmount(user!.uid, goalId, amount),
+      updateGoalSavedAmount(user!.uid, goalId, amount, householdId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals', user?.uid] });
       setEditingSavingId(null);

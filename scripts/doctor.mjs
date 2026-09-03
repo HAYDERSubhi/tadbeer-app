@@ -220,6 +220,22 @@ scan({
   skip: text => /householdId\s*\?/.test(text), // السطر يفرّع فعلاً
 });
 
+// نداء دالة مزدوجة المسار بلا تمرير householdId — شكل ثانٍ من العطل نفسه،
+// لا يمسكه الفحص أعلاه لأنه لا يكتب المسار نصّاً بل يُسقِط وسيطاً.
+// حدث فعلاً: صفحة الأهداف كانت تحفظ في المسار الشخصي بينما تقرأ من مسار
+// العائلة، فيختفي الهدف بلا أي رسالة خطأ (2026-09-03).
+scan({
+  id: 'dual-path-arg',
+  sev: 'red',
+  title: 'نداء دالة مزدوجة المسار بلا householdId',
+  hint: 'مرّر householdId وسيطاً أخيراً — القراءة تمرّره، فإسقاطه عند الكتابة يفصل المسارين',
+  re: /\b(?:addGoal|deleteGoal|updateGoalSavedAmount|addExpense|updateExpense|deleteExpense|addExpensesBatch|deleteExpensesBatch|addIncome|updateIncome|deleteIncome|getGoals|getExpenses|getIncomes)\s*\([^)]*\)/,
+  skip: (text, path) =>
+    path.endsWith('services/firestore.ts') ||   // ملف التعريف نفسه
+    /householdId/.test(text) ||                  // يمرّره فعلاً
+    /^\s*(?:import|export)\b/.test(text),        // سطر استيراد/تصدير لا نداء
+});
+
 /* ══ ٥. العملة والأرقام ══════════════════════════════════════════════════ */
 // المستخدم يستطيع تغيير عملته، وكل الشاشات تحترم اختياره — عدا النصوص التي
 // تكتب «د.ع» ثابتة.
