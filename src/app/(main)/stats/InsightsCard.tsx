@@ -180,7 +180,7 @@ export function InsightsCard({
                     />
                   </div>
                   <span className="text-[11px] text-muted-foreground shrink-0">
-                    {analysis.highestSpendingCategory.percentage.toFixed(0)}%
+                    {Number(analysis.highestSpendingCategory.percentage.toFixed(1))}%
                   </span>
                 </div>
               </div>

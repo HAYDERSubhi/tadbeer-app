@@ -394,10 +394,10 @@ export default function StatisticsPage() {
               </CardHeader>
               <CardContent className="pb-4 px-2">
                 <ChartContainer config={chartConfig} className="w-full h-[220px]">
-                  <LineChart data={trendChartData} margin={{ top: 16, right: 8, left: -18, bottom: 0 }}>
+                  <LineChart data={trendChartData} margin={{ top: 16, right: -18, left: 8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={6} tick={{ fontSize: 9 }} />
-                    <YAxis tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
+                    <XAxis reversed dataKey="name" tickLine={false} axisLine={false} tickMargin={6} tick={{ fontSize: 9 }} />
+                    <YAxis orientation="right" tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
                     <RechartsTooltip
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
@@ -441,16 +441,16 @@ export default function StatisticsPage() {
                 <CardHeader className="py-3 px-4">
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <LineChartIcon className="h-4 w-4 text-primary" />
-                    مقارنة الفئات
+                    تفصيل الأيام حسب الفئة
                   </CardTitle>
-                  <CardDescription className="text-xs">أعلى الفئات إنفاقاً خلال {periodDescription}</CardDescription>
+                  <CardDescription className="text-xs">أكبر خمس فئات، موزّعة على أيام {periodDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="pb-4 px-2">
                   <ChartContainer config={chartConfig} className="w-full h-[200px]">
-                    <RechartsBarChart data={merged} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} barCategoryGap="25%">
+                    <RechartsBarChart data={merged} margin={{ top: 8, right: -18, left: 8, bottom: 0 }} barCategoryGap="25%">
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 9 }} tickMargin={6} />
-                      <YAxis tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
+                      <XAxis reversed dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 9 }} tickMargin={6} />
+                      <YAxis orientation="right" tickLine={false} axisLine={false} tickFormatter={v => fmt(v as number)} tick={{ fontSize: 9 }} />
                       <RechartsTooltip
                         cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
                         content={({ active, payload, label }) => {

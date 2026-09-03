@@ -10,7 +10,7 @@
  */
 import {z} from 'zod';
 import type { Expense, UserSettings } from '@/types';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, subDays, startOfDay } from 'date-fns';
 import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 import { SYSTEM_CATEGORIES } from '@/lib/constants';
 
@@ -90,7 +90,10 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
     });
 
     const categoryBudgets = userSettings.categoryBudgets || {};
-    const chartColors = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'];
+    const chartColors = [
+      '--chart-1', '--chart-2', '--chart-3',  '--chart-4',  '--chart-5',  '--chart-6',
+      '--chart-7', '--chart-8', '--chart-9', '--chart-10', '--chart-11', '--chart-12',
+    ];
 
     let filteredExpenses: Expense[];
     let periodStart: Date, periodEnd: Date;
@@ -130,22 +133,30 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
       categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
     });
 
-    const pieChartData = Object.entries(categoryTotals)
-      .map(([key, value], index) => {
-          const categoryDetails = categoryMap[key];
-          // Guard against non-numeric category colors (custom/imported
-          // categories) — NaN would produce an invisible chart slice.
-          const parsedColor = categoryDetails ? parseInt(categoryDetails.color, 10) : NaN;
-          const colorIndex = Number.isFinite(parsedColor) ? parsedColor - 1 : index % 5;
-          return {
-            name: categoryMap[key]?.name || key,
-            value: value,
-            key: key,
-            fill: `hsl(var(${chartColors[((colorIndex % 5) + 5) % 5]}))`,
-            percentage: totalForPeriod > 0 ? (value / totalForPeriod) * 100 : 0,
-          };
-      })
-      .sort((a, b) => b.value - a.value);
+    // اللون يُسنَد **بالرتبة بعد الفرز**، لا من الفهرس المحفوظ في الفئة.
+    //
+    // السبب: فهرس اللون يُبذَر في قاعدة كل مستخدم يوم تسجيله (firestore.ts:298)،
+    // فتغيير الثوابت لا يصل من سجّل قبله. وكانت ١٣ فئة افتراضية تتقاسم خمسة
+    // فهارس، فيظهر الطعام والشراب والكماليات الشخصية بالأزرق نفسه في دائرة
+    // واحدة (بلاغ 2026-09-03). الإسناد بالرتبة يضمن تمايز كل شريحة معروضة
+    // للقديم والجديد معاً، بلا لمس بيانات أحد.
+    //
+    // الأثر الجانبي المقصود: أعلى فئة تأخذ اللون الأول دائماً، فقد يتبدّل لون
+    // الفئة بين شهر وآخر مع تبدّل ترتيبها. التمايز داخل الدائرة الواحدة أهم —
+    // ووسيلة الإيضاح ملاصقة لها دائماً.
+    const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+    const colorOfCategory = new Map<string, string>();
+    sortedCategories.forEach(([key], rank) => {
+      colorOfCategory.set(key, `hsl(var(${chartColors[rank % chartColors.length]}))`);
+    });
+
+    const pieChartData = sortedCategories.map(([key, value]) => ({
+      name: categoryMap[key]?.name || key,
+      value: value,
+      key: key,
+      fill: colorOfCategory.get(key)!,
+      percentage: totalForPeriod > 0 ? (value / totalForPeriod) * 100 : 0,
+    }));
 
     const categorySummary = pieChartData.map(item => ({
       id: item.key,
@@ -167,8 +178,15 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
       const monthlyTotals: { [key: string]: number } = {};
       const categoryMonthlyTotals: { [catId: string]: { [monthKey: string]: number } } = {};
 
-      for (let i = 0; i < 12; i++) {
-        const monthKey = format(new Date(parseInt(selectedPeriod), i, 1), 'yyyy-MM');
+      // ⚠️ لا تُبذَر أشهر لم تأتِ بعد. كانت الحلقة تملأ الاثني عشر أصفاراً، فيهبط
+      // الخطّ إلى الصفر ويمتدّ مسطّحاً إلى آخر السنة وكأن الإنفاق انهار — بينما
+      // الأشهر لم تحن (بلاغ 2026-09-03). السنوات الماضية تُرسم كاملةً كما هي.
+      const plotYear = parseInt(selectedPeriod, 10);
+      const nowForPlot = new Date();
+      const monthsToPlot = plotYear === nowForPlot.getFullYear() ? nowForPlot.getMonth() + 1 : 12;
+
+      for (let i = 0; i < monthsToPlot; i++) {
+        const monthKey = format(new Date(plotYear, i, 1), 'yyyy-MM');
         monthlyTotals[monthKey] = 0;
         topCategoryIds.forEach(catId => {
             if (!categoryMonthlyTotals[catId]) categoryMonthlyTotals[catId] = {};
@@ -199,7 +217,8 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
                 categoryName: categoryDetails.name,
                 categoryIcon: categoryDetails.icon,
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
-                chartColor: `var(--chart-${Number.isFinite(parseInt(categoryDetails.color, 10)) ? categoryDetails.color : '1'})`,
+                // نفس إسناد الدائرة بالضبط — وإلا ظهرت الفئة بلونين في رسمين متجاورين.
+                chartColor: colorOfCategory.get(catId) ?? 'hsl(var(--chart-1))',
                 trendData: Object.entries(categoryMonthlyTotals[catId]).map(([monthKey, total]) => ({
                     name: formatYearMonth(monthKey).split(' ')[0],
                     expenses: total,
@@ -212,8 +231,13 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
       const dailyTotals: { [date: string]: number } = {};
       const categoryDailyTotals: { [catId: string]: { [dayKey: string]: number } } = {};
 
+      // ⚠️ نفس مبدأ العرض السنوي: لا تُبذَر أيام لم تأتِ بعد. في الشهر الجاري
+      // يتوقّف الرسم عند اليوم؛ والشهور المنقضية تُرسم كاملةً.
+      const todayForPlot = startOfDay(new Date());
+      const plotEnd = periodEnd > todayForPlot ? todayForPlot : periodEnd;
+
       let day = periodStart;
-      while (day <= periodEnd) {
+      while (day <= plotEnd) {
         const dayKey = format(day, 'd');
         dailyTotals[dayKey] = 0;
         topCategoryIds.forEach(catId => {
@@ -246,7 +270,8 @@ export function getStatsSummary(input: GetStatsSummaryInput): GetStatsSummaryOut
                 categoryName: categoryDetails.name,
                 categoryIcon: categoryDetails.icon,
                 total: categorySummary.find(c => c.id === catId)?.total || 0,
-                chartColor: `var(--chart-${Number.isFinite(parseInt(categoryDetails.color, 10)) ? categoryDetails.color : '1'})`,
+                // نفس إسناد الدائرة بالضبط — وإلا ظهرت الفئة بلونين في رسمين متجاورين.
+                chartColor: colorOfCategory.get(catId) ?? 'hsl(var(--chart-1))',
                 trendData: Object.entries(categoryDailyTotals[catId]).map(([dayKey, total]) => ({
                     name: dayKey,
                     expenses: total,

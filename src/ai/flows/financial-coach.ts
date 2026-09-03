@@ -59,6 +59,11 @@ function computeSummary(input: FinancialCoachInput) {
   const remainingBudget = Math.max(0, input.totalBudget - totalSpent);
   const dailyRate = input.dayOfMonth > 0 ? totalSpent / input.dayOfMonth : 0;
   const projectedMonthlySpend = Math.round(dailyRate * daysInMonth);
+  // ⚠️ التوقّع يقسم على الأيام المنقضية وحدها، فيتضخّم مع أي مصروف كبير مبكّر:
+  // يوم ٣ فيه ١٩٠ ألفاً أنتج «ستستخدم ٨٢٪ من ميزانيتك» بينما الشهر لم يبدأ
+  // فعلياً (بلاغ 2026-09-03). دون أسبوع من البيانات الرقم ضجيج لا إشارة،
+  // فيُعلَّم هنا كي لا يُقدَّم للمستخدم كتنبّؤ.
+  const projectionReliable = input.dayOfMonth >= 7;
   const projectedVsBudgetPercent = input.totalBudget > 0
     ? Math.round((projectedMonthlySpend / input.totalBudget) * 100)
     : 0;
@@ -105,6 +110,7 @@ function computeSummary(input: FinancialCoachInput) {
     remainingBudget,
     projectedMonthlySpend,
     projectedVsBudgetPercent,
+    projectionReliable,
     daysInMonth,
     topCategories,
     categoryBudgetAlerts,
@@ -120,6 +126,7 @@ const FinancialCoachPromptInputSchema = FinancialCoachInputSchema.extend({
         remainingBudget: z.number(),
         projectedMonthlySpend: z.number(),
         projectedVsBudgetPercent: z.number(),
+        projectionReliable: z.boolean(),
         daysInMonth: z.number(),
         topCategories: z.array(z.object({ name: z.string(), amount: z.number(), percent: z.number() })),
         lowSpendDaysCount: z.number(),
@@ -144,7 +151,7 @@ PRE-COMPUTED SUMMARY:
 - Total spent so far: {{summary.totalSpent}} د.ع
 - Budget used: {{summary.budgetUsedPercent}}% of monthly budget
 - Remaining budget: {{summary.remainingBudget}} د.ع
-- Projected spend by end of month: {{summary.projectedMonthlySpend}} د.ع ({{summary.projectedVsBudgetPercent}}% of budget)
+- Projected spend by end of month: {{summary.projectedMonthlySpend}} د.ع ({{summary.projectedVsBudgetPercent}}% of budget){{#unless summary.projectionReliable}} ⚠️ NOT RELIABLE — based on fewer than 7 days{{/unless}}
 - Zero/low-spend days goal: {{zeroSpendDaysTarget}} — achieved so far: {{summary.lowSpendDaysCount}} days
 
 Top spending categories:
@@ -174,10 +181,14 @@ DECISION RULES (apply strictly based on pre-computed numbers):
    - 70–84%: CAUTION — user should slow down. type=warning, icon=Lightbulb
    - < 70%: User is within budget — do NOT warn. Praise or tip only.
 
-2. PROJECTED SPEND — based on projectedVsBudgetPercent:
+2. PROJECTED SPEND{{#if summary.projectionReliable}} — based on projectedVsBudgetPercent:
    - ≥ 110%: warn that at this rate budget will be exceeded. type=warning
    - 85–109%: note the pace, mild caution
    - < 85%: healthy pace — this is praiseworthy. type=praise, icon=TrendingUp or PiggyBank
+{{else}} — SKIP THIS ENTIRELY. Only {{dayOfMonth}} day(s) of data exist, so the projection is statistically meaningless.
+   - Do NOT state, quote, imply or build any insight on the projected figure or the end-of-month percentage.
+   - Do NOT praise or warn about "pace" at all. Base your insights on rules 1, 3, 4 and 5 instead.
+{{/if}}
 
 3. CATEGORY ALERTS: If categoryBudgetAlerts is non-empty, mention the top one as a warning.
 
