@@ -64,13 +64,17 @@ export async function financialPlanner(input: FinancialPlannerInput): Promise<Fi
 
 const prompt = ai.definePrompt({
     name: 'financialPlannerPrompt',
+    // isColloquial تُحسب في الكود لا داخل القالب: قوالب Genkit تعمل بـ
+    // knownHelpersOnly، فلا تعرف مساعداً اسمه eq وترفض القالب عند تجميعه.
+    // نفس نمط analyze-spending-patterns و financial-coach و financial-chat.
     input: {schema: FinancialPlannerInputSchema.extend({
-        currentDate: z.string().describe("Today's date in YYYY-MM-DD format, to be used as the starting point for all calculations.")
+        currentDate: z.string().describe("Today's date in YYYY-MM-DD format, to be used as the starting point for all calculations."),
+        isColloquial: z.boolean(),
     })},
     output: {schema: FinancialPlannerOutputSchema},
     prompt: `You are a highly skilled, logical, and encouraging financial planner for an Iraqi user. Your primary goal is to create a realistic, actionable, and personalized financial plan to help the user achieve a specific goal. All responses must be in Arabic.
 
-{{#if appTone}}Tone: {{#if (eq appTone "colloquial")}}Use a warm, friendly Iraqi dialect (عامية عراقية) throughout.{{else}}Use clear, professional Modern Standard Arabic (فصحى).{{/if}}{{/if}}
+Tone: {{#if isColloquial}}Use a warm, friendly Iraqi dialect (عامية عراقية) throughout.{{else}}Use clear, professional Modern Standard Arabic (فصحى).{{/if}}
 
     **Today's Date:** {{currentDate}}
 
@@ -125,7 +129,8 @@ const financialPlannerFlow = ai.defineFlow(
   async input => {
     const promptInput = {
         ...input,
-        currentDate: format(new Date(), 'yyyy-MM-dd')
+        currentDate: format(new Date(), 'yyyy-MM-dd'),
+        isColloquial: input.appTone === 'colloquial',
     };
     const {output} = await prompt(promptInput, {
       config: { thinkingConfig: { thinkingBudget: 0 } },

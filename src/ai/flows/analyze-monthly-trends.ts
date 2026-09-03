@@ -54,13 +54,20 @@ export async function analyzeMonthlyTrends(
   return analyzeMonthlyTrendsFlow(input);
 }
 
+// isColloquial تُحسب في الكود لا داخل القالب: قوالب Genkit تعمل بـ
+// knownHelpersOnly، فلا تعرف مساعداً اسمه eq وترفض القالب عند تجميعه.
+// نفس نمط analyze-spending-patterns و financial-coach و financial-chat.
+const AnalyzeMonthlyTrendsPromptInputSchema = AnalyzeMonthlyTrendsInputSchema.extend({
+  isColloquial: z.boolean(),
+});
+
 const prompt = ai.definePrompt({
   name: 'analyzeMonthlyTrendsPrompt',
-  input: { schema: AnalyzeMonthlyTrendsInputSchema },
+  input: { schema: AnalyzeMonthlyTrendsPromptInputSchema },
   output: { schema: AnalyzeMonthlyTrendsOutputSchema },
   prompt: `You are a financial data analyst. Compare the user's spending between two months and generate concise, data-driven insights in Arabic. Always use specific numbers and percentages. Do NOT give generic advice — every insight must reference actual data.
 
-Tone: {{#if (eq appTone "colloquial")}}Friendly Iraqi dialect (عامية عراقية).{{else}}Professional Modern Standard Arabic (فصحى).{{/if}}
+Tone: {{#if isColloquial}}Friendly Iraqi dialect (عامية عراقية).{{else}}Professional Modern Standard Arabic (فصحى).{{/if}}
 
 **Data:**
 Current month ({{currentMonth.monthLabel}}):
@@ -94,9 +101,10 @@ const analyzeMonthlyTrendsFlow = ai.defineFlow(
     outputSchema: AnalyzeMonthlyTrendsOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input, {
-      config: { thinkingConfig: { thinkingBudget: 0 } },
-    });
+    const { output } = await prompt(
+      { ...input, isColloquial: input.appTone === 'colloquial' },
+      { config: { thinkingConfig: { thinkingBudget: 0 } } },
+    );
     return output!;
   }
 );
