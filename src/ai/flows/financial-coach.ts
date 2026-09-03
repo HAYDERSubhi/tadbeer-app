@@ -79,7 +79,9 @@ function computeSummary(input: FinancialCoachInput) {
     .map(([name, amount]) => ({
       name,
       amount,
-      percent: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
+      // عشرٌ واحد لا عدد صحيح: «التحليل الذكي» يعرض ٣١.٩٪ لنفس الفئة، فكان
+      // المدرّب يقول ٣٢٪ تحته على الشاشة نفسها — رقمان لشيء واحد.
+      percent: totalSpent > 0 ? Math.round((amount / totalSpent) * 1000) / 10 : 0,
     }));
 
   // Category budget alerts (>70% used)
@@ -193,8 +195,14 @@ DECISION RULES (apply strictly based on pre-computed numbers):
 3. CATEGORY ALERTS: If categoryBudgetAlerts is non-empty, mention the top one as a warning.
 
 4. LOW-SPEND DAYS: If lowSpendDaysCount >= half of zeroSpendDaysTarget, praise the user. type=praise, icon=Trophy
+   - If lowSpendDaysCount is 0, do NOT write the numeral: say «لم تحقّق يوماً منخفض الإنفاق بعد», never «0 أيام».
 
 5. TOP CATEGORY TIP: Pick the largest category from topCategories and give a practical saving tip. type=tip, icon=Leaf
+
+ARABIC NUMBER AGREEMENT (تمييز العدد) — applies to every count you write:
+  1 → «يوم واحد» · 2 → «يومان» (or «يومين» after a preposition) · 3–10 → «5 أيام»
+  11+ → «15 يوماً» (singular accusative) · 0 → never write the numeral, use «لم … بعد».
+Writing «2 أيام» or «5 يوم» or «0 أيام» is wrong Arabic and visible to the user.
 
 PRIORITY ORDER for your 3 insights:
 1. Most urgent warning (budget or category), IF warranted by numbers

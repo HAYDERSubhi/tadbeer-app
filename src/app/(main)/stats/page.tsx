@@ -81,16 +81,6 @@ export default function StatisticsPage() {
   const effectiveMonth = availableMonths.includes(selectedMonth) ? selectedMonth : (availableMonths[0] ?? format(new Date(), 'yyyy-MM'));
   const effectiveYear  = availableYears.includes(selectedYear)   ? selectedYear  : (availableYears[0] ?? new Date().getFullYear());
 
-  // ── Chart config ──────────────────────────────────────────────────────────
-  const chartConfig = useMemo((): ChartConfig => {
-    const cfg: ChartConfig = {};
-    categories.forEach(c => {
-      cfg[c.id] = { label: c.name, icon: () => getIconComponent(c.icon), color: `hsl(var(--chart-${c.color}))` };
-    });
-    cfg.expenses = { label: 'المصاريف', color: 'hsl(var(--primary))' };
-    return cfg;
-  }, [categories, getIconComponent]);
-
   // ── Core stats (synchronous, no server call) ──────────────────────────────
   const statsData = useMemo(() => {
     if (!user || isAppDataLoading || allExpensesLoading || !userSettings || !expenses.length) return null;
@@ -132,6 +122,28 @@ export default function StatisticsPage() {
     filteredExpenses = [],
     periodDescription = '',
   } = statsData ?? {};
+
+  // ── Chart config ──────────────────────────────────────────────
+  // ⚠️ اللون يُقرأ من categorySummary (مُسنَد بالرتبة في get-stats-summary)،
+  // لا من الفهرس المحفوظ في الفئة: الفهرس خمس قيم لثلاث عشرة فئة، فكان
+  // الطعام والشراب والكماليات الشخصية أزرقين في وسيلة إيضاح واحدة —
+  // مصدر لون ثانٍ فُوِّت في إصلاح 2026-09-03 الأول. الفئات غير الظاهرة في
+  // الفترة تُستكمل بفهرسها المحفوظ؛ لا تُرسَم في أي رسم فلا يضرّ تكرارها.
+  //
+  // ⛔ يجب أن تبقى هذه الكتلة **بعد** تفكيك statsData — تقرأ categorySummary منه.
+  const chartConfig = useMemo((): ChartConfig => {
+    const rankColor = new Map(categorySummary.map(c => [c.id, c.chartColor]));
+    const cfg: ChartConfig = {};
+    categories.forEach(c => {
+      cfg[c.id] = {
+        label: c.name,
+        icon: () => getIconComponent(c.icon),
+        color: rankColor.get(c.id) ?? `hsl(var(--chart-${c.color}))`,
+      };
+    });
+    cfg.expenses = { label: 'المصاريف', color: 'hsl(var(--primary))' };
+    return cfg;
+  }, [categories, getIconComponent, categorySummary]);
 
   const diffPct = prevTotal > 0 ? ((totalForPeriod - prevTotal) / prevTotal) * 100 : null;
 
