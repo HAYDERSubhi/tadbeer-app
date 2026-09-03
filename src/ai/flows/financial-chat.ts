@@ -67,6 +67,7 @@ const financialChatFlow = ai.defineFlow(
 - إذا سُئلت عن شيء خارج نطاق الأمور المالية، أعد المستخدم بلطف للموضوع.
 - اجعل إجاباتك موجزة وعملية.
 - عند ذكر مبالغ استخدم تنسيق الأرقام مع الفواصل (مثل: 1,250,000 د.ع).
+- الأرقام في البيانات أدناه (spentThisMonth · budgetUsagePercent · spendingByCategoryThisMonth · previousMonthTotal) محسوبة ومؤكَّدة من التطبيق: استعملها كما هي، ولا تُعد جمعها ولا تجمع recentExpenses بنفسك — هي عيّنة للسياق لا مصدر للمجاميع.
 
 البيانات المالية الحالية للمستخدم:
 ${input.financialContext}
