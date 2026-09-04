@@ -19,7 +19,7 @@ import {
   AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
   ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert,
-  Flashlight, FlashlightOff, Zap
+  Flashlight, FlashlightOff, ScanLine
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
@@ -908,8 +908,8 @@ export default function DetailedReceiptPage() {
               "h-11 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-colors backdrop-blur-sm",
               autoCapture ? "bg-white text-black" : "bg-white/15 text-white"
             )}>
-            <Zap className={cn("h-4 w-4", autoCapture ? "fill-black" : "")} />
-            تلقائي
+            <ScanLine className="h-4 w-4" />
+            التقاط تلقائي
           </button>
           {torchSupported && (
             <button onClick={toggleTorch} aria-label="الفلاش"
