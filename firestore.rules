@@ -46,8 +46,19 @@ service cloud.firestore {
     }
 
     // ── Feedback (write-only for authenticated users) ──────────────────────
+    // ⚠️ كانت `if request.auth != null` وحدها (2026-09-05): أي حساب مسجَّل
+    //    يستطيع نسبة ملاحظة إلى uid غيره — فيراسل صاحبُ التطبيق بريئاً ظنّاً
+    //    أنه كتبها — أو كتابة آلاف المستندات بأي حجم على حساب الفاتورة.
     match /feedback/{feedbackId} {
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(
+             ['type', 'subject', 'details', 'uid', 'sentAt', 'createdAt'])
+        && request.resource.data.details is string
+        && request.resource.data.details.size() > 0
+        && request.resource.data.details.size() <= 5000
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 200;
       allow read, update, delete: if false;
     }
   }

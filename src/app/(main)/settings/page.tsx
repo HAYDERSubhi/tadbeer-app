@@ -157,14 +157,21 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
       const subject = data.subject.trim() || 'بدون موضوع';
       const details = data.details.trim();
       const { addFeedback } = await import('@/services/firestore');
+      // الحفظ هو النجاح. ما بعده إشعار لصاحب التطبيق لا يخصّ المستخدم.
       await addFeedback(user.uid, { type: data.type, subject, details });
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: data.type, subject, details, displayName: user.displayName || 'مستخدم', email: user.email || 'مجهول' }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'فشل الإرسال');
+
+      // ⚠️ كان فشل الإشعار يُرمى فيرى المستخدم «خطأ» رغم أن ملاحظته حُفظت
+      //    فعلاً — ووقع ذلك: ستّ ملاحظات في قاعدة البيانات ورسالتان فقط
+      //    وصلتا (2026-09-05). أربعة أشخاص ظنّوا أن كلامهم ضاع وهو محفوظ.
+      //    الآن يُبتلع فشل الإشعار: الملاحظة وصلت، والباقي شأن الخادم.
+      try {
+        const token = await user.getIdToken();
+        await fetch('/api/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ type: data.type, subject, details }),
+        });
+      } catch { /* الملاحظة محفوظة — لا شأن للمستخدم بالإشعار */ }
     },
     onSuccess: () => setSent(true),
     onError: (e: Error) => toast({ title: 'خطأ', description: e.message, variant: 'destructive' }),
