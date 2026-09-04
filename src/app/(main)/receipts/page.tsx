@@ -167,7 +167,7 @@ const AUTO_SAMPLE_W = 160;      // عرض شبكة العيّنة (الارتف�
 const AUTO_TICK_MS = 150;
 const AUTO_STILL_MAD = 5;       // ≤ هذا = ثابتة (1.8× فوق أسوأ ضجيج · 3.5× دون أقلّ حركة)
 const AUTO_MOVE_MAD = 12;       // ≥ هذا = تحرّكت ⇒ يُعاد التسليح للجزء التالي
-const AUTO_STILL_TICKS = 5;     // 0.75 ثانية ثبات متصل — وقفة التصويب أقصر منها
+const AUTO_STILL_TICKS = 9;     // 1.35 ثانية — كانت 0.75 فوصفها صاحب المشروع بالسريعة
 // صمّام أمان: لو كان ضجيج المستشعر أسوأ ممّا قِيس (كاميرا رديئة، ظلام)، ترتفع
 // عتبة السكون مع أرضية الضجيج المرصودة فعلياً بدل أن تصمت الميزة بلا تفسير.
 const AUTO_FLOOR_FACTOR = 2;    // العتبة ≥ ضِعف الأرضية المرصودة
@@ -175,6 +175,28 @@ const AUTO_FLOOR_FACTOR = 2;    // العتبة ≥ ضِعف الأرضية ال
 // الاهتزاز فيه لحظات هادئة فتبقى الأرضية منخفضة ويُرفض، بينما الضجيج الحقيقي
 // لا لحظة هادئة فيه فترتفع الأرضية فوراً. وهذا وحده ما يفرّق بين الحالتين.
 const AUTO_FLOOR_WINDOW = 20;
+
+/**
+ * ── بوّابة المحتوى: لا يلتقط إلا إن كان أمامه نصّ فاتورة قريب ────────────────
+ * ⛔ عطل أبلغ عنه صاحب المشروع (2026-09-05): فتح الكاميرا وهي موجّهة إلى
+ *    الحاسبة فالتُقطت صورة للحاسبة. الثبات وحده لا يعني أن أمامها فاتورة —
+ *    وهذا خطأ في التصميم لا في العتبة.
+ *
+ * المقياس: عدد المقاطع الداكنة القصيرة في الصفّ الواحد (حروف الفاتورة)، بعتبة
+ * محلية لكل صفّ فتتكيّف مع الظلّ. مقيس على صورتَي صاحب المشروع نفسه:
+ *
+ *   فاتورة قريبة تملأ الإطار        8.2  ← يلتقط
+ *   مكتب وفأرة وفاتورة بعيدة        2.8  ← يرفض (ولا تُقرأ أصلاً)
+ *   قماش مقعد السيارة           2.8–3.5  ← يرفض
+ *
+ * الفصل ×2.3 والعتبة في وسطه. ⚠️ صورتان فقط: أي رفض لفاتورة قريبة صالحة
+ * يعني أن العتبة عالية — تُخفَّض بصورة واحدة مضادّة.
+ */
+const AUTO_CONTENT_W = 480;          // العيّنة أوسع: كلفة getImageData ثابتة فالتوسيع مجّاني
+const AUTO_CONTENT_STROKE = 2;       // أقصى سُمك يُحسب حرفاً عند هذا العرض
+const AUTO_CONTENT_MIN_RUNS = 5.5;   // ≥ هذا = نصّ فاتورة أمام الكاميرا
+const AUTO_CONTENT_RECHECK_MS = 700; // لا يُعاد الفحص أسرع من ذلك ما دام راسباً
+const AUTO_GRACE_MS = 2000;          // أوّل ثانيتين بعد فتح الكاميرا: لا التقاط تلقائي
 const AUTO_STORAGE_KEY = 'tadbeer_receipt_autocapture';
 
 const checkImageQuality = (src: string): Promise<ImageQuality> =>
@@ -330,6 +352,9 @@ export default function DetailedReceiptPage() {
   const autoStillRef = useRef(0);
   const autoFloorRef = useRef<number[]>([]);   // نافذة قراءات الهدوء الأخيرة
   const autoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const autoContentRef = useRef<HTMLCanvasElement | null>(null);  // كانفس فحص المحتوى
+  const autoOpenedAtRef = useRef(0);        // لحظة فتح الكاميرا (مهلة السماح)
+  const autoLastCheckRef = useRef(0);       // آخر فحص محتوى راسب
   const isCapturingRef = useRef(false);                      // تُقرأ داخل المؤقّت
   const captureRef = useRef<(mode: 'manual' | 'auto') => void>(() => {});
 
@@ -420,6 +445,45 @@ export default function DetailedReceiptPage() {
     } catch { /* بعض الأجهزة لا تدعم الفلاش أثناء البث */ }
   };
 
+
+  /**
+   * هل أمام الكاميرا نصّ فاتورة قريب بما يكفي ليُقرأ؟
+   * يعدّ المقاطع الداكنة القصيرة في كل صفّ — أي الحروف. سطح فارغ أو مشهد
+   * بعيد لا يعطيها، والمكتب والفأرة والقماش قِيست كلّها دون العتبة.
+   * عند تعذّر الفحص يرفض: الزر اليدوي متاح دائماً، والالتقاط الخاطئ أسوأ.
+   */
+  const looksLikeReceipt = useCallback((v: HTMLVideoElement): boolean => {
+    if (!autoContentRef.current) autoContentRef.current = document.createElement('canvas');
+    const c = autoContentRef.current;
+    const W = AUTO_CONTENT_W;
+    const h = Math.max(1, Math.round(W * v.videoHeight / v.videoWidth));
+    if (c.width !== W || c.height !== h) { c.width = W; c.height = h; }
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return false;
+    let d: Uint8ClampedArray;
+    try { ctx.drawImage(v, 0, 0, W, h); d = ctx.getImageData(0, 0, W, h).data; }
+    catch { return false; }
+
+    const n = W * h;
+    const g = new Uint8Array(n);
+    for (let i = 0, p = 0; i < n; i++, p += 4) g[i] = (d[p] * 77 + d[p + 1] * 150 + d[p + 2] * 29) >> 8;
+
+    let runs = 0, rows = 0;
+    for (let y = 0; y < h; y += 2) {
+      let mn = 255, mx = 0;
+      for (let x = 0; x < W; x++) { const val = g[y * W + x]; if (val < mn) mn = val; if (val > mx) mx = val; }
+      if (mx - mn < 40) continue;                  // صفّ بلا تباين: لا حروف فيه
+      rows++;
+      const th = mn + (mx - mn) * 0.55;            // عتبة محلية لكل صفّ — تتكيّف مع الظلّ
+      let run = 0;
+      for (let x = 0; x < W; x++) {
+        if (g[y * W + x] < th) run++;
+        else { if (run >= 1 && run <= AUTO_CONTENT_STROKE) runs++; run = 0; }
+      }
+      if (run >= 1 && run <= AUTO_CONTENT_STROKE) runs++;
+    }
+    return rows > 0 && runs / rows >= AUTO_CONTENT_MIN_RUNS;
+  }, []);
   /**
    * محرّك الثبات: يقيس الحركة بين إطارين كل 100ms ويقرّر متى يلتقط وحده.
    *
@@ -438,6 +502,8 @@ export default function DetailedReceiptPage() {
       return;
     }
     if (!autoCanvasRef.current) autoCanvasRef.current = document.createElement('canvas');
+    autoOpenedAtRef.current = Date.now();
+    autoLastCheckRef.current = 0;
 
     const id = setInterval(() => {
       const v = videoRef.current, c = autoCanvasRef.current;
@@ -493,11 +559,28 @@ export default function DetailedReceiptPage() {
         if (autoStillRef.current !== 0) { autoStillRef.current = 0; setAutoStillTicks(0); }
         return;
       }
+      // مهلة السماح: فتح الكاميرا ثم تثبيتها فوراً على أيّ شيء لا يلتقط
+      if (Date.now() - autoOpenedAtRef.current < AUTO_GRACE_MS) return;
+
+      // بوّابة المحتوى قبل بدء العدّ: الشريط الأخضر لا يظهر أصلاً إن لم تكن
+      // أمام الكاميرا فاتورة — فغيابه هو الإشارة، ولا حاجة لرسالة إضافية.
+      if (autoStillRef.current === 0) {
+        const now = Date.now();
+        if (now - autoLastCheckRef.current < AUTO_CONTENT_RECHECK_MS) return;
+        autoLastCheckRef.current = now;
+        if (!looksLikeReceipt(v)) return;
+      }
 
       const ticks = autoStillRef.current + 1;
       autoStillRef.current = ticks;
       setAutoStillTicks(ticks);
       if (ticks >= AUTO_STILL_TICKS) {
+        // فحص ثانٍ عند اللحظة الأخيرة: قد يكون المشهد تغيّر أثناء العدّ
+        if (!looksLikeReceipt(v)) {
+          autoStillRef.current = 0; setAutoStillTicks(0);
+          autoLastCheckRef.current = Date.now();
+          return;
+        }
         autoArmedRef.current = false;                // يتطلّب حركة قبل اللقطة التالية
         autoStillRef.current = 0; setAutoStillTicks(0);
         captureRef.current('auto');
@@ -505,7 +588,7 @@ export default function DetailedReceiptPage() {
     }, AUTO_TICK_MS);
 
     return () => clearInterval(id);
-  }, [viewState, autoCapture]);
+  }, [viewState, autoCapture, looksLikeReceipt]);
 
   // يضيف الصورة فوراً ويعيد مدخلها (فحص الجودة يكمل بالخلفية) — الإرجاع الفوري
   // ضروري لفتح شاشة القص مباشرة بعد الالتقاط دون انتظار الفحص
