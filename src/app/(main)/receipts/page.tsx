@@ -19,7 +19,7 @@ import {
   AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
   ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert,
-  Flashlight, FlashlightOff
+  Flashlight, FlashlightOff, Zap
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
@@ -142,6 +142,40 @@ const QUALITY_NORM_PX = 2000;   // دقّة موحَّدة: العتبة يجب 
 const QUALITY_ROW_STEP = 8;     // عيّنة صفوف — نفس النتيجة بربع الزمن
 const STROKE_GOOD = 4;          // ≥ 4px: الحروف مقروءة
 const STROKE_BAD = 2;           // ≤ 2px: أصغر من أن تُقرأ
+
+/**
+ * ── الالتقاط التلقائي عند ثبات الكاميرا ──────────────────────────────────────
+ * الفكرة لصاحب المشروع: يوجّه الكاميرا على جزء الفاتورة، وحين تثبت يده تُلتقط
+ * الصورة وحدها، فينزل للجزء التالي بلا ضغط زر في كل مرّة.
+ *
+ * المقياس: متوسّط الفرق المطلق بين إطارين متتاليين على شبكة 160×120، بعد طرح
+ * الانزياح العام (فتغيّر التعريض التلقائي لا يُقرأ حركةً — مقيس: 0.50 لا أكثر).
+ *
+ * ⚠️ العتبات قِيست في المتصفّح على مسار drawImage/getImageData نفسه، لا على
+ *    نموذج نظري. النموذج النظري أعطى أرقاماً أصغر بسبع مرّات وكاد يضع عتبة
+ *    تمنع الالتقاط في الإضاءة الضعيفة منعاً تامّاً وصامتاً:
+ *
+ *      ساكن + ضجيج إضاءة عادية  0.50   |  إزاحة 1px    2.37
+ *      ساكن + إضاءة خافتة       1.44   |  إزاحة 2px   17.62
+ *      ساكن + إضاءة سيّئة جداً   2.83   |  إزاحة 8px   36.13
+ *
+ *    فالعتبتان تقعان في فجوة ×6 بين أسوأ ضجيج (2.83) وأقلّ حركة معتبرة (17.6).
+ */
+const AUTO_SAMPLE_W = 160;      // عرض شبكة العيّنة (الارتفاع تبعاً لنسبة الفيديو)
+// 150ms لا 100: كلفة getImageData ‏16.6ms ثابتة (انتظار مزامنة، لا حساب — قيست
+// عند أربعة أحجام فكانت واحدة)، فتقليل التواتر هو ما يخفّف الضغط على المعاينة.
+const AUTO_TICK_MS = 150;
+const AUTO_STILL_MAD = 5;       // ≤ هذا = ثابتة (1.8× فوق أسوأ ضجيج · 3.5× دون أقلّ حركة)
+const AUTO_MOVE_MAD = 12;       // ≥ هذا = تحرّكت ⇒ يُعاد التسليح للجزء التالي
+const AUTO_STILL_TICKS = 5;     // 0.75 ثانية ثبات متصل — وقفة التصويب أقصر منها
+// صمّام أمان: لو كان ضجيج المستشعر أسوأ ممّا قِيس (كاميرا رديئة، ظلام)، ترتفع
+// عتبة السكون مع أرضية الضجيج المرصودة فعلياً بدل أن تصمت الميزة بلا تفسير.
+const AUTO_FLOOR_FACTOR = 2;    // العتبة ≥ ضِعف الأرضية المرصودة
+// النافذة: أهدأ لحظة في آخر ٣ ثوانٍ هي الأرضية. أدنى قيمة لا متوسّط — لأن
+// الاهتزاز فيه لحظات هادئة فتبقى الأرضية منخفضة ويُرفض، بينما الضجيج الحقيقي
+// لا لحظة هادئة فيه فترتفع الأرضية فوراً. وهذا وحده ما يفرّق بين الحالتين.
+const AUTO_FLOOR_WINDOW = 20;
+const AUTO_STORAGE_KEY = 'tadbeer_receipt_autocapture';
 
 const checkImageQuality = (src: string): Promise<ImageQuality> =>
   new Promise((resolve) => {
@@ -286,6 +320,32 @@ export default function DetailedReceiptPage() {
   // مصدر فتح شاشة القص: بعد الالتقاط مباشرة (camera) أو من مصغّرات الشاشة الرئيسية (gallery)
   const [cropSource, setCropSource] = useState<'camera' | 'gallery'>('gallery');
 
+  // ── الالتقاط التلقائي: يحلّ مشكلة الفاتورة الطويلة بلا شريط ولا وضع خاصّ ──
+  // بديل «وضع الفاتورة الطويلة» المحذوف: بدل تعليم المستخدم وضعاً جديداً،
+  // نلغي الحاجة لضغط الزر أصلاً — يوجّه، يثبت، تُلتقط، ينزل للجزء التالي.
+  const [autoCapture, setAutoCapture] = useState(true);
+  const [autoStillTicks, setAutoStillTicks] = useState(0);   // للعدّاد المرئي فقط
+  const autoPrevRef = useRef<Float32Array | null>(null);     // إطار العيّنة السابق
+  const autoArmedRef = useRef(false);   // لا يلتقط مرّتين لنفس الوضع: يتطلّب حركة بينهما
+  const autoStillRef = useRef(0);
+  const autoFloorRef = useRef<number[]>([]);   // نافذة قراءات الهدوء الأخيرة
+  const autoCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isCapturingRef = useRef(false);                      // تُقرأ داخل المؤقّت
+  const captureRef = useRef<(mode: 'manual' | 'auto') => void>(() => {});
+
+  // تفضيل المستخدم يبقى بين الجلسات — من أطفأه لا يُعاد تشغيله عليه
+  useEffect(() => {
+    try { if (localStorage.getItem(AUTO_STORAGE_KEY) === '0') setAutoCapture(false); } catch { /* وضع خاصّ */ }
+  }, []);
+  const toggleAutoCapture = () => {
+    setAutoCapture(v => {
+      const next = !v;
+      try { localStorage.setItem(AUTO_STORAGE_KEY, next ? '1' : '0'); } catch { /* وضع خاصّ */ }
+      if (!next) { autoStillRef.current = 0; setAutoStillTicks(0); }
+      return next;
+    });
+  };
+
   // ── الاقتصاص الحر: مستطيل يسحبه المستخدم فوق الفاتورة — بلا نسب ثابتة ──
   const [cropRect, setCropRect] = useState<CropRect>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
@@ -359,6 +419,93 @@ export default function DetailedReceiptPage() {
       setTorchOn(v => !v);
     } catch { /* بعض الأجهزة لا تدعم الفلاش أثناء البث */ }
   };
+
+  /**
+   * محرّك الثبات: يقيس الحركة بين إطارين كل 100ms ويقرّر متى يلتقط وحده.
+   *
+   * ثلاث حالات، والتسليح هو مفتاح ألّا يلتقط مرّتين لنفس الجزء:
+   *   غير مسلَّح → لا يلتقط مهما ثبتت. يُسلَّح فقط بحركة واضحة (≥ AUTO_MOVE_MAD).
+   *   مسلَّح      → يعدّ إطارات السكون المتصلة؛ أي حركة تصفّر العدّ.
+   *   اكتمل العدّ → التقاط، ثم يعود «غير مسلَّح» — فبعد اللقطة تبقى اليد ثابتة
+   *                 فوق نفس الجزء ولا شيء يحدث حتى ينزل المستخدم للجزء التالي.
+   *
+   * لا يبدأ مسلَّحاً: فتح الكاميرا لا يلتقط قبل أن يوجّه المستخدم فعلاً.
+   */
+  useEffect(() => {
+    if (viewState !== 'camera' || !autoCapture) {
+      autoPrevRef.current = null; autoArmedRef.current = false;
+      autoStillRef.current = 0; autoFloorRef.current = []; setAutoStillTicks(0);
+      return;
+    }
+    if (!autoCanvasRef.current) autoCanvasRef.current = document.createElement('canvas');
+
+    const id = setInterval(() => {
+      const v = videoRef.current, c = autoCanvasRef.current;
+      if (!v || !c || isCapturingRef.current || !v.videoWidth) return;
+
+      const h = Math.max(1, Math.round(AUTO_SAMPLE_W * v.videoHeight / v.videoWidth));
+      if (c.width !== AUTO_SAMPLE_W || c.height !== h) {
+        c.width = AUTO_SAMPLE_W; c.height = h; autoPrevRef.current = null;   // تغيّر الأبعاد يبطل المقارنة
+      }
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      let data: Uint8ClampedArray;
+      try { ctx.drawImage(v, 0, 0, AUTO_SAMPLE_W, h); data = ctx.getImageData(0, 0, AUTO_SAMPLE_W, h).data; }
+      catch { return; }   // إطار غير جاهز
+
+      const n = AUTO_SAMPLE_W * h;
+      const cur = new Float32Array(n);
+      for (let i = 0, p = 0; i < n; i++, p += 4) {
+        cur[i] = (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) / 256;   // لوما سريعة
+      }
+      const prev = autoPrevRef.current;
+      autoPrevRef.current = cur;
+      if (!prev || prev.length !== n) return;
+
+      // طرح الانزياح العام: تغيّر التعريض التلقائي يرفع الإطار كلّه بالتساوي،
+      // ولولا طرحه لقُرئ حركةً فمُنع الالتقاط بلا سبب.
+      let mean = 0;
+      for (let i = 0; i < n; i++) mean += cur[i] - prev[i];
+      mean /= n;
+      let mad = 0;
+      for (let i = 0; i < n; i++) mad += Math.abs(cur[i] - prev[i] - mean);
+      mad /= n;
+
+      if (mad >= AUTO_MOVE_MAD) {                    // تحرّكت الكاميرا: سلّح واصفر
+        autoArmedRef.current = true;
+        if (autoStillRef.current !== 0) { autoStillRef.current = 0; setAutoStillTicks(0); }
+        return;                                      // ولا تُحدَّث الأرضية: الحركة لا تخبر عن الضجيج
+      }
+
+      // أرضية الضجيج تُقدَّر من الإطارات الهادئة وحدها — أثناء الحركة الواضحة
+      // لا معلومة عن الضجيج أصلاً، فلا تُحدَّث (انظر return أعلاه).
+      const win = autoFloorRef.current;
+      win.push(mad);
+      if (win.length > AUTO_FLOOR_WINDOW) win.shift();
+      let floor = win[0];
+      for (let i = 1; i < win.length; i++) if (win[i] < floor) floor = win[i];
+      // العتبة الفعلية: الثابتة المقيسة، أو ضِعف الأرضية إن كانت الكاميرا أسوأ
+      // ممّا قِيس — ومحدودة دون عتبة التسليح كي لا تلتمس الحركةَ سكوناً.
+      const stillLimit = Math.min(AUTO_MOVE_MAD * 0.8, Math.max(AUTO_STILL_MAD, floor * AUTO_FLOOR_FACTOR));
+
+      if (!autoArmedRef.current) return;             // ثابتة لكن غير مسلَّحة — لا شيء
+      if (mad > stillLimit) {                        // بين العتبتين: لا سكون ولا تسليح
+        if (autoStillRef.current !== 0) { autoStillRef.current = 0; setAutoStillTicks(0); }
+        return;
+      }
+
+      const ticks = autoStillRef.current + 1;
+      autoStillRef.current = ticks;
+      setAutoStillTicks(ticks);
+      if (ticks >= AUTO_STILL_TICKS) {
+        autoArmedRef.current = false;                // يتطلّب حركة قبل اللقطة التالية
+        autoStillRef.current = 0; setAutoStillTicks(0);
+        captureRef.current('auto');
+      }
+    }, AUTO_TICK_MS);
+
+    return () => clearInterval(id);
+  }, [viewState, autoCapture]);
 
   // يضيف الصورة فوراً ويعيد مدخلها (فحص الجودة يكمل بالخلفية) — الإرجاع الفوري
   // ضروري لفتح شاشة القص مباشرة بعد الالتقاط دون انتظار الفحص
@@ -450,8 +597,16 @@ export default function DetailedReceiptPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const takePhoto = async () => {
-    if (isCapturing) return; // منع الضغط المزدوج أثناء الالتقاط
+  /**
+   * الالتقاط — بمصدرين ومآلين مختلفين عمداً:
+   *   manual: ضغطة الزر = «هذه لقطتي» ⇒ تُفتح شاشة القص فوراً لتأطيرها.
+   *   auto:   ثبات اليد = «جزء من فاتورة طويلة» ⇒ تبقى الكاميرا مفتوحة
+   *           لينزل للجزء التالي. الانتقال للقص هنا كان سيقطع التسلسل الذي
+   *           بُنيت الميزة كلّها من أجله. القص متاح لاحقاً بضغط المصغّرة.
+   */
+  const capturePhoto = async (mode: 'manual' | 'auto') => {
+    if (isCapturingRef.current) return; // منع الضغط المزدوج أثناء الالتقاط
+    isCapturingRef.current = true;
     setIsCapturing(true);
     let dataUri: string | null = null;
 
@@ -478,17 +633,25 @@ export default function DetailedReceiptPage() {
       dataUri = c.toDataURL('image/jpeg', 0.95);
     }
 
-    if (!dataUri) { setIsCapturing(false); return; }
+    if (!dataUri) { isCapturingRef.current = false; setIsCapturing(false); return; }
     const entry = addImage(dataUri);
-    // وميض قصير ثم فتح شاشة القص مباشرة — الصورة تبقى أمام المستخدم بدل مصغّرة بالزاوية
+    // اهتزازة قصيرة: تأكيد يُحسّ بلا نظر — المستخدم عينه على الفاتورة لا على الشاشة
+    if (mode === 'auto') { try { navigator.vibrate?.(40); } catch { /* غير مدعوم */ } }
+
     setTimeout(() => {
+      isCapturingRef.current = false;
       setIsCapturing(false);
+      autoPrevRef.current = null;   // إطار ما قبل الوميض لا يُقارَن بما بعده
+      if (mode === 'auto') return;  // ابقَ بالكاميرا للجزء التالي
+      // وميض قصير ثم فتح شاشة القص مباشرة — الصورة تبقى أمام المستخدم بدل مصغّرة بالزاوية
       setCropRect(undefined); setCompletedCrop(null);
       setImageToCrop(entry);
       setCropSource('camera');
       setViewState('cropping');
     }, 220);
   };
+  captureRef.current = capturePhoto;   // المؤقّت يستدعي أحدث نسخة بلا إعادة تشغيله
+  const takePhoto = () => capturePhoto('manual');
 
   // imagesToAnalyze: تُمرَّر عند التحليل الفوري من شاشة القص لأن setImages لم تُحدَّث بعد
   const handleAnalyze = async (imagesToAnalyze: ImageEntry[] = images) => {
@@ -654,15 +817,27 @@ export default function DetailedReceiptPage() {
         <Button variant="ghost" size="icon" onClick={() => setViewState('initial')} className="text-white hover:bg-white/10 hover:text-white">
           <ArrowRight />
         </Button>
-        {torchSupported && (
-          <button onClick={toggleTorch} aria-label="الفلاش"
+        <div className="flex items-center gap-2">
+          {/* مفتاح التلقائي — ظاهر دائماً: من لا يريده يطفئه بضغطة، ويبقى مطفأً */}
+          <button onClick={toggleAutoCapture} aria-label="الالتقاط التلقائي"
+            aria-pressed={autoCapture}
             className={cn(
-              "w-11 h-11 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm",
-              torchOn ? "bg-yellow-400 text-black" : "bg-white/15 text-white"
+              "h-11 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-colors backdrop-blur-sm",
+              autoCapture ? "bg-white text-black" : "bg-white/15 text-white"
             )}>
-            {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
+            <Zap className={cn("h-4 w-4", autoCapture ? "fill-black" : "")} />
+            تلقائي
           </button>
-        )}
+          {torchSupported && (
+            <button onClick={toggleTorch} aria-label="الفلاش"
+              className={cn(
+                "w-11 h-11 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm",
+                torchOn ? "bg-yellow-400 text-black" : "bg-white/15 text-white"
+              )}>
+              {torchOn ? <Flashlight className="h-5 w-5" /> : <FlashlightOff className="h-5 w-5" />}
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="flex-1 relative">
@@ -680,14 +855,31 @@ export default function DetailedReceiptPage() {
             لها، ويدفع المستخدم للتصويب على شيء ثابت لا يتحرّك (ملاحظة صاحب
             المشروع 2026-09-04). ما تراه هو ما تحصل عليه، وهذا يكفي. */}
 
+        {/* عدّاد الالتقاط التلقائي — يُرى قبل أن يحدث، فلا يفاجئ: من لا يريد
+            اللقطة يحرّك الهاتف قليلاً فيتوقّف العدّ فوراً. */}
+        {autoCapture && autoStillTicks > 0 && !isCapturing && (
+          <div className="absolute bottom-60 inset-x-0 flex justify-center pointer-events-none animate-in fade-in duration-150">
+            <div className="px-4 py-2.5 rounded-2xl bg-emerald-600/90 backdrop-blur-sm shadow-lg text-center">
+              <p className="text-white text-sm font-bold drop-shadow">ثابتة — التقاط تلقائي</p>
+              {/* شريط يمتلئ من اليمين تلقائياً (RTL) لأنه في تدفّق عادي لا مطلق */}
+              <div className="mt-2 h-1.5 w-32 rounded-full bg-white/25 overflow-hidden">
+                <div className="h-full rounded-full bg-white transition-[width] duration-100 ease-linear"
+                  style={{ width: `${Math.min(100, (autoStillTicks / AUTO_STILL_TICKS) * 100)}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="absolute bottom-40 inset-x-4 text-center pointer-events-none">
           <div className="inline-block px-4 py-2.5 rounded-2xl bg-black/45 backdrop-blur-sm">
-          {/* سطران قصيران لا أكثر: أربعة أسطر كانت تُقرأ «معقّدة». */}
+          {/* سطران قصيران لا أكثر: أربعة أسطر كانت تُقرأ «معقّدة».
+              والسطر الثاني يتبع حالة المفتاح — تعليمة لا تصف ما يفعله
+              التطبيق فعلاً أسوأ من لا تعليمة. */}
           <p className="text-white text-sm font-medium drop-shadow">
             {images.length === 0 ? 'قرّب حتى تملأ الفاتورة الشاشة' : `التقطت ${images.length} — تابع بقية الفاتورة`}
           </p>
           <p className="text-white/60 text-[11px] mt-1 drop-shadow">
-            أطول من الشاشة؟ صوّرها جزءاً جزءاً وهي عمودية
+            {autoCapture ? 'ثبّت يدك وتُلتقط وحدها — ثم انزل للجزء التالي' : 'أطول من الشاشة؟ صوّرها جزءاً جزءاً وهي عمودية'}
           </p>
           </div>
         </div>
