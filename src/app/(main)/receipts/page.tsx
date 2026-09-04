@@ -607,12 +607,22 @@ export default function DetailedReceiptPage() {
     });
     return entry;
   }, [toast]);
-
-  // عند فتح صورة للتحديد: مستطيل ابتدائي يغطي 84% منها — إزاحة 8% تُبقي زوايا
-  // السحب كاملةً داخل الصورة فتبان واضحة وقابلة للإمساك (لا مقصوصة على الحافة)
+  /**
+   * المستطيل الابتدائي = الصورة كاملة. القصّ اختياريّ، فالافتراضي يجب ألّا
+   * يحذف شيئاً.
+   *
+   * ⛔ كان إزاحة 8% من كل جهة، والسبب المعلن أنّ مقابض السحب (44px مركزها على
+   *    الزاوية) تُقصّ على الحافّة. لكن الأثر كان أخطر بكثير: مكتبة القصّ
+   *    تستدعي onComplete تلقائياً عند أوّل ضبط للمستطيل (componentDidUpdate:
+   *    ‏!prevCrop && crop) — بلا أي لمسة من المستخدم. فمن ضغط «تأكيد» مباشرةً
+   *    خسر 8% من كل جهة من فاتورته صامتاً. وفاتورة تملأ الإطار تفقد أعمدة.
+   *
+   *    الحلّ: الحشوة حول الصورة رُفعت إلى 28px (> نصف المقبض) فتظهر الزوايا
+   *    كاملةً بلا حاجة لإزاحة تقتطع.
+   */
   const onCropImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCropRect({ unit: 'px', x: width * 0.08, y: height * 0.08, width: width * 0.84, height: height * 0.84 });
+    setCropRect({ unit: 'px', x: 0, y: 0, width, height });
   }, []);
 
   /**
@@ -625,7 +635,11 @@ export default function DetailedReceiptPage() {
     let updated = images;
     try {
       const img = cropImgRef.current;
-      if (completedCrop && img && completedCrop.width >= 10 && completedCrop.height >= 10) {
+      // مستطيل يغطّي الصورة كلّها ⇒ لا قصّ: إعادة ترميزها JPEG بلا فائدة
+      // تُنقص جودة النصّ الذي يقرأه الذكاء.
+      const wholeImage = !!img && completedCrop
+        && completedCrop.width >= img.width * 0.99 && completedCrop.height >= img.height * 0.99;
+      if (completedCrop && img && !wholeImage && completedCrop.width >= 10 && completedCrop.height >= 10) {
         // تحويل إحداثيات المستطيل من أبعاد العرض إلى أبعاد الصورة الأصلية
         const scaleX = img.naturalWidth / img.width;
         const scaleY = img.naturalHeight / img.height;
@@ -1022,7 +1036,7 @@ export default function DetailedReceiptPage() {
           else { setImageToCrop(null); setCropRect(undefined); setCompletedCrop(null); setViewState('initial'); }
         }}><X /></Button>
       </header>
-      <div className="flex-1 overflow-auto bg-black/90 flex items-center justify-center p-3" dir="ltr">
+      <div className="flex-1 overflow-auto bg-black/90 flex items-center justify-center p-7" dir="ltr">
         <ReactCrop
           className="receipt-crop"
           crop={cropRect}
