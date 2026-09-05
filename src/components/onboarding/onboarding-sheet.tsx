@@ -369,7 +369,7 @@ export default function OnboardingSheet() {
                       <h3 className="font-bold text-lg text-foreground">ما هي ميزانيتك الشهرية؟</h3>
                     </div>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      خطّك الأحمر الشهري — منها تشتغل تنبيهات التجاوز.
+                      خطّك الأحمر الشهري — على أساسه تعمل تنبيهات التجاوز.
                     </p>
                   </div>
 
@@ -516,7 +516,7 @@ export default function OnboardingSheet() {
 
             <h2 className="text-xl font-bold text-foreground">تم! حسابك جاهز</h2>
             <p className="text-base text-muted-foreground mt-2 leading-relaxed max-w-[280px]">
-              سجّل أول مصروف وشوف تدبير يشتغل.
+              سجّل أول مصروف لترى تدبير يعمل.
             </p>
 
             <Button

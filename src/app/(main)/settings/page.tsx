@@ -219,7 +219,7 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
             <div className="space-y-3 max-w-sm">
               <p className="font-bold text-xl">وصلت رسالتك 🌿</p>
               <p className="text-sm text-foreground/80 leading-relaxed">
-                رسالتك وصلت فريق تدبير، وراح تُراجَع بكل اهتمام ودراسة.
+                رسالتك وصلت إلى فريق تدبير، وستُراجَع بكل اهتمام ودراسة.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed bg-muted/60 rounded-lg px-4 py-3">
                 {/* ⚠️ كانت «قد لا يصلك ردّ مباشر» — صارت كاذبة منذ ربط reply-to
@@ -1474,7 +1474,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
                 <h3 className='text-sm font-medium'>الملف الشخصي</h3>
                 <div className="space-y-2">
-                    <Label htmlFor="display-name" className="text-xs">اسمك — شنو نناديك؟</Label>
+                    <Label htmlFor="display-name" className="text-xs">اسمك — كيف نناديك؟</Label>
                     <p className="text-[11px] text-muted-foreground -mt-1">اختياري — يظهر في التحية بالشاشة الرئيسية</p>
                     <div className="flex gap-2">
                         <Input
