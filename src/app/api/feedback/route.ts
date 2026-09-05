@@ -71,8 +71,17 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(resendKey);
     const typeLabel = TYPE_LABELS[type];
-    const sentAt = new Date().toLocaleString('ar-IQ');
-    const senderLine = senderEmail ? `${esc(senderName)} &lt;${esc(senderEmail)}&gt;` : `${esc(senderName)} (حساب ضيف — لا يمكن الردّ)`;
+    // الخادم يعمل بتوقيت غرينتش. بلا منطقة زمنية صريحة كانت ملاحظة الساعة
+    // 2:49 صباحاً بتوقيت بغداد تُكتب «11:49 م» من **اليوم السابق** — أي أن
+    // التاريخ نفسه خطأ لا الساعة فقط (مرصود في بريد حقيقي 2026-09-05).
+    // ‏-u-nu-latn: أرقام لاتينية لا عربية-هندية — التطبيق كلّه يعرض 125,000
+    // لا ١٢٥٬٠٠٠، والفاحص الآلي كان يرصد هذا السطر مخالفاً.
+    const sentAt = new Date().toLocaleString('ar-IQ-u-nu-latn', { timeZone: 'Asia/Baghdad' });
+    // بلا عزل اتجاهي كان البريد يظهر «<<hayder@gmail.com» — الأقواس تنقلب
+    // بصرياً حول نصّ لاتيني داخل فقرة عربية. سطران منفصلان أوضح وأسلم.
+    const senderLine = senderEmail
+      ? `${esc(senderName)}<br><span dir="ltr" style="unicode-bidi:isolate;color:#1a7a5e;">${esc(senderEmail)}</span>`
+      : `${esc(senderName)} — حساب ضيف، لا يمكن الردّ`;
 
     await resend.emails.send({
       from: FROM,

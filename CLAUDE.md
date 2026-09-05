@@ -39,7 +39,7 @@ Get-ChildItem "$s\hooks","$s\lib","$s\services" -Filter "*.ts*" | % { $_.BaseNam
 ---
 
 ## الهوية التقنية
-Next.js 15.2.8 (App Router) · React 18 · TypeScript صارم (`ignoreBuildErrors:true`) · PWA (`@ducanh2912/next-pwa`, NetworkFirst) · Firebase (Auth+Firestore+Storage) · firebase-admin **مثبّت على ^12 عمداً** (jose@6 يكسره) · Genkit + Gemini 2.5-flash · Web Push + 4 Vercel Cron · RTL عربي · v1.2.0.
+Next.js 15.2.8 (App Router) · React 18 · TypeScript صارم (`ignoreBuildErrors:true`) · PWA (`@ducanh2912/next-pwa`, NetworkFirst) · Firebase (Auth+Firestore+Storage) · firebase-admin **مثبّت على ^12 عمداً** (jose@6 يكسره) · Genkit + Gemini 2.5-flash · Web Push + 4 Vercel Cron · RTL عربي · v1.3.0 (package.json).
 
 ## نماذج البيانات (`src/types/index.ts` — 15 كياناً)
 Expense · Goal · Income · UserSettings · Category · Household · HouseholdMember · Debt · InstallmentPlan · WeddingPlan · Silftna · EarnedBadge · RecurringPayment · UserBudgetSettings · NotificationSettings.
@@ -97,11 +97,11 @@ households/{hhId}/...   ← مشترك (عائلة)
 ## أوامر التطوير
 `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck` · `npm run genkit:dev`.
 
-## نقاط تستحق الانتباه (وقت الكتابة 2026-06-25)
-- `public/worker-360c95188cebdce7.js` غير متتبَّع في git — SW قديم متبقٍّ.
-- `public/og-image.png` ≈ 1.6 ميغا (كبير).
-- `public/white logo.png` فيه مسافة في الاسم.
-- `pptxgenjs` و`xlsx` مثبّتتان لكن غير مستخدمتين في الأدوات السبع (تصدير محتمل).
+## نقاط تستحق الانتباه (مُحدَّثة 2026-08-22 — الثلاث الأولى من 06-25 كانت قديمة وصُحِّحت)
+- `public/worker-*.js` غير متتبَّع في git (الاسم يتغيّر كل بناء PWA) — SW قديم متبقٍّ، لا يؤثر على التشغيل.
+- `xlsx` مثبَّتة (`^0.18.5`) لكن **غير مستخدمة إطلاقاً بالكود** (تصدير محتمل بالأدوات السبع). `pptxgenjs` لم تعد بالتبعيات أصلاً — احذف أي إشارة سابقة لها.
+- v1.2.0 نُشر رسمياً على Google Play (versionCode 3) بتاريخ 2026-08-22 — راجع `docs/releases/v1.2.0.md`.
+- ⚠️ `package.json` صار **1.3.0** بعدها ويظهر في شاشة «حول تدبير» — أي أن الإصدار المنشور على Play أقدم من إصدار الويب. تحقّق من الاثنين قبل أي كلام عن «الإصدار الحالي».
 
 ## قواعد مقفلة (لا تعدّلها إلا بطلب صريح)
 أدوات: currency · worth-it · installment · habit-cost — نسخ نهائية مقفلة. راجع ملفات الذاكرة قبل المساس بها.

@@ -124,10 +124,17 @@ const recurringPaymentSchema = z.object({
 
 type RecurringPaymentFormData = z.infer<typeof recurringPaymentSchema>;
 
+// ⚠️ الحدّان يطابقان قاعدة أمان Firestore (2026-09-05). بدون حدّ في الشاشة
+//    كانت القاعدة ترفض النصّ الأطول فيرى المستخدم «خطأ» ويضيع ما كتبه —
+//    نفس عائلة العطل الذي أُصلح في نفس اليوم. يُمنع هنا قبل أن يُرفض هناك.
+const FEEDBACK_MAX_SUBJECT = 200;
+const FEEDBACK_MAX_DETAILS = 5000;
+
 const feedbackSchema = z.object({
   type: z.enum(['suggestion', 'bug', 'compliment', 'other']),
-  subject: z.string(),
-  details: z.string().min(1, { message: 'التفاصيل مطلوبة' }),
+  subject: z.string().max(FEEDBACK_MAX_SUBJECT, { message: `الموضوع أطول من ${FEEDBACK_MAX_SUBJECT} حرفاً` }),
+  details: z.string().min(1, { message: 'التفاصيل مطلوبة' })
+    .max(FEEDBACK_MAX_DETAILS, { message: `التفاصيل أطول من ${FEEDBACK_MAX_DETAILS} حرفاً` }),
 });
 type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
@@ -150,6 +157,7 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
   });
 
   const selectedType = form.watch('type');
+  const detailsLength = (form.watch('details') || '').length;
 
   const feedbackMutation = useMutation({
     mutationFn: async (data: FeedbackFormData) => {
@@ -214,7 +222,10 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
                 رسالتك وصلت فريق تدبير، وراح تُراجَع بكل اهتمام ودراسة.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed bg-muted/60 rounded-lg px-4 py-3">
-                قد لا يصلك ردّ مباشر على هذه الرسالة، لكن كن مطمئناً: كل ملاحظة تُقرأ ولها أثر في تطوير تدبير. صوتك مسموع 💚
+                {/* ⚠️ كانت «قد لا يصلك ردّ مباشر» — صارت كاذبة منذ ربط reply-to
+                    (2026-09-05): الردّ صار ممكناً بضغطة. وتسمية العنوان ضرورية
+                    كي لا يُقرأ ردّ تدبير بريداً مجهولاً فيذهب للمهملات. */}
+                كل ملاحظة تُقرأ ولها أثر في تطوير تدبير. وإن احتاجت ردّاً، يصلك من <bdi className="font-semibold">hello@tadbeer.app</bdi> — أضِفه لجهات اتصالك كي لا يقع في المهملات. صوتك مسموع 💚
               </p>
             </div>
             <Button onClick={handleClose} className="mt-2 px-8">إغلاق</Button>
@@ -247,7 +258,7 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
             {/* Subject */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">الموضوع <span className="text-muted-foreground font-normal">(اختياري)</span></Label>
-              <Input {...form.register('subject')} placeholder="عنوان مختصر..." className="h-11" />
+              <Input {...form.register('subject')} maxLength={FEEDBACK_MAX_SUBJECT} placeholder="عنوان مختصر..." className="h-11" />
             </div>
 
             {/* Details */}
@@ -255,9 +266,17 @@ const FeedbackDialog = ({ isOpen, setIsOpen }: { isOpen: boolean; setIsOpen: (v:
               <Label className="text-sm font-medium">التفاصيل <span className="text-destructive">*</span></Label>
               <Textarea
                 {...form.register('details')}
+                maxLength={FEEDBACK_MAX_DETAILS}
                 placeholder="اشرح فكرتك أو المشكلة بأكبر قدر من التفاصيل..."
                 className="min-h-[140px] resize-none"
               />
+              {/* عدّاد يظهر عند الاقتراب من الحدّ فقط — لا يزحم الشاشة على
+                  من يكتب سطرين، ويحذّر من يكتب شكوى مطوّلة قبل أن يُقصّ نصّه */}
+              {detailsLength > FEEDBACK_MAX_DETAILS - 1000 && (
+                <p className="text-[11px] text-muted-foreground text-end tabular-nums">
+                  <bdi>{detailsLength} / {FEEDBACK_MAX_DETAILS}</bdi>
+                </p>
+              )}
               {form.formState.errors.details && (
                 <p className="text-xs text-destructive">{form.formState.errors.details.message}</p>
               )}
