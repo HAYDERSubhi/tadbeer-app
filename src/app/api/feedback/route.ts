@@ -11,31 +11,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { adminAuth } from '@/lib/firebase-admin';
+import { FEEDBACK_TYPE_LABELS, esc, isEmail, ltr, feedbackTo, feedbackFrom, baghdadStamp } from '@/lib/feedback-mail';
 
 export const runtime = 'nodejs';
 
-// الوجهة والمُرسِل من البيئة: تحويل الإشعارات إلى hello@tadbeer.app لا يحتاج
-// نشر كود — يكفي ضبط المتغيّرين في Vercel بعد توثيق النطاق في Resend.
-const TO = process.env.FEEDBACK_TO || 'hayder.subhi@gmail.com';
-const FROM = process.env.FEEDBACK_FROM || 'تدبير <onboarding@resend.dev>';
-
 const MAX_SUBJECT = 200;
 const MAX_DETAILS = 5000;
-
-const TYPE_LABELS: Record<string, string> = {
-  suggestion: '💡 اقتراح ميزة',
-  bug: '🐛 إبلاغ عن مشكلة',
-  compliment: '❤️ إطراء',
-  other: '💬 أخرى',
-};
-
-/** يمنع حقن HTML من نصّ المستخدم في جسم الرسالة. */
-const esc = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
-/** بريد صالح الشكل فقط يُوضع في reply-to — وإلا رفضته خدمة البريد. */
-const isEmail = (s: string) => /^[^\s@,;<>"]+@[^\s@,;<>"]+\.[^\s@,;<>"]+$/.test(s);
 
 export async function POST(req: NextRequest) {
   try {
@@ -56,7 +37,7 @@ export async function POST(req: NextRequest) {
     const senderName = typeof decoded.name === 'string' && decoded.name ? decoded.name : 'مستخدم';
 
     const body = await req.json() as { type?: string; subject?: string; details?: string };
-    const type = typeof body.type === 'string' && body.type in TYPE_LABELS ? body.type : 'other';
+    const type = typeof body.type === 'string' && body.type in FEEDBACK_TYPE_LABELS ? body.type : 'other';
     const subject = (typeof body.subject === 'string' ? body.subject : '').trim().slice(0, MAX_SUBJECT) || 'بدون موضوع';
     const details = (typeof body.details === 'string' ? body.details : '').trim().slice(0, MAX_DETAILS);
 
@@ -70,22 +51,22 @@ export async function POST(req: NextRequest) {
     }
 
     const resend = new Resend(resendKey);
-    const typeLabel = TYPE_LABELS[type];
+    const typeLabel = FEEDBACK_TYPE_LABELS[type];
     // الخادم يعمل بتوقيت غرينتش. بلا منطقة زمنية صريحة كانت ملاحظة الساعة
     // 2:49 صباحاً بتوقيت بغداد تُكتب «11:49 م» من **اليوم السابق** — أي أن
     // التاريخ نفسه خطأ لا الساعة فقط (مرصود في بريد حقيقي 2026-09-05).
     // ‏-u-nu-latn: أرقام لاتينية لا عربية-هندية — التطبيق كلّه يعرض 125,000
     // لا ١٢٥٬٠٠٠، والفاحص الآلي كان يرصد هذا السطر مخالفاً.
-    const sentAt = new Date().toLocaleString('ar-IQ-u-nu-latn', { timeZone: 'Asia/Baghdad' });
+    const sentAt = baghdadStamp();
     // بلا عزل اتجاهي كان البريد يظهر «<<hayder@gmail.com» — الأقواس تنقلب
     // بصرياً حول نصّ لاتيني داخل فقرة عربية. سطران منفصلان أوضح وأسلم.
     const senderLine = senderEmail
-      ? `${esc(senderName)}<br><span dir="ltr" style="unicode-bidi:isolate;color:#1a7a5e;">${esc(senderEmail)}</span>`
+      ? `${esc(senderName)}<br>${ltr(senderEmail)}`
       : `${esc(senderName)} — حساب ضيف، لا يمكن الردّ`;
 
     await resend.emails.send({
-      from: FROM,
-      to: TO,
+      from: feedbackFrom(),
+      to: feedbackTo(),
       // ⭐ الردّ بضغطة واحدة: «رد» في صندوق البريد يذهب إلى المستخدم مباشرةً،
       //    من نفس العنوان الذي وصلت إليه الملاحظة. لا حاجة لنسخ بريده يدوياً.
       ...(senderEmail && isEmail(senderEmail) ? { replyTo: senderEmail } : {}),

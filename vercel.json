@@ -1,8 +1,24 @@
 {
   "crons": [
-    { "path": "/api/push/send?slot=morning",   "schedule": "0 5 * * *"  },
-    { "path": "/api/push/send?slot=afternoon", "schedule": "0 11 * * *" },
-    { "path": "/api/push/send?slot=evening",   "schedule": "0 17 * * *" },
-    { "path": "/api/push/month-end",           "schedule": "0 15 * * *" }
+    {
+      "path": "/api/push/send?slot=morning",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/push/send?slot=afternoon",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/push/send?slot=evening",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/push/month-end",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/feedback/digest",
+      "schedule": "30 11 * * 6"
+    }
   ]
 }
