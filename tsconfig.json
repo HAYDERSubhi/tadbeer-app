@@ -23,5 +23,9 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // creative-studio مشروع منفصل مغلق (2026-07-10) وله node_modules خاص به،
+  // فنسخته من React/csstype تتعارض مع نسخة تدبير وتُغرق `npm run typecheck`
+  // بعشرات الأخطاء غير المتعلّقة — وتدفن أخطاء src/ الحقيقية بينها.
+  // استثناؤه يُعيد للفحص فائدته. لا أثر له على البناء ولا على التطبيق.
+  "exclude": ["node_modules", "creative-studio"]
 }
