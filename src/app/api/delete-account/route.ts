@@ -36,17 +36,32 @@ export async function POST(req: NextRequest) {
     const db = adminDb();
     const basePath = `users/${uid}`;
 
-    // Delete all subcollections in parallel
+    // Delete all subcollections in parallel.
+    // ⚠️ هذه القائمة يجب أن تشمل **كل** مجموعة تُكتَب تحت users/{uid}.
+    //    أي أداة جديدة تحفظ بياناتها هنا تُضاف إلى هذه القائمة، وإلا بقيت
+    //    بياناتها بعد «حذف الحساب» — وهذا ما حدث فعلاً مع trips و badges:
+    //    أُضيفتا للتطبيق بعد كتابة هذا المسار ولم تُضافا هنا (رُصد 2026-09-05).
+    //    المجموعات الحالية مستخرَجة من كل مواضع الكتابة في src/services/firestore.ts.
     await Promise.all(
-      ['expenses', 'goals', 'incomes', 'installmentPlans', 'debts', 'silftna'].map((col) =>
-        deleteSubcollection(db, basePath, col)
-      )
+      [
+        'expenses',
+        'goals',
+        'incomes',
+        'installmentPlans',
+        'debts',
+        'silftna',
+        'trips',   // أداة «سفراتي»
+        'badges',  // مجموعة تحوي المستند earned
+      ].map((col) => deleteSubcollection(db, basePath, col))
     );
 
     // Delete standalone documents (swallow errors if they don't exist)
     await Promise.allSettled([
       db.doc(`${basePath}/settings/main`).delete(),
       db.doc(`${basePath}/wedding/plan`).delete(),
+      // اشتراك الإشعارات مستند خارج مسار المستخدم، وبقاؤه بعد الحذف يجعل كل
+      // مهمة مجدولة (٤ يومياً) تدفع قراءة مهدورة لحساب لم يعد موجوداً، للأبد.
+      db.doc(`pushSubscriptions/${uid}`).delete(),
       db.doc(basePath).delete(),
     ]);
 
