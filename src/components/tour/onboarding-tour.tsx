@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface TourStep {
+export interface TourStep {
   selector: string;
   title: string;
   content: string;

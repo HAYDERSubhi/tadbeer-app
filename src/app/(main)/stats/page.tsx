@@ -475,7 +475,10 @@ export default function StatisticsPage() {
                               <p className="font-bold border-b pb-1 mb-1">{label}</p>
                               {nz.map(p => (
                                 <div key={String(p.dataKey)} className="flex justify-between gap-2">
-                                  <span style={{ color: p.fill }} className="font-medium truncate">{chartConfig[p.dataKey as string]?.label ?? p.dataKey}</span>
+                                  {/* fill موجود فعلاً وقت التشغيل في حمولة Recharts لكنه ليس في نوعها
+                                      المُعلَن، فكان خطأ نوع يخفي غيره في الفحص. تحويل صريح بلا أي
+                                      تغيير في السلوك — نفس القيمة تصل إلى نفس المكان. */}
+                                  <span style={{ color: (p as { fill?: string }).fill }} className="font-medium truncate">{chartConfig[p.dataKey as string]?.label ?? p.dataKey}</span>
                                   <span className="text-muted-foreground shrink-0">{formatCurrency(p.value as number)}</span>
                                 </div>
                               ))}

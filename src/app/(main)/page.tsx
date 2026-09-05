@@ -30,7 +30,7 @@ import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfM
 import { arIQ } from '@/lib/arabic-date';
 import { recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import OnboardingTour from '@/components/tour/onboarding-tour';
+import OnboardingTour, { type TourStep } from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense } from '@/services/firestore';
@@ -69,7 +69,9 @@ function VoiceWaveBars({ barsRef, className }: { barsRef: { current: HTMLDivElem
   );
 }
 
-const tourSteps = [
+// النوع مُحدَّد صراحةً ليُضيّق placement من string إلى قيم TourStep المسموحة —
+// كان الفارق خطأ نوع صامتاً. لا أثر وقت التشغيل، نفس المصفوفة حرفياً.
+const tourSteps: TourStep[] = [
   {
     selector: '',
     title: 'أهلاً بك في تطبيق تدبير!',
@@ -100,7 +102,7 @@ const tourSteps = [
     content: 'استخدم هذا الشريط للتنقل بين الصفحات الرئيسية: الإحصائيات، الأهداف، والإعدادات.',
     placement: 'top',
   }
-];
+] ;
 
 export default function DashboardPage() {
   const { user } = useAuth();

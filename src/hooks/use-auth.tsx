@@ -8,7 +8,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  FirebaseError,
   Auth,
   signInWithRedirect,
   getRedirectResult,
@@ -18,6 +17,9 @@ import {
   linkWithRedirect,
   updateProfile
 } from 'firebase/auth';
+// FirebaseError تُصدَّر من firebase/app لا من firebase/auth — كان استيرادها من
+// الأخيرة خطأ نوع صامتاً (بلا أثر وقت التشغيل لأنها تُستعمل كنوع فقط ويُحذف الاستيراد).
+import type { FirebaseError } from 'firebase/app';
 import { logEvent } from 'firebase/analytics';
 import { auth as firebaseAuth, googleProvider, analytics } from '@/lib/firebase';
 import { recordReferral } from '@/services/firestore';

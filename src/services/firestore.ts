@@ -295,7 +295,9 @@ const defaultSettings: UserSettings = {
     },
     recurringPayments: [],
     appTone: 'formal',
-    categories: Object.values(DEFAULT_CATEGORIES).map(({isDefault, ...rest}) => rest), // Initialize with default categories
+    // DEFAULT_CATEGORIES لا تحوي حقل isDefault أصلاً، فكان التفكيك يزيل مفتاحاً
+    // غير موجود — بلا أثر وقت التشغيل، لكنه خطأ نوع يخفي غيره في الفحص.
+    categories: Object.values(DEFAULT_CATEGORIES).map((c) => ({ ...c })),
     notifications: { dailyReminderEnabled: false },
 };
 
