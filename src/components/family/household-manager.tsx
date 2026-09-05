@@ -5,11 +5,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
-import {
-    createHousehold,
-    leaveHousehold,
-    removeMemberFromHousehold,
-} from '@/services/firestore';
+import { createHousehold, leaveHousehold } from '@/services/firestore';
 import type { Household } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -176,8 +172,21 @@ function ActiveHousehold({ household }: { household: Household }) {
     });
 
     const removeMutation = useMutation({
-        mutationFn: (memberUid: string) =>
-            removeMemberFromHousehold(user!.uid, household, memberUid),
+        // الإزالة على الخادم كنظيرتها join: القواعد تمنع (بحق) أن يكتب المالك
+        // في مستند عضو آخر، فكانت الإزالة من المتصفّح تنتهي برفض دائم — يرى
+        // المالك «خطأ»، ويبقى العضو مرتبطاً بعائلة لم يعد فيها، وتبقى بياناته
+        // محبوسة فيها. المسار الخادميّ يعيد بياناته ثم يفكّ ارتباطه.
+        mutationFn: async (memberUid: string) => {
+            const token = await user!.getIdToken();
+            const res = await fetch('/api/household/remove-member', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ householdId: household.id, memberUid }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'فشل إزالة العضو');
+            return data;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['household', household.id] });
             toast({ title: 'تم إزالة العضو' });

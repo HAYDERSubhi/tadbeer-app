@@ -680,23 +680,10 @@ export const leaveHousehold = async (uid: string, household: Household): Promise
     await setDoc(doc(db, 'users', uid, 'settings', 'main'), { householdId: null }, { merge: true });
 };
 
-export const removeMemberFromHousehold = async (
-    ownerUid: string,
-    household: Household,
-    memberUid: string
-): Promise<void> => {
-    if (!db) throw new Error("Firestore is not initialized");
-    if (household.ownerId !== ownerUid) throw new Error('فقط المالك يمكنه إزالة الأعضاء');
-
-    const member = household.members.find(m => m.uid === memberUid);
-    if (!member) return;
-
-    await updateDoc(doc(db, 'households', household.id), {
-        members: arrayRemove(member),
-        memberUids: arrayRemove(memberUid),
-    });
-    await setDoc(doc(db, 'users', memberUid, 'settings', 'main'), { householdId: null }, { merge: true });
-};
+// ⛔ حُذفت removeMemberFromHousehold (2026-09-05): كانت تنتهي بكتابة في
+//    مستند عضو آخر، وقواعد الأمان تمنعها بحق فتُرفض دائماً — ولم تكن تعيد
+//    بيانات العضو إليه أصلاً. البديل: POST /api/household/remove-member
+//    (يعيد البيانات ثم يفكّ الارتباط بصلاحيات الخادم). لا تُعِدها هنا.
 
 // =================================
 // Badges Service
