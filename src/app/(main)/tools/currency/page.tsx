@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, WifiOff, Pencil, Check, X, Info } from 'lucide-react';
 import Link from 'next/link';
-import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate, getIQDMarketRateSavedAt } from '@/hooks/use-exchange-rates';
+import { useExchangeRates, getIQDMarketRate, saveIQDMarketRate, getIQDMarketRateSavedAt, type Rates } from '@/hooks/use-exchange-rates';
 import { normalizeDigits } from '@/lib/normalize-digits';
 
 const CURRENCIES = [
@@ -61,9 +61,15 @@ export default function CurrencyPage() {
 
   function convertWithRate(val: number, fromCode: string, toCode: string): number {
     if (fromCode === toCode) return val;
-    const ratesOverride = { ...rates, IQD: effectiveIQDRate };
-    const inUSD = val / (ratesOverride[fromCode] ?? 1);
-    return inUSD * (ratesOverride[toCode] ?? 1);
+    const ratesOverride: Rates = { ...rates, IQD: effectiveIQDRate };
+    const fromRate = ratesOverride[fromCode];
+    const toRate   = ratesOverride[toCode];
+    // ⛔ كان `?? 1` هنا: أي سعر مفقود يُحسب بواحد بصمت، فيظهر «مليون دينار =
+    //    مليون دولار» رقماً سليم الشكل تماماً وخاطئاً تماماً بلا أي تنبيه.
+    //    الآن السعر الناقص أو غير الصالح يعطي NaN، والواجهة تعرضه «—» مُعتَماً
+    //    (fmt يردّ «—» لأي قيمة كاذبة) — لا رقم يُطمئن وهو كذب.
+    if (!(fromRate > 0) || !(toRate > 0)) return NaN;
+    return (val / fromRate) * toRate;
   }
 
   function handleKey(k: string) {

@@ -25,10 +25,34 @@ const FALLBACK_RATES: Rates = {
   EGP: 30.9,
 };
 
+/** العملات التي تعرضها الأداة — أي مصدر أسعار ينقصه واحد منها يُرفض كاملاً. */
+const REQUIRED_CODES = ['IQD', 'USD', 'AED', 'SAR', 'EUR', 'TRY'] as const;
+
+/**
+ * يقبل كائن أسعار **صالحاً فقط**: قيم أرقام موجبة منتهية، وكل العملات المطلوبة حاضرة.
+ *
+ * ⛔ سبب وجوده: `readCache` كانت تفعل `JSON.parse(raw) as Cache` بلا أي تحقّق.
+ *    فأي نسخة مخزَّنة ناقصة أو تالفة (كتابة مبتورة، حصّة تخزين ممتلئة، نسخة أقدم
+ *    من التطبيق) كانت تُقبل كما هي، ثم يسقط كل سعر مفقود على `?? 1` في التحويل —
+ *    فيظهر «1,000,000 دينار = 1,000,000 دولار» رقماً سليم الشكل تماماً وخاطئاً
+ *    تماماً، بلا أي تنبيه. رفض المصدر كلّه أسلم من تحويل نصفه.
+ */
+function sanitizeRates(raw: unknown): Rates | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const out: Rates = {};
+  for (const [code, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) out[code] = value;
+  }
+  return REQUIRED_CODES.every(c => out[c] !== undefined) ? out : null;
+}
+
 export function getIQDMarketRate(): number {
   try {
     const v = localStorage.getItem(IQD_MARKET_KEY);
-    return v ? parseFloat(v) : 1480;
+    if (!v) return 1480;
+    // parseFloat('abc') = NaN، وكانت تُعاد كما هي فتُفسد كل تحويل يشمل الدينار.
+    const n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? n : 1480;
   } catch { return 1480; }
 }
 
@@ -47,7 +71,12 @@ function readCache(): Cache | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as Cache;
+    const parsed = JSON.parse(raw) as Partial<Cache>;
+    const rates = sanitizeRates(parsed?.rates);
+    // نسخة تالفة أو ناقصة ⇒ تُهمَل تماماً، فيُعاد الجلب من الشبكة أو تُستعمل
+    // أسعار الطوارئ. لا تُمرَّر أسعار نصفية إلى التحويل.
+    if (!rates || typeof parsed?.updatedAt !== 'number') return null;
+    return { rates, updatedAt: parsed.updatedAt };
   } catch {
     return null;
   }
@@ -78,9 +107,12 @@ export function useExchangeRates() {
     fetch(API_URL)
       .then(r => r.json())
       .then(data => {
-        if (data?.result === 'success' && data.rates) {
-          writeCache(data.rates);
-          setRates(data.rates);
+        // ردّ الخدمة يمرّ بنفس التحقّق: «success» وحدها لا تضمن أن كل عملة
+        // تعرضها الأداة موجودة في الردّ. ردّ ناقص يُهمَل وتبقى الأسعار السابقة.
+        const clean = data?.result === 'success' ? sanitizeRates(data.rates) : null;
+        if (clean) {
+          writeCache(clean);
+          setRates(clean);
           setUpdatedAt(Date.now());
           setOffline(false);
         }
