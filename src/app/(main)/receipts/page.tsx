@@ -19,9 +19,10 @@ import {
   AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
   ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert,
-  Flashlight, FlashlightOff, ScanLine
+  Flashlight, FlashlightOff, ScanLine, MessageSquare
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { FeedbackDialog } from '@/components/feedback/feedback-dialog';
 import type { AnalyzeDetailedReceiptOutput } from '@/ai/flows/analyze-detailed-receipt';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
@@ -323,6 +324,8 @@ export default function DetailedReceiptPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
   const [error, setError] = useState<string | null>(null);
+  // استمارة الملاحظات تُفتح من هنا عند فشل التحليل — بلا انتقال يُضيع الصور
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1201,8 +1204,25 @@ export default function DetailedReceiptPage() {
           <AlertTriangleIcon className="h-4 w-4" />
           <AlertTitle>خطأ في التحليل</AlertTitle>
           <AlertDescription className="text-xs">{error}</AlertDescription>
+          {/* البلاغ في لحظة العطل أثمن ما يصل: المستخدم متضرّر فيصف ما حدث
+              بدقّة، والاستمارة تُفتح هنا لا في الإعدادات كي لا تضيع صوره. */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-9 gap-1.5 text-xs bg-background"
+            onClick={() => setIsFeedbackOpen(true)}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            أخبرنا ما حدث
+          </Button>
         </Alert>
       )}
+
+      <FeedbackDialog
+        isOpen={isFeedbackOpen}
+        setIsOpen={setIsFeedbackOpen}
+        initialType="bug"
+      />
 
       {/* ── Results ──────────────────────────────────────────────────────── */}
       {analyzedItems.length > 0 && !isLoading && (
