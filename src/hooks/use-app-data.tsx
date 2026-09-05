@@ -1,7 +1,7 @@
 // src/hooks/use-app-data.tsx
 "use client";
 
-import { createContext, useContext, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useMemo, useEffect, ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Expense, Goal, UserSettings, Income, Household } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -42,8 +42,35 @@ const defaultSettings: UserSettings = {
 // Pages that need the full history (stats, expenses) fetch separately.
 // Computed at fetch time (not module load) so a long-lived PWA session that
 // crosses a month boundary gets a fresh window on its next refetch.
-function getRecentStart(): Date {
+export function getRecentStart(): Date {
     return startOfMonth(subMonths(new Date(), 6));
+}
+
+// ─── آخر معرّف عائلة معروف (ذاكرة محلية مربوطة بالحساب) ─────────────────────
+// المشكلة: `getUserSettings` هي وحدها من تكشف `householdId`، والإعدادات تُرجع قيمة
+// مبدئية فورية (placeholderData) تجعل `isLoading` تساوي false منذ أول رسم. فكانت
+// استعلامات المصاريف/الأهداف/الدخل تنطلق فوراً بمسار **شخصي** (householdId = null)،
+// ثم تصل الإعدادات الحقيقية فيتغيّر مفتاح الاستعلام وتنطلق **مرّة ثانية** بمسار العائلة:
+// جلب مزدوج وشاشة تحميل مرّتين لكل عضو عائلة، بكل فتح بارد.
+//
+// الحل: نتذكّر آخر معرّف عائلة لهذا الحساب فنبدأ من المسار الصحيح مباشرةً.
+// المفتاح **مربوط بالـ uid** (لا يتسرّب بين حسابين على نفس الجهاز) و**جديد**
+// فلا يحتاج ترحيلاً ولا يمسح حالة أحد. وإن كانت القيمة قديمة (غادر العائلة من جهاز
+// آخر) فأسوأ ما يحدث استعلام واحد مرفوض ثم تصحيح تلقائي فور وصول الإعدادات —
+// والقيمة تُصحَّح على القرص بنفس اللحظة فلا تتكرّر.
+const HH_CACHE_PREFIX = 'tadbeer-hh:';
+
+function readCachedHouseholdId(uid?: string | null): string | null {
+    if (!uid || typeof window === 'undefined') return null;
+    try { return localStorage.getItem(HH_CACHE_PREFIX + uid) || null; } catch { return null; }
+}
+
+function writeCachedHouseholdId(uid: string, householdId: string | null) {
+    if (typeof window === 'undefined') return;
+    try {
+        if (householdId) localStorage.setItem(HH_CACHE_PREFIX + uid, householdId);
+        else localStorage.removeItem(HH_CACHE_PREFIX + uid);
+    } catch { /* وضع التصفّح الخاص — لا ضرر، نعود للسلوك القديم */ }
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -51,13 +78,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const queryClient = useQueryClient();
 
     // Settings first (needed for householdId).
-    // placeholderData gives instant default while fetching so isLoading=false,
-    // but isFetched+isRefetching tells us if REAL data has settled.
+    // placeholderData gives instant default while fetching so isLoading=false;
+    // isFetched is what tells us the REAL settings have landed.
     const {
         data: userSettings,
         isLoading: settingsLoading,
         isFetched: settingsFetched,
-        isRefetching: settingsRefetching,
         isError: settingsIsError,
         error: settingsError,
     } = useQuery<UserSettings, Error>({
@@ -69,7 +95,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         staleTime: 1000 * 60 * 5,
     });
 
-    const householdId = userSettings?.householdId ?? null;
+    // قبل وصول الإعدادات الحقيقية نستعمل آخر معرّف عائلة معروف بدل الافتراض بأنه
+    // مستخدم فردي — وإلا انطلق كل استعلام مرّتين لأعضاء العائلة (انظر الشرح أعلاه).
+    const cachedHouseholdId = useMemo(
+        () => readCachedHouseholdId(user?.uid),
+        [user?.uid]
+    );
+    const householdId = settingsFetched
+        ? (userSettings?.householdId ?? null)
+        : cachedHouseholdId;
+
+    // خزّن القيمة الحقيقية فور وصولها (وامسحها إن غادر العائلة) كي يبدأ الفتح القادم صحيحاً.
+    useEffect(() => {
+        if (!user?.uid || !settingsFetched) return;
+        writeCachedHouseholdId(user.uid, userSettings?.householdId ?? null);
+    }, [user?.uid, settingsFetched, userSettings?.householdId]);
 
     // Recent expenses only (last ~7 months) — fast initial load for the homepage.
     // queryKey includes 'recent' so it coexists with the all-expenses cache entry.
@@ -77,7 +117,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         data: expenses = [],
         isLoading: expensesLoading,
         isFetched: expensesFetched,
-        isRefetching: expensesRefetching,
         isError: expensesIsError,
         error: expensesError,
     } = useQuery<Expense[], Error>({
@@ -126,10 +165,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         household,
         householdId,
         isLoading,
-        // "truly ready" = fetched at least once AND not currently re-fetching stale data.
-        // This prevents showing stale cached data during background refetch.
-        isSettingsFetched: settingsFetched && !settingsRefetching,
-        isExpensesFetched: expensesFetched && !expensesRefetching,
+        // "ready" = fetched from Firestore at least once. **لا** نشترط انتهاء إعادة الجلب
+        // الخلفية: كان الشرط `&& !isRefetching` يُخفي بيانات المستخدم الظاهرة أمامه ويعيد
+        // الشاشة كاملةً إلى مستطيلات رمادية عند كل إعادة جلب — أي عند السحب للتحديث،
+        // وعند العودة للرئيسية بعد انقضاء staleTime (٥ دقائق) — رغم أن البيانات في الذاكرة
+        // ولم تتغيّر. النتيجة كانت تطبيقاً يبدو أبطأ بكثير مما هو.
+        // الآن يبقى المحتوى ظاهراً والتحديث يحصل بصمت خلفه.
+        isSettingsFetched: settingsFetched,
+        isExpensesFetched: expensesFetched,
         isError,
         error,
         queryClient,

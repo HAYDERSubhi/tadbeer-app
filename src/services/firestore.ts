@@ -40,17 +40,23 @@ function generateInviteCode(): string {
 export const getExpenses = async (
     uid: string,
     householdId?: string | null,
-    options?: { startDate?: Date }
+    options?: { startDate?: Date; endDate?: Date }
 ): Promise<Expense[]> => {
     if (!db) return [];
     const [p1, p2] = basePath(uid, householdId);
     const expensesCol = collection(db, p1, p2, 'expenses');
 
-    // When a startDate is provided we use a Firestore index query (fast).
-    // Without startDate we fetch all documents (needed by stats/expenses pages).
-    const q = options?.startDate
-        ? query(expensesCol, where('date', '>=', Timestamp.fromDate(options.startDate)), orderBy('date', 'desc'))
-        : query(expensesCol, orderBy('date', 'desc'));
+    // When a date bound is provided we use a Firestore range query (fast, single-field
+    // index — no composite index needed since the range and the sort are both on `date`).
+    // Without any bound we fetch all documents (needed by stats/expenses pages).
+    // `endDate` lets a caller pull one archived month on demand (التقرير الشهري) instead
+    // of the whole history — see report/page.tsx.
+    const constraints = [
+        ...(options?.startDate ? [where('date', '>=', Timestamp.fromDate(options.startDate))] : []),
+        ...(options?.endDate ? [where('date', '<=', Timestamp.fromDate(options.endDate))] : []),
+        orderBy('date', 'desc'),
+    ];
+    const q = query(expensesCol, ...constraints);
 
     const expenseSnapshot = await getDocs(q);
     const expenses: Expense[] = [];

@@ -2,17 +2,18 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect, type ReactNode } from 'react';
-import { useAppData } from '@/hooks/use-app-data';
+import { useQuery } from '@tanstack/react-query';
+import { useAppData, getRecentStart } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { useCurrency } from '@/hooks/use-currency';
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, subMonths } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { Button } from '@/components/ui/button';
-import { Share2, TrendingDown, TrendingUp, Target, Award, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Share2, TrendingDown, TrendingUp, Target, Award, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { getUserBadges, saveBadge } from '@/services/firestore';
+import { getUserBadges, saveBadge, getExpenses } from '@/services/firestore';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -146,7 +147,7 @@ function ReportCard({
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function ReportPage() {
-    const { expenses, userSettings, household } = useAppData();
+    const { expenses, userSettings, household, householdId } = useAppData();
     const { categories, getIconComponent } = useCategories();
     const { format: formatCurrency } = useCurrency();
     const { toast } = useToast();
@@ -188,15 +189,36 @@ export default function ReportPage() {
         return subMonths(now, -monthOffset);
     }, [monthOffset]);
 
+    // ⚠️ `expenses` من AppDataProvider تغطّي آخر ٦ أشهر فقط (نافذة أداء الرئيسية)،
+    // بينما زر «الشهر السابق» أدناه بلا حدّ. فكان أي شهر أقدم من النافذة يعرض
+    // «لا توجد مصاريف لهذا الشهر» — **نفي كاذب**، ومصاريف ذلك الشهر موجودة كاملة
+    // في Firestore. وأسوأ: زر «مشاركة» كان يُنتج نصاً فيه «إجمالي المصاريف: ٠»
+    // فيخرج رقم كاذب إلى أهل المستخدم. تظهر بعد ~٧ أشهر من الاستخدام فقط.
+    //
+    // القرار (صاحب المشروع 2026-09-05): المستخدم يرى **أي** شهر يطلبه — فنجلب الشهر
+    // الأرشيفي عند الطلب (استعلام مقيَّد بشهر واحد، لا التاريخ كاملاً) بدل تقييد الزر.
+    const monthStart = useMemo(() => startOfMonth(selectedMonth), [selectedMonth]);
+    const monthEnd   = useMemo(() => endOfMonth(selectedMonth), [selectedMonth]);
+    const isArchivedMonth = monthStart < getRecentStart();
+
+    const { data: archivedExpenses = [], isFetching: isLoadingArchived } = useQuery({
+        // مفتاح من ٥ عناصر — لا يصطدم بمفتاحَي 'recent' و'all' اللذين تستهدفهما
+        // التحديثات المتفائلة حرفياً (انظر use-app-data.tsx).
+        queryKey: ['expenses', user?.uid, householdId, 'month', format(selectedMonth, 'yyyy-MM')],
+        queryFn: () => getExpenses(user!.uid, householdId, { startDate: monthStart, endDate: monthEnd }),
+        enabled: !!user && isArchivedMonth,
+        // شهر مضى لا يتغيّر عملياً — أبقه طويلاً كي لا يُعاد جلبه مع كل تنقّل ذهاباً وإياباً.
+        staleTime: 1000 * 60 * 30,
+    });
+
     const monthExpenses = useMemo(() => {
-        const start = startOfMonth(selectedMonth);
-        const end = endOfMonth(selectedMonth);
-        return expenses.filter(e => {
+        const source = isArchivedMonth ? archivedExpenses : expenses;
+        return source.filter(e => {
             try {
-                return isWithinInterval(parseISO(e.date), { start, end });
+                return isWithinInterval(parseISO(e.date), { start: monthStart, end: monthEnd });
             } catch { return false; }
         });
-    }, [expenses, selectedMonth]);
+    }, [isArchivedMonth, archivedExpenses, expenses, monthStart, monthEnd]);
 
     const totalSpent = useMemo(() => monthExpenses.reduce((s, e) => s + e.amount, 0), [monthExpenses]);
     const totalBudget = userSettings?.budget?.totalBudget ?? 0;
@@ -254,7 +276,14 @@ export default function ReportPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-xl font-bold">التقرير الشهري</h1>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={handleShare}>
+                {/* مُعطَّل أثناء جلب شهر أرشيفي: الضغط وقتها كان يشارك «الإجمالي: ٠» */}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    disabled={isLoadingArchived}
+                    onClick={handleShare}
+                >
                     <Share2 className="h-4 w-4" />
                     مشاركة
                 </Button>
@@ -289,6 +318,12 @@ export default function ReportPage() {
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
                     <p className="text-lg">🔮</p>
                     <p className="text-sm">لا يمكن عرض تقرير مستقبلي</p>
+                </div>
+            ) : isLoadingArchived ? (
+                /* شهر أرشيفي قيد الجلب — لا تعرض «لا توجد مصاريف» قبل وصول الجواب */
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <p className="text-sm">جاري تحميل تقرير هذا الشهر...</p>
                 </div>
             ) : monthExpenses.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
