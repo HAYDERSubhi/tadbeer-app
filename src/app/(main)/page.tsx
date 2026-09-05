@@ -24,6 +24,7 @@ const FormLoader = () => (
 const ManualExpenseForm = dynamic(() => import('@/components/expenses/manual-expense-form'), { loading: FormLoader, ssr: false });
 const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense-form'), { loading: FormLoader, ssr: false });
 import { cn } from '@/lib/utils';
+import { authedFetch } from '@/lib/api-fetch';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
@@ -374,9 +375,9 @@ export default function DashboardPage() {
         const voiceTimeoutId = setTimeout(() => voiceAbortController.abort(), 35_000);
         let res: Response;
         try {
-          res = await fetch('/api/voice', {
+          // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
+          res = await authedFetch('/api/voice', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               voiceRecordingDataUri: audioDataUri,
               categories: categoryMapForAI,

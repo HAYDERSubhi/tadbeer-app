@@ -5,11 +5,12 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bot, TrendingDown, TrendingUp, Wallet, PieChart, AlertCircle, RefreshCw } from "lucide-react";
 import type { AnalyzeSpendingPatternsInput, AnalyzeSpendingPatternsResult } from '@/ai/flows/analyze-spending-patterns';
+import { authedFetch } from '@/lib/api-fetch';
 
 async function fetchAnalysis(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsResult> {
-  const res = await fetch('/api/analyze', {
+  // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
+  const res = await authedFetch('/api/analyze', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
   const json: { ok: boolean; data?: AnalyzeSpendingPatternsResult; error?: string } = await res.json();

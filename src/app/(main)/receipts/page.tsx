@@ -38,6 +38,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, isValid, differenceInCalendarDays } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
+import { authedFetch } from '@/lib/api-fetch';
 import { normalizeDigits } from '@/lib/normalize-digits';
 import { useCategories } from '@/hooks/use-categories';
 import { useActiveTrips } from '@/hooks/use-active-trips';
@@ -772,9 +773,9 @@ export default function DetailedReceiptPage() {
       setProcessingStep('analyzing');
       let res: Response;
       try {
-        res = await fetch('/api/receipt', {
+        // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
+        res = await authedFetch('/api/receipt', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ receiptImages: compressedImages, categories: categoryMapForAI }),
           signal: controller.signal,
         });

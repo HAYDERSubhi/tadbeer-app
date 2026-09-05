@@ -11,11 +11,12 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import type { FinancialCoachInput, FinancialCoachOutput } from '@/ai/flows/financial-coach';
+import { authedFetch } from '@/lib/api-fetch';
 
 async function fetchCoach(input: FinancialCoachInput): Promise<FinancialCoachOutput> {
-  const res = await fetch('/api/coach', {
+  // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
+  const res = await authedFetch('/api/coach', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
   const json: { ok: boolean; data?: FinancialCoachOutput; error?: string } = await res.json();

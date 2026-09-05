@@ -25,6 +25,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { authedFetch } from '@/lib/api-fetch';
 import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { format, isThisMonth, parseISO, differenceInCalendarMonths } from 'date-fns';
@@ -317,9 +318,9 @@ export function FinancialChatSheet() {
     const timeoutId = setTimeout(() => controller.abort(), 62000);
 
     try {
-      const res = await fetch('/api/chat', {
+      // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
+      const res = await authedFetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // Trim ONLY the conversational history sent over the wire (last 10
           // turns) to keep latency/cost bounded. The full, always-current
