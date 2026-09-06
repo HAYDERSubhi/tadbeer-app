@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingDown, TrendingUp, X } from 'lucide-react';
@@ -15,35 +15,71 @@ import {
   endOfWeek,
   subWeeks,
   isWithinInterval,
-  getWeek,
-  getYear,
   differenceInDays,
   getDay,
+  format as formatDate,
 } from 'date-fns';
+
+// أسبوع تدبير يبدأ السبت وينتهي الجمعة. البطاقة تلخّص الأسبوع المنتهي، فموعدها
+// السبت — أول يوم في الأسبوع الجديد — مرّة واحدة.
+// والأحد فرصة أخيرة لمن لم يفتح التطبيق يوم السبت فلم تُعرض عليه أصلاً.
+const WEEK_STARTS_ON = 6 as const;
+const SATURDAY = 6;
+const SUNDAY = 0;
+
+// نافذة الظهور الممكنة (قبل النظر في حالة المستخدم): السبت أو الأحد.
+export function isSummaryWindow(now: Date): boolean {
+  const day = getDay(now);
+  return day === SATURDAY || day === SUNDAY;
+}
+
+type SummaryState = {
+  weekStart: string;
+  shown?: boolean;     // عُرضت فعلاً على المستخدم في هذا الأسبوع
+  dismissed?: boolean; // أغلقها المستخدم بنفسه
+};
+
+// القرار النهائي للظهور. حالةٌ من أسبوع سابق تُعامَل كأن لا حالة.
+export function shouldShowOn(now: Date, state: SummaryState | null): boolean {
+  if (!isSummaryWindow(now)) return false;
+  const current = state?.weekStart === weekKey(now) ? state : null;
+  if (current?.dismissed) return false;
+  // الأحد لمن لم يرها السبت فقط
+  if (getDay(now) === SUNDAY && current?.shown) return false;
+  return true;
+}
 
 function getStorageKey(uid: string) {
   return `weekly-summary-dismissed-${uid}`;
 }
 
-function isDismissedThisWeek(uid: string): boolean {
+// مفتاح الأسبوع = تاريخ السبت الذي بدأ به.
+// ⚠️ كان المخزَّن رقمَ الأسبوع من getWeek، وهي تعدّ الأسبوع من الأحد افتراضاً —
+// فالسبت والأحد يقعان عندها في «أسبوعين» مختلفين، وكان إغلاق البطاقة يوم السبت
+// لا يمنع ظهورها ثانيةً يوم الأحد. تاريخ بداية الأسبوع لا يحتمل هذا اللبس.
+export function weekKey(now: Date): string {
+  return formatDate(startOfWeek(now, { weekStartsOn: WEEK_STARTS_ON }), 'yyyy-MM-dd');
+}
+
+function readState(uid: string): SummaryState | null {
   try {
     const raw = localStorage.getItem(getStorageKey(uid));
-    if (!raw) return false;
-    const { week, year } = JSON.parse(raw);
-    const now = new Date();
-    return week === getWeek(now) && year === getYear(now);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // الشكل القديم (رقم أسبوع) لا يطابق، فيُعامَل كأن لا حالة — بلا ضرر
+    return typeof parsed?.weekStart === 'string' ? (parsed as SummaryState) : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function dismissThisWeek(uid: string) {
+// دمج مع حالة الأسبوع نفسه كي لا يمحو تسجيلُ «عُرضت» إغلاقَ المستخدم ولا العكس
+function saveState(uid: string, patch: Partial<Omit<SummaryState, 'weekStart'>>) {
   try {
-    const now = new Date();
-    localStorage.setItem(
-      getStorageKey(uid),
-      JSON.stringify({ week: getWeek(now), year: getYear(now) })
-    );
+    const key = weekKey(new Date());
+    const prev = readState(uid);
+    const base: SummaryState = prev?.weekStart === key ? prev : { weekStart: key };
+    localStorage.setItem(getStorageKey(uid), JSON.stringify({ ...base, ...patch }));
   } catch {}
 }
 
@@ -52,20 +88,19 @@ export function WeeklySummaryCard() {
   const { expenses, isExpensesFetched } = useAppData();
   const { categoryMap } = useCategories();
   const { format: formatCurrency } = useCurrency();
-  const [dismissed, setDismissed] = useState(() =>
-    user ? isDismissedThisWeek(user.uid) : true
-  );
+  // null = لم يُقرَّر بعد. القرار يُتَّخذ مرّة واحدة بعد أن تُعرف هوية المستخدم،
+  // ولا يُعاد حسابه بعدها — لأن تسجيل «عُرضت» كان سيُخفيها أمام صاحبها فوراً.
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
   const data = useMemo(() => {
     if (!isExpensesFetched || !expenses.length) return null;
 
     const now = new Date();
-    const dayOfWeek = getDay(now); // 0=Sun, 6=Sat
 
-    // يظهر فقط يوم السبت (6) أو الأحد (0)
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) return null;
+    // خارج نافذة السبت/الأحد لا حاجة لأي حساب
+    if (!isSummaryWindow(now)) return null;
 
-    const weekStart = { weekStartsOn: 6 as const };
+    const weekStart = { weekStartsOn: WEEK_STARTS_ON };
 
     const lastWeekStart = startOfWeek(subWeeks(now, 1), weekStart);
     const lastWeekEnd = endOfWeek(subWeeks(now, 1), weekStart);
@@ -132,12 +167,24 @@ export function WeeklySummaryCard() {
     };
   }, [expenses, isExpensesFetched, categoryMap, user]);
 
+  useEffect(() => {
+    if (!user || allowed !== null) return;
+    setAllowed(shouldShowOn(new Date(), readState(user.uid)));
+  }, [user, allowed]);
+
+  const visible = !!data && allowed === true;
+
+  // تسجيل أنها عُرضت فعلاً — عليه وحده يتوقف ظهورها يوم الأحد
+  useEffect(() => {
+    if (visible && user) saveState(user.uid, { shown: true });
+  }, [visible, user]);
+
   const handleDismiss = () => {
-    if (user) dismissThisWeek(user.uid);
-    setDismissed(true);
+    if (user) saveState(user.uid, { dismissed: true });
+    setAllowed(false);
   };
 
-  if (!data || dismissed) return null;
+  if (!visible || !data) return null;
 
   const { lastWeekTotal, prevWeekTotal, diff, isImproved, isWorse, topCategoryName, topCategoryAmount } = data;
 
@@ -164,7 +211,11 @@ export function WeeklySummaryCard() {
                 ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
                 : 'bg-muted text-muted-foreground'
             )}>
-              {isImproved ? `أقل بـ ${Math.abs(diff)}%` : isWorse ? `أعلى بـ ${diff}%` : 'مستقر'}
+              {isImproved
+                ? <>أقل بـ <bdi>{Math.abs(diff)}%</bdi></>
+                : isWorse
+                ? <>أعلى بـ <bdi>{diff}%</bdi></>
+                : 'مستقر'}
             </span>
           )}
         </CardTitle>
@@ -182,17 +233,17 @@ export function WeeklySummaryCard() {
         {prevWeekTotal > 0 && (
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground w-24 shrink-0 text-right">قبل أسبوعين</span>
+              <span className="text-[10px] text-muted-foreground w-24 shrink-0 text-start">قبل أسبوعين</span>
               <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-muted-foreground/40 transition-all"
                   style={{ width: `${prevWeekPct}%` }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground w-20 shrink-0">{formatCurrency(prevWeekTotal)}</span>
+              <span className="text-[10px] text-muted-foreground w-20 shrink-0"><bdi>{formatCurrency(prevWeekTotal)}</bdi></span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium w-24 shrink-0 text-right">الأسبوع الماضي</span>
+              <span className="text-[10px] font-medium w-24 shrink-0 text-start">الأسبوع الماضي</span>
               <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                 <div
                   className={cn(
@@ -202,7 +253,7 @@ export function WeeklySummaryCard() {
                   style={{ width: `${lastWeekPct}%` }}
                 />
               </div>
-              <span className="text-[10px] font-medium w-20 shrink-0">{formatCurrency(lastWeekTotal)}</span>
+              <span className="text-[10px] font-medium w-20 shrink-0"><bdi>{formatCurrency(lastWeekTotal)}</bdi></span>
             </div>
           </div>
         )}
@@ -210,10 +261,10 @@ export function WeeklySummaryCard() {
         {/* رسالة الاستنتاج */}
         <p className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 leading-relaxed">
           {isImproved && diff !== null
-            ? `أحسنت — أنفقت أقل هذا الأسبوع. استمر على هذا المسار لتوفير ${formatCurrency(Math.round((prevWeekTotal - lastWeekTotal)))} إضافية.`
+            ? <>أحسنت — أنفقت أقل هذا الأسبوع. استمر على هذا المسار لتوفير <bdi>{formatCurrency(Math.round(prevWeekTotal - lastWeekTotal))}</bdi> إضافية.</>
             : isWorse && topCategoryName
-            ? `ارتفع إنفاقك هذا الأسبوع — الفئة الأعلى كانت ${topCategoryName} بـ ${formatCurrency(topCategoryAmount)}.`
-            : `أنفقت ${formatCurrency(lastWeekTotal)} الأسبوع الماضي.`}
+            ? <>ارتفع إنفاقك هذا الأسبوع — الفئة الأعلى كانت {topCategoryName} بـ <bdi>{formatCurrency(topCategoryAmount)}</bdi>.</>
+            : <>أنفقت <bdi>{formatCurrency(lastWeekTotal)}</bdi> الأسبوع الماضي.</>}
         </p>
 
         <Button
