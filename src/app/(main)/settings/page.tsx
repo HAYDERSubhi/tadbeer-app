@@ -1830,7 +1830,10 @@ export default function SettingsPage() {
                        />
                      </div>
                    </div>
-                   <DialogFooter>
+                   {/* ⛔ flex-col (لا flex-col-reverse الافتراضي): على الهاتف كان
+                       «نعم، احذف حسابي» يظهر **فوق** «إلغاء» — أي أن الفعل الذي لا
+                       تراجع عنه في أقرب موضع للإبهام. هنا «إلغاء» فوق والحذف تحته. */}
+                   <DialogFooter className="flex-col gap-2">
                      <Button variant="ghost" onClick={() => { setIsDeleteAccountOpen(false); setDeleteAccountText(''); }} className="text-xs h-9">إلغاء</Button>
                      <Button
                        variant="destructive"
