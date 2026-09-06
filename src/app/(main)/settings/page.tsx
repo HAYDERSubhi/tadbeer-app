@@ -1830,35 +1830,6 @@ export default function SettingsPage() {
              </div>
         </AccordionItemWrapper>
 
-        <AccordionItemWrapper onToggle={toggleAccordionItem}
-            value="item-5"
-            icon={Info}
-            title="حول تدبير"
-            subtitle="معلومات عن التطبيق"
-            sectionId="settings-support"
-        >
-          <div className="space-y-4">
-            <div className="rounded-lg bg-muted/40 border p-3 text-center space-y-1">
-              <p className="text-sm font-semibold">تدبير</p>
-              <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
-              <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
-            </div>
-
-            {/* تقييم التطبيق على المتجر — يفتح صفحة تدبير مباشرةً بتطبيق Play على أندرويد.
-                رابط https (لا market://) حتى يبقى صالحاً على الويب وسطح المكتب أيضاً. */}
-            {/* ⛔ زرّا «التقييم» و«شاركنا رأيك» نُقلا إلى مجموعة «رأيك»
-                الظاهرة بجذر الإعدادات (2026-09-05): كانا هنا داخل قسم مطويّ
-                لا سبب لفتحه، فلم يرهما أحد — ثلاث ملاحظات في ثلاثة عشر شهراً.
-                لا تُعِدهما هنا. */}
-
-            <FeedbackDialog
-              isOpen={isFeedbackOpen}
-              setIsOpen={setIsFeedbackOpen}
-            />
-
-            <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
-          </div>
-        </AccordionItemWrapper>
       </Accordion>
 
       {/* ───── Group: رأيك ───── */}
@@ -1884,6 +1855,43 @@ export default function SettingsPage() {
           href="https://play.google.com/store/apps/details?id=app.tadbeer.www.twa"
         />
       </div>
+
+      {/* ───── Group: حول ───── */}
+      {/* آخر ما في الشاشة (2026-09-06): معلومات لا إجراء فيها. كان قبل «رأيك»
+          وداخل مجموعة «البيانات» — لا صلة له بالبيانات، ويتصدّر ما لا يُحتاج. */}
+      <Accordion type="multiple" className="w-full space-y-2" value={openAccordionItems} onValueChange={setOpenAccordionItems}>
+        <AccordionItemWrapper onToggle={toggleAccordionItem}
+            value="item-5"
+            icon={Info}
+            title="حول تدبير"
+            subtitle="معلومات عن التطبيق"
+            sectionId="settings-support"
+        >
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/40 border p-3 text-center space-y-1">
+              <p className="text-sm font-semibold">تدبير</p>
+              <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
+              <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
+            </div>
+
+            {/* ⛔ زرّا «التقييم» و«شاركنا رأيك» نُقلا إلى مجموعة «رأيك»
+                الظاهرة بجذر الإعدادات (2026-09-05): كانا هنا داخل قسم مطويّ
+                لا سبب لفتحه، فلم يرهما أحد — ثلاث ملاحظات في ثلاثة عشر شهراً.
+                لا تُعِدهما هنا. */}
+
+            <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
+          </div>
+        </AccordionItemWrapper>
+      </Accordion>
+
+      {/* ⛔ الاستمارة على مستوى الصفحة، لا داخل قسم مطويّ. كانت داخل «حول تدبير»
+          فلا وجود لها أصلاً ما دام مطويّاً: يضغط المستخدم «شاركنا رأيك» فلا يحدث
+          شيء، ثم تنفتح فجأةً حين يفتح «حول تدبير» (عطل 2026-09-05 → 09-06).
+          لا تُعِدها داخل أي طيّ. */}
+      <FeedbackDialog
+        isOpen={isFeedbackOpen}
+        setIsOpen={setIsFeedbackOpen}
+      />
       
       <MappingDialog
         isOpen={isMappingColumns}
