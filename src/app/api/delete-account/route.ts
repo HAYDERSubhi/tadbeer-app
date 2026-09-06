@@ -1,21 +1,18 @@
 // src/app/api/delete-account/route.ts
-// Permanently deletes a user's account and all their Firestore data.
+// Permanently deletes a user's account and all their data.
 // Uses firebase-admin (bypasses security rules) and verifies the caller's token first.
+//
+// المنطق نفسه في src/lib/account-erasure.ts — مفصول كي يُختبَر على المحاكي
+// محلياً، لأن متغيّرات admin في Vercel وحدها (فخّ ٢). هذا الملف: هوية + ترتيب.
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { adminDb, adminAuth, adminStorageBucket } from '@/lib/firebase-admin';
+import { eraseAccountData } from '@/lib/account-erasure';
 
 export const runtime = 'nodejs';
-
-async function deleteSubcollection(db: FirebaseFirestore.Firestore, basePath: string, colName: string) {
-  const snap = await db.collection(`${basePath}/${colName}`).get();
-  if (snap.empty) return;
-  const BATCH_SIZE = 400;
-  for (let i = 0; i < snap.docs.length; i += BATCH_SIZE) {
-    const batch = db.batch();
-    snap.docs.slice(i, i + BATCH_SIZE).forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-  }
-}
+// ⚠️ كان هذا المسار بلا maxDuration — أي أنه يعمل بمهلة ١٠ ثوانٍ الافتراضية
+//    بينما كل نظائره الثقيلة (حتى household/remove-member) أُعطيت ٦٠. مستخدم
+//    قديم بمصاريف كثيرة كان حذفه ينقطع في منتصفه. (رُصد 2026-09-06.)
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,44 +30,34 @@ export async function POST(req: NextRequest) {
     }
 
     const uid = decoded.uid;
-    const db = adminDb();
-    const basePath = `users/${uid}`;
 
-    // Delete all subcollections in parallel.
-    // ⚠️ هذه القائمة يجب أن تشمل **كل** مجموعة تُكتَب تحت users/{uid}.
-    //    أي أداة جديدة تحفظ بياناتها هنا تُضاف إلى هذه القائمة، وإلا بقيت
-    //    بياناتها بعد «حذف الحساب» — وهذا ما حدث فعلاً مع trips و badges:
-    //    أُضيفتا للتطبيق بعد كتابة هذا المسار ولم تُضافا هنا (رُصد 2026-09-05).
-    //    المجموعات الحالية مستخرَجة من كل مواضع الكتابة في src/services/firestore.ts.
-    await Promise.all(
-      [
-        'expenses',
-        'goals',
-        'incomes',
-        'installmentPlans',
-        'debts',
-        'silftna',
-        'trips',   // أداة «سفراتي»
-        'badges',  // مجموعة تحوي المستند earned
-      ].map((col) => deleteSubcollection(db, basePath, col))
-    );
+    // نقص إعداد التخزين لا يمنع المستخدم من حذف حسابه — يُسجَّل الأثر ويُكمَل.
+    let bucket = null;
+    try {
+      bucket = adminStorageBucket();
+    } catch {
+      bucket = null;
+    }
 
-    // Delete standalone documents (swallow errors if they don't exist)
-    await Promise.allSettled([
-      db.doc(`${basePath}/settings/main`).delete(),
-      db.doc(`${basePath}/wedding/plan`).delete(),
-      // اشتراك الإشعارات مستند خارج مسار المستخدم، وبقاؤه بعد الحذف يجعل كل
-      // مهمة مجدولة (٤ يومياً) تدفع قراءة مهدورة لحساب لم يعد موجوداً، للأبد.
-      db.doc(`pushSubscriptions/${uid}`).delete(),
-      db.doc(basePath).delete(),
-    ]);
+    // ⛔ الترتيب مقصود ولا يُقلَب: البيانات أولاً ثم حساب المصادقة أخيراً.
+    //    لو تعثّر شيء هنا، تُرمى الاستثناءات فيبقى الحساب قائماً ويعيد
+    //    المستخدم المحاولة. العكس (حذف الحساب أولاً) يترك بياناته يتيمة
+    //    في العائلة والتخزين بلا أي طريقة لبلوغها لاحقاً.
+    //    والمسار قابل للإعادة: كل خطوة فيه تتحمّل أن تُنفَّذ مرّتين.
+    const report = await eraseAccountData(adminDb(), bucket, uid);
 
-    // Delete the Firebase Auth user (admin SDK has no re-auth requirement)
     await adminAuth().deleteUser(uid);
+
+    if (report.storageError) {
+      // الحساب مُحي فعلاً — لكن ملفاته لم تُمحَ، وهذا يجب أن يُرى في السجلّ
+      // لا أن يمرّ بصمت. الأثر مسجَّل في deletionResidue للإعادة.
+      console.error('delete-account: storage cleanup failed for one account');
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('delete-account error:', err);
+    // بلا تسجيل للمعرّفات — سجلّات الخادم تبقى إلى الأبد.
+    console.error('delete-account error:', err instanceof Error ? err.message : 'unknown');
     return NextResponse.json({ ok: false, error: 'فشل حذف الحساب، حاول مجدداً' }, { status: 500 });
   }
 }

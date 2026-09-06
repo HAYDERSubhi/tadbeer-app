@@ -296,7 +296,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
-  const { userSettings, expenses, incomes, householdId } = useAppData();
+  const { userSettings, expenses, incomes, householdId, household } = useAppData();
   // الافتراضي هنا القائمة القابلة للاختيار (القوائم، ميزانيات الفئات، وكل حفظ
   // يُعيد كتابة فئات المستخدم). allCategories شاملة «سفر» النظامية — للعرض فقط.
   const { categories: allCategories, selectableCategories: categories, getIconComponent } = useCategories();
@@ -1801,6 +1801,23 @@ export default function SettingsPage() {
                      <DialogDescription className="text-xs">سيتم حذف حسابك وجميع بياناتك (مصاريف، أهداف، دخل، إعدادات) بشكل دائم. لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
                    </DialogHeader>
                    <div className="space-y-3 pt-2">
+                     {/* تحذير العائلة: يظهر لمن هو في عائلة وحده. الحذف يمسّ ما يراه
+                         الآخرون (ينقص مجموعهم المشترك)، فلا يصحّ أن يكتشفوه بعد وقوعه. */}
+                     {householdId && (
+                       <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 space-y-1.5">
+                         <p className="text-xs font-medium text-amber-700 dark:text-amber-400">👨‍👩‍👧 أنت مشترك في عائلة</p>
+                         <p className="text-xs text-muted-foreground leading-relaxed">
+                           ستُحذف المصاريف والأهداف والدخل التي سجّلتها أنت داخل العائلة، ويُرفع اسمك وبريدك من قائمة أعضائها. سينقص المجموع المشترك الذي يراه بقية الأفراد.
+                         </p>
+                         {household && household.ownerId === user?.uid && (
+                           <p className="text-xs text-muted-foreground leading-relaxed">
+                             {household.members.length > 1
+                               ? 'وبما أنك صاحب العائلة، ستنتقل ملكيتها إلى أقدم عضو فيها لتستمر بعدك.'
+                               : 'وبما أنك آخر عضو فيها، ستُحذف العائلة بالكامل مع كل ما بداخلها.'}
+                           </p>
+                         )}
+                       </div>
+                     )}
                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
                        <p className="text-xs text-destructive font-medium">⚠️ تحذير — هذا الإجراء لا يمكن التراجع عنه</p>
                        <p className="text-xs text-muted-foreground">اكتب كلمة <span className="font-bold text-foreground">احذف</span> للتأكيد</p>

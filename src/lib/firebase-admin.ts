@@ -6,6 +6,7 @@
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 function getAdminApp(): App {
   const existing = getApps();
@@ -26,3 +27,16 @@ function getAdminApp(): App {
 
 export const adminDb = () => getFirestore(getAdminApp());
 export const adminAuth = () => getAuth(getAdminApp());
+
+// ── Storage ────────────────────────────────────────────────────────────────
+// اسم الحاوية يأتي من نفس المتغيّر الذي يستعمله العميل (NEXT_PUBLIC_… متاح على
+// الخادم أيضاً)، فلا يحتاج صاحب المشروع إلى ضبط متغيّر جديد في Vercel.
+// ⚠️ حذف الملفات يتطلّب صلاحية Storage على مفتاح الخدمة. لو نقصت، ترمي هذه
+//    الدالة — ومسار حذف الحساب يسجّل ذلك بدل أن يبتلعه بصمت.
+export const adminStorageBucket = () => {
+  const name =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (!name) throw new Error('Storage bucket name is not configured on the server.');
+  return getStorage(getAdminApp()).bucket(name);
+};
