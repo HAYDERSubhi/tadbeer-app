@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { Settings, Share2, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import React, { useState } from 'react';
-import { usePWAInstall } from '@/hooks/use-pwa-install';
-import { InstallBanner } from './install-banner';
+// أندرويد ⇒ Google Play · آيفون ⇒ الإضافة اليدوية للشاشة الرئيسية.
+// التثبيت من متصفّح أندرويد (beforeinstallprompt) أُزيل بقرار صاحب المشروع
+// 2026-09-08 — الشرح الكامل داخل play-install-banner.tsx.
+import { PlayInstallBanner } from './play-install-banner';
 import { IosInstallBanner } from './ios-install-banner';
 import { LoggingStreakBanner } from '@/components/dashboard/logging-streak-banner';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
@@ -16,9 +18,7 @@ import { NotificationsSheet } from '@/components/notifications/notifications-she
 import { cn } from '@/lib/utils';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { canInstall, requestInstall } = usePWAInstall();
   const { user } = useAuth();
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const { notifications, unreadCount } = useNotificationsFeed();
   usePushNotifications();
@@ -33,13 +33,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setNotifOpen(true);
     markNotificationsSeen();
   };
-
-  const handleInstall = async () => {
-    setBannerDismissed(true);
-    await requestInstall();
-  };
-
-  const showBanner = canInstall && !bannerDismissed;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -124,13 +117,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         notifications={notifications}
       />
 
-      {showBanner && (
-        <InstallBanner
-          onInstall={handleInstall}
-          onDismiss={() => setBannerDismissed(true)}
-        />
-      )}
-      {!showBanner && <IosInstallBanner />}
+      {/* الاثنتان يستبعد كلٌّ منهما الأخرى بشرطها (أندرويد ↔ آيفون)،
+          فلا حاجة لبوّابة تُرتّبهما — كل واحدة تقرّر ظهورها بنفسها. */}
+      <PlayInstallBanner />
+      <IosInstallBanner />
     </div>
   );
 }

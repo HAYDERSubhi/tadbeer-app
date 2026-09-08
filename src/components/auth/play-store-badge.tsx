@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
+import { shouldPromotePlayStore, PLAY_STORE_URL } from '@/lib/platform';
 
 /**
  * رابط ثانوي هادئ لصفحة تدبير على Google Play، أسفل خيارات التسجيل.
@@ -26,8 +27,6 @@ import { logEvent } from 'firebase/analytics';
  * **الاثنان معاً** كي تُقرأ النسبة، فعدد الضغطات وحده لا معنى له بلا مقام.
  */
 
-const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.tadbeer.www.twa';
-
 const PlayIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 shrink-0" fill="currentColor">
     <path d="M4.6 2.3a1 1 0 0 0-.6.9v17.6a1 1 0 0 0 1.5.9l13.8-8.8a1 1 0 0 0 0-1.7L5.5 2.4a1 1 0 0 0-.9-.1z" />
@@ -37,18 +36,9 @@ const PlayIcon = () => (
 export function PlayStoreBadge() {
   const [show, setShow] = useState(false);
 
+  // نفس شرط لافتة `play-install-banner` حرفياً — مصدر واحد كي لا ينحرف الموضعان.
   useEffect(() => {
-    if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
-
-    // أندرويد فقط: لا وجود لـ Google Play على آيفون، وعرضه هناك تشويش محض.
-    const isAndroid = /android/i.test(navigator.userAgent || '');
-
-    // مثبِّت التطبيق أصلاً (PWA أو نسخة المتجر) لا يُدعى لتنزيله من جديد.
-    const isInstalled =
-      window.matchMedia?.('(display-mode: standalone)').matches === true ||
-      (navigator as { standalone?: boolean }).standalone === true;
-
-    if (isAndroid && !isInstalled) setShow(true);
+    if (shouldPromotePlayStore()) setShow(true);
   }, []);
 
   // مقام النسبة: كم مرّة عُرض الرابط فعلاً (لا كم مرّة زُرِعت الصفحة).
@@ -62,7 +52,7 @@ export function PlayStoreBadge() {
   return (
     <div className="pt-3 mt-1 border-t border-white/15 text-center">
       <a
-        href={PLAY_URL}
+        href={PLAY_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => {
