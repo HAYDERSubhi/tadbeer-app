@@ -12,6 +12,7 @@ import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
 import { isInAppBrowser } from '@/lib/in-app-browser';
 import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
+import { PlayStoreBadge } from '@/components/auth/play-store-badge';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
@@ -171,6 +172,10 @@ export default function SignupPage() {
             جرّب بدون إنشاء حساب
           </button>
         </div>
+
+        {/* 5. Google Play — آخر الخيارات وأخفّها وزناً عمداً: كل ضغطة تغادر الموقع.
+               يظهر لأندرويد غير المثبِّت فقط. الشرح الكامل داخل الملف. */}
+        <PlayStoreBadge />
 
         {unauthorizedDomain && (
           <Alert variant="destructive" className="p-3">
