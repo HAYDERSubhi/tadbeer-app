@@ -92,7 +92,43 @@ const COLUMN_MAP_CONFIG = {
 };
 
 const REQUIRED_FIELDS: (keyof typeof COLUMN_MAP_CONFIG)[] = ['amount'];
-const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased'; 
+const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased';
+
+// ─── زر «قيّم تدبير على المتجر» ─────────────────────────────────────────────
+// ⚠️ صفحة Google Play **على المتصفّح لا تحتوي أداة نجوم إطلاقاً** — التقييم لا
+// يمكن إلا من داخل تطبيق متجر Play نفسه. فكان الزر يفتح صفحة ويب فيها كل شيء
+// إلا ما جاء المستخدم لأجله، فيظنّ أن التقييم معطَّل (رُصد من شكاوى مستخدمين
+// 2026-09-08). لذلك: على أندرويد نحوّل الضغطة إلى `market://` فيلتقطها تطبيق
+// المتجر ويفتح قسم التقييمات مباشرةً.
+//
+// يبقى الـ `href` رابط ويب عادياً لأنه:
+//   1) الصحيح فعلاً على المتصفّح وسطح المكتب (لا وجود لـ market:// هناك)،
+//   2) وما يُنسَخ لو ضغط المستخدم «نسخ الرابط» بدل الفتح.
+const PLAY_PACKAGE = 'app.tadbeer.www.twa';
+const PLAY_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_PACKAGE}`;
+
+const handleRateClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  if (typeof navigator === 'undefined' || !/android/i.test(navigator.userAgent)) return;
+  e.preventDefault();
+
+  // لو غادرت الصفحة فقد التقط تطبيق المتجر الرابط — لا حاجة لخطة بديلة.
+  let switchedAway = false;
+  const markSwitched = () => { switchedAway = true; };
+  window.addEventListener('pagehide', markSwitched, { once: true });
+  window.addEventListener('blur', markSwitched, { once: true });
+
+  window.location.href = `market://details?id=${PLAY_PACKAGE}&showAllReviews=true`;
+
+  // جهاز أندرويد بلا متجر Play (هواوي مثلاً) لا يلتقط أحدٌ فيه `market://`،
+  // فيبقى المستخدم على الشاشة أمام زرّ ميت. نعيده لصفحة الويب بدل ذلك.
+  setTimeout(() => {
+    window.removeEventListener('pagehide', markSwitched);
+    window.removeEventListener('blur', markSwitched);
+    if (!switchedAway && document.visibilityState === 'visible') {
+      window.location.href = PLAY_WEB_URL;
+    }
+  }, 1200);
+};
 
 const getColumnName = (colIndex: number): string => {
   let name = '';
@@ -1155,8 +1191,8 @@ export default function SettingsPage() {
   );
 
   /** مثله لرابط خارجي (متجر Play) — يفتح بتبويب جديد بأمان. */
-  const ExternalRow = ({ icon: Icon, title, subtitle, href }: { icon: React.ElementType; title: string; subtitle?: string; href: string }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer">
+  const ExternalRow = ({ icon: Icon, title, subtitle, href, onClick }: { icon: React.ElementType; title: string; subtitle?: string; href: string; onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick}>
       <Card className="active:scale-[0.98] transition-transform">
         <CardContent className="p-0">
           <div className="flex items-center justify-between w-full py-3 px-4">
@@ -1867,12 +1903,14 @@ export default function SettingsPage() {
           subtitle="اقترح ميزة أو أبلغ عن مشكلة"
           onClick={() => setIsFeedbackOpen(true)}
         />
-        {/* رابط https لا market:// كي يبقى صالحاً على الويب وسطح المكتب أيضاً */}
+        {/* الـ href للويب وسطح المكتب، و`handleRateClick` يحوّل أندرويد إلى تطبيق
+            المتجر حيث توجد النجوم فعلاً — الشرح الكامل عند تعريف الدالة أعلى الملف. */}
         <ExternalRow
           icon={Star}
           title="قيّم تدبير على المتجر"
           subtitle="تقييمك يساعد غيرك يجده"
-          href="https://play.google.com/store/apps/details?id=app.tadbeer.www.twa"
+          href={PLAY_WEB_URL}
+          onClick={handleRateClick}
         />
       </div>
 
