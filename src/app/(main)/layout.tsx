@@ -35,8 +35,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
 
   // Redirect straight to signup once auth settles and there's no user.
-  // (صفحة الهبوط رُفعت من المسار الافتراضي — الزائر يصل التسجيل مباشرة.
-  //  كود /landing محفوظ وقابل للاسترجاع بتغيير هذا السطر فقط.)
+  // (صفحة الهبوط رُفعت من المسار 2026-07-11 بالالتزام 886fc65، ثم حُذف ملفها
+  //  الميت 2026-09-09. الزائر يصل /signup مباشرةً — وهي شاشة الدخول الوحيدة.
+  //  ⛔ لا تكتب «كود /landing محفوظ»: لم يعد على القرص. لاسترجاعه إن لزم:
+  //  git show 886fc65^:src/app/landing/page.tsx)
   useEffect(() => {
     if (!loading && !user) {
       router.push('/signup');

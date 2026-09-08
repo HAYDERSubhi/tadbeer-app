@@ -48,7 +48,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   }, [pin, onUnlock]);
 
   // Recovery path: clear the lock and sign out so the user proves account
-  // ownership by logging in again. The (main) layout redirects to /landing
+  // ownership by logging in again. The (main) layout redirects to /signup
   // once auth resolves to null.
   const handleForgot = async () => {
     try {

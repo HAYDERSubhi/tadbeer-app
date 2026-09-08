@@ -4,7 +4,8 @@ import type { MetadataRoute } from 'next';
 const BASE = 'https://www.tadbeer.app';
 
 // خريطة الموقع تشمل الصفحات العامة فقط — الشاشات المحمية خلف تسجيل الدخول
-// تعيد التوجيه لصفحة الهبوط فلا قيمة لفهرستها.
+// تعيد التوجيه إلى /signup فلا قيمة لفهرستها. (صفحة الهبوط رُفعت من المسار
+// 2026-07-11 وحُذف ملفها 2026-09-09 — لا تُعِد ذكرها هنا.)
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: `${BASE}/`, changeFrequency: 'weekly', priority: 1 },
