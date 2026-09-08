@@ -98,8 +98,14 @@ const LOCAL_STORAGE_MAP_KEY = 'userColumnMap_v2_indexBased';
 // ⚠️ صفحة Google Play **على المتصفّح لا تحتوي أداة نجوم إطلاقاً** — التقييم لا
 // يمكن إلا من داخل تطبيق متجر Play نفسه. فكان الزر يفتح صفحة ويب فيها كل شيء
 // إلا ما جاء المستخدم لأجله، فيظنّ أن التقييم معطَّل (رُصد من شكاوى مستخدمين
-// 2026-09-08). لذلك: على أندرويد نحوّل الضغطة إلى `market://` فيلتقطها تطبيق
-// المتجر ويفتح قسم التقييمات مباشرةً.
+// 2026-09-08). لذلك: على أندرويد نحوّل الضغطة إلى المتجر ويفتح قسم التقييمات مباشرةً.
+//
+// ⚠️ ولا نستعمل `market://` المجرَّدة: على أجهزة سامسونج **يسجّل متجر Galaxy نفسه
+// لنفس المخطَّط**، فتظهر نافذة «Open with: Galaxy Store / Google Play Store»
+// (شوهدت فعلاً على هاتف صاحب المشروع 2026-09-08) — ومن يختار Galaxy يصل إلى لا
+// شيء، لأن تدبير غير منشور هناك أصلاً. وثلاثة من مقيّمينا الأربعة على سامسونج.
+// لذلك نستعمل `intent://` مع `package=com.android.vending` التي تقصد متجر Google
+// Play وحده بلا نافذة اختيار، و`S.browser_fallback_url` تتكفّل بالأجهزة بلا متجر.
 //
 // يبقى الـ `href` رابط ويب عادياً لأنه:
 //   1) الصحيح فعلاً على المتصفّح وسطح المكتب (لا وجود لـ market:// هناك)،
@@ -117,10 +123,13 @@ const handleRateClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
   window.addEventListener('pagehide', markSwitched, { once: true });
   window.addEventListener('blur', markSwitched, { once: true });
 
-  window.location.href = `market://details?id=${PLAY_PACKAGE}&showAllReviews=true`;
+  window.location.href =
+    `intent://details?id=${PLAY_PACKAGE}&showAllReviews=true` +
+    `#Intent;scheme=market;package=com.android.vending` +
+    `;S.browser_fallback_url=${encodeURIComponent(PLAY_WEB_URL)};end`;
 
-  // جهاز أندرويد بلا متجر Play (هواوي مثلاً) لا يلتقط أحدٌ فيه `market://`،
-  // فيبقى المستخدم على الشاشة أمام زرّ ميت. نعيده لصفحة الويب بدل ذلك.
+  // شبكة أمان أخيرة: متصفّح لا يفهم `intent://` أصلاً لا يفعل شيئاً ولا يُشغّل
+  // الـ fallback المدمج، فيبقى المستخدم أمام زرّ ميت. نعيده لصفحة الويب بدل ذلك.
   setTimeout(() => {
     window.removeEventListener('pagehide', markSwitched);
     window.removeEventListener('blur', markSwitched);
