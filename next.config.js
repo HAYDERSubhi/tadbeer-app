@@ -4,8 +4,24 @@
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   customWorkerSrc: "worker",
-  cacheOnFrontEndNav: false,
+  // ⛔ كان `false` — وهو سبب أن التطبيق **لا يعمل بلا إنترنت عملياً**.
+  // قاعدة `runtimeCaching` أدناه تحفظ طلبات التنقّل (`request.mode === 'navigate'`)
+  // فقط، وهي لا تشمل التنقّل داخل التطبيق عبر `next/link` (ذاك يجلب حمولة RSC
+  // لا مستنداً). فكانت الشاشة الوحيدة المحفوظة هي التي فُتحت من رابط خارجي أو من
+  // أيقونة التطبيق، وكل ضغطة داخلية تصل لشاشة **غير محفوظة**.
+  // أُثبت بالقياس على الإنتاج 2026-09-08: بعد فتح `/signup` ثم الضغط على رابط
+  // `/login` داخل الصفحة، بقي `pages-cache` يحوي `/signup` و`/privacy` فقط —
+  // و`/login` **لم يُحفظ** رغم أن الصفحة انتقلت إليه فعلاً.
+  // ⚠️ الثمن المعروف: طلب مستند إضافي مع كل تنقّل داخلي (بيانات أكثر قليلاً).
+  cacheOnFrontEndNav: true,
+  // يبقى `false` عمداً: يحفظ كل <script> و<link> عند كل تنقّل، وملفاتنا الثابتة
+  // محفوظة مسبقاً أصلاً (١٣٥ ملفاً) — فلا فائدة تُذكر مقابل طلبات زائدة.
   aggressiveFrontEndNavCaching: false,
+  // صفحة بديلة بشكل تدبير بدل شاشة خطأ المتصفّح السوداء.
+  // ⚠️ المسار `~offline` لا `_offline`: المكتبة تبحث عن `src/app/~offline/page.*`
+  //    لموجّه App (تحقّقت من كودها)، وأي مجلد يبدأ بـ`_` في App Router **مجلد
+  //    خاص لا يُنشئ مساراً أصلاً** — فلو سُمّي `_offline` لما وُجدت الصفحة إطلاقاً.
+  fallbacks: { document: "/~offline" },
   reloadOnOnline: true,
   swcMinify: true,
   disable: process.env.NODE_ENV === "development",

@@ -14,7 +14,6 @@ import { AppLockGate } from '@/components/app-lock/app-lock-gate';
 import { FinancialChatSheet } from '@/components/chat/financial-chat-sheet';
 import { PwaUpdateBanner } from '@/components/pwa-update-banner';
 import { PullToRefresh } from '@/components/pull-to-refresh';
-import { OfflineIndicator } from '@/components/offline-indicator';
 import { useSmartNotifications } from '@/hooks/use-smart-notifications';
 import { useBadges } from '@/hooks/use-badges';
 import OnboardingSheet from '@/components/onboarding/onboarding-sheet';
@@ -80,7 +79,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           خلفية (مثل refetchOnReconnect على الجوال) — وإلا تختفي شاشاته وتظهر ثانيةً. */}
       {user && <OnboardingSheet />}
       <PwaUpdateBanner />
-      <OfflineIndicator />
+      {/* OfflineIndicator انتقل **داخل** هيدر AppShell (2026-09-08): كان هنا
+          بموضع `fixed` فيطفو فوق الهيدر ويقصّ الشعار والأيقونات. */}
       <PullToRefresh />
       <AppShell>
         <main className="flex-1 p-4 sm:p-6">

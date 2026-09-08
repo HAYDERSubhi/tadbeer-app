@@ -49,6 +49,8 @@ firestore-debug.log
 /public/workbox-*.js
 /public/swe-worker-*.js
 /public/worker-*.js
+# يُولَّد منذ تفعيل الصفحة البديلة (fallbacks) 2026-09-08 — أثر بناء كأشقائه أعلاه
+/public/fallback-*.js
 # Local documents
 *.docx
 *.pdf

@@ -32,15 +32,21 @@ export function OfflineIndicator() {
   return (
     <div
       className={cn(
-        'fixed top-0 left-0 right-0 z-[99] flex items-center justify-center gap-2 py-2 text-xs font-medium transition-all duration-300',
+        // ⚠️ **ليس `fixed`** — كان `fixed top-0 z-[99]` فيطفو **فوق** هيدر التطبيق
+        // (`sticky top-0 z-50`) ويقصّ الشعار والأيقونات. رصده صاحب المشروع في
+        // لقطة من هاتفه 2026-09-08. الآن يُركَّب **داخل** الهيدر فوق صفّه، فيدفعه
+        // للأسفل بدل تغطيته، ويرث حشوة `env(safe-area-inset-top)` من الهيدر نفسه.
+        'flex items-center justify-center gap-2 py-2 text-xs font-medium transition-all duration-300',
         isOffline
           ? 'bg-orange-500 text-white animate-in slide-in-from-top'
           : 'bg-green-500 text-white'
       )}
     >
       <WifiOff className={cn('h-3.5 w-3.5', !isOffline && 'hidden')} />
+      {/* ⚠️ لا تُعِد «يمكنك الاستمرار وسيتزامن عند عودة الإنترنت»: كانت وعداً
+          كاذباً — لم يكن المستخدم يستطيع بلوغ أي شاشة أخرى أصلاً بلا إنترنت. */}
       {isOffline
-        ? 'أنت غير متصل — يمكنك الاستمرار وسيتزامن عند عودة الإنترنت'
+        ? 'أنت غير متصل — بياناتك محفوظة'
         : '✓ عاد الاتصال بالإنترنت'}
     </div>
   );
