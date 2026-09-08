@@ -60,29 +60,12 @@ const withPWA = require("@ducanh2912/next-pwa").default({
     // maskable: allows Android to use adaptive icon with coloured background.
     { src: "/icons/maskable-icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
   ],
-  screenshots: [
-    {
-      "src": "/screenshots/screenshot-1-light.png",
-      "sizes": "1080x2340",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "الواجهة الرئيسية"
-    },
-    {
-      "src": "/screenshots/screenshot-2-light.png",
-      "sizes": "1080x2340",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "صفحة الإحصائيات"
-    },
-    {
-      "src": "/screenshots/screenshot-3-light.png",
-      "sizes": "1080x2340",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "صفحة الإعدادات"
-    }
-  ],
+  // ⛔ لا تُعِد حقل `screenshots` بلا ملفات موجودة فعلاً. كان يشير إلى ثلاث صور
+  // `screenshot-{1,2,3}-light.png` **لم توجد على القرص قط** (فُحص تاريخ git كلّه
+  // 2026-09-09) — أي مرجع ميت يجعل المتصفّح يطلب ٣ ملفات ترجع ٤٠٤ بلا فائدة.
+  // لو أردت لقطات في نافذة تثبيت PWA: ضع الملفات في `public/` أولاً ثم أعِد
+  // الحقل بأسمائها الحقيقية. (اللقطات القديمة محفوظة في `docs/assets/screenshots/`
+  // وهي بمقاسات مختلفة — لا تنسخها إلى `public` بلا مراجعة الأبعاد.)
   related_applications: [],
   prefer_related_applications: false,
   // --- END of PWA manifest options ---

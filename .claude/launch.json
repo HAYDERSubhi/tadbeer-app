@@ -1,6 +1,69 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "tadbeer", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000, "autoPort": false }
+    {
+      "name": "tadbeer",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
+      "name": "creative-studio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "creative-studio"
+      ],
+      "port": 3010,
+      "autoPort": false
+    },
+    {
+      "name": "mithaq",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "D:/Mithaq/mithaq-app",
+        "--",
+        "-p",
+        "3020"
+      ],
+      "port": 3020,
+      "autoPort": false
+    },
+    {
+      "name": "ai-multi-chat",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "D:/ai-multi-chat",
+        "--",
+        "-p",
+        "3030"
+      ],
+      "port": 3030,
+      "autoPort": false
+    },
+    {
+      "name": "tadbeer-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "start",
+        "--",
+        "-p",
+        "3005"
+      ],
+      "port": 3005,
+      "autoPort": false
+    }
   ]
 }

@@ -11,14 +11,26 @@ export function SWUpdater() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // ── الشفاء الذاتي: عند تغيّر بصمة البناء، امسح كل الـ cache مرة واحدة ──
+    // ── الشفاء الذاتي: عند تغيّر بصمة البناء، أسقِط مستندات HTML القديمة ──
+    // ⛔ كان يمسح **كل** المخازن بما فيها الحفظ المسبق (`workbox-precache-*`)،
+    // وهو مصدر `/~offline` وكل الأصول. فكان الجهاز يبقى **بلا أي مخزون** إلى أن
+    // يُعيد عامل الخدمة تنزيل ~٤٫٦ م.ب — ومن قطع الشبكة في تلك الفجوة لم يجد
+    // حتى صفحة «أنت غير متصل»، فرأى شاشة خطأ بيضاء (رُصد على هاتف صاحب المشروع
+    // 2026-09-09). نحذف الآن مخزني HTML وحدهما، ونترك الحفظ المسبق لـ Workbox
+    // يديره بنفسه — وهو يفعل ذلك صحيحاً عبر `cleanupOutdatedCaches`.
+    // النظير في عامل الخدمة: `worker/index.ts` (يعمل حتى لو تعطّل جافاسكربت
+    // الصفحة — وهذا هو الفرق: هذا الملف لا يعمل أصلاً حين تنكسر الصفحة).
+    // الثلاثة نفسها المذكورة في `worker/index.ts` — أبقِهما متطابقتين.
+    const STALE_HTML_CACHES = ['pages', 'pages-cache', 'start-url'];
     const seen = localStorage.getItem(STORAGE_KEY);
     if (seen !== BUILD_ID) {
       localStorage.setItem(STORAGE_KEY, BUILD_ID);
-      // أول تشغيل لهذا البناء على هذا الجهاز → نظّف المخزّن القديم
+      // أول تشغيل لهذا البناء على هذا الجهاز → أسقِط مستندات النسخة السابقة
       if (seen !== null && 'caches' in window) {
         caches.keys()
-          .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+          .then(keys => Promise.all(
+            keys.filter(k => STALE_HTML_CACHES.includes(k)).map(k => caches.delete(k))
+          ))
           .then(() => reloadWhenIdle());
         return;
       }
