@@ -129,6 +129,58 @@ export default function QuickBudgetSetupSheet({
         )}
       </div>
 
+      {/* ── التذكير اليومي — عنصر أساسي لا «إعداد إضافي» (رُفع 2026-09-09) ──
+          كان آخر بند في القسم الاختياري، بأصغر خطّ في الشاشة (١١ بكسل رمادي).
+          📊 القياس الذي أوجب رفعه (نسخة 2026-09-05، حسابات حقيقية بلا ضيوف):
+          من **٢٧٨ فتحوا هذه الشاشة نفسها** وحدّدوا ميزانية، فعّل التذكير
+          **٤٤ فقط (١٦٪)** — أي أن ٨٤٪ رأوا الزرّ وتركوه مطفأً. فالمشكلة
+          موضعه وشكله لا اكتشافه.
+          **خط الأساس للمقارنة: ١٦٪.** ⛔ لا تحكم على هذا التغيير بلا مقارنة به.
+          ⚠️ ويبقى **مطفأً افتراضياً** عمداً: التشغيل التلقائي يطلب إذن النظام
+          في لحظة لا يتوقّعها المستخدم، ومن يرفضه حينها يُغلق الباب نهائياً. */}
+      <div className="space-y-3 rounded-xl border-2 border-primary/20 bg-primary/5 p-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Bell className="h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <Label className="text-sm font-semibold text-foreground">تذكير يومي بتسجيل مصاريفك</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                رسالة قصيرة في وقت تختاره — تجعل التسجيل عادة.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={dailyReminderEnabled}
+            onCheckedChange={handleReminderToggle}
+            aria-label="التذكير اليومي"
+          />
+        </div>
+
+        {dailyReminderEnabled && (
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { key: "morning", label: "صباحاً" },
+              { key: "afternoon", label: "ظهراً" },
+              { key: "evening", label: "مساءً" },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setReminderSlot(key)}
+                className={cn(
+                  "rounded-lg border-2 py-2 text-xs font-semibold transition-colors",
+                  reminderSlot === key
+                    ? "border-primary bg-background text-foreground"
+                    : "border-transparent bg-background/60 text-muted-foreground"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="h-px bg-border" />
 
       {/* الحقول الاختيارية — بخط أخفت للدلالة على أنها ثانوية */}
@@ -170,44 +222,6 @@ export default function QuickBudgetSetupSheet({
           </Select>
         </div>
 
-        <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-          <div className="flex items-center gap-2.5">
-            <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <div>
-              <Label className="text-xs font-normal text-muted-foreground">التذكير اليومي</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5">تذكير بتسجيل مصاريفك يومياً</p>
-            </div>
-          </div>
-          <Switch
-            checked={dailyReminderEnabled}
-            onCheckedChange={handleReminderToggle}
-            aria-label="التذكير اليومي"
-          />
-        </div>
-
-        {dailyReminderEnabled && (
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              { key: "morning", label: "صباحاً" },
-              { key: "afternoon", label: "ظهراً" },
-              { key: "evening", label: "مساءً" },
-            ] as const).map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setReminderSlot(key)}
-                className={cn(
-                  "rounded-lg border-2 py-2 text-xs font-semibold transition-colors",
-                  reminderSlot === key
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-transparent bg-muted/50 text-muted-foreground"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <Button

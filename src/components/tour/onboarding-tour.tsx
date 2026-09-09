@@ -11,6 +11,18 @@ export interface TourStep {
   title: string;
   content: string;
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  /**
+   * زرّ إجراء اختياري داخل الخطوة (أُضيف 2026-09-09 لخطوة التذكير اليومي).
+   * **اختياري عمداً** كي تبقى كل الخطوات القائمة كما هي حرفياً بلا تغيير سلوك.
+   * ⚠️ `onClick` يُنفَّذ داخل ضغطة المستخدم مباشرةً — لا تُدخِل بينهما `await`
+   * قبل استدعاء إذن الإشعارات، فالمتصفّح يشترط أن يكون الطلب داخل إيماءة
+   * المستخدم وإلا رفضه صامتاً.
+   */
+  action?: {
+    label: string;
+    doneLabel: string;
+    onClick: () => Promise<boolean> | boolean;
+  };
 }
 
 interface OnboardingTourProps {
@@ -38,6 +50,10 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
   const [isOpen, setIsOpen] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isClient, setIsClient] = useState(false);
+  // الخطوات التي نُفِّذ إجراؤها — مفهرسة بالخطوة لا قيمة واحدة، كي لا يعود
+  // الزرّ «غير مُنفَّذ» إن رجع المستخدم خطوةً ثم تقدّم إليها من جديد.
+  const [doneSteps, setDoneSteps] = useState<Set<number>>(() => new Set());
+  const [actionBusy, setActionBusy] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [currentPlacement, setCurrentPlacement] = useState<TourStep['placement']>('bottom');
 
@@ -249,6 +265,30 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
             </div>
             
             <p className="text-sm text-popover-foreground/80">{currentStepData.content}</p>
+
+            {currentStepData.action && (
+              <Button
+                className="w-full"
+                size="sm"
+                variant={doneSteps.has(currentStep) ? 'secondary' : 'default'}
+                disabled={doneSteps.has(currentStep) || actionBusy}
+                onClick={async () => {
+                  const act = currentStepData.action;
+                  if (!act) return;
+                  setActionBusy(true);
+                  try {
+                    // لا `await` قبل هذه النقطة: إذن الإشعارات يجب أن يُطلب
+                    // داخل إيماءة المستخدم نفسها.
+                    const ok = await act.onClick();
+                    if (ok) setDoneSteps(prev => new Set(prev).add(currentStep));
+                  } finally {
+                    setActionBusy(false);
+                  }
+                }}
+              >
+                {doneSteps.has(currentStep) ? currentStepData.action.doneLabel : currentStepData.action.label}
+              </Button>
+            )}
 
             <div className="mt-4 flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">

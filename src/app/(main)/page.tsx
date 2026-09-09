@@ -33,7 +33,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import OnboardingTour, { type TourStep } from '@/components/tour/onboarding-tour';
 import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { deleteExpense } from '@/services/firestore';
+import { deleteExpense, updateUserSettings } from '@/services/firestore';
+import { requestAndSubscribePush } from '@/hooks/use-push-notifications';
 import { useAppData } from '@/hooks/use-app-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
@@ -104,6 +105,28 @@ const tourSteps: TourStep[] = [
   }
 ] ;
 
+// ── خطوة التذكير اليومي — تُضاف في نهاية الجولة (أُضيفت 2026-09-09) ──────────
+// لماذا هنا بالذات: الجولة تبدأ **بعد أول مصروف** (`enabled={hasExpenses…}`)،
+// وهي اللحظة الوحيدة التي تكون فيها قيمة التذكير مفهومة — بعد أن جرّب المستخدم
+// التسجيل فعلاً. وكان التذكير قبلها لا يُعرَض إلا داخل شاشة الميزانية والإعدادات.
+//
+// 📊 القياس الذي أوجبها (نسخة 2026-09-05، حسابات حقيقية بلا ضيوف):
+//   من ١٧٦ سجّلوا مصروفاً، **١٠٦ (٦٠٪) سجّلوا كل شيء في يوم واحد**، ووسيط المدة
+//   بين أول وآخر مصروف = صفر يوم. والتذكير — الآلية الوحيدة لإرجاعهم — مفعَّل
+//   عند ٥٣ من ٤١٣ فقط (١٣٪).
+// **خط الأساس للمقارنة: ٢٣٪** من مسجّلي المصاريف مفعِّلون للتذكير. ⛔ لا تحكم
+// على هذه الخطوة بلا مقارنة بهذا الرقم.
+//
+// ⚠️ **لا تصل المستخدمين الحاليين**: من أنهى الجولة عنده مفتاح
+// `tadbeer-onboarding-tour-v2` في localStorage فلا تُعرض عليه ثانيةً. وتغيير
+// مفتاح الجولة يُعيد عرض **الجولة كلها** للجميع — لا تفعل ذلك لأجل خطوة واحدة.
+const REMINDER_TOUR_STEP: Omit<TourStep, 'action'> = {
+  selector: '',
+  title: 'نذكّرك كل يوم؟',
+  content: 'تسجيل المصاريف يصبح عادة حين يصلك تذكير قصير في وقت تختاره. يمكنك إيقافه في أي وقت من الإعدادات.',
+  placement: 'center',
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -117,6 +140,41 @@ export default function DashboardPage() {
   useExitConfirm();
 
   const { expenses, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
+
+  // خطوات الجولة + خطوة التذكير في آخرها. `useMemo` ضروري لا تجميل: مكوّن
+  // الجولة يعتمد `steps` في `useCallback` لحساب الموضع، فمصفوفة جديدة كل رسم
+  // تُعيد الحساب بلا داعٍ.
+  const tourStepsWithReminder = useMemo<TourStep[]>(() => [
+    ...tourSteps,
+    {
+      ...REMINDER_TOUR_STEP,
+      action: {
+        label: 'فعّل التذكير اليومي',
+        doneLabel: 'تم التفعيل ✓',
+        onClick: async () => {
+          if (!user) return false;
+          // إذن المتصفّح أولاً وداخل الضغطة نفسها — لا نحفظ إعداداً يَعِد
+          // بتذكير لا يصل. رفضُ الإذن يترك الإعداد مطفأً كما كان.
+          const granted = await requestAndSubscribePush(user);
+          if (!granted) {
+            toast({
+              title: 'لم يُفعَّل التذكير',
+              description: 'الإشعارات غير مسموحة لتدبير على هذا الجهاز. يمكنك السماح بها من إعدادات الهاتف ثم إعادة المحاولة من إعدادات التطبيق.',
+            });
+            return false;
+          }
+          await updateUserSettings(
+            user.uid,
+            { notifications: { dailyReminderEnabled: true, reminderSlot: userSettings?.notifications?.reminderSlot ?? 'evening' } },
+            householdId
+          );
+          queryClient.invalidateQueries({ queryKey: ['userSettings', user.uid] });
+          toast({ title: 'تم التفعيل', description: 'سيصلك تذكير يومي. غيّر وقته أو أوقفه من الإعدادات.' });
+          return true;
+        },
+      },
+    },
+  ], [user, householdId, userSettings?.notifications?.reminderSlot, queryClient, toast]);
 
   const [isQuickSetupOpen, setIsQuickSetupOpen] = useState(false);
   const [isVoiceReviewOpen, setIsVoiceReviewOpen] = useState(false);
@@ -716,7 +774,7 @@ export default function DashboardPage() {
       {/* ملاحظة: OnboardingSheet انتقل إلى (main)/layout.tsx كي لا تُفكِّكه بوّابة pageReady. */}
       {/* الجولة تظهر بعد أول مصروف حقيقي (اللحظة المثالية)، أو فور إغلاق معالج الإعداد
           بلا أي مصروف (تخطّي/«لاحقاً») كي لا تبقى معلّقة للأبد بلا محفّز — انظر justFinishedOnboarding أعلاه. */}
-      <OnboardingTour steps={tourSteps} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses || justFinishedOnboarding} />
+      <OnboardingTour steps={tourStepsWithReminder} tourKey="tadbeer-onboarding-tour-v2" enabled={hasExpenses || justFinishedOnboarding} />
 
       <GreetingHeader />
 
