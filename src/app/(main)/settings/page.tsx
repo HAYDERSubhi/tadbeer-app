@@ -76,6 +76,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { useCurrency } from '@/hooks/use-currency';
+import { requestAndSubscribePush } from '@/hooks/use-push-notifications';
 import { useTheme } from 'next-themes';
 import { HouseholdManager } from '@/components/family/household-manager';
 import { AppLockSetting } from '@/components/app-lock/app-lock-setting';
@@ -612,9 +613,13 @@ export default function SettingsPage() {
   const handleDailyReminderChange = async (checked: boolean) => {
     setDailyReminderEnabled(checked);
     if (checked) {
-      // متصفّح بلا دعم للإشعارات = وعدٌ كاذب أيضاً، لا حالة «تُتجاهل بصمت».
+      // ⛔ لا يكفي `Notification.permission === 'granted'`: قد يُمنح الإذن ثم
+      // يفشل تسجيل الاشتراك في Web Push، فلا يصل تذكير رغم أن كل شيء يبدو سليماً.
+      // نستعمل نفس الدالة التي تستعملها شاشة الميزانية (`requestAndSubscribePush`)
+      // فهي **لا تُرجع true إلا بعد أن يُسجَّل الاشتراك على الخادم فعلاً** — مصدر
+      // واحد للحقيقة بدل منطقين متفاوتين في الصرامة.
       const supported = typeof window !== 'undefined' && 'Notification' in window;
-      const permission = supported ? await Notification.requestPermission() : 'denied';
+      const permission = supported && user ? (await requestAndSubscribePush(user) ? 'granted' : 'denied') : 'denied';
       if (permission !== 'granted') {
         setDailyReminderEnabled(false);
         updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: false, reminderSlot } });
@@ -624,29 +629,8 @@ export default function SettingsPage() {
         });
         return;
       }
-      // Register Web Push subscription after user grants permission
-      if (permission === 'granted' && 'serviceWorker' in navigator && 'PushManager' in window && user) {
-        try {
-          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-          if (vapidKey) {
-            const reg = await navigator.serviceWorker.ready;
-            let sub = await reg.pushManager.getSubscription();
-            if (!sub) {
-              const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
-              const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
-              const rawData = atob(base64);
-              const key = Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-              sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
-            }
-            const idToken = await user.getIdToken();
-            await fetch('/api/push/subscribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-              body: JSON.stringify({ subscription: sub.toJSON() }),
-            });
-          }
-        } catch { /* push not supported — silent fail */ }
-      }
+      // (تسجيل الاشتراك تمّ داخل `requestAndSubscribePush` أعلاه — كان مكرَّراً هنا
+      //  بنسخة ثانية من نفس المنطق، فحُذف كي لا يتفرّع سلوكان عن نية واحدة.)
     }
     updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: checked, reminderSlot } });
   };
