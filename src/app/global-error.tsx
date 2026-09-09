@@ -21,6 +21,40 @@
  * `next/link`): لو كان سبب العطل ملفاً ناقصاً، فاستيراد ملف آخر قد يفشل هو
  * أيضاً فتُصبح شاشة العطل نفسها معطَّلة. الأنماط سطرية لنفس السبب.
  */
+/** مفتاح يمنع حلقة إعادة تحميل لا تنتهي لو لم ينجح العلاج الذاتي. */
+const HEAL_KEY = 'tadbeer-chunk-heal';
+
+/**
+ * العلاج الذاتي لأشهر أسباب الشاشة البيضاء: `ChunkLoadError`.
+ *
+ * يحدث حين يكون **المستند المحفوظ من نسخة، والملفات المحفوظة من نسخة أخرى**:
+ * مخزن `pages` يحفظ مستند الصفحة عند أول تنقّل داخلي **ولا يحدّثه أبداً**، فلو
+ * زار المستخدم صفحةً بعد نشر جديد وقبل أن يستلم جهازه عامل الخدمة الجديد، بقي
+ * عنده مستند يطلب ملفات ليست في الحفظ المسبق ⇒ بلا إنترنت تفشل ⇒ انهيار.
+ *
+ * العلاج: نحذف مستند هذه الصفحة من مخازن HTML ثم نعيد التحميل مرّة واحدة.
+ * فيجد عامل الخدمة المخزن فارغاً ⇒ يعرض `/~offline` بشكل تدبير بدل الانهيار،
+ * أو يجلب المستند الصحيح إن عاد الإنترنت.
+ */
+async function healChunkError(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('caches' in window)) return false;
+  try {
+    if (sessionStorage.getItem(HEAL_KEY) === location.pathname) return false; // جُرّب ولم ينفع
+    sessionStorage.setItem(HEAL_KEY, location.pathname);
+    for (const name of ['pages', 'pages-cache', 'start-url', 'rsc-cache']) {
+      const cache = await caches.open(name);
+      for (const req of await cache.keys()) {
+        const p = new URL(req.url).pathname;
+        if (p === location.pathname) await cache.delete(req);
+      }
+    }
+    location.reload();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -30,6 +64,13 @@ export default function GlobalError({
 }) {
   // بلا إنترنت هو الحالة الغالبة هنا، فالرسالة تتبدّل لتصدق في الحالتين.
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+
+  // ملف ناقص ⇒ حاول العلاج الذاتي فوراً بدل عرض شاشة عطل لا مخرج منها.
+  if (typeof window !== 'undefined' && /ChunkLoadError|Loading chunk|dynamically imported module/i.test(
+    `${error?.name} ${error?.message}`
+  )) {
+    void healChunkError();
+  }
 
   return (
     <html lang="ar" dir="rtl">
