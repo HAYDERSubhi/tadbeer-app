@@ -606,10 +606,24 @@ export default function SettingsPage() {
     });
   }
 
+  // ⛔ نفس قاعدة `quick-budget-setup-sheet`: **لا يُحفظ التفعيل إلا بإذن ممنوح.**
+  // كان الإعداد يُحفظ `true` حتى مع رفض الإذن ⇒ المستخدم يظنّ التذكير يعمل ولا
+  // يصله شيء، ورقم «المفعِّلين» الذي نقيس عليه يتضخّم. الإطفاء لا يحتاج إذناً.
   const handleDailyReminderChange = async (checked: boolean) => {
     setDailyReminderEnabled(checked);
-    if (checked && typeof window !== 'undefined' && 'Notification' in window) {
-      const permission = await Notification.requestPermission();
+    if (checked) {
+      // متصفّح بلا دعم للإشعارات = وعدٌ كاذب أيضاً، لا حالة «تُتجاهل بصمت».
+      const supported = typeof window !== 'undefined' && 'Notification' in window;
+      const permission = supported ? await Notification.requestPermission() : 'denied';
+      if (permission !== 'granted') {
+        setDailyReminderEnabled(false);
+        updateSettingsMutation.mutate({ notifications: { dailyReminderEnabled: false, reminderSlot } });
+        toast({
+          title: 'لم يُفعَّل التذكير',
+          description: 'الإشعارات غير مسموحة لتدبير على هذا الجهاز. اسمح بها من إعدادات الهاتف ثم أعد المحاولة.',
+        });
+        return;
+      }
       // Register Web Push subscription after user grants permission
       if (permission === 'granted' && 'serviceWorker' in navigator && 'PushManager' in window && user) {
         try {

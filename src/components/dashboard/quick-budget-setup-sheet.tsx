@@ -76,9 +76,23 @@ export default function QuickBudgetSetupSheet({
     },
   });
 
+  // ⛔ لا تُعِد «شغّل الزرّ ثم اطلب الإذن ولا تبالِ بالنتيجة».
+  // كان الزرّ يبقى مشغّلاً ويُحفظ الإعداد حتى لو رفض المستخدم إذن الإشعارات،
+  // فيظنّ أن التذكير يعمل ولا يصله شيء أبداً — وعدٌ كاذب. وكان يضخّم أيضاً رقم
+  // «المفعِّلين» الذي نقيس عليه نجاح التذكير (خط الأساس ١٦٪).
+  // القاعدة: **لا يُحفظ التفعيل إلا بإذن ممنوح فعلاً.** الإطفاء لا يحتاج إذناً.
   const handleReminderToggle = async (checked: boolean) => {
-    setDailyReminderEnabled(checked);
-    if (checked && user) await requestAndSubscribePush(user);
+    if (!checked) { setDailyReminderEnabled(false); return; }
+    setDailyReminderEnabled(true);            // تغذية فورية للضغطة
+    if (!user) return;
+    const granted = await requestAndSubscribePush(user);
+    if (!granted) {
+      setDailyReminderEnabled(false);         // تراجع: لا نَعِد بما لا يصل
+      toast({
+        title: 'لم يُفعَّل التذكير',
+        description: 'الإشعارات غير مسموحة لتدبير على هذا الجهاز. اسمح بها من إعدادات الهاتف ثم أعد المحاولة.',
+      });
+    }
   };
 
   const handleSave = () => {

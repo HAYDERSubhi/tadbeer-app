@@ -64,6 +64,18 @@
       ],
       "port": 3005,
       "autoPort": false
+    },
+    {
+      "name": "tadbeer-prod2",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "start",
+        "--",
+        "-p",
+        "3007"
+      ],
+      "port": 3007,
+      "autoPort": false
     }
   ]
 }
