@@ -21,7 +21,7 @@ export function SWUpdater() {
     // النظير في عامل الخدمة: `worker/index.ts` (يعمل حتى لو تعطّل جافاسكربت
     // الصفحة — وهذا هو الفرق: هذا الملف لا يعمل أصلاً حين تنكسر الصفحة).
     // الثلاثة نفسها المذكورة في `worker/index.ts` — أبقِهما متطابقتين.
-    const STALE_HTML_CACHES = ['pages', 'pages-cache', 'start-url'];
+    const STALE_HTML_CACHES = ['pages', 'pages-cache', 'start-url', 'rsc-cache'];
     const seen = localStorage.getItem(STORAGE_KEY);
     if (seen !== BUILD_ID) {
       localStorage.setItem(STORAGE_KEY, BUILD_ID);

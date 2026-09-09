@@ -41,6 +41,23 @@ const withPWA = require("@ducanh2912/next-pwa").default({
           expiration: { maxEntries: 32, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
+      // ── حمولة RSC: ما يطلبه التطبيق فعلاً عند **ضغط رابط داخلي** ──────────
+      // الضغط على رابط داخل التطبيق ليس تنقّلاً بمعنى `request.mode === 'navigate'`:
+      // موجّه Next يجلب حمولة RSC على `/<path>?_rsc=<بصمة>`. وهذه **لم تكن
+      // تُحفَظ إطلاقاً** — تحقّقت على الإنتاج 2026-09-09: لا طلب `_rsc` واحد في
+      // أي مخزن. فبلا إنترنت يفشل الجلب، ويهبط Next إلى تحميل كامل للصفحة.
+      // حفظها يجعل الصفحات المزارة تُفتح بلا إنترنت **بلا أي طلب شبكة**.
+      // ⚠️ البصمة `_rsc` تتغيّر مع كل بناء، فالمحفوظ من نسخة قديمة لا يُطابَق
+      //    أصلاً — ومع ذلك يُمسح المخزن عند كل تفعيل (انظر `worker/index.ts`).
+      {
+        urlPattern: ({ url, sameOrigin }) => sameOrigin && url.searchParams.has('_rsc'),
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'rsc-cache',
+          networkTimeoutSeconds: 3,
+          expiration: { maxEntries: 48, maxAgeSeconds: 24 * 60 * 60 },
+        },
+      },
     ],
   },
   // --- START of PWA manifest options ---

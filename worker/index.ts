@@ -27,7 +27,8 @@
 //     (`if (await cache.match(url)) return;`) ⇒ يحتفظ بمستند بناء قديم بلا نهاية.
 //   • `pages-cache` ← قاعدة NetworkFirst للتنقّل (تُحدَّث مع الشبكة، لكنها تبقى ٢٤ ساعة).
 //   • `start-url`   ← مستند الفتح البارد من أيقونة التطبيق.
-const STALE_HTML_CACHES = ['pages', 'pages-cache', 'start-url'];
+//   • `rsc-cache`   ← حمولات RSC لضغطات الروابط الداخلية (أُضيف 2026-09-09).
+const STALE_HTML_CACHES = ['pages', 'pages-cache', 'start-url', 'rsc-cache'];
 
 self.addEventListener('activate', (event: Event) => {
   const activateEvent = event as any;
