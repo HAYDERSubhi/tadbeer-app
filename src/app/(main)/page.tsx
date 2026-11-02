@@ -959,14 +959,16 @@ export default function DashboardPage() {
           <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
             {/* hidden: true = مخفية مؤقتاً بقرار صاحب المشروع 2026-11-02 (انظر تعليق tools/page.tsx — الاستعادة هناك). */}
             {[
-              { href: '/tools/currency',     label: 'العملات',   icon: '💱', image: '/tools/currency.png', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)', hidden: true },
-              { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', image: '/tools/worth-it.png', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)', hidden: true },
-              { href: '/tools/installment',  label: 'أقساطي',    icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
-              { href: '/tools/habit-cost',   label: 'عاداتي',    icon: '☕', image: '/tools/habit-cost.png', bg: 'linear-gradient(135deg,#facc15,#b45309)', hidden: true },
-              { href: '/tools/wedding',      label: 'زواجي',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
+              // الترتيب بقرار صاحب المشروع 2026-11-02: الديون ← أقساطي ← سلفتنا ← سفراتي ← زواجي.
+              // (ترتيب بطاقة الرئيسية وحدها — قائمة تبويب الأدوات لها ترتيبها في tools/page.tsx.)
               { href: '/tools/debts',        label: 'الديون',    icon: '🤝', image: '/tools/debts.png', bg: 'linear-gradient(135deg,#fb923c,#b45309)' },
+              { href: '/tools/installment',  label: 'أقساطي',    icon: '📊', image: '/tools/installment.png', bg: 'linear-gradient(135deg,#38bdf8,#0369a1)' },
               { href: '/tools/silftna',      label: 'سلفتنا',    icon: '🔄', image: '/tools/silftna.png', bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)' },
               { href: '/tools/safarati',     label: 'سفراتي',    icon: '✈️', image: '/tools/safarati.png', bg: 'linear-gradient(135deg,#60a5fa,#1d4ed8)' },
+              { href: '/tools/wedding',      label: 'زواجي',    icon: '💍', image: '/tools/wedding.png', bg: 'linear-gradient(135deg,#f472b6,#9d174d)' },
+              { href: '/tools/currency',     label: 'العملات',   icon: '💱', image: '/tools/currency.png', bg: 'linear-gradient(135deg,#60b8ff,#1a6fd4)', hidden: true },
+              { href: '/tools/worth-it',     label: 'يستحق؟',    icon: '⚡', image: '/tools/worth-it.png', bg: 'linear-gradient(135deg,#b47fff,#5b21b6)', hidden: true },
+              { href: '/tools/habit-cost',   label: 'عاداتي',    icon: '☕', image: '/tools/habit-cost.png', bg: 'linear-gradient(135deg,#facc15,#b45309)', hidden: true },
             ].filter(t => !t.hidden).map(t => (
               <Link key={t.href} href={t.href} className="flex flex-col items-center gap-2 shrink-0 active:scale-95 transition-transform">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl overflow-hidden ${t.image ? '' : 'shadow-sm'}`} style={{ background: t.image ? 'transparent' : t.bg }}>
