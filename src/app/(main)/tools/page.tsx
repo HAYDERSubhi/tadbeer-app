@@ -2,6 +2,14 @@
 
 import Link from 'next/link';
 
+// ⏸️ `hidden: true` = مخفية مؤقتاً من هذه القائمة ومن بطاقة الرئيسية (قرار صاحب
+// المشروع 2026-11-02): العملات · هل يستحق؟ · عاداتي — أدوات فحص بلا إدخالات، وأُخفيت
+// ليبقى التطبيق نظيفاً حتى يتوفر وقت لتحسينها. الصفحات نفسها سليمة وما زالت تفتح
+// بالرابط المباشر ولم يُمسّ كودها (وهي ضمن الأدوات المقفلة).
+// 🔁 للاستعادة: احذف `hidden: true` من الأدوات الثلاث هنا ومن القائمة المكرَّرة في
+// `(main)/page.tsx` (بطاقة «الأدوات المالية»)، وأعِد صور `currency` و`worth-it` و
+// `habit-cost` من `docs/assets/hidden-tools/` إلى `public/tools/` (نُقلت لتخفيف
+// الحفظ المسبق ~٣٠٧ ك.ب على كل جهاز بكل نشر)، وأعِد ذكرها في نص الجولة بالرئيسية.
 const TOOLS = [
   {
     href: '/tools/currency',
@@ -9,6 +17,7 @@ const TOOLS = [
     sub: 'IQD · USD · AED · SAR',
     icon: null,
     image: '/tools/currency.png',
+    hidden: true,
     gradient: 'linear-gradient(135deg, #60b8ff 0%, #1a6fd4 100%)',
     shimmer: 'linear-gradient(135deg, #7ecfff 0%, #3080e8 100%)',
   },
@@ -18,6 +27,7 @@ const TOOLS = [
     sub: 'أيام العمل والنسب',
     icon: '⚡',
     image: '/tools/worth-it.png',
+    hidden: true,
     gradient: 'linear-gradient(135deg, #b47fff 0%, #5b21b6 100%)',
     shimmer: 'linear-gradient(135deg, #c99fff 0%, #7034d0 100%)',
   },
@@ -36,6 +46,7 @@ const TOOLS = [
     sub: 'شهري · سنوي · 5 سنوات',
     icon: '☕',
     image: '/tools/habit-cost.png',
+    hidden: true,
     gradient: 'linear-gradient(135deg, #facc15 0%, #b45309 100%)',
     shimmer: 'linear-gradient(135deg, #fde047 0%, #ca6a10 100%)',
   },
@@ -87,7 +98,7 @@ export default function ToolsPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {TOOLS.map(tool => (
+        {TOOLS.filter(tool => !tool.hidden).map(tool => (
           <Link
             key={tool.href}
             href={tool.href}
