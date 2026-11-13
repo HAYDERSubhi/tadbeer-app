@@ -8,6 +8,9 @@ import { adminDb, adminAuth } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export const runtime = 'nodejs';
+// نقل تاريخ مصاريف طويل يتجاوز مهلة ١٠ ثوانٍ الافتراضية — وهو بالضبط الانقطاع
+// الذي كان يترك المنضمّ ببيانات مقسومة. نفس مهلة نظائره (remove-member · delete-account).
+export const maxDuration = 60;
 
 const BATCH_SIZE = 400;
 
@@ -79,18 +82,42 @@ export async function POST(req: NextRequest) {
     const hhId = hhDoc.id;
     const hhData = hhDoc.data();
 
-    // 3. Guard: already a member?
+    // 3. هل هو عضو أصلاً؟
+    // ⛔ كان هذا الموضع يردّ 409 «أنت بالفعل عضو» ويتوقّف (حتى 2026-11-13).
+    //    والعطل: الخطوة ٤ تضيفه عضواً **قبل** نقل بياناته (٥) وربط إعداداته (٦).
+    //    فلو انقطع الطلب بينهما (مهلة، شبكة) صار عضواً ببيانات مقسومة بين
+    //    المسارين وبلا ارتباط — وكل إعادة محاولة تُرفض هنا، فلا مخرج له.
+    //    الآن: العضو القائم **يُكمَل** له ما لم يكتمل. الخطوات ٥ و٦ تتحمّل
+    //    الإعادة أصلاً (نقل بمعرّفات محفوظة · merge)، فمن كان مكتملاً لا يتغيّر
+    //    عنده شيء.
     const members: Array<{ uid: string }> = hhData.members || [];
-    if (members.some((m) => m.uid === uid)) {
-      return NextResponse.json({ error: 'أنت بالفعل عضو في هذه العائلة' }, { status: 409 });
+    const alreadyMember = members.some((m) => m.uid === uid);
+
+    // 3ب. عضو في عائلة **أخرى**؟ يُرفض — وإلا نُقلت بياناته الشخصية إلى العائلة
+    //     الجديدة وبقي اسمه وبياناته السابقة في القديمة (عضوية مزدوجة).
+    //     الارتباط المسجَّل لا يكفي وحده: قد يكون أثراً قديماً لعائلة حُذفت أو
+    //     أُخرج منها، فيُتحقَّق من عضويته الفعلية فيها.
+    const settingsRef = db.doc(`users/${uid}/settings/main`);
+    const linkedHhId = (await settingsRef.get()).get('householdId') as string | null | undefined;
+    if (linkedHhId && linkedHhId !== hhId) {
+      const other = await db.doc(`households/${linkedHhId}`).get();
+      const otherUids: string[] = other.exists ? other.get('memberUids') || [] : [];
+      if (otherUids.includes(uid)) {
+        return NextResponse.json(
+          { error: 'أنت عضو في عائلة أخرى. غادرها أولاً ثم انضم بهذا الرمز.' },
+          { status: 409 }
+        );
+      }
     }
 
-    // 4. Add the caller to the household.
-    const member = { uid, displayName, email, role: 'member', joinedAt: new Date().toISOString() };
-    await hhDoc.ref.update({
-      members: FieldValue.arrayUnion(member),
-      memberUids: FieldValue.arrayUnion(uid),
-    });
+    // 4. Add the caller to the household (skipped when resuming an interrupted join).
+    if (!alreadyMember) {
+      const member = { uid, displayName, email, role: 'member', joinedAt: new Date().toISOString() };
+      await hhDoc.ref.update({
+        members: FieldValue.arrayUnion(member),
+        memberUids: FieldValue.arrayUnion(uid),
+      });
+    }
 
     // 5. Move the joiner's personal data into the shared bucket (stamped with
     //    their uid so they can take it back if they later leave).
@@ -99,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Link the user to the household.
-    await db.doc(`users/${uid}/settings/main`).set({ householdId: hhId }, { merge: true });
+    await settingsRef.set({ householdId: hhId }, { merge: true });
 
     return NextResponse.json({ ok: true, householdId: hhId });
   } catch (err) {
