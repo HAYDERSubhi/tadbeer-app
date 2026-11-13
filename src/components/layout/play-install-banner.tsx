@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
@@ -33,6 +34,11 @@ const DISMISS_KEY = 'play-banner-dismissed';
 
 export function PlayInstallBanner() {
   const [visible, setVisible] = useState(false);
+  // ⛔ لا تظهر في شاشة إضافة المصروف: اللافتة (fixed bottom-16) كانت تغطّي زر
+  //    «حفظ المصروف» كاملاً — أهمّ زرّ في أول استخدام — حتى يغلقها المستخدم
+  //    (شوهد في التجربة الحيّة 2026-11-13). تظهر في بقية الشاشات كما هي.
+  const pathname = usePathname();
+  const shown = visible && pathname !== '/add-expense';
 
   useEffect(() => {
     if (!shouldPromotePlayStore()) return;
@@ -47,11 +53,12 @@ export function PlayInstallBanner() {
 
   // المقام: كم مرّة رآها مستخدم فعلاً — لا كم مرّة رُكِّب المكوّن.
   useEffect(() => {
-    if (!visible || !analytics) return;
+    // `shown` لا `visible`: المقام يعدّ ما رآه المستخدم فعلاً، لا ما حُجب في شاشة الإضافة.
+    if (!shown || !analytics) return;
     try { logEvent(analytics, 'play_banner_view'); } catch { /* القياس لا يُعطّل الواجهة */ }
-  }, [visible]);
+  }, [shown]);
 
-  if (!visible) return null;
+  if (!shown) return null;
 
   const track = (name: string) => {
     if (!analytics) return;

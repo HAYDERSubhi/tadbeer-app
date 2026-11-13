@@ -16,6 +16,7 @@ import {
     writeBatch,
     updateDoc,
     arrayUnion,
+    increment,
     arrayRemove,
 } from 'firebase/firestore';
 import type { Expense, Goal, UserSettings, Income, RecurringPayment, AppTone, Category, Household, HouseholdMember, Debt, WeddingPlan, Silftna, Trip } from '@/types';
@@ -969,12 +970,16 @@ export const updateDebt = async (uid: string, debtId: string, data: DebtEditable
 
 export const recordDebtPayment = async (uid: string, debtId: string, paymentAmount: number, debt: Debt): Promise<void> => {
     if (!db) throw new Error("Firestore is not initialized");
-    const payments = [...(debt.payments ?? []), { amount: paymentAmount, date: new Date().toISOString() }];
+    // ⛔ كانت تكتب `payments` و`paidAmount` محسوبَين من نسخة الدين في الهاتف
+    //    (قراءة ثم كتابة): دفعتان من جهازين، أو دفعة فوق نسخة قديمة، تمحو
+    //    إحداهما الأخرى بصمت. الآن دمج ذرّي على الخادم (arrayUnion + increment)
+    //    — ويعمل بلا إنترنت أيضاً، بخلاف المعاملات (لذلك لم تُستعمل هنا).
+    //    `isSettled` يبقى تقديراً من النسخة المحلية؛ «تراجع عن آخر دفعة» يعيد حسابه.
     const paidAmount = (debt.paidAmount ?? 0) + paymentAmount;
     const isSettled = paidAmount >= debt.amount;
     await updateDoc(doc(db, 'users', uid, 'debts', debtId), {
-        payments,
-        paidAmount,
+        payments: arrayUnion({ amount: paymentAmount, date: new Date().toISOString() }),
+        paidAmount: increment(paymentAmount),
         isSettled,
         settledAt: isSettled ? new Date().toISOString() : null,
     });

@@ -1,5 +1,6 @@
 'use client';
 
+import { format as formatLocalDate } from 'date-fns';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -40,9 +41,10 @@ function payDayFromDate(dateStr: string): number {
 }
 
 function defaultStartDate(): string {
+  // محلي لا UTC — انظر todayISO أدناه.
   const d = new Date();
-  d.setUTCMonth(d.getUTCMonth() + 1);
-  return d.toISOString().split('T')[0];
+  d.setMonth(d.getMonth() + 1);
+  return formatLocalDate(d, 'yyyy-MM-dd');
 }
 
 function daysUntil(dateStr: string): number {
@@ -61,8 +63,11 @@ function monthsElapsed(startStr: string, totalMonths: number): number {
   return Math.max(0, Math.min(raw, totalMonths || raw));
 }
 
+// ⛔ التاريخ المحلي لا `toISOString()`: تلك تعيد يوم UTC، فبين منتصف الليل والثالثة
+// فجراً بتوقيت بغداد كانت تعيد **تاريخ الأمس** (رُصد 2026-11-13).
+// الأداة مقفلة — فُتحت بإذن صريح لصاحب المشروع لهذا التاريخ وحده ثم أُعيد قفلها.
 function todayISO(): string {
-  return new Date().toISOString().split('T')[0];
+  return formatLocalDate(new Date(), 'yyyy-MM-dd');
 }
 
 // FIX #2: تثبيت اليوم عند نهاية الشهر إذا كان الشهر أقصر

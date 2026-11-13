@@ -118,7 +118,11 @@ export async function GET(req: NextRequest) {
 
     // العلامة تُحدَّث بعد نجاح الإرسال فقط: لو فشل البريد تُعاد المحاولة
     // بالأسبوع القادم على النافذة نفسها ولا تُفقد ملاحظة.
-    await markerRef.set({ lastRunAt: Timestamp.now() }, { merge: true });
+    // ⛔ العلامة = وقت **آخر ملاحظة أُرسلت** لا «الآن»: كانت «الآن» تُسقط ما زاد عن
+    //    MAX_ITEMS (النصّ يعد بها «في الملخّص التالي» والنافذة تتخطّاها)، وتُسقط
+    //    أي ملاحظة كُتبت بين الاستعلام وهذا السطر.
+    const lastSent = docs[docs.length - 1].get('createdAt') as Timestamp | undefined;
+    await markerRef.set({ lastRunAt: lastSent ?? Timestamp.now() }, { merge: true });
     return NextResponse.json({ ok: true, sent: true, count: docs.length, truncated });
   } catch (err) {
     // لا يُسجَّل نصّ الملاحظات ولا بريد أصحابها — سجلّات الخادم تبقى للأبد.

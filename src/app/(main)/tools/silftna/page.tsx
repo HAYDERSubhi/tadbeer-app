@@ -1,5 +1,6 @@
 'use client';
 
+import { format as formatLocalDate } from 'date-fns';
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -278,7 +279,7 @@ function CreateView({ onDone, onCancel }: { onDone: (id: string | null) => void;
   const [name, setName] = useState('');
   const [installmentRaw, setInstallmentRaw] = useState('');
   const [period, setPeriod] = useState<SilftnaPeriod>('monthly');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(() => formatLocalDate(new Date(), 'yyyy-MM-dd')); // محلي لا UTC — انظر الاستيراد
   const [method, setMethod] = useState<SilftnaMethod>('lottery');
   const [reservePercent, setReservePercent] = useState(0);
   const installment = parseAmt(installmentRaw);

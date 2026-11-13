@@ -1,5 +1,6 @@
 'use client';
 
+import { format as formatLocalDate } from 'date-fns';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -94,7 +95,8 @@ function DebtSheet({ debt, onClose, onSaveNew, onSaveEdit }: {
         ...shared,
         amount: parsedAmount,
         direction: dir,
-        date: new Date().toISOString().split('T')[0],
+        // التاريخ المحلي لا toISOString() (يوم UTC = الأمس بين ١٢ و٣ فجراً ببغداد).
+        date: formatLocalDate(new Date(), 'yyyy-MM-dd'),
         isSettled: false,
       });
     }
