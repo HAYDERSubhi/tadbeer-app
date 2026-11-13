@@ -548,10 +548,15 @@ export default function SettingsPage() {
   });
 
   const totalRecurringIncome = useMemo(() => {
-    if (!incomes) return userSettings?.profile?.monthlyIncome || 0;
-    return incomes
+    const stored = userSettings?.profile?.monthlyIncome || 0;
+    if (!incomes) return stored;
+    const recurring = incomes
         .filter(income => income.type === 'recurring')
         .reduce((sum, income) => sum + income.amount, 0);
+    // الدخل الشهري قد يكون مكتوباً في الملف الشخصي وحده (نافذة الميزانية السريعة
+    // وشاشة الترحيب لا تُنشئان سجل دخل). فلا نُصفّره حين لا يوجد دخل متكرر مسجَّل،
+    // وإلا محاه حفظ الملف الشخصي أو إعادة المزامنة التلقائية أدناه بصمت.
+    return recurring > 0 ? recurring : stored;
   }, [incomes, userSettings]);
 
   useEffect(() => {
