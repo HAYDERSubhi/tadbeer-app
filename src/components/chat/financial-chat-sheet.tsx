@@ -335,7 +335,7 @@ export function FinancialChatSheet() {
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const result: { ok: boolean; data?: { reply: string }; error?: string } =
+      const result: { ok: boolean; data?: { reply: string }; error?: string; code?: string } =
         await res.json();
 
       if (result.ok && result.data?.reply) {
@@ -343,7 +343,17 @@ export function FinancialChatSheet() {
       } else {
         setMessages(prev => [
           ...prev,
-          { role: 'assistant', content: 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.', timestamp: Date.now(), isError: true },
+          {
+            role: 'assistant',
+            // الذكاء متوقف من جهتنا أو بلغ المستخدم حدّه اليومي ⇒ نصّ الخادم الصادق
+            // (آمن للعرض — راجع AI_MESSAGES في lib/api-auth.ts) بدل «حاول مرة أخرى» التي لن تنفع.
+            content:
+              (result.code === 'ai_paused' || result.code === 'quota') && result.error
+                ? result.error
+                : 'عذرًا، لم أتمكن من الإجابة. حاول مرة أخرى.',
+            timestamp: Date.now(),
+            isError: true,
+          },
         ]);
       }
     } catch (err) {

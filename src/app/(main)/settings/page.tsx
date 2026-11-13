@@ -641,7 +641,7 @@ export default function SettingsPage() {
     if (!user) return;
     setIsBackupLoading(true);
     try {
-      const data = await exportUserData(user.uid);
+      const data = await exportUserData(user.uid, householdId); // householdId: بيانات عضو العائلة تحت مسارها
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -664,13 +664,16 @@ export default function SettingsPage() {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      if (!data.version || !data.expenses) throw new Error('ملف غير صالح');
-      await importUserData(user.uid, data);
+      if (!data || typeof data !== 'object' || !data.version || !Array.isArray(data.expenses)) throw new Error('ملف غير صالح');
+      const report = await importUserData(user.uid, data, householdId);
       queryClient.invalidateQueries({ queryKey: ['expenses', user.uid] });
       queryClient.invalidateQueries({ queryKey: ['goals', user.uid] });
       queryClient.invalidateQueries({ queryKey: ['incomes', user.uid] });
       queryClient.invalidateQueries({ queryKey: ['userSettings', user.uid] });
-      toast({ title: 'تمت الاستعادة ✅', description: `تم استعادة ${data.expenses.length} مصروف بنجاح.` });
+      // النسخة تشمل الأدوات أيضاً (ديون · أقساط · سلفتنا · سفرات · زواج) — تُحدَّث كل الاستعلامات.
+      queryClient.invalidateQueries();
+      // العدد من تقرير الاستيراد الفعلي لا من طول الملف (قسم العائلة يُضاف إليه، وغير الصالح يُسقَط).
+      toast({ title: 'تمت الاستعادة ✅', description: `تمت استعادة ${report.expenses} مصروف مع بقية بياناتك.` });
     } catch (e) {
       toast({ title: 'خطأ في الاستعادة', description: 'تأكد أن الملف نسخة احتياطية صحيحة من تدبير.', variant: 'destructive' });
     } finally {

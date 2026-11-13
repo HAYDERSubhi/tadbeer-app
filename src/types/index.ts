@@ -299,3 +299,8 @@ export type Trip = {
   createdAt: string;
   updatedAt: string;
 };
+
+// ── أخطاء خدمات الذكاء (مشتركة بين الخادم lib/api-auth والعميل lib/api-fetch) ──
+//   ai_paused = الذكاء متوقف من جهتنا (رصيد/فوترة) · quota = الحد اليومي للحساب
+//   auth = جلسة مفقودة أو غير صالحة · error = عطل عابر
+export type AiErrorCode = 'ai_paused' | 'quota' | 'auth' | 'error';

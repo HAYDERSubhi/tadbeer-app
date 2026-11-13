@@ -242,6 +242,8 @@ export async function eraseAccountData(
   //    مهدورة لحساب لم يعد موجوداً، للأبد.
   await Promise.all([
     db.doc(`pushSubscriptions/${uid}`).delete(),
+    // عدّاد الحصّة اليومية لخدمات الذكاء (lib/api-auth.ts) — يحمل uid فيُمحى معه.
+    db.doc(`aiUsage/${uid}`).delete(),
     db.doc(basePath).delete(),
   ]);
 

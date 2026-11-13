@@ -19,6 +19,7 @@ import {
 } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { analyzeMonthlyTrendsAction } from '@/app/actions';
+import { getActionToken, unwrapAi, isAiUnavailable, aiQueryRetry } from '@/lib/api-fetch';
 import type { AnalyzeMonthlyTrendsInput } from '@/ai/flows/analyze-monthly-trends';
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -88,13 +89,14 @@ export function AiTrendsCard() {
     return `trends-${input.currentMonth.totalSpent}-${input.previousMonth.totalSpent}`;
   }, [input]);
 
-  const { data, isLoading: isAiLoading } = useQuery({
+  const { data, isLoading: isAiLoading, error: aiError } = useQuery({
     queryKey: ['ai-trends', cacheKey],
-    queryFn: () => analyzeMonthlyTrendsAction(input!),
+    // الرمز وسيطاً: دالّة الخادم لا ترى ترويسات (راجع app/actions.ts).
+    queryFn: async () => unwrapAi(await analyzeMonthlyTrendsAction(input!, await getActionToken())),
     enabled: !!input && !!cacheKey,
     staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 60,
-    retry: 1,
+    retry: aiQueryRetry,
   });
 
   // Don't render if not enough data in either month
@@ -160,6 +162,10 @@ export function AiTrendsCard() {
               </div>
             );
           })
+        ) : isAiUnavailable(aiError) ? (
+          // الذكاء غير متاح ⇒ يُقال ذلك صراحةً — «لا توجد بيانات كافية» كانت تُعرض
+          // هنا عند أي فشل، وهي كاذبة حين تكون البيانات موجودة والذكاء هو المتوقف.
+          <p className="text-xs text-muted-foreground text-center py-4">{aiError.message}</p>
         ) : (
           <p className="text-xs text-muted-foreground text-center py-4">
             لا توجد بيانات كافية للمقارنة حتى الآن.

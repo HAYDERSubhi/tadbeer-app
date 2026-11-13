@@ -24,7 +24,7 @@ const FormLoader = () => (
 const ManualExpenseForm = dynamic(() => import('@/components/expenses/manual-expense-form'), { loading: FormLoader, ssr: false });
 const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense-form'), { loading: FormLoader, ssr: false });
 import { cn } from '@/lib/utils';
-import { authedFetch } from '@/lib/api-fetch';
+import { authedFetch, readAi, AiError, isAiUnavailable } from '@/lib/api-fetch';
 import Link from 'next/link';
 import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
@@ -448,15 +448,8 @@ export default function DashboardPage() {
           clearTimeout(voiceTimeoutId);
         }
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const response: { ok: boolean; data?: { amount: number; category: string; date: string; description?: string | null; transcript?: string | null }; error?: string } = await res.json();
-
-        if (!response.ok) {
-          throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
-        }
-
-        const result = response.data!;
+        // readAi يرمي AiError بنصّ عربي جاهز من الخادم (متوقفة مؤقتاً / الحد اليومي / عطل عابر).
+        const result = await readAi<{ amount: number; category: string; date: string; description?: string | null; transcript?: string | null }>(res);
         setVoiceTranscript(result.transcript ?? null);
         setVoiceExpenseData({
           title:    result.description ?? undefined,
@@ -468,10 +461,17 @@ export default function DashboardPage() {
 
       } catch (err) {
         console.error('Voice analysis error:', err);
-        const detail = err instanceof Error ? err.message : String(err);
+        // ⛔ لا يُعرض نصّ الخطأ الخام (كان يظهر إنجليزياً، ومنه رسائل Gemini).
+        //    AiError وحده نصّه آمن للعرض؛ غيره (شبكة/مهلة) له رسالتنا الثابتة.
+        //    وعند توقّف الذكاء لا يُلام المستخدم ولا اتصاله — يُدَلّ على الإدخال اليدوي.
+        const unavailable = isAiUnavailable(err);
         toast({
-          title: 'خطأ في تحليل الصوت',
-          description: detail.length < 120 ? detail : 'تعذّر تحليل التسجيل. تحقق من اتصالك وحاول مجدداً.',
+          title: unavailable ? 'التسجيل الصوتي غير متاح الآن' : 'خطأ في تحليل الصوت',
+          description: unavailable
+            ? `${err.message} يمكنك تسجيل المصروف يدوياً.`
+            : err instanceof AiError
+              ? err.message
+              : 'تعذّر تحليل التسجيل. تحقق من اتصالك وحاول مجدداً.',
           variant: 'destructive',
         });
       } finally {

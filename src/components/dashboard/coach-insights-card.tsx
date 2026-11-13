@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import type { FinancialCoachInput, FinancialCoachOutput } from '@/ai/flows/financial-coach';
-import { authedFetch } from '@/lib/api-fetch';
+import { authedFetch, readAi, AiError, isAiUnavailable, aiQueryRetry } from '@/lib/api-fetch';
 
 async function fetchCoach(input: FinancialCoachInput): Promise<FinancialCoachOutput> {
   // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
@@ -19,9 +19,7 @@ async function fetchCoach(input: FinancialCoachInput): Promise<FinancialCoachOut
     method: 'POST',
     body: JSON.stringify(input),
   });
-  const json: { ok: boolean; data?: FinancialCoachOutput; error?: string } = await res.json();
-  if (!json.ok || !json.data) throw new Error(json.error ?? 'خطأ من الخادم');
-  return json.data;
+  return readAi<FinancialCoachOutput>(res);
 }
 import type { Expense, UserSettings } from '@/types';
 import { format, parseISO } from 'date-fns';
@@ -105,7 +103,7 @@ export function CoachInsightsCard({
     enabled: !!coachInput,
     staleTime: 1000 * 60 * 15,
     gcTime: 1000 * 60 * 60,
-    retry: 1,
+    retry: aiQueryRetry,
   });
 
   const insights = data?.insights ?? [];
@@ -158,13 +156,16 @@ export function CoachInsightsCard({
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <p className="text-xs text-muted-foreground">تعذّر الاتصال بالمدرب الذكي.</p>
-            {error && (
-              <p className="text-[10px] text-destructive/70 max-w-xs break-words">{String(error)}</p>
+            {/* ⛔ كان يُعرض هنا نصّ الخطأ الخام `String(error)` (إنجليزي، ومنه رسائل Gemini).
+                AiError وحده نصّه آمن للعرض. وحين يكون الذكاء غير متاح لا زرّ إعادة — لن تنفع. */}
+            <p className="text-xs text-muted-foreground">
+              {error instanceof AiError ? error.message : 'تعذّر الاتصال بالمدرب الذكي.'}
+            </p>
+            {!isAiUnavailable(error) && (
+              <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetch()}>
+                إعادة المحاولة
+              </Button>
             )}
-            <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => refetch()}>
-              إعادة المحاولة
-            </Button>
           </div>
         ) : insights.length > 0 ? (
           <div className="space-y-3">

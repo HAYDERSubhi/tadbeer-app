@@ -22,6 +22,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addExpense } from '@/services/firestore';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
+import { getActionToken } from '@/lib/api-fetch';
 import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCategories } from '@/hooks/use-categories';
@@ -167,10 +168,13 @@ export default function AddExpensePage() {
         const getCategorySuggestion = async () => {
             setIsCategorizing(true);
             try {
+                // الرمز وسيطاً: دالّة الخادم لا ترى ترويسات (راجع app/actions.ts).
+                // فشل الاقتراح (ومنه توقّف الذكاء أو بلوغ الحد) صامت عمداً —
+                // المستخدم يختار الفئة بيده، ولا يستحق ذلك رسالة.
                 const result = await recordExpenseAction({
                     expenseText: debouncedTitle,
                     categories: categoryMapForAI,
-                });
+                }, await getActionToken());
                 if (result.ok && result.data.category) {
                     form.setValue('category', result.data.category, { shouldValidate: true });
                 }

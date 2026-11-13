@@ -9,6 +9,7 @@
 //      مفرد يعمل في الحالتين.
 
 import { auth } from '@/lib/firebase';
+import type { AiErrorCode } from '@/types';
 
 /**
  * مثل fetch تماماً، مع إضافة ترويسة Authorization إن كان هناك مستخدم.
@@ -34,4 +35,67 @@ export async function authedFetch(url: string, init: RequestInit = {}): Promise<
   }
 
   return fetch(url, { ...init, headers });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// خدمات الذكاء: رمز لدوالّ الخادم + قراءة موحَّدة للردّ (2026-11-13)
+// ─────────────────────────────────────────────────────────────────────────
+/**
+ * رمز الجلسة لتمريره وسيطاً إلى دوالّ الخادم (Server Actions) — فهي لا ترى
+ * ترويسة Authorization، وحارسها `guardAiAction` يتحقّق من هذا الرمز.
+ * يعيد نصّاً فارغاً بلا مستخدم (فيرفض الخادم الطلب بـ«يجب تسجيل الدخول»).
+ */
+export async function getActionToken(): Promise<string> {
+  if (!auth) return '';
+  await auth.authStateReady(); // نفس سبب الانتظار في authedFetch أعلاه
+  return (await auth.currentUser?.getIdToken()) ?? '';
+}
+
+const AI_GENERIC_ERROR = 'تعذّر إتمام الطلب الآن. حاول مرة أخرى.';
+
+/**
+ * خطأ من خدمة ذكاء **نصّه آمن للعرض كما هو** — الخادم لا يعيد إلا رسائل
+ * عربية جاهزة (راجع AI_MESSAGES في lib/api-auth.ts)، فلا حاجة لنصّ بديل.
+ * أخطاء الشبكة والمهلة ليست AiError، ولكل واجهة رسالتها لها.
+ */
+export class AiError extends Error {
+  code: AiErrorCode;
+  constructor(message: string, code: AiErrorCode) {
+    super(message);
+    this.name = 'AiError';
+    this.code = code;
+  }
+}
+
+/** الذكاء غير متاح لهذا المستخدم الآن (متوقف من جهتنا، أو بلغ حدّه اليومي) — إعادة المحاولة لن تنفع. */
+export function isAiUnavailable(err: unknown): err is AiError {
+  return err instanceof AiError && (err.code === 'ai_paused' || err.code === 'quota');
+}
+
+type AiResult<T> = { ok: true; data: T } | { ok: false; error?: string; code?: AiErrorCode };
+
+/** يفكّ نتيجة خدمة ذكاء (مسار API أو دالّة خادم): يعيد البيانات أو يرمي AiError. */
+export function unwrapAi<T>(result: AiResult<T> | null | undefined): T {
+  if (result && result.ok && result.data != null) return result.data;
+  const failure = result && !result.ok ? result : undefined;
+  throw new AiError(failure?.error || AI_GENERIC_ERROR, failure?.code ?? 'error');
+}
+
+/** يقرأ ردّ مسار ذكاء (`{ok, data}` أو `{ok:false, code, error}`) — يرمي AiError عند الفشل. */
+export async function readAi<T>(res: Response): Promise<T> {
+  let json: AiResult<T> | null = null;
+  try {
+    json = await res.json();
+  } catch {
+    json = null;
+  }
+  return unwrapAi(json);
+}
+
+/**
+ * سياسة إعادة المحاولة لاستعلامات الذكاء في React Query: مرّة واحدة للأعطال
+ * العابرة، ولا إعادة حين يكون الذكاء غير متاح (كانت الإعادة تضاعف الطلبات بلا فائدة).
+ */
+export function aiQueryRetry(failureCount: number, error: unknown): boolean {
+  return !isAiUnavailable(error) && failureCount < 1;
 }

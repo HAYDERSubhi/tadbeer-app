@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bot, TrendingDown, TrendingUp, Wallet, PieChart, AlertCircle, RefreshCw } from "lucide-react";
 import type { AnalyzeSpendingPatternsInput, AnalyzeSpendingPatternsResult } from '@/ai/flows/analyze-spending-patterns';
-import { authedFetch } from '@/lib/api-fetch';
+import { authedFetch, readAi, AiError, isAiUnavailable, aiQueryRetry } from '@/lib/api-fetch';
 
 async function fetchAnalysis(input: AnalyzeSpendingPatternsInput): Promise<AnalyzeSpendingPatternsResult> {
   // authedFetch لا fetch: المسار صار يطلب رمز الجلسة (نموذج مدفوع).
@@ -13,9 +13,7 @@ async function fetchAnalysis(input: AnalyzeSpendingPatternsInput): Promise<Analy
     method: 'POST',
     body: JSON.stringify(input),
   });
-  const json: { ok: boolean; data?: AnalyzeSpendingPatternsResult; error?: string } = await res.json();
-  if (!json.ok || !json.data) throw new Error(json.error ?? 'خطأ من الخادم');
-  return json.data;
+  return readAi<AnalyzeSpendingPatternsResult>(res);
 }
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppData } from '@/hooks/use-app-data';
@@ -108,13 +106,13 @@ export function InsightsCard({
     return `insights-${periodDescription}-${currency.code}-${hash}`;
   }, [analysisInput, filteredExpenses, periodDescription, currency.code]);
 
-  const { data: analysis, isLoading, isError, refetch } = useQuery({
+  const { data: analysis, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['spending-analysis', cacheKey],
     queryFn: () => fetchAnalysis(analysisInput!),
     enabled: !!analysisInput && !!cacheKey,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
-    retry: 1,
+    retry: aiQueryRetry,
   });
 
   // ── Empty state ───────────────────────────────────────────────────────────
@@ -150,11 +148,16 @@ export function InsightsCard({
         ) : isError || !analysis ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <AlertCircle className="h-6 w-6 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">تعذّر جلب التحليل. تحقق من اتصالك بالإنترنت.</p>
-            <Button size="sm" variant="outline" className="gap-2 text-xs h-8" onClick={() => refetch()}>
-              <RefreshCw className="h-3 w-3" />
-              إعادة المحاولة
-            </Button>
+            {/* الذكاء غير متاح ⇒ نصّ الخادم الصادق بدل لوم اتصال المستخدم، وبلا زرّ إعادة لن ينفع. */}
+            <p className="text-xs text-muted-foreground">
+              {error instanceof AiError ? error.message : 'تعذّر جلب التحليل. تحقق من اتصالك بالإنترنت.'}
+            </p>
+            {!isAiUnavailable(error) && (
+              <Button size="sm" variant="outline" className="gap-2 text-xs h-8" onClick={() => refetch()}>
+                <RefreshCw className="h-3 w-3" />
+                إعادة المحاولة
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

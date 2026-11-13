@@ -366,6 +366,10 @@ export const getUserSettings = async (uid: string): Promise<UserSettings> => {
     };
 };
 
+// الحقول الشخصية — تُحفَظ دائماً في مستند المستخدم لا في إعدادات العائلة.
+// على مستوى الوحدة لأن استعادة النسخة الاحتياطية تعتمد القائمة نفسها.
+const PERSONAL_SETTINGS_KEYS: (keyof UserSettings)[] = ['appTone', 'notifications', 'currency', 'linkedCard', 'householdId'];
+
 export const updateUserSettings = async (uid: string, settingsData: Partial<UserSettings>, householdId?: string | null) => {
     if (!db) throw new Error("Firestore is not initialized");
 
@@ -388,7 +392,7 @@ export const updateUserSettings = async (uid: string, settingsData: Partial<User
     }
 
     // Personal-only fields always go to user's own doc
-    const PERSONAL_KEYS: (keyof UserSettings)[] = ['appTone', 'notifications', 'currency', 'linkedCard', 'householdId'];
+    const PERSONAL_KEYS = PERSONAL_SETTINGS_KEYS;
     const personalData: Record<string, unknown> = {};
     const sharedData: Record<string, unknown> = {};
 
@@ -442,64 +446,201 @@ export const deleteCollection = async (uid: string, collectionName: string) => {
 // Backup & Restore Service
 // =================================
 
-export const exportUserData = async (uid: string) => {
+// ⛔ ثلاثة أعطال أُصلحت هنا معاً (رُصدت بالفحص الشامل 2026-11-13):
+//  1) **الاستعادة كانت تُفسد التواريخ.** الملف يُكتب بـ JSON.stringify، وهي تحوّل
+//     كل Timestamp إلى كائن عادي `{seconds, nanoseconds}`؛ والاستيراد كان يكتبه
+//     كما هو. فتُخزَّن `date` خريطةً لا تاريخاً ⇒ استعلام الرئيسية
+//     (`where('date','>=',Timestamp)`) لا يراها، والاستعادة فوق الحساب نفسه
+//     (بنفس المعرّفات + merge) **تُتلف المصاريف السليمة** — ورسالة «تمت الاستعادة ✅»
+//     تظهر في الحالين. العلاج في الاستيراد (`reviveTimestamps`) لا في التصدير،
+//     كي تُستعاد أيضاً الملفات القديمة (version 1.0) الموجودة عند المستخدمين.
+//  2) **النسخة كانت ناقصة بصمت.** تقرأ users/{uid} وحده: عضو العائلة (بياناته
+//     تحت households/{id}) يحصل على ملف شبه فارغ مع «تم التنزيل ✅»، والأدوات
+//     (الديون · أقساطي · سلفتنا · سفراتي · زواجي) لم تكن مشمولة أصلاً.
+//  3) **الاستعادة كانت تعيد `householdId` من الملف** فتربط المستخدم بعائلة غادرها
+//     ⇒ القواعد ترفض قراءته فينكسر التطبيق عنده. الارتباط بالعائلة لا يُستعاد أبداً.
+//
+// شكل الملف (version 2.0) — الحقول القديمة باقية بأسمائها للتوافق:
+//   expenses · goals · incomes · settings   ← المسار الشخصي users/{uid}
+//   tools: { debts, installmentPlans, silftna, trips, wedding }   ← شخصية دائماً
+//   household?: { id, expenses, goals, incomes }   ← مسار العائلة إن كان عضواً
+// ⚠️ ملفات إثباتات وتواقيع «سلفتنا» في Storage لا تُنسخ — روابطها فقط.
+// ⚠️ الأوسمة غير مشمولة عمداً (تُكتسب من جديد من البيانات المستعادة).
+
+const BACKUP_TOOL_COLLECTIONS = ['debts', 'installmentPlans', 'silftna', 'trips'] as const;
+const BACKUP_DATA_COLLECTIONS = ['expenses', 'goals', 'incomes'] as const;
+
+export const exportUserData = async (uid: string, householdId?: string | null) => {
     if (!db) throw new Error("Firestore is not initialized");
-    const [expenses, goals, incomes, settings] = await Promise.all([
-        getDocs(collection(db, 'users', uid, 'expenses')),
-        getDocs(collection(db, 'users', uid, 'goals')),
-        getDocs(collection(db, 'users', uid, 'incomes')),
-        getDoc(doc(db, 'users', uid, 'settings', 'main')),
+    const database = db;
+    const readCol = async (...path: [string, string, string]) =>
+        (await getDocs(collection(database, ...path))).docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const [expenses, goals, incomes, settings, debts, installmentPlans, silftna, trips, wedding] = await Promise.all([
+        readCol('users', uid, 'expenses'),
+        readCol('users', uid, 'goals'),
+        readCol('users', uid, 'incomes'),
+        getDoc(doc(database, 'users', uid, 'settings', 'main')),
+        readCol('users', uid, 'debts'),
+        readCol('users', uid, 'installmentPlans'),
+        readCol('users', uid, 'silftna'),
+        readCol('users', uid, 'trips'),
+        getDoc(doc(database, 'users', uid, 'wedding', 'plan')),
     ]);
 
+    // عضو العائلة: مصاريفه وأهدافه ودخله تحت مسار العائلة لا الشخصي.
+    const household = householdId
+        ? {
+            id: householdId,
+            expenses: await readCol('households', householdId, 'expenses'),
+            goals: await readCol('households', householdId, 'goals'),
+            incomes: await readCol('households', householdId, 'incomes'),
+        }
+        : null;
+
     return {
-        version: '1.0',
+        version: '2.0',
         exportedAt: new Date().toISOString(),
         uid,
-        expenses: expenses.docs.map(d => ({ id: d.id, ...d.data() })),
-        goals: goals.docs.map(d => ({ id: d.id, ...d.data() })),
-        incomes: incomes.docs.map(d => ({ id: d.id, ...d.data() })),
+        expenses,
+        goals,
+        incomes,
         settings: settings.exists() ? settings.data() : {},
+        tools: {
+            debts,
+            installmentPlans,
+            silftna,
+            trips,
+            wedding: wedding.exists() ? wedding.data() : null,
+        },
+        ...(household ? { household } : {}),
     };
 };
 
+// يعيد كل `{seconds, nanoseconds}` (أثر JSON.stringify على Timestamp) إلى Timestamp
+// حقيقي، في أي عمق. إصدارات المكتبة الأحدث تضيف مفتاح `type` — مقبول أيضاً.
+const reviveTimestamps = (value: any): any => {
+    if (Array.isArray(value)) return value.map(reviveTimestamps);
+    if (value && typeof value === 'object') {
+        const keys = Object.keys(value);
+        if (
+            typeof value.seconds === 'number' &&
+            typeof value.nanoseconds === 'number' &&
+            keys.every(k => k === 'seconds' || k === 'nanoseconds' || k === 'type')
+        ) {
+            return new Timestamp(value.seconds, value.nanoseconds);
+        }
+        const out: Record<string, any> = {};
+        keys.forEach(k => { out[k] = reviveTimestamps(value[k]); });
+        return out;
+    }
+    return value;
+};
+
+// عناصر صالحة للكتابة فقط: كائنات، ومعرّفها (إن وُجد) نصّ بلا «/» — ملف النسخة
+// يرفعه المستخدم، فلا يُوثَق بشكله.
+const backupItems = (raw: unknown): Record<string, any>[] =>
+    (Array.isArray(raw) ? raw : []).filter(
+        (item): item is Record<string, any> =>
+            !!item && typeof item === 'object' && !Array.isArray(item) &&
+            (item.id === undefined || (typeof item.id === 'string' && item.id.length > 0 && !item.id.includes('/')))
+    );
+
+export type BackupImportReport = { expenses: number; goals: number; incomes: number; tools: number };
+
 export const importUserData = async (
     uid: string,
-    data: { expenses: any[]; goals: any[]; incomes: any[]; settings: any }
-) => {
+    data: {
+        expenses?: any[]; goals?: any[]; incomes?: any[]; settings?: any;
+        tools?: { debts?: any[]; installmentPlans?: any[]; silftna?: any[]; trips?: any[]; wedding?: any } | null;
+        household?: { id?: string; expenses?: any[]; goals?: any[]; incomes?: any[] } | null;
+    },
+    householdId?: string | null
+): Promise<BackupImportReport> => {
     if (!db) throw new Error("Firestore is not initialized");
-
+    const database = db;
     const BATCH_SIZE = 400;
+    const report: BackupImportReport = { expenses: 0, goals: 0, incomes: 0, tools: 0 };
 
-    const allWrites: (() => Promise<void>)[] = [];
-
-    // Restore settings
-    if (data.settings) {
-        allWrites.push(() =>
-            setDoc(doc(db!, 'users', uid, 'settings', 'main'), data.settings, { merge: true })
-        );
-    }
-
-    // Helper to batch-write a collection
-    const batchWrite = async (items: any[], colName: string) => {
+    // يكتب عناصر مجموعة على دفعات. المعرّف الأصلي يُحفَظ ⇒ الاستعادة مرّتين لا تُكرّر شيئاً.
+    const batchWrite = async (
+        base: [string, string],
+        colName: string,
+        items: Record<string, any>[],
+        stampUid?: string
+    ): Promise<number> => {
         for (let i = 0; i < items.length; i += BATCH_SIZE) {
-            const batch = writeBatch(db!);
+            const batch = writeBatch(database);
             items.slice(i, i + BATCH_SIZE).forEach(item => {
                 const { id, ...rest } = item;
                 const ref = id
-                    ? doc(db!, 'users', uid, colName, id)
-                    : doc(collection(db!, 'users', uid, colName));
-                batch.set(ref, rest, { merge: true });
+                    ? doc(database, base[0], base[1], colName, id)
+                    : doc(collection(database, base[0], base[1], colName));
+                const payload = reviveTimestamps(rest);
+                batch.set(ref, stampUid ? { ...payload, uid: payload.uid || stampUid } : payload, { merge: true });
             });
             await batch.commit();
         }
+        return items.length;
     };
 
-    await Promise.all([
-        batchWrite(data.expenses || [], 'expenses'),
-        batchWrite(data.goals || [], 'goals'),
-        batchWrite(data.incomes || [], 'incomes'),
-        ...allWrites.map(fn => fn()),
-    ]);
+    // ١) المصاريف والأهداف والدخل ⇒ إلى المسار الذي يقرأ منه التطبيق **الآن**
+    //    (العائلة إن كان عضواً، وإلا الشخصي) مع ختم uid المنشئ — نفس منطق
+    //    الانضمام. لو كُتبت في المسار الشخصي وهو في عائلة لَما ظهرت له إطلاقاً.
+    const target = basePath(uid, householdId);
+    for (const col of BACKUP_DATA_COLLECTIONS) {
+        report[col] += await batchWrite(target, col, backupItems(data[col]), uid);
+    }
+
+    // ٢) قسم العائلة في الملف:
+    //    • ما زال في العائلة نفسها ⇒ يُعاد كاملاً إلى مسارها.
+    //    • غادرها أو صار في غيرها ⇒ يُستعاد ما أدخله هو فقط (uid المطابق) —
+    //      نفس قاعدة مغادرة العائلة: كلٌّ يأخذ بياناته وحدها.
+    if (data.household && typeof data.household === 'object') {
+        const sameHousehold = !!householdId && data.household.id === householdId;
+        for (const col of BACKUP_DATA_COLLECTIONS) {
+            const all = backupItems(data.household[col]);
+            const items = sameHousehold ? all : all.filter(item => item.uid === uid);
+            report[col] += await batchWrite(target, col, items, sameHousehold ? undefined : uid);
+        }
+    }
+
+    // ٣) الأدوات — شخصية دائماً (users/{uid}).
+    if (data.tools && typeof data.tools === 'object') {
+        for (const col of BACKUP_TOOL_COLLECTIONS) {
+            report.tools += await batchWrite(['users', uid], col, backupItems(data.tools[col]));
+        }
+        if (data.tools.wedding && typeof data.tools.wedding === 'object' && !Array.isArray(data.tools.wedding)) {
+            await setDoc(doc(database, 'users', uid, 'wedding', 'plan'), reviveTimestamps(data.tools.wedding), { merge: true });
+            report.tools += 1;
+        }
+    }
+
+    // ٤) الإعدادات — عبر updateUserSettings كي تُوزَّع على المسارين الصحيحين
+    //    (المشترك للعائلة · الشخصي للمستخدم) وتُحوَّل تواريخ الدفعات الثابتة.
+    //    ⛔ `householdId` يُسقَط من الملف دائماً: الارتباط بالعائلة لا يُستعاد
+    //       من نسخة — كان يعيد ربط المستخدم بعائلة غادرها فينكسر التطبيق عنده.
+    if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings)) {
+        const { householdId: _ignoredHousehold, ...settings } = reviveTimestamps(data.settings);
+        if (Array.isArray(settings.recurringPayments)) {
+            settings.recurringPayments = settings.recurringPayments.map((p: any) => ({
+                ...p,
+                startDate: p?.startDate instanceof Timestamp ? p.startDate.toDate().toISOString() : p?.startDate,
+            }));
+        }
+        // ⛔ عضو العائلة تُستعاد له حقوله الشخصية وحدها: الملف مأخوذ من مستنده
+        //    الشخصي، ونسخته من الميزانية والفئات قديمة منذ انضمامه — كتابتها
+        //    كانت ستستبدل ميزانية العائلة كلها وفئاتها أمام بقية الأفراد.
+        const restorable: Record<string, unknown> = {};
+        Object.entries(settings).forEach(([key, val]) => {
+            if (!householdId || PERSONAL_SETTINGS_KEYS.includes(key as keyof UserSettings)) restorable[key] = val;
+        });
+        if (Object.keys(restorable).length > 0) {
+            await updateUserSettings(uid, restorable as Partial<UserSettings>, householdId);
+        }
+    }
+
+    return report;
 };
 
 // =================================

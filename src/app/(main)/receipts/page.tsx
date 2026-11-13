@@ -38,7 +38,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, isValid, differenceInCalendarDays } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { cn } from '@/lib/utils';
-import { authedFetch } from '@/lib/api-fetch';
+import { authedFetch, readAi, AiError, isAiUnavailable } from '@/lib/api-fetch';
 import { normalizeDigits } from '@/lib/normalize-digits';
 import { useCategories } from '@/hooks/use-categories';
 import { useActiveTrips } from '@/hooks/use-active-trips';
@@ -325,6 +325,8 @@ export default function DetailedReceiptPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState<ProcessingStep>(null);
   const [error, setError] = useState<string | null>(null);
+  // الذكاء غير متاح (متوقف من جهتنا أو بلغ الحد اليومي) ⇒ عنوان لا يلوم صورة المستخدم
+  const [isAiDown, setIsAiDown] = useState(false);
   // استمارة الملاحظات تُفتح من هنا عند فشل التحليل — بلا انتقال يُضيع الصور
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
@@ -760,7 +762,7 @@ export default function DetailedReceiptPage() {
       toast({ title: 'لا توجد صور', description: 'أضف صورة فاتورة واحدة على الأقل.', variant: 'destructive' });
       return;
     }
-    setIsLoading(true); setProcessingStep('uploading'); setError(null); setAnalyzedItems([]); setRejectedDate(null);
+    setIsLoading(true); setProcessingStep('uploading'); setError(null); setIsAiDown(false); setAnalyzedItems([]); setRejectedDate(null);
     try {
       // P1/H4: ضغط الصور قبل الإرسال — يقلّص الحجم بشدة (سرعة + نت + تجنّب التعليق).
       const maxDim = maxDimForCount(imagesToAnalyze.length);
@@ -782,10 +784,8 @@ export default function DetailedReceiptPage() {
       } finally {
         clearTimeout(timeoutId);
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const response: { ok: boolean; data?: AnalyzeDetailedReceiptOutput; error?: string } = await res.json();
-      if (!response.ok || !response.data) throw new Error(response.error ?? 'خطأ غير معروف من الخادم');
-      const result = response.data;
+      // readAi يرمي AiError بنصّ عربي جاهز من الخادم (متوقفة مؤقتاً / الحد اليومي / عطل عابر).
+      const result = await readAi<AnalyzeDetailedReceiptOutput>(res);
 
       setProcessingStep('extracting');
       // ⚠️ تاريخ الفاتورة يقرأه الذكاء من صورة قد تكون باهتة أو ممزّقة، فيخطئ
@@ -822,12 +822,18 @@ export default function DetailedReceiptPage() {
         setProcessingStep(null);
         return;
       }
-      const detail = e instanceof Error ? e.message : String(e);
-      setError(
-        detail && detail.length < 120
-          ? `حدث خطأ أثناء التحليل: ${detail}`
-          : 'حدث خطأ أثناء تحليل الفاتورة. تأكد أن الصور واضحة وحاول مرة أخرى.'
-      );
+      // ⛔ كانت هذه الرسالة تلوم الصورة دائماً («تأكد أن الصور واضحة») حتى حين
+      //    يكون العطل نفاد رصيد الذكاء عندنا (وقع فعلاً 2026-11-13) — فيعيد
+      //    المستخدم التصوير مراراً بلا فائدة. الآن: الذكاء غير متاح ⇒ يُقال ذلك
+      //    صراحةً ويُدَلّ على الإدخال اليدوي. ولا يُعرض نصّ خطأ خام أبداً.
+      if (isAiUnavailable(e)) {
+        setIsAiDown(true);
+        setError(`${e.message} يمكنك تسجيل المصروف يدوياً.`);
+      } else if (e instanceof AiError) {
+        setError(`${e.message} وإن تكرّر الخطأ فتأكد أن الصور واضحة.`);
+      } else {
+        setError('حدث خطأ أثناء تحليل الفاتورة. تحقق من اتصالك وحاول مرة أخرى.');
+      }
       setProcessingStep(null);
     } finally { setIsLoading(false); }
   };
@@ -1203,7 +1209,7 @@ export default function DetailedReceiptPage() {
       {error && !isLoading && (
         <Alert variant="destructive">
           <AlertTriangleIcon className="h-4 w-4" />
-          <AlertTitle>خطأ في التحليل</AlertTitle>
+          <AlertTitle>{isAiDown ? 'تحليل الفواتير غير متاح الآن' : 'خطأ في التحليل'}</AlertTitle>
           <AlertDescription className="text-xs">{error}</AlertDescription>
           {/* البلاغ في لحظة العطل أثمن ما يصل: المستخدم متضرّر فيصف ما حدث
               بدقّة، والاستمارة تُفتح هنا لا في الإعدادات كي لا تضيع صوره. */}

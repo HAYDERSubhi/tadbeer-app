@@ -31,6 +31,7 @@ import { addExpense } from '@/services/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { recordExpenseAction } from '@/app/actions';
+import { getActionToken } from '@/lib/api-fetch';
 import { useCategories } from '@/hooks/use-categories';
 import { useActiveTrips } from '@/hooks/use-active-trips';
 import { TripCategoryPicker, TripExpenseToggle } from '@/components/expenses/trip-expense-field';
@@ -157,7 +158,7 @@ export default function ManualExpenseForm({ setOpen, initialData }: ManualExpens
         const result = await recordExpenseAction({
           expenseText: `${debouncedTitle} 1000`, // Dummy amount to satisfy the prompt.
           categories: categoryMapForAI,
-        });
+        }, await getActionToken()); // الرمز وسيطاً — راجع app/actions.ts
         if (result.ok && result.data.category) {
           form.setValue('category', result.data.category, { shouldValidate: true });
         }

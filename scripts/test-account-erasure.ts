@@ -68,6 +68,7 @@ async function seedUser(db: Db, uid: string) {
     await db.collection(`users/${uid}/${col}`).add({ uid, title: col });
   }
   await db.doc(`pushSubscriptions/${uid}`).set({ endpoint: 'https://example.test/x' });
+  await db.doc(`aiUsage/${uid}`).set({ day: '2026-11-13', active: 3, passive: 1, light: 7 });
   await db.collection('feedback').add({ uid, subject: 'ملاحظة', details: 'التطبيق ممتاز' });
   await db.collection('referrals').add({ referrerUid: uid, referredUid: 'someone-else' });
   await db.collection('referrals').add({ referrerUid: 'someone-else', referredUid: uid });
@@ -113,6 +114,7 @@ async function main() {
     check('بياناته الشخصية مُحيت', await countCollection(db, `users/${me}/expenses`), 0);
     check('مستند المستخدم مُحي', (await db.doc(`users/${me}`).get()).exists, false);
     check('اشتراك الإشعارات مُحي', (await db.doc(`pushSubscriptions/${me}`).get()).exists, false);
+    check('عدّاد حصّة الذكاء مُحي', (await db.doc(`aiUsage/${me}`).get()).exists, false);
     check('إحالاته مُحيت (الطرفان)', report.referralsDeleted, 2);
     check('ملاحظته بقيت بلا هوية', report.feedbackAnonymized, 1);
     check('ملفاته مُحيت من التخزين', report.storageFilesDeleted, 2);
