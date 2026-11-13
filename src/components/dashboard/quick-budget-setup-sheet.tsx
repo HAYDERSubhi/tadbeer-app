@@ -24,6 +24,7 @@ import {
 import { Loader2, Wallet, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
+import { track } from "@/lib/track";
 import type { CurrencyCode, ReminderSlot, UserSettings } from "@/types";
 
 // ⛔ لا تُعِد الورقة إلى «ارتفاع ثابت ٩٠٪ من الشاشة» بلا هذا الحساب.
@@ -95,7 +96,8 @@ export default function QuickBudgetSetupSheet({
   const saveMutation = useMutation({
     mutationFn: (settings: Partial<UserSettings>) =>
       updateUserSettings(user!.uid, settings, householdId),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      track("budget_set", { reminder_on: !!variables.notifications?.dailyReminderEnabled });
       queryClient.invalidateQueries({ queryKey: ["userSettings", user?.uid] });
       toast({ title: "تم الحفظ", description: "إعداداتك جاهزة الآن." });
       onOpenChange(false);

@@ -49,6 +49,7 @@ import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
 import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
+import { track } from '@/lib/track';
 
 
 // ── Voice waveform: 5 bars driven by real audio level ────────────────────────
@@ -450,6 +451,7 @@ export default function DashboardPage() {
 
         // readAi يرمي AiError بنصّ عربي جاهز من الخادم (متوقفة مؤقتاً / الحد اليومي / عطل عابر).
         const result = await readAi<{ amount: number; category: string; date: string; description?: string | null; transcript?: string | null }>(res);
+        track('ai_voice_parsed');
         setVoiceTranscript(result.transcript ?? null);
         setVoiceExpenseData({
           title:    result.description ?? undefined,

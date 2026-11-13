@@ -13,6 +13,7 @@ import { logEvent } from 'firebase/analytics';
 import { isInAppBrowser } from '@/lib/in-app-browser';
 import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 import { PlayStoreBadge } from '@/components/auth/play-store-badge';
+import { track } from '@/lib/track';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
@@ -142,7 +143,7 @@ export default function SignupPage() {
           variant="outline"
           className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
         >
-          <Link href="/login">
+          <Link href="/login" onClick={() => track('signup_login_click')}>
             <LogIn className="h-5 w-5 text-teal-600" />
             لديك حساب؟ سجّل الدخول
           </Link>
@@ -154,7 +155,7 @@ export default function SignupPage() {
           variant="outline"
           className="w-full h-12 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 gap-2 text-base font-medium rounded-[14px] shadow-[0_6px_16px_rgba(4,52,44,0.18)]"
         >
-          <Link href="/signup/email">
+          <Link href="/signup/email" onClick={() => track('signup_email_click')}>
             <Mail className="h-5 w-5 text-teal-600" />
             أنشئ حساب بالبريد
           </Link>

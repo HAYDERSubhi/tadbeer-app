@@ -30,6 +30,7 @@ import { useAppData } from '@/hooks/use-app-data';
 import { useCategories } from '@/hooks/use-categories';
 import { format, isThisMonth, parseISO, differenceInCalendarMonths } from 'date-fns';
 import { useCurrency } from '@/hooks/use-currency';
+import { track } from '@/lib/track';
 
 /* ─────────────────────────────── Types ─────────────────────────────── */
 
@@ -339,6 +340,7 @@ export function FinancialChatSheet() {
         await res.json();
 
       if (result.ok && result.data?.reply) {
+        track('ai_chat_reply');
         setMessages(prev => [...prev, { role: 'assistant', content: result.data!.reply, timestamp: Date.now() }]);
       } else {
         setMessages(prev => [

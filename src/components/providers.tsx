@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/hooks/use-auth';
 import { QueryProvider } from '@/components/query-provider';
 import { useSwUpdate } from '@/hooks/use-sw-update';
+import { usePathname } from 'next/navigation';
+import { trackPageView } from '@/lib/track';
 
 function SwUpdateWatcher() {
   useSwUpdate();
@@ -41,6 +43,25 @@ function BrowserInstallSuppressor() {
   return null;
 }
 
+/**
+ * يسجّل مشاهدة الشاشة عند كل تنقّل داخلي (السبب الكامل في `lib/track.ts`).
+ *
+ * ⛔ يتخطّى أول عرض عمداً: تحميل المستند الأول يسجّله Firebase تلقائياً، وتسجيله
+ * هنا أيضاً يضاعف مشاهدات صفحة الدخول.
+ * ⚠️ لو فُعِّل لاحقاً خيار «Page changes based on browser history events» في إعدادات
+ * GA4 (Enhanced measurement) تضاعفت المشاهدات — اختر أحدهما لا كليهما.
+ * 📌 أرقام الصفحات قبل 2026-11-13 ناقصة بشدّة؛ لا تقارن مشاهدات ما قبله بما بعده.
+ */
+function RouteAnalytics() {
+  const pathname = usePathname();
+  const first = React.useRef(true);
+  React.useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (pathname) trackPageView(pathname);
+  }, [pathname]);
+  return null;
+}
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
@@ -51,6 +72,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       {/* خارج المزوّدين عمداً: يجب أن يكتم نافذة كروم في **كل** صفحة — التسجيل
           والدخول والهبوط أيضاً، لا داخل التطبيق فقط. */}
       <BrowserInstallSuppressor />
+      <RouteAnalytics />
       <QueryProvider>
         <AuthProvider>
           <SwUpdateWatcher />

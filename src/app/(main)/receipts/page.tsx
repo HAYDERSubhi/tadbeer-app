@@ -49,6 +49,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
+import { track } from '@/lib/track';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -786,6 +787,7 @@ export default function DetailedReceiptPage() {
       }
       // readAi يرمي AiError بنصّ عربي جاهز من الخادم (متوقفة مؤقتاً / الحد اليومي / عطل عابر).
       const result = await readAi<AnalyzeDetailedReceiptOutput>(res);
+      track('ai_receipt_parsed');
 
       setProcessingStep('extracting');
       // ⚠️ تاريخ الفاتورة يقرأه الذكاء من صورة قد تكون باهتة أو ممزّقة، فيخطئ
