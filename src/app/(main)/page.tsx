@@ -47,6 +47,8 @@ import { useCurrency } from '@/hooks/use-currency';
 import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
+import { IncomeIntroCard } from '@/components/dashboard/income-intro-card';
+import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
 import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
 import { track } from '@/lib/track';
@@ -786,6 +788,8 @@ export default function DashboardPage() {
 
       <WeeklySummaryCard />
 
+      <IncomeIntroCard />
+
       {/* Budget Alert */}
       {!isAppDataLoading && budgetData.isBudgetSet && budgetData.spentPercentage >= 80 && (
         <Alert
@@ -837,6 +841,8 @@ export default function DashboardPage() {
             </CardContent>
         </Card>
       )}
+
+      <IncomeVsExpensesCard />
 
       <QuickBudgetSetupSheet open={isQuickSetupOpen} onOpenChange={setIsQuickSetupOpen} />
 
