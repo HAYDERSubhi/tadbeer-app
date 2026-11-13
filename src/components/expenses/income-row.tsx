@@ -38,6 +38,7 @@ export function IncomeRow({ income, density = 'home' }: { income: Income; densit
 
   const EditComponent = isMobile ? Sheet : Dialog;
   const isPage = density === 'page';
+  const isPending = income.id.startsWith('pending-');
 
   const dateLabel = (() => {
     try { return format(parseISO(income.date), 'd MMM', { locale: arIQ }); } catch { return ''; }
@@ -116,6 +117,10 @@ export function IncomeRow({ income, density = 'home' }: { income: Income; densit
           <p className={cn('font-bold text-green-600 dark:text-green-400', isPage ? 'text-xs me-2' : 'text-sm')}>
             <bdi>{formatCurrency(income.amount)}</bdi>
           </p>
+          {isPending ? (
+            // دخل سُجّل بلا إنترنت ولم يُرفع بعد: لا يُعدَّل ولا يُحذف قبل أن يحصل على معرّفه الحقيقي.
+            <span className={cn('shrink-0', isPage ? 'h-10 w-10' : 'h-8 w-8')} aria-hidden />
+          ) : (
           <EditComponent open={isEditOpen} onOpenChange={setIsEditOpen}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -149,6 +154,7 @@ export function IncomeRow({ income, density = 'home' }: { income: Income; densit
               </DialogContent>
             )}
           </EditComponent>
+          )}
         </div>
       </li>
     </>

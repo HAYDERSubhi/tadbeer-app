@@ -78,6 +78,23 @@ export function IncomeEntryForm({ income, onDone }: { income?: Income; onDone?: 
     // ويظنّ المستخدم أن الحفظ فشل ويعيده (فيصير دخلان). الكتابة تُصفّ محلياً وتُرفع عند عودة الشبكة،
     // فنمضي فوراً. (نفس المنطق الموثَّق في `onMutate` لشاشة المصروف.)
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      // ⛔ لا تنتظر وعد الكتابة لتحديث القائمة: لا يُحسم إلا عند عودة الشبكة، فيبقى الدخل (أو تعديله)
+      //    غير ظاهر حتى ذلك الحين (رُصد على هاتف المالك 2026-11-14). تُحدَّث الذاكرة فوراً، ثم يُصحَّح بعد المزامنة.
+      const key = ['incomes', user.uid, householdId];
+      if (income) {
+        queryClient.setQueryData<Income[]>(key, old =>
+          old ? old.map(i => (i.id === income.id ? { ...i, title: payload.title, amount: payload.amount, date: payload.date } : i)) : old);
+      } else {
+        queryClient.setQueryData<Income[]>(key, old => [
+          ...(old ?? []),
+          {
+            id: `pending-${Date.now()}`, // معرّف مؤقت: يستبدله الرفع الحقيقي، وصفّه بلا قائمة تعديل حتى ذلك
+            uid: user.uid, title: payload.title, amount: payload.amount, type: 'one-time',
+            date: payload.date, createdAt: new Date().toISOString(),
+            scope: householdId ? 'household' : 'personal',
+          },
+        ]);
+      }
       write().then(refresh).catch(() => {});
       finish();
       return;
