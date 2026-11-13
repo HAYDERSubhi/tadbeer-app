@@ -1,6 +1,7 @@
 "use client";
 
-// تسجيل دخل (يومي أو غير ثابت) من شاشة الإضافة.
+// تسجيل دخل (يومي أو غير ثابت) من شاشة الإضافة — ويُستعمل نفسه للتعديل (خاصية `income`) من صفّ الدخل
+// في الرئيسية وشاشة المصاريف. في وضع التعديل: زرّ الحفظ ضمن المحتوى لا مثبَّتاً أسفل الشاشة (لأنه داخل نافذة).
 //
 // يُحفظ سجلاً من نوع one-time في مجموعة incomes نفسها التي تستعملها الإعدادات — ولا يلمس
 // `profile.monthlyIncome` (= مجموع الدخل المتكرر). فالأدوات والمخطط والمدرب والمستشار تبقى
@@ -20,21 +21,27 @@ import { normalizeDigits } from '@/lib/normalize-digits';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useAppData } from '@/hooks/use-app-data';
-import { addIncome } from '@/services/firestore';
+import { addIncome, updateIncome } from '@/services/firestore';
+import type { Income } from '@/types';
 import { track } from '@/lib/track';
 
 const withCommas = (n: number) => (n > 0 ? new Intl.NumberFormat('en-US').format(n) : '');
 
-export function IncomeEntryForm() {
+export function IncomeEntryForm({ income, onDone }: { income?: Income; onDone?: () => void } = {}) {
+  const isEdit = !!income;
   const { user } = useAuth();
   const { householdId } = useAppData();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState(0);
-  const [date, setDate] = useState<Date>(new Date());
+  // العنوان الافتراضي «دخل» يُعرض فارغاً (يعود افتراضياً عند الحفظ) كي لا يضطر المستخدم لمسحه.
+  const [title, setTitle] = useState(income && income.title !== 'دخل' ? income.title : '');
+  const [amount, setAmount] = useState(income?.amount ?? 0);
+  const [date, setDate] = useState<Date>(() => {
+    const d = income?.date ? new Date(income.date) : new Date();
+    return isNaN(d.getTime()) ? new Date() : d;
+  });
   const [amountError, setAmountError] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -54,22 +61,30 @@ export function IncomeEntryForm() {
     };
     const refresh = () => queryClient.invalidateQueries({ queryKey: ['incomes', user.uid] });
     const finish = () => {
-      toast({ title: 'تم حفظ الدخل', description: 'ستجده في الرئيسية بجانب مصاريفك.' });
+      if (isEdit) {
+        toast({ title: 'تم تحديث الدخل' });
+        onDone?.();
+        return;
+      }
+      toast({ title: 'تم حفظ الدخل', description: 'ستجده في «آخر الحركات» بالرئيسية.' });
       track('income_added');
       router.push('/');
     };
+    const write = (): Promise<unknown> => income
+      ? updateIncome(user.uid, income.id, { title: payload.title, amount: payload.amount, date: payload.date }, householdId, income.scope)
+      : addIncome(user.uid, payload, householdId);
 
     // بلا إنترنت: وعد Firestore لا يُحسم إلا بتأكيد الخادم، فالانتظار يُبقي الزرّ يدور بلا نهاية
     // ويظنّ المستخدم أن الحفظ فشل ويعيده (فيصير دخلان). الكتابة تُصفّ محلياً وتُرفع عند عودة الشبكة،
     // فنمضي فوراً. (نفس المنطق الموثَّق في `onMutate` لشاشة المصروف.)
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      addIncome(user.uid, payload, householdId).then(refresh).catch(() => {});
+      write().then(refresh).catch(() => {});
       finish();
       return;
     }
 
     try {
-      await addIncome(user.uid, payload, householdId);
+      await write();
       refresh();
       finish();
     } catch {
@@ -84,7 +99,7 @@ export function IncomeEntryForm() {
 
   return (
     <>
-      <div className="flex-1 space-y-3 p-4 overflow-y-auto pb-40">
+      <div className={cn('flex-1 space-y-3 p-4 overflow-y-auto', !isEdit && 'pb-40')}>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -138,10 +153,10 @@ export function IncomeEntryForm() {
         </Popover>
       </div>
 
-      <div className="fixed bottom-16 inset-x-0 px-4 py-3 bg-background/80 backdrop-blur-sm border-t border-border">
+      <div className={isEdit ? 'px-4 pb-4' : 'fixed bottom-16 inset-x-0 px-4 py-3 bg-background/80 backdrop-blur-sm border-t border-border'}>
         <Button onClick={handleSave} className="w-full h-12 text-base gap-2" disabled={saving}>
           {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Save className="h-6 w-6" />}
-          <span>حفظ الدخل</span>
+          <span>{isEdit ? 'حفظ التعديل' : 'حفظ الدخل'}</span>
         </Button>
       </div>
     </>

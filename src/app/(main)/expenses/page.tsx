@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment, useEffect } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus, CalendarDays } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus, CalendarDays, HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,12 +17,14 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { deleteExpense, deleteExpensesBatch, getExpenses } from '@/services/firestore';
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
-import { format, compareDesc, parseISO, isBefore, startOfMonth } from 'date-fns';
+import { format, compareDesc, parseISO, isBefore, startOfMonth, isValid } from 'date-fns';
 import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
 import dynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
+import { IncomeRow } from '@/components/expenses/income-row';
+import { EntryModeToggle, type EntryMode } from '@/components/expenses/entry-mode-toggle';
 
 // تحميل كسول — النموذج لا يظهر إلا داخل نافذة منبثقة بضغطة المستخدم.
 const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense-form'), {
@@ -40,7 +42,7 @@ import Link from 'next/link';
 export default function AllExpensesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { householdId, isLoading: settingsLoading, isError, error, queryClient } = useAppData();
+  const { householdId, incomes, isLoading: settingsLoading, isError, error, queryClient } = useAppData();
 
   // Load ALL expenses — the full history is needed for this page.
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
@@ -56,6 +58,12 @@ export default function AllExpensesPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  // عرض «دخل» ترشيحٌ لا شاشة جديدة (قرار المالك 2026-11-14): الدخل لا يظهر مع المصاريف في قائمة واحدة
+  // كي لا يختلط مجموع المصاريف ولا يتعطّل الترتيب والتحديد المتعدد. الافتراضي المصاريف دائماً.
+  const [view, setView] = useState<EntryMode>('expense');
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'income') setView('income');
+  }, []);
   // القائمة تفتح على **الشهر الحالي** لا على كل التاريخ (طلب مستخدم 2026-11-05:
   // «عند بداية كل شهر يختفي الشهر الماضي ويتحوّل إلى الأرشفة»). الشهور السابقة
   // تُختار من القائمة، و'all' يعيد السلوك القديم. لا شيء يُحذف ولا يُنقل في
@@ -104,14 +112,35 @@ export default function AllExpensesPage() {
     return sorted;
   }, [expenses, sortBy, sortDir]);
 
-  // الشهور التي فيها مصاريف فعلاً (الأحدث أولاً) + الشهر الحالي دائماً.
+  // الدخل المسجَّل بتاريخ (المتكرر ليس استلاماً بيوم)، الأحدث أولاً.
+  const oneTimeIncomes = useMemo(() =>
+    incomes
+      .filter(i => i.type === 'one-time' && isValid(parseISO(i.date)))
+      .sort((a, b) => compareDesc(new Date(a.date), new Date(b.date))),
+    [incomes]);
+
+  // الشهور التي فيها مصاريف فعلاً (الأحدث أولاً) + الشهر الحالي دائماً. وفي عرض الدخل: شهور الدخل.
   const monthOptions = useMemo(() => {
     const keys = new Set<string>([currentMonthKey]);
-    allSortedExpenses.forEach(e => {
+    const source: { date: string }[] = view === 'income' ? oneTimeIncomes : allSortedExpenses;
+    source.forEach(e => {
       try { keys.add(format(parseISO(e.date), 'yyyy-MM')); } catch { /* تاريخ تالف — يظهر تحت «كل الشهور» */ }
     });
     return Array.from(keys).sort().reverse();
-  }, [allSortedExpenses, currentMonthKey]);
+  }, [allSortedExpenses, oneTimeIncomes, view, currentMonthKey]);
+
+  // نفس قاعدة المصاريف: البحث النصّي يتخطّى الشهر ويبحث في كل التاريخ.
+  const filteredIncomes = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return oneTimeIncomes.filter(inc => {
+      if (q !== '' && !inc.title.toLowerCase().includes(q)) return false;
+      if (selectedMonth === 'all' || q !== '') return true;
+      try { return format(parseISO(inc.date), 'yyyy-MM') === selectedMonth; } catch { return false; }
+    });
+  }, [oneTimeIncomes, searchQuery, selectedMonth]);
+  const totalIncomeFiltered = useMemo(() => filteredIncomes.reduce((sum, i) => sum + i.amount, 0), [filteredIncomes]);
+  // يظهر الترشيح لمن سجّل دخلاً فقط (غيرهم لا يتغيّر عندهم شيء)؛ ويبقى ظاهراً إن حذف آخر دخل وهو داخله.
+  const showViewToggle = oneTimeIncomes.length > 0 || view === 'income';
 
   const filteredExpenses = useMemo(() => {
     return allSortedExpenses.filter(expense => {
@@ -143,7 +172,7 @@ export default function AllExpensesPage() {
   const hasFilters = searchQuery !== '' || selectedCategory !== 'all';
 
   // إعادة تعيين العرض عند تغيير الفلتر أو الترتيب
-  useEffect(() => { setVisibleCount(50); }, [searchQuery, selectedCategory, selectedMonth, sortBy, sortDir]);
+  useEffect(() => { setVisibleCount(50); }, [searchQuery, selectedCategory, selectedMonth, sortBy, sortDir, view]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -245,10 +274,21 @@ export default function AllExpensesPage() {
       {/* Search & Filter */}
       <Card>
         <CardContent className="p-4 space-y-3">
+          {showViewToggle && (
+            <EntryModeToggle
+              value={view}
+              onChange={(mode) => {
+                setView(mode);
+                if (isSelectionMode) { setIsSelectionMode(false); setSelectedIds(new Set()); }
+              }}
+              className="mx-0 mt-0"
+              ariaLabel="نوع السجلات المعروضة"
+            />
+          )}
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="ابحث بالاسم أو اسم المحل..."
+              placeholder={view === 'income' ? 'ابحث باسم مصدر الدخل...' : 'ابحث بالاسم أو اسم المحل...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-9"
@@ -271,6 +311,7 @@ export default function AllExpensesPage() {
               </SelectContent>
             </Select>
           </div>
+          {view === 'expense' && (<>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -365,19 +406,21 @@ export default function AllExpensesPage() {
               )}
             </div>
           )}
+          </>)}
         </CardContent>
       </Card>
 
       {/* FAB — Add expense */}
       <Link
-        href="/add-expense"
+        href={view === 'income' ? '/add-expense?mode=income' : '/add-expense'}
         className="fixed bottom-20 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
-        aria-label="إضافة مصروف جديد"
+        aria-label={view === 'income' ? 'إضافة دخل جديد' : 'إضافة مصروف جديد'}
       >
         <Plus className="h-6 w-6" />
       </Link>
 
-      {/* Results */}
+      {/* Results — المصاريف */}
+      {view === 'expense' && (
       <Card>
         <CardHeader className="py-3 px-4">
           <div className="flex items-center justify-between">
@@ -537,6 +580,70 @@ export default function AllExpensesPage() {
           )}
         </CardContent>
       </Card>
+      )}
+
+      {/* Results — الدخل (ترشيح «دخل») */}
+      {view === 'income' && (
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm font-bold">
+                <HandCoins className="h-4 w-4 text-green-600 dark:text-green-400" />
+                {searchQuery.trim() !== ''
+                  ? `نتائج البحث في كل الشهور (${filteredIncomes.length})`
+                  : selectedMonth === 'all'
+                    ? `كل الدخل (${filteredIncomes.length})`
+                    : `دخل ${formatYearMonth(selectedMonth)} (${filteredIncomes.length})`}
+              </CardTitle>
+              {filteredIncomes.length > 0 && (
+                <Badge variant="secondary" className="text-xs text-green-700 dark:text-green-400">
+                  <bdi>{formatCurrency(totalIncomeFiltered)}</bdi>
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {filteredIncomes.length === 0 ? (
+              <div className="px-6 py-16 text-center text-muted-foreground">
+                <HandCoins className="mx-auto h-12 w-12 mb-4 opacity-30" />
+                {searchQuery.trim() !== '' ? (
+                  <>
+                    <h3 className="text-base font-semibold">لا توجد نتائج</h3>
+                    <p className="text-sm mt-1">جرب تغيير كلمة البحث</p>
+                  </>
+                ) : oneTimeIncomes.length > 0 ? (
+                  <>
+                    <h3 className="text-base font-semibold">لا يوجد دخل مسجَّل في هذا الشهر</h3>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setSelectedMonth('all')}>عرض كل الشهور</Button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-base font-semibold">لا يوجد دخل مسجَّل</h3>
+                    <Link href="/add-expense?mode=income">
+                      <Button size="sm" className="mt-4 gap-2"><Plus className="h-4 w-4" />تسجيل دخل</Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <ul className="divide-y divide-border">
+                  {filteredIncomes.slice(0, visibleCount).map(inc => (
+                    <IncomeRow key={inc.id} income={inc} density="page" />
+                  ))}
+                </ul>
+                {filteredIncomes.length > visibleCount && (
+                  <div className="p-3 border-t text-center">
+                    <Button variant="ghost" size="sm" className="text-xs text-primary w-full h-9" onClick={() => setVisibleCount(c => c + 50)}>
+                      تحميل المزيد ({filteredIncomes.length - visibleCount} متبقٍ)
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

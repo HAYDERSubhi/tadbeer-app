@@ -5,7 +5,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle, HandCoins } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle } from "lucide-react";
 import type { Expense, Income } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -49,6 +49,7 @@ import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 import { IncomeIntroCard } from '@/components/dashboard/income-intro-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
+import { IncomeRow } from '@/components/expenses/income-row';
 import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
 import { track } from '@/lib/track';
 
@@ -524,7 +525,7 @@ export default function DashboardPage() {
     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
 
-  // قائمة «أحدث المصاريف» = المصاريف + ما سجّله المستخدم بنفسه من دخل (قرار المالك 2026-11-14).
+  // قائمة «آخر الحركات» = المصاريف + ما سجّله المستخدم بنفسه من دخل (قرار المالك 2026-11-14).
   // الدخل يظهر هنا بلون أخضر بدل بطاقة مستقلة تزحم الشاشة. ⛔ إجمالي كل مجموعة للمصاريف وحدها
   // (لا يُطرح منه الدخل ولا يُضاف إليه) — وإن لم تضم المجموعة مصروفاً فلا يُعرض لها إجمالي.
   type FeedItem =
@@ -746,22 +747,6 @@ export default function DashboardPage() {
       </Fragment>
     );
   }
-
-  // صفّ الدخل: بلا قائمة تعديل/حذف (يُحذف من الإعدادات)، ومبلغه يحاذي مبالغ المصاريف:
-  // me-10 = عرض زر القائمة (h-8 w-8) + الفجوة gap-2 في صفّ المصروف.
-  const IncomeListItem = ({ income }: { income: Income }) => (
-    <li className="flex items-center p-2 rounded-lg">
-      <div className="flex flex-1 items-center gap-3 overflow-hidden">
-        <span className="flex shrink-0 items-center justify-center text-green-600 dark:text-green-400">
-          <HandCoins className="h-5 w-5" />
-        </span>
-        <p className="font-semibold truncate text-xs">{income.title}</p>
-      </div>
-      <p className="font-bold text-sm text-green-600 dark:text-green-400 me-10">
-        <bdi>+{formatCurrency(income.amount)}</bdi>
-      </p>
-    </li>
-  );
 
   const hasExpenses = expenses.length > 0;
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
@@ -1043,7 +1028,7 @@ export default function DashboardPage() {
           <CardTitle className="text-sm font-semibold">
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-primary" />
-              <span>أحدث المصاريف</span>
+              <span>آخر الحركات</span>
             </div>
           </CardTitle>
         </CardHeader>
@@ -1071,7 +1056,7 @@ export default function DashboardPage() {
                   <ul className="divide-y divide-border/50">
                     {group.items.map(item => item.kind === 'expense'
                       ? <ExpenseListItem key={item.expense.id} expense={item.expense} />
-                      : <IncomeListItem key={item.income.id} income={item.income} />
+                      : <IncomeRow key={item.income.id} income={item.income} />
                     )}
                   </ul>
                 </div>

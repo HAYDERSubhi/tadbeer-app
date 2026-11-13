@@ -11,12 +11,12 @@ const OPTIONS: { value: EntryMode; label: string }[] = [
   { value: 'income', label: 'دخل' },
 ];
 
-export function EntryModeToggle({ value, onChange }: { value: EntryMode; onChange: (mode: EntryMode) => void }) {
+export function EntryModeToggle({ value, onChange, className, ariaLabel = 'نوع الإدخال' }: { value: EntryMode; onChange: (mode: EntryMode) => void; className?: string; ariaLabel?: string }) {
   return (
     <div
       role="tablist"
-      aria-label="نوع الإدخال"
-      className="mx-4 mt-3 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1"
+      aria-label={ariaLabel}
+      className={cn('mx-4 mt-3 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1', className)}
     >
       {OPTIONS.map((opt) => (
         <button

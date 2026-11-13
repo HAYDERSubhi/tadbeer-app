@@ -4,7 +4,8 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, TrendingDown, HandCoins } from "lucide-react";
+import Link from 'next/link';
+import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 import { getDate } from 'date-fns';
@@ -157,11 +158,13 @@ export default function BudgetSummaryCard({
                     )}
 
                     {/* سطر الدخل الهادئ (قرار المالك 2026-11-14): معلومة لا بطاقة، ويختفي مع عين الإخفاء. */}
+                    {/* محاذاة البداية (اليمين) لا الوسط، ورابط إلى ترشيح الدخل في شاشة المصاريف. */}
                     {receivedIncome !== undefined && isVisible && (
-                        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-1">
+                        <Link href="/expenses?view=income" className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                             <HandCoins className="h-3.5 w-3.5 shrink-0" />
                             <span>دخل مستلَم هذا الشهر <bdi className="font-semibold text-foreground">{formatCurrency(receivedIncome)}</bdi></span>
-                        </p>
+                            <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+                        </Link>
                     )}
                 </div>
             </CardContent>
