@@ -26,6 +26,34 @@ import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
 import type { CurrencyCode, ReminderSlot, UserSettings } from "@/types";
 
+// ⛔ لا تُعِد الورقة إلى «ارتفاع ثابت ٩٠٪ من الشاشة» بلا هذا الحساب.
+// على أندرويد يعمل الكيبورد على **تصغير نافذة الرؤية فقط** (visualViewport) ولا يغيّر
+// ارتفاع الصفحة، فتبقى الورقة المثبَّتة بأسفل الشاشة بطولها الكامل **وجزؤها السفلي خلف
+// الكيبورد**، ثم يمرّر المتصفح محتواها ليُظهر الحقل فيختفي العنوان وأعلى الورقة
+// (رصده صاحب المشروع على هاتفه 2026-11-13). الحل: نرفع الورقة فوق الكيبورد ونجعل
+// ارتفاعها نسبةً من المساحة المرئية فعلاً، فيبقى العنوان والحقل الأول ظاهرَين.
+function useKeyboardFit(active: boolean) {
+  const [box, setBox] = useState<{ bottom: number; height: number } | null>(null);
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!active || !vv) return;
+    const update = () =>
+      setBox({
+        bottom: Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)),
+        height: Math.round(vv.height),
+      });
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setBox(null);
+    };
+  }, [active]);
+  return box;
+}
+
 const fmt = (n: number) => (n > 0 ? new Intl.NumberFormat("en-US").format(n) : "");
 const parse = (s: string) => {
   const n = Number(normalizeDigits(s).replace(/,/g, ""));
@@ -44,6 +72,7 @@ export default function QuickBudgetSetupSheet({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const kbBox = useKeyboardFit(open && isMobile);
 
   const [totalBudget, setTotalBudget] = useState("");
   const [income, setIncome] = useState("");
@@ -136,7 +165,9 @@ export default function QuickBudgetSetupSheet({
             }
           }}
           className="h-14 text-2xl font-bold font-mono"
-          autoFocus
+          // على الهاتف لا نفتح الكيبورد تلقائياً: كان يغطي نصف الورقة لحظة فتحها.
+          // يضغط المستخدم الحقل بنفسه فيظهر الكيبورد وأعلى الورقة ما زال مرئياً.
+          autoFocus={!isMobile}
         />
         {budgetError && (
           <p className="text-xs text-destructive">الميزانية مطلوبة لتفعيل التنبيهات.</p>
@@ -258,6 +289,7 @@ export default function QuickBudgetSetupSheet({
         <SheetContent
           side="bottom"
           className="rounded-t-2xl px-0 pb-0 max-h-[92dvh] overflow-y-auto"
+          style={kbBox ? { bottom: kbBox.bottom, height: Math.round(kbBox.height * 0.9) } : undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <SheetHeader className="px-5 pt-5 pb-2 text-right">
