@@ -842,8 +842,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <IncomeVsExpensesCard />
-
       <QuickBudgetSetupSheet open={isQuickSetupOpen} onOpenChange={setIsQuickSetupOpen} />
 
       <Card id="expense-input-card" className="overflow-hidden">
@@ -956,6 +954,9 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* تحت بطاقة الإدخال عمداً كي تبقى أزرار الإدخال في مكانها؛ ولا تظهر إلا لمن سجّل دخلاً بنفسه. */}
+      <IncomeVsExpensesCard />
 
       {/* ── الأدوات المالية ── */}
       <Card id="financial-tools-card" className="overflow-hidden">
