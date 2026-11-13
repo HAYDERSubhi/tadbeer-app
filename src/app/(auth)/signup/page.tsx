@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader2Icon, AlertTriangle, Mail, LogIn } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle as AlertTitleComponent } from '@/components/ui/alert';
 import { analytics } from '@/lib/firebase';
@@ -14,6 +14,7 @@ import { isInAppBrowser } from '@/lib/in-app-browser';
 import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 import { PlayStoreBadge } from '@/components/auth/play-store-badge';
 import { track } from '@/lib/track';
+import { isAndroid, isAppInstalled } from '@/lib/platform';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
@@ -43,6 +44,22 @@ export default function SignupPage() {
     const ref = new URLSearchParams(window.location.search).get('ref');
     if (ref) sessionStorage.setItem('tadbeer-ref', ref);
   }, []);
+
+  // قياس: من يصل هذه الشاشة وكم انتظر حتى رآها؟ (2026-11-14 — نصف الزوار يغادرون
+  // خلال ثوانٍ ولا نعرف مصدرهم). أعلام فقط: لا نصوص ولا هوية. مرّة واحدة لكل تحميل.
+  // ms_to_view ≈ الزمن من بدء التحميل حتى ظهور الأزرار.
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (viewTracked.current || user) return;
+    viewTracked.current = true;
+    const ua = navigator.userAgent || '';
+    track('signup_view', {
+      platform: isAndroid() ? 'android' : /iPhone|iPad|iPod/i.test(ua) ? 'ios' : 'other',
+      in_app: isInAppBrowser(),
+      installed: isAppInstalled(),
+      ms_to_view: Math.round(performance.now()),
+    });
+  }, [user]);
 
   const anyLoading = isGoogleLoading || isGuestLoading;
 
@@ -93,7 +110,11 @@ export default function SignupPage() {
     } finally { setIsGuestLoading(false); }
   };
 
-  if (authLoading || user) return null;
+  // ⛔ لا تُعِد `authLoading ||` هنا: كان الزائر الجديد يرى شاشة خضراء فارغة حتى
+  // يردّ Firebase بأنه غير مسجّل (ثوانٍ على شبكة بطيئة). الأزرار لا تحتاج الجواب؛
+  // والمسجَّل أصلاً يُحوَّل بالمؤثّر أعلاه، ومن كان محفوظاً محلياً يبدأ `user` عنده
+  // مضبوطاً فلا يرى وميضاً.
+  if (user) return null;
 
   return (
     <div className="w-full max-w-sm flex flex-col gap-7">
