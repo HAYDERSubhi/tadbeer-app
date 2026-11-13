@@ -137,7 +137,7 @@ export function CoachInsightsCard({
             نصائح المدرب الذكي
           </CardTitle>
           {!isLoading && (
-            <CardDescription className="text-[10px]">{periodDescription}</CardDescription>
+            <CardDescription className="text-xs">{periodDescription}</CardDescription>
           )}
         </div>
       </CardHeader>
@@ -194,7 +194,7 @@ export function CoachInsightsCard({
         {/* حدّ معلَن: كل الأرقام هنا محسوبة في الكود (computeSummary) لا بالذكاء،
             لكن «المدرب» كلمة تُقرأ كاستشارة — فالحدّ يُذكر لا يُفترَض. */}
         {insights.length > 0 && (
-          <p className="text-[10px] text-muted-foreground text-center leading-relaxed pt-3">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed pt-3">
             ملاحظات إرشادية مبنية على مصاريفك المسجّلة — وليست استشارة مالية.
           </p>
         )}

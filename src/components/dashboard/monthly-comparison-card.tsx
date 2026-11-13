@@ -87,11 +87,11 @@ export function MonthlyComparisonCard() {
         {/* Numbers Row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-            <p className="text-[10px] text-muted-foreground mb-1">{currentMonthName} (الحالي)</p>
+            <p className="text-xs text-muted-foreground mb-1">{currentMonthName} (الحالي)</p>
             <p className="font-bold text-sm text-primary">{formatCurrency(current)}</p>
           </div>
           <div className="p-3 rounded-lg bg-muted/50 border">
-            <p className="text-[10px] text-muted-foreground mb-1">{prevMonthName} (الماضي)</p>
+            <p className="text-xs text-muted-foreground mb-1">{prevMonthName} (الماضي)</p>
             <p className="font-bold text-sm">{formatCurrency(previous)}</p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export function MonthlyComparisonCard() {
         {/* Top Categories */}
         {topCategories.length > 0 && (
           <div>
-            <p className="text-[10px] text-muted-foreground mb-2 font-semibold">أعلى فئات الإنفاق هذا الشهر</p>
+            <p className="text-xs text-muted-foreground mb-2 font-semibold">أعلى فئات الإنفاق هذا الشهر</p>
             <div className="space-y-2">
               {topCategories.map((cat, i) => (
                 <div key={i} className="flex items-center gap-2">

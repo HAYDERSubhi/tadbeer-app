@@ -48,7 +48,7 @@ export function IncomeVsExpensesCard() {
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10">
               <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-[10px] text-muted-foreground">الدخل</p>
+            <p className="text-xs text-muted-foreground">الدخل</p>
             <p className="text-xs font-bold text-green-600 dark:text-green-400">
               {formatCurrency(totalIncome)}
             </p>
@@ -58,7 +58,7 @@ export function IncomeVsExpensesCard() {
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10">
               <TrendingDown className="h-4 w-4 text-destructive" />
             </div>
-            <p className="text-[10px] text-muted-foreground">المصاريف</p>
+            <p className="text-xs text-muted-foreground">المصاريف</p>
             <p className="text-xs font-bold text-destructive">
               {formatCurrency(totalExpenses)}
             </p>
@@ -74,12 +74,12 @@ export function IncomeVsExpensesCard() {
             )}>
               <Vault className={cn("h-4 w-4", savings >= 0 ? "text-primary" : "text-destructive")} />
             </div>
-            <p className="text-[10px] text-muted-foreground">التوفير</p>
+            <p className="text-xs text-muted-foreground">التوفير</p>
             <p className={cn("text-xs font-bold", savings >= 0 ? "text-primary" : "text-destructive")}>
               {savings >= 0 ? '+' : ''}{formatCurrency(savings)}
             </p>
             {totalIncome > 0 && (
-              <p className="text-[9px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {savingsRate.toFixed(0)}% من الدخل
               </p>
             )}

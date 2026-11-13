@@ -892,7 +892,7 @@ export default function DashboardPage() {
                   </SheetHeader>
                   {voiceTranscript && (
                     <div className="mt-2 mb-1 rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
-                      <p className="text-[10px] text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
                       <p className="text-xs text-foreground leading-relaxed">«{voiceTranscript}»</p>
                     </div>
                   )}
@@ -906,7 +906,7 @@ export default function DashboardPage() {
                 <DialogContent>
                   {voiceTranscript && (
                     <div className="rounded-xl bg-primary/5 border border-primary/15 px-3 py-2">
-                      <p className="text-[10px] text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
+                      <p className="text-xs text-muted-foreground mb-0.5">🎙️ ما سمعناه:</p>
                       <p className="text-xs text-foreground leading-relaxed">«{voiceTranscript}»</p>
                     </div>
                   )}
@@ -942,7 +942,7 @@ export default function DashboardPage() {
               <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
               <div>
                 <p className="text-xs font-medium text-foreground leading-tight">الذكاء الاصطناعي يحلل تسجيلك</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">قد يستغرق حتى 20 ثانية — لا تغلق التطبيق</p>
+                <p className="text-xs text-muted-foreground mt-0.5">قد يستغرق حتى 20 ثانية — لا تغلق التطبيق</p>
               </div>
             </div>
           )}
@@ -978,7 +978,7 @@ export default function DashboardPage() {
                     t.icon
                   )}
                 </div>
-                <span className="text-[11px] font-medium text-muted-foreground">{t.label}</span>
+                <span className="text-xs font-medium text-muted-foreground">{t.label}</span>
               </Link>
             ))}
           </div>
@@ -1006,10 +1006,10 @@ export default function DashboardPage() {
               {groupedExpenses.map(group => (
                 <div key={group.label}>
                   <div className="px-4 py-1.5 bg-muted/40 border-y border-border/50 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {group.label}
                     </span>
-                    <span className="text-[11px] font-bold text-foreground tabular-nums">
+                    <span className="text-xs font-bold text-foreground tabular-nums">
                       <bdi>{formatCurrency(group.total)}</bdi>
                     </span>
                   </div>

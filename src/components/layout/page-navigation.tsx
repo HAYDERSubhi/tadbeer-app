@@ -44,7 +44,7 @@ export default function PageNavigation() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 rounded-md py-2 text-[9px] font-medium transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 rounded-md py-2 text-xs font-medium transition-colors",
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'

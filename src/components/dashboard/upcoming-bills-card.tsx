@@ -140,13 +140,13 @@ export function UpcomingBillsCard() {
               <div className="flex items-center gap-3 px-3 py-2">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-xs truncate">{payment.title}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {catName} · {format(dueDate, 'd MMM', { locale: arIQ })}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-bold text-sm">{formatCurrency(payment.amount)}</p>
-                  <p className={cn('text-[10px]', cls)}>{label}</p>
+                  <p className={cn('text-xs', cls)}>{label}</p>
                 </div>
               </div>
 
@@ -166,7 +166,7 @@ export function UpcomingBillsCard() {
         {!expanded && hiddenCount > 0 && (
           <button
             onClick={() => setExpanded(true)}
-            className="w-full flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1"
+            className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
           >
             <ChevronDown className="h-3 w-3" />
             و{hiddenCount} فاتورة أخرى

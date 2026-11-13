@@ -204,7 +204,7 @@ export function WeeklySummaryCard() {
           ملخص الأسبوع الماضي
           {diff !== null && (
             <span className={cn(
-              'text-[10px] px-2 py-0.5 rounded-full font-medium',
+              'text-xs px-2 py-0.5 rounded-full font-medium',
               isImproved
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                 : isWorse
@@ -233,17 +233,17 @@ export function WeeklySummaryCard() {
         {prevWeekTotal > 0 && (
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground w-24 shrink-0 text-start">قبل أسبوعين</span>
+              <span className="text-xs text-muted-foreground w-24 shrink-0 text-start">قبل أسبوعين</span>
               <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-muted-foreground/40 transition-all"
                   style={{ width: `${prevWeekPct}%` }}
                 />
               </div>
-              <span className="text-[10px] text-muted-foreground w-20 shrink-0"><bdi>{formatCurrency(prevWeekTotal)}</bdi></span>
+              <span className="text-xs text-muted-foreground w-20 shrink-0"><bdi>{formatCurrency(prevWeekTotal)}</bdi></span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium w-24 shrink-0 text-start">الأسبوع الماضي</span>
+              <span className="text-xs font-medium w-24 shrink-0 text-start">الأسبوع الماضي</span>
               <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
                 <div
                   className={cn(
@@ -253,13 +253,13 @@ export function WeeklySummaryCard() {
                   style={{ width: `${lastWeekPct}%` }}
                 />
               </div>
-              <span className="text-[10px] font-medium w-20 shrink-0"><bdi>{formatCurrency(lastWeekTotal)}</bdi></span>
+              <span className="text-xs font-medium w-20 shrink-0"><bdi>{formatCurrency(lastWeekTotal)}</bdi></span>
             </div>
           </div>
         )}
 
         {/* رسالة الاستنتاج */}
-        <p className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 leading-relaxed">
+        <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 leading-relaxed">
           {isImproved && diff !== null
             ? <>أحسنت — أنفقت أقل هذا الأسبوع. استمر على هذا المسار لتوفير <bdi>{formatCurrency(Math.round(prevWeekTotal - lastWeekTotal))}</bdi> إضافية.</>
             : isWorse && topCategoryName

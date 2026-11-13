@@ -155,7 +155,7 @@ export function AiTrendsCard() {
                   )}>
                     {insight.title}
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                     {insight.description}
                   </p>
                 </div>

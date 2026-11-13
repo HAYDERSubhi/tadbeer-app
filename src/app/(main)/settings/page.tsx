@@ -271,7 +271,7 @@ function AccordionItemWrapper({ icon, title, subtitle, value, children, sectionI
                       </div>
                       <div className="text-right">
                           <h3 className="font-semibold text-sm">{title}</h3>
-                          {subtitle && <p className="text-[11px] text-muted-foreground font-normal mt-0.5">{subtitle}</p>}
+                          {subtitle && <p className="text-xs text-muted-foreground font-normal mt-0.5">{subtitle}</p>}
                       </div>
                   </div>
               </div>
@@ -307,7 +307,7 @@ function IncomeTypeField({ control, errors }: { control: any; errors: any }) {
             </Select>
           )} />
           {errors.dayOfMonth && <p className="text-xs text-destructive mt-1">{errors.dayOfMonth.message}</p>}
-          <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             دخلك غير ثابت (يومي/أسبوعي)؟ اتركه فارغاً واكتب بالأعلى معدله الشهري التقريبي.
           </p>
         </div>
@@ -1168,7 +1168,7 @@ export default function SettingsPage() {
               </div>
               <div className="text-right">
                 <h3 className="font-semibold text-sm">{title}</h3>
-                {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+                {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1190,7 +1190,7 @@ export default function SettingsPage() {
               </div>
               <div className="text-start">
                 <h3 className="font-semibold text-sm">{title}</h3>
-                {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+                {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1212,7 +1212,7 @@ export default function SettingsPage() {
               </div>
               <div className="text-start">
                 <h3 className="font-semibold text-sm">{title}</h3>
-                {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+                {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
               </div>
             </div>
             <ArrowLeft className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1398,7 +1398,7 @@ export default function SettingsPage() {
                 <h3 className='text-sm font-medium'>الملف الشخصي</h3>
                 <div className="space-y-2">
                     <Label htmlFor="display-name" className="text-xs">اسمك — كيف نناديك؟</Label>
-                    <p className="text-[11px] text-muted-foreground -mt-1">اختياري — يظهر في التحية بالشاشة الرئيسية</p>
+                    <p className="text-xs text-muted-foreground -mt-1">اختياري — يظهر في التحية بالشاشة الرئيسية</p>
                     <div className="flex gap-2">
                         <Input
                             id="display-name"
@@ -1420,12 +1420,12 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-3">
                     <Label className="text-xs">أفراد الأسرة (بمن فيهم أنت)</Label>
-                    <p className="text-[11px] text-muted-foreground -mt-1">يؤثر التصنيف (بالغ/طفل) على حساب الميزانية المخصصة لكل فرد</p>
+                    <p className="text-xs text-muted-foreground -mt-1">يؤثر التصنيف (بالغ/طفل) على حساب الميزانية المخصصة لكل فرد</p>
                     <div className="space-y-3 rounded-lg border bg-background p-3">
                         <div className="flex items-center gap-2 px-1">
                             <span className="w-4" />
-                            <span className="text-[10px] text-muted-foreground w-[100px]">النوع</span>
-                            <span className="text-[10px] text-muted-foreground w-[100px]">العمر (سنة)</span>
+                            <span className="text-xs text-muted-foreground w-[100px]">النوع</span>
+                            <span className="text-xs text-muted-foreground w-[100px]">العمر (سنة)</span>
                         </div>
                         {familyMembers.map((member, index) => (
                         <div key={member.id} className="flex items-center gap-2 animate-in fade-in">
@@ -1466,7 +1466,7 @@ export default function SettingsPage() {
                 <div className="space-y-2"><Label htmlFor="totalBudget" className="text-xs">إجمالي الميزانية الشهرية</Label><Input id="totalBudget" type="text" inputMode="decimal" className="h-9 text-sm" value={totalBudgetInput} onChange={handleNumericInputChange(setTotalBudgetInput)} onFocus={(e) => { if (e.target.value === '0') setTotalBudgetInput(''); }} onBlur={(e) => { if (parseFormattedNumber(e.target.value) === '') setTotalBudgetInput('0'); }} placeholder="مثال: 5,000,000" /></div>
                 <div className="space-y-2">
                     <Label htmlFor="zeroSpendDaysTarget" className="text-xs">هدف أيام الإنفاق المنخفض (شهرياً)</Label>
-                    <p className="text-[11px] text-muted-foreground -mt-1">يوم ينفق فيه أقل من 10% من متوسطك اليومي — هدفك كم يوم من هذا في الشهر؟</p>
+                    <p className="text-xs text-muted-foreground -mt-1">يوم ينفق فيه أقل من 10% من متوسطك اليومي — هدفك كم يوم من هذا في الشهر؟</p>
                     <Input id="zeroSpendDaysTarget" type="number" className="h-9 text-sm" value={zeroSpendDaysTargetInput} onChange={(e) => setZeroSpendDaysTargetInput(e.target.value)} onFocus={(e) => { if (e.target.value === '0') setZeroSpendDaysTargetInput(''); }} onBlur={(e) => { if (e.target.value === '') setZeroSpendDaysTargetInput('0'); }} placeholder="مثال: 4" min="0" />
                 </div>
             </div>
@@ -1476,7 +1476,7 @@ export default function SettingsPage() {
             {/* Category Budgets */}
             <div className="space-y-4">
                  <h3 className='text-sm font-medium'>ميزانيات الفئات</h3>
-                 <p className="text-[11px] text-muted-foreground -mt-2">حدد حداً لكل فئة لتتبع إنفاقك بدقة أكبر. <span className="opacity-70">الحقل الفارغ أو الصفر = بلا حد مُعيّن.</span></p>
+                 <p className="text-xs text-muted-foreground -mt-2">حدد حداً لكل فئة لتتبع إنفاقك بدقة أكبر. <span className="opacity-70">الحقل الفارغ أو الصفر = بلا حد مُعيّن.</span></p>
                 <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 bg-background border rounded-lg p-3">
                     {categories.map((category) => (
                         <div key={category.id} className="flex items-center gap-3">
@@ -1492,7 +1492,7 @@ export default function SettingsPage() {
             {/* Recurring Payments */}
             <div className="space-y-4">
                 <h3 className='text-sm font-medium'>الدفعات الدورية</h3>
-                <p className="text-[11px] text-muted-foreground -mt-2">الإيجار، الاشتراكات، الأقساط — سيحسبها التطبيق ضمن الميزانية تلقائياً.</p>
+                <p className="text-xs text-muted-foreground -mt-2">الإيجار، الاشتراكات، الأقساط — سيحسبها التطبيق ضمن الميزانية تلقائياً.</p>
                 <div className="space-y-2">
                     {recurringPayments.length === 0 ? (
                         <p className="text-muted-foreground text-center p-4 border rounded-lg bg-background text-xs">لا توجد دفعات متكررة مسجلة.</p>
@@ -1605,7 +1605,7 @@ export default function SettingsPage() {
 
              <div>
                 <h3 className="font-medium mb-1 text-sm">شخصية المدرب المالي</h3>
-                <p className="text-[11px] text-muted-foreground mb-3">تؤثر على نصائح التحليل الذكي</p>
+                <p className="text-xs text-muted-foreground mb-3">تؤثر على نصائح التحليل الذكي</p>
                 <div className="grid grid-cols-2 gap-4">
 
                 <div onClick={() => { setAppTone('colloquial'); updateSettingsMutation.mutate({ appTone: 'colloquial' }); }} className={cn("rounded-lg border-2 p-3 flex items-center gap-3 cursor-pointer transition-all", appTone === 'colloquial' ? 'border-primary bg-primary/5' : 'border-transparent bg-muted/50')}>
@@ -1642,7 +1642,7 @@ export default function SettingsPage() {
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <Label className="text-sm font-medium">الوضع الليلي</Label>
-                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">يُحفظ تلقائياً</span>
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">يُحفظ تلقائياً</span>
                     </div>
                     <p className="text-xs text-muted-foreground">تبديل بين الوضع الفاتح والداكن.</p>
                   </div>
@@ -1670,7 +1670,7 @@ export default function SettingsPage() {
                         : 'فعّل لتلقّي تذكير يومي بتسجيل مصاريفك.'}
                     </p>
                     {dailyReminderEnabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
                         يحتاج إذن الإشعارات من إعدادات المتصفح
                       </p>
                     )}
@@ -1706,11 +1706,11 @@ export default function SettingsPage() {
                         )}
                       >
                         <span className="text-xs font-semibold">{label}</span>
-                        <span className="text-[10px] text-muted-foreground">{time}</span>
+                        <span className="text-xs text-muted-foreground">{time}</span>
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground px-1 leading-relaxed">
+                  <p className="text-xs text-muted-foreground px-1 leading-relaxed">
                     يجب أن يكون التطبيق مثبّتاً على الشاشة الرئيسية لضمان وصول الإشعار.
                   </p>
                 </div>
@@ -1938,8 +1938,8 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="rounded-lg bg-muted/40 border p-3 text-center space-y-1">
               <p className="text-sm font-semibold">تدبير</p>
-              <p className="text-[11px] text-muted-foreground">مساعدك المالي الذكي</p>
-              <p className="text-[11px] text-muted-foreground">الإصدار {packageInfo.version}</p>
+              <p className="text-xs text-muted-foreground">مساعدك المالي الذكي</p>
+              <p className="text-xs text-muted-foreground">الإصدار {packageInfo.version}</p>
             </div>
 
             {/* ⛔ زرّا «التقييم» و«شاركنا رأيك» نُقلا إلى مجموعة «رأيك»
@@ -1947,7 +1947,7 @@ export default function SettingsPage() {
                 لا سبب لفتحه، فلم يرهما أحد — ثلاث ملاحظات في ثلاثة عشر شهراً.
                 لا تُعِدهما هنا. */}
 
-            <p className="text-[10px] text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
+            <p className="text-xs text-muted-foreground text-center pt-1">جميع الحقوق محفوظة لتطبيق تدبير © {new Date().getFullYear()}</p>
           </div>
         </AccordionItemWrapper>
       </Accordion>

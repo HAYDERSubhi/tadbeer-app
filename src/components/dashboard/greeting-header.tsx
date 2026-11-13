@@ -39,9 +39,9 @@ export function GreetingHeader() {
           {firstName ? `${text}، ${firstName} ${emoji}` : `${text} ${emoji}`}
         </p>
         {firstName ? (
-          <p className="text-[11px] text-muted-foreground">{today}</p>
+          <p className="text-xs text-muted-foreground">{today}</p>
         ) : (
-          <Link href="/settings" className="flex items-center gap-0.5 text-[11px] text-primary py-0.5">
+          <Link href="/settings" className="flex items-center gap-0.5 text-xs text-primary py-0.5">
             كيف نناديك؟ أضف اسمك
             <ChevronLeft className="h-3 w-3" />
           </Link>

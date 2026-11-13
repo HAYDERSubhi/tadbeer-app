@@ -3,7 +3,7 @@
 import { useMemo, useState, Fragment, useEffect } from 'react';
 import type { Expense } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus } from "lucide-react";
+import { Trash2Icon, DollarSign, Loader2Icon, WalletCards, Search, Filter, Pencil, MoreHorizontal, X, CheckSquare, Square, Trash2, ArrowUpDown, SortAsc, Plus, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import { deleteExpense, deleteExpensesBatch, getExpenses } from '@/services/fire
 import FirestoreErrorAlert from '@/components/errors/firestore-error-alert';
 import { useAppData } from '@/hooks/use-app-data';
 import { format, compareDesc, parseISO, isBefore, startOfMonth } from 'date-fns';
-import { arIQ } from '@/lib/arabic-date';
+import { arIQ, formatYearMonth } from '@/lib/arabic-date';
 import { useCategories } from '@/hooks/use-categories';
 import { useIsMobile } from '@/hooks/use-mobile';
 import dynamic from 'next/dynamic';
@@ -56,6 +56,12 @@ export default function AllExpensesPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  // القائمة تفتح على **الشهر الحالي** لا على كل التاريخ (طلب مستخدم 2026-11-05:
+  // «عند بداية كل شهر يختفي الشهر الماضي ويتحوّل إلى الأرشفة»). الشهور السابقة
+  // تُختار من القائمة، و'all' يعيد السلوك القديم. لا شيء يُحذف ولا يُنقل في
+  // القاعدة — هذا عرض فقط.
+  const currentMonthKey = format(new Date(), 'yyyy-MM');
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthKey);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -98,6 +104,15 @@ export default function AllExpensesPage() {
     return sorted;
   }, [expenses, sortBy, sortDir]);
 
+  // الشهور التي فيها مصاريف فعلاً (الأحدث أولاً) + الشهر الحالي دائماً.
+  const monthOptions = useMemo(() => {
+    const keys = new Set<string>([currentMonthKey]);
+    allSortedExpenses.forEach(e => {
+      try { keys.add(format(parseISO(e.date), 'yyyy-MM')); } catch { /* تاريخ تالف — يظهر تحت «كل الشهور» */ }
+    });
+    return Array.from(keys).sort().reverse();
+  }, [allSortedExpenses, currentMonthKey]);
+
   const filteredExpenses = useMemo(() => {
     return allSortedExpenses.filter(expense => {
       // البحث يشمل الوصف لا الاسم وحده: مصاريف الفاتورة الواحدة تتشارك وصفاً
@@ -110,9 +125,15 @@ export default function AllExpensesPage() {
         (expense.description ?? '').toLowerCase().includes(q);
       const matchesCategory = selectedCategory === 'all' ||
         expense.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      // ⛔ البحث النصّي يتخطّى الشهر عمداً ويبحث في كل التاريخ: من يبحث عن مصروف
+      //    قديم ولا يجده سيظنّه ضاع. (وبه يبقى جمع عناصر فاتورة قديمة بالبحث يعمل.)
+      let matchesMonth = selectedMonth === 'all' || q !== '';
+      if (!matchesMonth) {
+        try { matchesMonth = format(parseISO(expense.date), 'yyyy-MM') === selectedMonth; } catch { matchesMonth = false; }
+      }
+      return matchesSearch && matchesCategory && matchesMonth;
     });
-  }, [allSortedExpenses, searchQuery, selectedCategory]);
+  }, [allSortedExpenses, searchQuery, selectedCategory, selectedMonth]);
 
   const totalFiltered = useMemo(() =>
     filteredExpenses.reduce((sum, e) => sum + e.amount, 0),
@@ -122,7 +143,7 @@ export default function AllExpensesPage() {
   const hasFilters = searchQuery !== '' || selectedCategory !== 'all';
 
   // إعادة تعيين العرض عند تغيير الفلتر أو الترتيب
-  useEffect(() => { setVisibleCount(50); }, [searchQuery, selectedCategory, sortBy, sortDir]);
+  useEffect(() => { setVisibleCount(50); }, [searchQuery, selectedCategory, selectedMonth, sortBy, sortDir]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -232,6 +253,23 @@ export default function AllExpensesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-9"
             />
+          </div>
+          {/* الشهر المعروض — الحالي افتراضياً، والسابقة أرشيف يُختار من هنا */}
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="h-9 text-sm flex-1" aria-label="الشهر المعروض">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map(key => (
+                  <SelectItem key={key} value={key}>
+                    {formatYearMonth(key)}{key === currentMonthKey ? ' (الشهر الحالي)' : ''}
+                  </SelectItem>
+                ))}
+                <SelectItem value="all">كل الشهور</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -345,7 +383,13 @@ export default function AllExpensesPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-sm font-bold">
               <WalletCards className="h-4 w-4 text-primary" />
-              {hasFilters ? `نتائج البحث (${filteredExpenses.length})` : `جميع المصاريف (${allSortedExpenses.length})`}
+              {searchQuery.trim() !== ''
+                ? `نتائج البحث في كل الشهور (${filteredExpenses.length})`
+                : hasFilters
+                  ? `نتائج البحث (${filteredExpenses.length})`
+                  : selectedMonth === 'all'
+                    ? `جميع المصاريف (${filteredExpenses.length})`
+                    : `مصاريف ${formatYearMonth(selectedMonth)} (${filteredExpenses.length})`}
             </CardTitle>
             {filteredExpenses.length > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -363,6 +407,14 @@ export default function AllExpensesPage() {
                   <h3 className="text-base font-semibold">لا توجد نتائج</h3>
                   <p className="text-sm mt-1">جرب تغيير معايير البحث</p>
                   <Button variant="outline" size="sm" className="mt-4" onClick={clearFilters}>مسح الفلاتر</Button>
+                </>
+              ) : allSortedExpenses.length > 0 ? (
+                <>
+                  {/* الشهر المختار فارغ لكن للمستخدم مصاريف في شهور أخرى — «لا توجد
+                      مصاريف مسجلة» كانت ستكون كاذبة هنا وتوهمه بضياع بياناته. */}
+                  <h3 className="text-base font-semibold">لا توجد مصاريف في هذا الشهر</h3>
+                  <p className="text-sm mt-1">مصاريف الشهور السابقة محفوظة — اخترها من قائمة الشهر</p>
+                  <Button variant="outline" size="sm" className="mt-4" onClick={() => setSelectedMonth('all')}>عرض كل الشهور</Button>
                 </>
               ) : (
                 <>
@@ -413,7 +465,7 @@ export default function AllExpensesPage() {
                             {categoryInfo?.name || 'غير معروفة'} · {format(parseISO(expense.date), "d MMM", { locale: arIQ })}
                           </p>
                           {expense.description && (
-                            <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5 italic">
+                            <p className="text-xs text-muted-foreground/70 truncate mt-0.5 italic">
                               {expense.description}
                             </p>
                           )}
