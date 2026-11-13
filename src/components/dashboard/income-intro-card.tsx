@@ -66,7 +66,7 @@ export function IncomeIntroCard() {
           <p className="text-xs font-bold text-primary mb-0.5">جديد</p>
           <h3 className="font-bold text-sm">سجّل دخلك أولاً بأول</h3>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            دخلك يومي أو غير ثابت؟ اضغط «دخل» في شاشة الإضافة وسجّل ما استلمته، وتابعه في الرئيسية بجانب مصاريفك.
+            دخلك يومي أو غير ثابت؟ اضغط «دخل» في شاشة الإضافة وسجّل ما استلمته، ويظهر في قائمة الرئيسية مع مصاريفك.
           </p>
           <Button
             size="sm"

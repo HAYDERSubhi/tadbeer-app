@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, TrendingDown } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, HandCoins } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 import { getDate } from 'date-fns';
@@ -18,6 +18,9 @@ interface BudgetSummaryCardProps {
     timeProgress: number;
     isBudgetSet: boolean;
     predictedEndDay?: number | null;
+    // مجموع ما سجّله المستخدم بنفسه من دخل هذا الشهر. undefined = لا سطر (لم يسجّل دخلاً قط).
+    // السطر داخل هذه البطاقة عمداً: عين الإخفاء هنا (isVisible) فيتبعها بلا حالة مشتركة.
+    receivedIncome?: number;
 }
 
 const StatItem = ({ label, value, isVisible, className, formatFn }: {
@@ -44,6 +47,7 @@ export default function BudgetSummaryCard({
     timeProgress,
     isBudgetSet,
     predictedEndDay,
+    receivedIncome,
 }: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
     const { format: formatCurrency } = useCurrency();
@@ -150,6 +154,14 @@ export default function BudgetSummaryCard({
                                 بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <span className="font-bold">{predictedEndDay}</span> من الشهر
                             </p>
                         </div>
+                    )}
+
+                    {/* سطر الدخل الهادئ (قرار المالك 2026-11-14): معلومة لا بطاقة، ويختفي مع عين الإخفاء. */}
+                    {receivedIncome !== undefined && isVisible && (
+                        <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-1">
+                            <HandCoins className="h-3.5 w-3.5 shrink-0" />
+                            <span>دخل مستلَم هذا الشهر <bdi className="font-semibold text-foreground">{formatCurrency(receivedIncome)}</bdi></span>
+                        </p>
                     )}
                 </div>
             </CardContent>

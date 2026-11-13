@@ -5,8 +5,8 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle } from "lucide-react";
-import type { Expense } from '@/types';
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle, HandCoins } from "lucide-react";
+import type { Expense, Income } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -26,7 +26,7 @@ const EditExpenseForm = dynamic(() => import('@/components/expenses/edit-expense
 import { cn } from '@/lib/utils';
 import { authedFetch, readAi, AiError, isAiUnavailable } from '@/lib/api-fetch';
 import Link from 'next/link';
-import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek } from 'date-fns';
+import { format, isToday, isYesterday, addDays, startOfDay, startOfMonth, endOfMonth, isWithinInterval, getDaysInMonth, startOfWeek, endOfWeek, addWeeks, parseISO, isPast, differenceInDays, getDate, compareDesc, isThisWeek, isValid } from 'date-fns';
 import { arIQ } from '@/lib/arabic-date';
 import { recordExpenseAction } from '@/app/actions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,7 +48,6 @@ import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
 import { IncomeIntroCard } from '@/components/dashboard/income-intro-card';
-import { IncomeVsExpensesCard } from '@/components/dashboard/income-vs-expenses-card';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
 import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
 import { track } from '@/lib/track';
@@ -142,7 +141,7 @@ export default function DashboardPage() {
   // الشاشة الجذر: زر الرجوع بأندرويد كان يُغلق التطبيق من أول ضغطة (رصدها المختبرون).
   useExitConfirm();
 
-  const { expenses, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
+  const { expenses, incomes, userSettings, householdId, isLoading: isAppDataLoading, isSettingsFetched, isExpensesFetched } = useAppData();
 
   // خطوات الجولة + خطوة التذكير في آخرها. `useMemo` ضروري لا تجميل: مكوّن
   // الجولة يعتمد `steps` في `useCallback` لحساب الموضع، فمصفوفة جديدة كل رسم
@@ -525,7 +524,13 @@ export default function DashboardPage() {
     return [...expenses].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
   }, [expenses]);
 
-  // Group expenses by date label + إجمالي كل مجموعة
+  // قائمة «أحدث المصاريف» = المصاريف + ما سجّله المستخدم بنفسه من دخل (قرار المالك 2026-11-14).
+  // الدخل يظهر هنا بلون أخضر بدل بطاقة مستقلة تزحم الشاشة. ⛔ إجمالي كل مجموعة للمصاريف وحدها
+  // (لا يُطرح منه الدخل ولا يُضاف إليه) — وإن لم تضم المجموعة مصروفاً فلا يُعرض لها إجمالي.
+  type FeedItem =
+    | { kind: 'expense'; date: string; expense: Expense }
+    | { kind: 'income'; date: string; income: Income };
+
   const groupedExpenses = useMemo(() => {
     const labelOf = (dateStr: string): string => {
       const date = parseISO(dateStr);
@@ -535,25 +540,40 @@ export default function DashboardPage() {
       return format(date, 'MMMM yyyy', { locale: arIQ });
     };
 
-    // ⚠️ المجموع يُحسب من القائمة الكاملة لا من المعروض: هذه الشاشة تعرض آخر خمسة
-    // مصاريف فقط، فجمع الظاهر وحده يعطي رقماً ناقصاً في يوم فيه أكثر من خمسة —
-    // وهو خطأ صامت لا يشكو منه أحد لأنه يبدو معقولاً.
-    const labeled = allSortedExpenses.map(exp => ({ exp, label: labelOf(exp.date) }));
-    const totals = new Map<string, number>();
-    labeled.forEach(({ exp, label }) => totals.set(label, (totals.get(label) ?? 0) + (exp.amount || 0)));
+    const feed: FeedItem[] = [
+      ...allSortedExpenses.map(expense => ({ kind: 'expense' as const, date: expense.date, expense })),
+      // الدخل المتكرر ليس «استلاماً» مسجَّلاً بيوم فلا يدخل القائمة؛ والتاريخ التالف يُستبعد بدل أن يكسر الشاشة.
+      ...incomes
+        .filter(i => i.type === 'one-time' && isValid(parseISO(i.date)))
+        .map(income => ({ kind: 'income' as const, date: income.date, income })),
+    ].sort((a, b) => compareDesc(new Date(a.date), new Date(b.date)));
 
-    const groups: { label: string; total: number; expenses: typeof allSortedExpenses }[] = [];
+    // ⚠️ المجموع يُحسب من القائمة الكاملة لا من المعروض: هذه الشاشة تعرض آخر خمسة
+    // عناصر فقط، فجمع الظاهر وحده يعطي رقماً ناقصاً في يوم فيه أكثر من خمسة —
+    // وهو خطأ صامت لا يشكو منه أحد لأنه يبدو معقولاً.
+    const labeled = feed.map(item => ({ item, label: labelOf(item.date) }));
+    const totals = new Map<string, number>();
+    labeled.forEach(({ item, label }) => {
+      if (item.kind === 'expense') totals.set(label, (totals.get(label) ?? 0) + (item.expense.amount || 0));
+    });
+
+    const groups: { label: string; total: number | null; items: FeedItem[] }[] = [];
     const seen = new Set<string>();
-    labeled.slice(0, 5).forEach(({ exp, label }) => {
+    labeled.slice(0, 5).forEach(({ item, label }) => {
       if (!seen.has(label)) {
         seen.add(label);
-        groups.push({ label, total: totals.get(label) ?? 0, expenses: [] });
+        groups.push({ label, total: totals.get(label) ?? null, items: [] });
       }
-      groups.find(g => g.label === label)!.expenses.push(exp);
+      groups.find(g => g.label === label)!.items.push(item);
     });
 
     return groups;
-  }, [allSortedExpenses]);
+  }, [allSortedExpenses, incomes]);
+
+  // عدد المصاريف الظاهرة فعلاً — رابط «عرض كل المصاريف» يلزم فقط إن بقي مصروف مخفي
+  // (شاشة المصاريف لا تعرض الدخل، فلا يصح أن يظهر الرابط بسبب دخلٍ زائد وحده).
+  const shownExpenseCount = groupedExpenses.reduce(
+    (n, g) => n + g.items.filter(i => i.kind === 'expense').length, 0);
 
   const monthlyExpenses = useMemo(() => {
     const start = startOfMonth(new Date());
@@ -564,7 +584,17 @@ export default function DashboardPage() {
         } catch { return false; }
     });
   }, [expenses]);
-  
+
+  // مجموع الدخل المسجَّل هذا الشهر لسطر بطاقة الميزانية. undefined = لم يسجّل دخلاً قط ⇒ لا سطر.
+  const receivedIncome = useMemo(() => {
+    const oneTime = incomes.filter(i => i.type === 'one-time');
+    if (oneTime.length === 0) return undefined;
+    const range = { start: startOfMonth(new Date()), end: endOfMonth(new Date()) };
+    return oneTime
+      .filter(i => { try { return isWithinInterval(parseISO(i.date), range); } catch { return false; } })
+      .reduce((sum, i) => sum + i.amount, 0);
+  }, [incomes]);
+
   const deleteMutation = useMutation({
     mutationFn: (expenseId: string) => deleteExpense(user!.uid, expenseId, householdId),
     onSuccess: (_data, expenseId) => {
@@ -717,6 +747,22 @@ export default function DashboardPage() {
     );
   }
 
+  // صفّ الدخل: بلا قائمة تعديل/حذف (يُحذف من الإعدادات)، ومبلغه يحاذي مبالغ المصاريف:
+  // me-10 = عرض زر القائمة (h-8 w-8) + الفجوة gap-2 في صفّ المصروف.
+  const IncomeListItem = ({ income }: { income: Income }) => (
+    <li className="flex items-center p-2 rounded-lg">
+      <div className="flex flex-1 items-center gap-3 overflow-hidden">
+        <span className="flex shrink-0 items-center justify-center text-green-600 dark:text-green-400">
+          <HandCoins className="h-5 w-5" />
+        </span>
+        <p className="font-semibold truncate text-xs">{income.title}</p>
+      </div>
+      <p className="font-bold text-sm text-green-600 dark:text-green-400 me-10">
+        <bdi>+{formatCurrency(income.amount)}</bdi>
+      </p>
+    </li>
+  );
+
   const hasExpenses = expenses.length > 0;
   const VoiceReviewComponent = isMobile ? Sheet : Dialog;
 
@@ -829,6 +875,7 @@ export default function DashboardPage() {
             spentPercentage={budgetData.spentPercentage}
             timeProgress={budgetData.timeProgress}
             predictedEndDay={budgetData.predictedEndDay}
+            receivedIncome={receivedIncome}
         />
       ) : (
         <Card>
@@ -955,9 +1002,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* تحت بطاقة الإدخال عمداً كي تبقى أزرار الإدخال في مكانها؛ ولا تظهر إلا لمن سجّل دخلاً بنفسه. */}
-      <IncomeVsExpensesCard />
-
       {/* ── الأدوات المالية ── */}
       <Card id="financial-tools-card" className="overflow-hidden">
         <CardContent className="py-4 px-4">
@@ -1018,14 +1062,17 @@ export default function DashboardPage() {
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {group.label}
                     </span>
-                    <span className="text-xs font-bold text-foreground tabular-nums">
-                      <bdi>{formatCurrency(group.total)}</bdi>
-                    </span>
+                    {group.total !== null && (
+                      <span className="text-xs font-bold text-foreground tabular-nums">
+                        <bdi>{formatCurrency(group.total)}</bdi>
+                      </span>
+                    )}
                   </div>
                   <ul className="divide-y divide-border/50">
-                    {group.expenses.map(expense => (
-                      <ExpenseListItem key={expense.id} expense={expense} />
-                    ))}
+                    {group.items.map(item => item.kind === 'expense'
+                      ? <ExpenseListItem key={item.expense.id} expense={item.expense} />
+                      : <IncomeListItem key={item.income.id} income={item.income} />
+                    )}
                   </ul>
                 </div>
               ))}
@@ -1045,7 +1092,7 @@ export default function DashboardPage() {
             </div>
           )}
         </CardContent>
-        {!isAppDataLoading && allSortedExpenses.length > 5 && (
+        {!isAppDataLoading && allSortedExpenses.length > shownExpenseCount && (
           <CardFooter className="p-2 border-t">
             <Button variant="ghost" asChild className="w-full h-9 text-xs text-primary">
               <Link href="/expenses">
