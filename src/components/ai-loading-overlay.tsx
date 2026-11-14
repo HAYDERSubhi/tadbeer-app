@@ -17,10 +17,10 @@ const MIN_VISIBLE_MS = 700;
 const OUT_MS = 180;
 
 const CHIPS = [
-  { Icon: Coffee,      x: "-86px", y: "-62px", delay: "0s" },
-  { Icon: Car,         x: "86px",  y: "-62px", delay: "0.6s" },
-  { Icon: ShoppingBag, x: "86px",  y: "66px",  delay: "1.2s" },
-  { Icon: Zap,         x: "-86px", y: "66px",  delay: "1.8s" },
+  { Icon: Coffee,      x: "-64px", y: "-46px", delay: "0s" },
+  { Icon: Car,         x: "64px",  y: "-46px", delay: "0.6s" },
+  { Icon: ShoppingBag, x: "64px",  y: "50px",  delay: "1.2s" },
+  { Icon: Zap,         x: "-64px", y: "50px",  delay: "1.8s" },
 ] as const;
 
 interface Props {
@@ -66,8 +66,8 @@ export function AiLoadingOverlay({ open, label, sublabel, progress }: Props) {
       aria-live="polite"
       className={`pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-black/35 ${leaving ? "tl-overlay-out" : "tl-overlay-in"}`}
     >
-      <div className="flex flex-col items-center gap-5">
-        <div className="relative h-40 w-40">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-[120px] w-[120px]">
           {/* حلقة التقدّم */}
           <svg className="absolute inset-0 h-full w-full" viewBox="0 0 160 160" aria-hidden="true">
             <circle cx="80" cy="80" r="62" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2.5" />
@@ -84,31 +84,31 @@ export function AiLoadingOverlay({ open, label, sublabel, progress }: Props) {
             <span
               key={i}
               aria-hidden="true"
-              className="tl-chip absolute inset-0 m-auto flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md"
+              className="tl-chip absolute inset-0 m-auto flex h-[30px] w-[30px] items-center justify-center rounded-full bg-white shadow-md"
               style={{ ["--tl-x" as string]: x, ["--tl-y" as string]: y, animationDelay: delay }}
             >
-              <Icon className="h-[18px] w-[18px] text-primary" />
+              <Icon className="h-[15px] w-[15px] text-primary" />
             </span>
           ))}
 
           {/* الشعار الأبيض العائم */}
-          <div className="tl-float absolute inset-0 m-auto flex h-24 w-24 items-center justify-center">
+          <div className="tl-float absolute inset-0 m-auto flex h-[72px] w-[72px] items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
               alt=""
-              width={96}
-              height={96}
-              className="h-24 w-24 object-contain"
-              style={{ filter: "brightness(0) invert(1) drop-shadow(0 6px 16px rgba(26,178,167,0.55))" }}
+              width={72}
+              height={72}
+              className="h-[72px] w-[72px] object-contain"
+              style={{ filter: "brightness(0) invert(1) drop-shadow(0 4px 12px rgba(26,178,167,0.55))" }}
             />
           </div>
         </div>
 
         <div className="flex max-w-[260px] flex-col items-center gap-1.5 text-center">
-          <p className="text-base font-semibold text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]">{label}</p>
+          <p className="text-sm font-semibold text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]">{label}</p>
           {typeof progress === "number" && progress > 0 && (
-            <div className="h-1 w-40 overflow-hidden rounded-full bg-white/25" aria-hidden="true">
+            <div className="h-1 w-32 overflow-hidden rounded-full bg-white/25" aria-hidden="true">
               <div
                 className="h-full rounded-full bg-primary transition-[width] duration-500"
                 style={{ width: `${progress}%` }}
