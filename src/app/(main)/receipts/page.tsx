@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Upload, FileScan, Loader2, XCircle, Trash2, PlusCircle, Sparkles,
+  Upload, Loader2, XCircle, Trash2, PlusCircle, Sparkles,
   AlertTriangleIcon, Camera, Check, X, ArrowRight, Crop,
   Receipt, Calendar as CalendarIcon, Pencil, ShieldCheck, ShieldAlert,
   ShieldQuestion, Info, CheckCircle2, AlertCircle, TriangleAlert,
@@ -45,7 +45,7 @@ import { useActiveTrips } from '@/hooks/use-active-trips';
 import { TripExpenseToggle } from '@/components/expenses/trip-expense-field';
 import { TRIP_CATEGORIES, TRIP_CATEGORY_LABEL } from '@/app/(main)/tools/safarati/calc';
 import { TRAVEL_CATEGORY_ID } from '@/lib/constants';
-import { Progress } from '@/components/ui/progress';
+import { AiLoadingOverlay } from '@/components/ai-loading-overlay';
 import { Badge } from '@/components/ui/badge';
 import { analytics } from '@/lib/firebase';
 import { logEvent } from 'firebase/analytics';
@@ -1185,27 +1185,8 @@ export default function DetailedReceiptPage() {
         </CardContent>
       </Card>
 
-      {/* ── Loading ──────────────────────────────────────────────────────── */}
-      {isLoading && (
-        <Card className="animate-in fade-in zoom-in-95">
-          <CardContent className="py-10 flex flex-col items-center gap-5">
-            <div className="relative">
-              <Loader2 className="h-16 w-16 text-primary/30 animate-spin" />
-              <FileScan className="absolute inset-0 m-auto h-8 w-8 text-primary" />
-            </div>
-            <div className="w-full max-w-xs space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-primary font-semibold">{progressLabel}</span>
-                <span className="text-muted-foreground">{progressValue}%</span>
-              </div>
-              <Progress value={progressValue} className="h-2" />
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              قد تستغرق العملية 10–20 ثانية حسب حجم الفاتورة
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* ── Loading: شعار عائم بلا بطاقة، لا يحجب الشاشة ── */}
+      <AiLoadingOverlay open={isLoading} label={progressLabel || 'جارٍ تحليل الفاتورة…'} sublabel="قد تستغرق العملية 10–20 ثانية حسب حجم الفاتورة" progress={progressValue} />
 
       {/* ── Error ────────────────────────────────────────────────────────── */}
       {error && !isLoading && (

@@ -319,3 +319,28 @@ html[data-sess="0"] .main-splash {
   inset: 0;
   background: linear-gradient(to bottom right, #0f766e, #0d9488, #10b981);
 }
+
+/* ── حركة الانتظار بالشعار (AiLoadingOverlay) ──
+   transform وopacity فقط. تُطفأ كلها لمن يفعّل «تقليل الحركة»، فيبقى الشعار ثابتاً. */
+@keyframes tl-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tl-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes tl-spin     { to { transform: rotate(360deg); } }
+@keyframes tl-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+@keyframes tl-absorb {
+  0%   { transform: translate(var(--tl-x), var(--tl-y)) scale(0.9); opacity: 0; }
+  14%  { transform: translate(var(--tl-x), var(--tl-y)) scale(1);   opacity: 1; }
+  62%  { transform: translate(calc(var(--tl-x) * 0.45), calc(var(--tl-y) * 0.45)) scale(0.55); opacity: 0.9; }
+  100% { transform: translate(calc(var(--tl-x) * 0.38), calc(var(--tl-y) * 0.38)) scale(0.4);  opacity: 0; }
+}
+.tl-overlay-in  { animation: tl-fade-in  0.22s ease-out both; }
+.tl-overlay-out { animation: tl-fade-out 0.18s ease-in  both; }
+.tl-ring  { animation: tl-spin 1.5s linear infinite; transform-origin: 50% 50%; }
+.tl-float { animation: tl-float 2.6s ease-in-out infinite; }
+.tl-chip  { animation: tl-absorb 2.4s cubic-bezier(0.55, 0, 0.35, 1) infinite; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-ring, .tl-float, .tl-chip { animation: none; }
+  .tl-chip { display: none; }
+}
