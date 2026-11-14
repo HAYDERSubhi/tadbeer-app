@@ -68,6 +68,15 @@ export default function OnboardingSheet() {
   // الهاتف: الورقة ترتفع فوق لوحة المفاتيح، وزرّ «التالي» يبقى ظاهراً (فيديو المالك 2026-11-14).
   const isMobile = useIsMobile();
   const kbBox = useKeyboardFit(open && isMobile);
+  // لوحة المفاتيح مفتوحة؟ ⇒ نُخفي الأسطر الثانوية كي يتّسع الحقل وزرّ «التالي» معاً فوقها.
+  // (فيديو المالك 2026-11-14 الثاني: كان الحقل يُدفَع تحت الزرّ ويُقصّ نصفه خلف اللوحة.)
+  const kbOpen = !!kbBox && typeof window !== "undefined" && kbBox.height < window.innerHeight * 0.8;
+  // زرّ ✓ في لوحة الأرقام يتقدّم خطوة بدل أن يغلق اللوحة فقط.
+  const onEnterNext = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (canProceed() && !saving) next();
+  };
 
   /* form state */
   const [income,       setIncome]       = useState("");
@@ -277,7 +286,7 @@ export default function OnboardingSheet() {
                   تخطّي الباقي
                 </button>
               </div>
-              <SheetDescription className="text-sm text-start">
+              <SheetDescription className={cn("text-sm text-start", kbOpen && "sr-only")}>
                 3 خطوات سريعة لتفعيل كل ميزات الميزانية
               </SheetDescription>
             </SheetHeader>
@@ -297,7 +306,7 @@ export default function OnboardingSheet() {
             </div>
 
             {/* Step content */}
-            <div className="px-5 min-h-[220px]">
+            <div className={cn("px-5", !kbOpen && "min-h-[220px]")}>
 
               {/* ── Step 0: Income ─────────────────────────────── */}
               {step === 0 && (
@@ -316,13 +325,15 @@ export default function OnboardingSheet() {
                         تخطي
                       </button>
                     </div>
+                    {!kbOpen && <>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       منه نحسب تنبيهات ميزانيتك.
                     </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
                       <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    </>}
+                    <p className={cn("text-xs text-muted-foreground leading-relaxed", kbOpen && "hidden")}>
                       دخلك متغيّر؟ (يومي أو أسبوعي) اكتب تقدير معدله الشهري تقريباً.
                     </p>
                   </div>
@@ -332,6 +343,8 @@ export default function OnboardingSheet() {
                       <Input
                         type="text"
                         inputMode="numeric"
+                        enterKeyHint="next"
+                        onKeyDown={onEnterNext}
                         placeholder="مثال: 800,000"
                         value={income}
                         onChange={e => {
@@ -379,7 +392,7 @@ export default function OnboardingSheet() {
                       <Target className="h-5 w-5 text-primary shrink-0" />
                       <h3 className="font-bold text-lg text-foreground">ما هي ميزانيتك الشهرية؟</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <p className={cn("text-sm text-muted-foreground leading-relaxed", kbOpen && "hidden")}>
                       خطّك الأحمر الشهري — على أساسه تعمل تنبيهات التجاوز.
                     </p>
                   </div>
@@ -389,6 +402,8 @@ export default function OnboardingSheet() {
                       <Input
                         type="text"
                         inputMode="numeric"
+                        enterKeyHint="next"
+                        onKeyDown={onEnterNext}
                         placeholder={parse(income) > 0 ? fmt(Math.round(parse(income) * 0.7)) : "مثال: 560,000"}
                         value={totalBudget}
                         onChange={e => {
