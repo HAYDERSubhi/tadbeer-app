@@ -5,8 +5,11 @@
  *
  * تجربة دخول واحدة من ٥ شاشات داخل نفس الـ Sheet (بلا فتح/إغلاق بينها):
  *   0. ترحيب  (قيمة + ٣ نقاط، بلا إدخال)            ← phase: 'welcome'
- *   1. الميزانية (إلزامية)                          ┐ phase: 'steps'
- *   2. الأسرة   (يخصّص توصيات الذكاء)                 ┘
+ *   1. الميزانية (إلزامية) — الخطوة الوحيدة          ← phase: 'steps'
+ *
+ * ⛔ وخطوة «الأسرة» حُذفت أيضاً بقرار المالك 2026-11-14: «شخصية جداً» في أول لقاء،
+ *   ويُدرجها المستخدم لاحقاً من الإعدادات إن اقتنع بالتطبيق. المعالج لا يكتب
+ *   familyMembers إطلاقاً.
  *
  * ⛔ خطوة «الدخل» حُذفت بقرار المالك 2026-11-14: الميزانية هي ما تبني عليه الرئيسية
  *   (المتبقي، الشريط، التنبيهات)، والدخل سؤال حساس يتردّد فيه الناس، وصاحب الدخل
@@ -34,8 +37,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Target, Users, ChevronLeft, ChevronRight,
-  CheckCircle2, Loader2, Baby, UserRound, Plus, Minus,
+  Target, ChevronLeft, ChevronRight,
+  CheckCircle2, Loader2, Plus,
   Sparkles, Zap, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,7 +48,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { isNewSignup } from "@/lib/new-signup";
 
 const ONBOARDING_KEY = "tadbeer-onboarding-v1";
-const TOTAL_STEPS    = 2;
+const TOTAL_STEPS    = 1;
 
 type Phase = "welcome" | "steps" | "launch";
 
@@ -66,7 +69,7 @@ const budgetPayload = (total: number) => ({
 }) as UserSettings["budget"];
 
 /* عناوين الخطوات — تُعرض في عدّاد التقدّم */
-const stepTitles = ["الميزانية", "الأسرة"];
+const stepTitles = ["الميزانية"];
 
 export default function OnboardingSheet() {
   const { user }          = useAuth();
@@ -94,8 +97,6 @@ export default function OnboardingSheet() {
 
   /* form state */
   const [totalBudget,  setTotalBudget]  = useState("");
-  const [adults,       setAdults]       = useState(1);
-  const [children,     setChildren]     = useState(0);
 
   /* show only once, only for users who haven't set a budget yet */
   const decidedRef = useRef(false);
@@ -131,9 +132,6 @@ export default function OnboardingSheet() {
     if (!userSettings) return;
     if (userSettings.budget?.totalBudget)
       setTotalBudget(fmt(userSettings.budget.totalBudget));
-    const members = userSettings.profile?.familyMembers || [];
-    setAdults(Math.max(1, members.filter(m => m.type === "adult").length || 1));
-    setChildren(members.filter(m => m.type === "child").length || 0);
   }, [userSettings]);
 
   const dismiss = () => {
@@ -149,18 +147,10 @@ export default function OnboardingSheet() {
     if (!user) return;
     setSaving(true);
     try {
-      const familyMembers = [
-        ...Array.from({ length: adults },   (_, i) => ({ id: `adult-${i}`,   type: "adult"  as const, age: 30 })),
-        ...Array.from({ length: children }, (_, i) => ({ id: `child-${i}`,   type: "child"  as const, age: 8  })),
-      ];
-
       const budget = parse(totalBudget);
       // ⛔ لا monthlyIncome هنا (انظر رأس الملف)، والميزانية تُكتب فقط إن أُدخلت —
       // التخطّي لا يكتب ميزانية صفراً فوق شيء قائم.
-      await updateUserSettings(user.uid, {
-        profile: { familyMembers } as UserSettings["profile"],
-        ...(budget > 0 ? { budget: budgetPayload(budget) } : {}),
-      });
+      if (budget > 0) await updateUserSettings(user.uid, { budget: budgetPayload(budget) });
       track(budget > 0 ? "onboarding_finish" : "onboarding_skip");
 
       localStorage.setItem(ONBOARDING_KEY, "done");
@@ -206,9 +196,10 @@ export default function OnboardingSheet() {
   const next = () => {
     // عند تجاوز خطوة الميزانية (الإلزامية): احفظها فوراً (دمج جزئي آمن) كي لا تضيع
     // مهما أُغلق المعالج لاحقاً — حتى عبر الـ ✕. الأسرة تُحفظ عند الإنهاء.
-    if (step === 0 && user) {
+    if (step === 0 && user) track("onboarding_budget_set");
+    // حفظ جزئي فقط إن بقيت خطوات بعدها؛ الخطوة الأخيرة يحفظها handleFinish.
+    if (step === 0 && user && step < TOTAL_STEPS - 1) {
       updateUserSettings(user.uid, { budget: budgetPayload(parse(totalBudget)) }).catch(() => {});
-      track("onboarding_budget_set");
     }
     if (step < TOTAL_STEPS - 1) setStep(s => s + 1);
     else handleFinish();
@@ -283,7 +274,7 @@ export default function OnboardingSheet() {
           </div>
         )}
 
-        {/* ════════ الطور ٢: الخطوتان ════════ */}
+        {/* ════════ الطور ٢: خطوة الميزانية ════════ */}
         {phase === "steps" && (
           <>
             {/* Header */}
@@ -298,14 +289,15 @@ export default function OnboardingSheet() {
                   تخطّ الباقي
                 </button>
               </div>
-              <SheetDescription className={cn("text-base text-start", kbOpen && "sr-only")}>
-                خطوتان سريعتان لتفعيل ميزات الميزانية
+              {/* خطوة واحدة ⇒ لا وصف ظاهر ولا شريط تقدّم (لا معنى لهما). يبقى للقارئ الصوتي. */}
+              <SheetDescription className={cn("text-base text-start", (kbOpen || TOTAL_STEPS <= 1) && "sr-only")}>
+                خطوة واحدة لتفعيل ميزات الميزانية
               </SheetDescription>
             </SheetHeader>
 
             {/* Progress bar — تعبئة تبدأ من اليمين (RTL): عنصر بعرض نسبي يلتصق بحافة البداية
                 (اليمين في العربية) بدل translateX الذي لا ينقلب مع الاتجاه. */}
-            <div className="px-5 pb-4">
+            <div className={cn("px-5 pb-4", TOTAL_STEPS <= 1 && "hidden")}>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-300"
@@ -358,78 +350,6 @@ export default function OnboardingSheet() {
                 </div>
               )}
 
-              {/* ── Step 1: Family ─────────────────────────────── */}
-              {step === 1 && (
-                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-primary shrink-0" />
-                      <h3 className="font-bold text-lg text-foreground">حجم الأسرة</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      نخصّص لك توصيات أدقّ حسب عدد أفراد بيتك (اختياري).
-                    </p>
-                  </div>
-
-                  <div className="space-y-5">
-                    {/* Adults */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <UserRound className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="text-base font-medium">بالغون</p>
-                          <p className="text-sm text-muted-foreground">أنت + الشريك/الزوجة</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setAdults(a => Math.max(1, a - 1))}
-                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="w-6 text-center font-bold text-lg">{adults}</span>
-                        <button
-                          onClick={() => setAdults(a => Math.min(6, a + 1))}
-                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Children */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                          <Baby className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                          <p className="text-base font-medium">أطفال</p>
-                          <p className="text-sm text-muted-foreground">دون 18 سنة</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => setChildren(c => Math.max(0, c - 1))}
-                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="w-6 text-center font-bold text-lg">{children}</span>
-                        <button
-                          onClick={() => setChildren(c => Math.min(10, c + 1))}
-                          className="w-11 h-11 rounded-full border-2 border-gray-200 flex items-center justify-center hover:border-primary transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Navigation buttons */}
