@@ -61,6 +61,9 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
       : { top: window.innerHeight / 2, left: window.innerWidth / 2 }
   ));
   const tooltipRef = useRef<HTMLDivElement>(null);
+  // العنصر المستهدَف ودالّة التموضع الأخيرة — لإعادة القياس عند التمرير (انظر أدناه).
+  const targetElRef = useRef<HTMLElement | null>(null);
+  const applyRef = useRef<((r: DOMRect) => void) | null>(null);
   const [currentPlacement, setCurrentPlacement] = useState<TourStep['placement']>('bottom');
 
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
   const updatePosition = useCallback(() => {
     const step = steps[currentStep];
     if (!step?.selector) {
+      targetElRef.current = null;
       setTargetRect(null);
       setCurrentPlacement('center');
       setPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
@@ -144,6 +148,8 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
 
             setPosition(newPos);
         };
+        targetElRef.current = targetElement;
+        applyRef.current = applyPosition;
 
         // بدل مهلة ثابتة 300ms (كانت تقيس البطاقة والتمرير الناعم لم يكتمل بعد، فتقع البؤرة
         // في مكان خاطئ على الجوال) — نقيس عبر requestAnimationFrame حتى يثبت موضع البطاقة
@@ -181,6 +187,23 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
     }
   }, [currentStep, steps, tourKey]);
 
+  // إعادة القياس مع كل تمرير: على أندرويد يبدأ التمرير الناعم متأخراً، فيُقاس العنصر
+  // قبل أن يتحرّك ثم تنزلق الصفحة — فتبقى البؤرة في المكان القديم وتغطّي النافذةُ العنصر
+  // (خطوة «الأدوات المالية»، فيديو المالك 2026-11-14 الثالث). ⛔ لا تحذفه.
+  useEffect(() => {
+    if (!isOpen) return;
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = targetElRef.current;
+        if (el && applyRef.current && document.body.contains(el)) applyRef.current(el.getBoundingClientRect());
+      });
+    };
+    window.addEventListener('scroll', onScroll, true);
+    return () => { window.removeEventListener('scroll', onScroll, true); cancelAnimationFrame(raf); };
+  }, [isOpen, currentStep]);
+
   useEffect(() => {
     if (isOpen) {
       updatePosition();
@@ -199,6 +222,18 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
     const h = el.offsetHeight;
     const maxBottom = window.innerHeight - EDGE;
     let top = position.top;
+    // لا يكفي المكان في الجهة المختارة؟ اقلب إلى الجهة الأخرى أولاً — الدفع داخل الشاشة
+    // وحده كان يضع النافذة **فوق العنصر نفسه** فتغطّيه (خطوة «الأدوات المالية»، فيديو
+    // المالك 2026-11-14 الثالث). الدفع يبقى ملاذاً أخيراً حين لا تتّسع أيّ من الجهتين.
+    const GAP = 16;
+    const fitsBelow = targetRect.bottom + GAP + h <= maxBottom;
+    const fitsAbove = targetRect.top - GAP - h >= EDGE;
+    if (currentPlacement === 'top' && !fitsAbove && fitsBelow) {
+      setCurrentPlacement('bottom'); setPosition(p => ({ ...p, top: targetRect.bottom + GAP })); return;
+    }
+    if (currentPlacement === 'bottom' && !fitsBelow && fitsAbove) {
+      setCurrentPlacement('top'); setPosition(p => ({ ...p, top: targetRect.top - GAP })); return;
+    }
     if (currentPlacement === 'bottom' && top + h > maxBottom) top = maxBottom - h;
     else if (currentPlacement === 'top' && top - h < EDGE) top = EDGE + h;
     else if ((currentPlacement === 'left' || currentPlacement === 'right')) {
