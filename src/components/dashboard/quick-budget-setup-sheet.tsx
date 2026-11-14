@@ -24,6 +24,7 @@ import {
 import { Loader2, Wallet, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
+import { useKeyboardFit } from "@/hooks/use-keyboard-fit";
 import { track } from "@/lib/track";
 import type { CurrencyCode, ReminderSlot, UserSettings } from "@/types";
 
@@ -33,27 +34,6 @@ import type { CurrencyCode, ReminderSlot, UserSettings } from "@/types";
 // الكيبورد**، ثم يمرّر المتصفح محتواها ليُظهر الحقل فيختفي العنوان وأعلى الورقة
 // (رصده صاحب المشروع على هاتفه 2026-11-13). الحل: نرفع الورقة فوق الكيبورد ونجعل
 // ارتفاعها نسبةً من المساحة المرئية فعلاً، فيبقى العنوان والحقل الأول ظاهرَين.
-function useKeyboardFit(active: boolean) {
-  const [box, setBox] = useState<{ bottom: number; height: number } | null>(null);
-  useEffect(() => {
-    const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    if (!active || !vv) return;
-    const update = () =>
-      setBox({
-        bottom: Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)),
-        height: Math.round(vv.height),
-      });
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-      setBox(null);
-    };
-  }, [active]);
-  return box;
-}
 
 const fmt = (n: number) => (n > 0 ? new Intl.NumberFormat("en-US").format(n) : "");
 const parse = (s: string) => {
@@ -277,7 +257,7 @@ export default function QuickBudgetSetupSheet({
         disabled={saveMutation.isPending}
       >
         {saveMutation.isPending ? (
-          <><Loader2 className="h-4 w-4 animate-spin ml-2" /> جاري الحفظ...</>
+          <><Loader2 className="h-4 w-4 animate-spin me-2" /> جاري الحفظ...</>
         ) : (
           "حفظ"
         )}
@@ -294,7 +274,7 @@ export default function QuickBudgetSetupSheet({
           style={kbBox ? { bottom: kbBox.bottom, height: Math.round(kbBox.height * 0.9) } : undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <SheetHeader className="px-5 pt-5 pb-2 text-right">
+          <SheetHeader className="px-5 pt-5 pb-2 text-start">
             <SheetTitle className="text-lg font-bold">أكمل إعداد ميزانيتك</SheetTitle>
             <SheetDescription className="text-sm">خطوة واحدة لتفعيل التنبيهات الذكية.</SheetDescription>
           </SheetHeader>

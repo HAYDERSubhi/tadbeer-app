@@ -229,7 +229,8 @@ export default function AddExpensePage() {
                 router.push('/');
             }
 
-            return { prevRecent, prevAll };
+            // أول مصروف في الحساب؟ يُستعمل في onSuccess لتوجيهه إلى الرئيسية.
+            return { prevRecent, prevAll, wasFirst: (prevRecent?.length ?? 0) === 0 };
         },
         onError: (err, newExpense, context) => {
             if (context?.prevRecent) {
@@ -247,7 +248,7 @@ export default function AddExpensePage() {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['expenses', user?.uid] });
         },
-        onSuccess: (_, variables) => {
+        onSuccess: (_, variables, context) => {
             toast({
                 title: "تمت الإضافة بنجاح!",
                 description: `تم إضافة مصروف "${variables.title}".`,
@@ -290,7 +291,9 @@ export default function AddExpensePage() {
             // الخادم. (حالة عدم الاتصال غادرت مبكراً في `onMutate` — الشرح هناك،
             // وهذا السطر لا يُنفَّذ لها لأن المكوّن يكون قد فُكِّك.)
             form.reset();
-            router.push('/expenses');
+            // أول مصروف ⇒ الرئيسية: فيها الجولة التعريفية وأثر المصروف على الميزانية.
+            // (كان يذهب إلى «مصاريف» فلا تبدأ الجولة إلا إن عاد المستخدم بنفسه.)
+            router.push(context?.wasFirst ? '/' : '/expenses');
         },
     });
 
@@ -341,7 +344,99 @@ export default function AddExpensePage() {
                     <TripCategoryPicker value={tripCategory} onChange={setTripCategory} />
                 )}
 
-                {/* ─── 2. Category Grid — FIRST ─── */}
+                {/* ─── 2. الاسم والمبلغ والتاريخ — أولاً ───
+                    (2026-11-14) كانت الفئات الاثنتا عشرة أولاً فتملأ الشاشة ويبقى الاسم
+                    والمبلغ — وهما المطلوبان — تحت النظر؛ احتاج المستخدم الجديد إلى التمرير
+                    ليجدهما. والاسم أولاً يخدم اقتراح الفئة التلقائي أيضاً.
+                    ⛔ لا تُعِد الفئات إلى الأعلى. */}
+                <div className="space-y-3">
+
+                    {/* Title */}
+                    <div>
+                        <Input
+                            {...form.register('title')}
+                            placeholder="اسم السلعة/الخدمة"
+                            className="h-11"
+                        />
+                        {form.formState.errors.title && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
+                        )}
+                    </div>
+
+                    {/* Amount — larger with currency suffix */}
+                    <div>
+                        <Controller
+                            name="amount"
+                            control={form.control}
+                            render={({ field: { onChange, value, ...restField } }) => (
+                                <div className="relative">
+                                    <Input
+                                        {...restField}
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="المبلغ"
+                                        className="h-14 text-xl font-bold pe-14 text-start placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/70"
+                                        value={value === 0 ? '' : formatNumberWithCommas(value)}
+                                        onChange={(e) => {
+                                            const parsed = parseFormattedNumber(e.target.value);
+                                            if (parsed === '' || !isNaN(Number(parsed))) {
+                                                onChange(parsed === '' ? 0 : Number(parsed));
+                                            }
+                                        }}
+                                    />
+                                    <span className="absolute end-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">
+                                        د.ع
+                                    </span>
+                                </div>
+                            )}
+                        />
+                        {form.formState.errors.amount && (
+                            <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>
+                        )}
+                    </div>
+
+                    {/* Date */}
+                    <Controller
+                        name="date"
+                        control={form.control}
+                        render={({ field }) => (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start h-11 font-normal relative ps-10",
+                                            !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <span className="text-muted-foreground me-1">التاريخ:</span>
+                                        {field.value
+                                            ? <span className="font-semibold">{format(field.value, "dd/MM/yyyy")}</span>
+                                            : <span>اختر تاريخاً</span>
+                                        }
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={field.value}
+                                        onSelect={field.onChange}
+                                        initialFocus
+                                        dir="rtl"
+                                        locale={arIQ}
+                                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    />
+                    {form.formState.errors.date && (
+                        <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>
+                    )}
+                </div>
+
+                {/* ─── 3. شبكة الفئات ─── */}
                 {!selectedTrip && (
                 <div className="space-y-2">
                     <p className={cn(
@@ -400,94 +495,6 @@ export default function AddExpensePage() {
                 </div>
                 )}
 
-                {/* ─── 3. Title + Amount + Date ─── */}
-                <div className="space-y-3">
-
-                    {/* Title */}
-                    <div>
-                        <Input
-                            {...form.register('title')}
-                            placeholder="اسم السلعة/الخدمة"
-                            className="h-11"
-                        />
-                        {form.formState.errors.title && (
-                            <p className="text-sm text-destructive mt-1">{form.formState.errors.title.message}</p>
-                        )}
-                    </div>
-
-                    {/* Amount — larger with currency suffix */}
-                    <div>
-                        <Controller
-                            name="amount"
-                            control={form.control}
-                            render={({ field: { onChange, value, ...restField } }) => (
-                                <div className="relative">
-                                    <Input
-                                        {...restField}
-                                        type="text"
-                                        inputMode="decimal"
-                                        placeholder="المبلغ"
-                                        className="h-14 text-xl font-bold pl-14 text-right"
-                                        value={value === 0 ? '' : formatNumberWithCommas(value)}
-                                        onChange={(e) => {
-                                            const parsed = parseFormattedNumber(e.target.value);
-                                            if (parsed === '' || !isNaN(Number(parsed))) {
-                                                onChange(parsed === '' ? 0 : Number(parsed));
-                                            }
-                                        }}
-                                    />
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground pointer-events-none select-none">
-                                        د.ع
-                                    </span>
-                                </div>
-                            )}
-                        />
-                        {form.formState.errors.amount && (
-                            <p className="text-sm text-destructive mt-1">{form.formState.errors.amount.message}</p>
-                        )}
-                    </div>
-
-                    {/* Date */}
-                    <Controller
-                        name="date"
-                        control={form.control}
-                        render={({ field }) => (
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className={cn(
-                                            "w-full justify-start h-11 font-normal relative pr-10",
-                                            !field.value && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground ml-1">التاريخ:</span>
-                                        {field.value
-                                            ? <span className="font-semibold">{format(field.value, "dd/MM/yyyy")}</span>
-                                            : <span>اختر تاريخاً</span>
-                                        }
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                        dir="rtl"
-                                        locale={arIQ}
-                                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        )}
-                    />
-                    {form.formState.errors.date && (
-                        <p className="text-sm text-destructive mt-1">{form.formState.errors.date.message}</p>
-                    )}
-                </div>
-
                 {/* ─── 4. Optional extras — collapsed ─── */}
                 <div>
                     <button
@@ -499,7 +506,7 @@ export default function AddExpensePage() {
                             ? <ChevronUp className="h-3.5 w-3.5 shrink-0" />
                             : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                         <span>خيارات إضافية</span>
-                        <span className="text-[10px] opacity-50 mr-auto">(ملاحظة · خارج الميزانية)</span>
+                        <span className="text-[10px] opacity-50 ms-auto">(ملاحظة · خارج الميزانية)</span>
                     </button>
 
                     {showExtras && (
@@ -541,7 +548,7 @@ export default function AddExpensePage() {
             </form>
 
             {/* ─── Fixed save button ─── */}
-            <div className="fixed bottom-16 left-0 right-0 px-4 py-3 bg-background/80 backdrop-blur-sm border-t border-border">
+            <div className="fixed bottom-16 inset-x-0 px-4 py-3 bg-background/80 backdrop-blur-sm border-t border-border">
                 <Button
                     onClick={form.handleSubmit(onSubmit)}
                     className="w-full h-12 text-base"
@@ -550,7 +557,7 @@ export default function AddExpensePage() {
                     {addExpenseMutation.isPending
                         ? <Loader2 className="h-6 w-6 animate-spin" />
                         : <Save className="h-6 w-6" />}
-                    <span className="mr-2">حفظ المصروف</span>
+                    <span className="ms-2">حفظ المصروف</span>
                 </Button>
             </div>
             </>)}

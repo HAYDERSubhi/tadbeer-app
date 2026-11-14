@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
+import { useKeyboardFit } from "@/hooks/use-keyboard-fit";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ONBOARDING_KEY = "tadbeer-onboarding-v1";
 const TOTAL_STEPS    = 3;
@@ -63,6 +65,9 @@ export default function OnboardingSheet() {
   const [phase, setPhase] = useState<Phase>("welcome");
   const [step, setStep]   = useState(0);
   const [saving, setSaving] = useState(false);
+  // الهاتف: الورقة ترتفع فوق لوحة المفاتيح، وزرّ «التالي» يبقى ظاهراً (فيديو المالك 2026-11-14).
+  const isMobile = useIsMobile();
+  const kbBox = useKeyboardFit(open && isMobile);
 
   /* form state */
   const [income,       setIncome]       = useState("");
@@ -196,13 +201,14 @@ export default function OnboardingSheet() {
       <SheetContent
         side="bottom"
         className="rounded-t-2xl px-0 pb-0 max-h-[92dvh] overflow-y-auto"
+        style={kbBox ? { bottom: kbBox.bottom, maxHeight: Math.round(kbBox.height * 0.92) } : undefined}
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
 
         {/* ════════ الطور ١: ترحيب ════════ */}
         {phase === "welcome" && (
           <div className="px-5 pt-2 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <SheetHeader className="text-right space-y-0">
+            <SheetHeader className="text-start space-y-0">
               <SheetTitle className="sr-only">مرحباً بك في تدبير</SheetTitle>
               <SheetDescription className="sr-only">شاشة ترحيب قبل إعداد حسابك</SheetDescription>
             </SheetHeader>
@@ -211,16 +217,16 @@ export default function OnboardingSheet() {
               <Sparkles className="h-8 w-8 text-primary" />
             </div>
 
-            <h2 className="text-xl font-bold text-foreground">أهلاً، خلّينا نبدأ بدقيقة</h2>
+            <h2 className="text-xl font-bold text-foreground">أهلاً بك، لنبدأ بدقيقة واحدة</h2>
             <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">
-              تدبير يتابع أموالك بذكاء ويساعدك بإدارتها.
+              تدبير يتابع أموالك بذكاء ويساعدك على إدارتها.
             </p>
 
             <div className="space-y-4 mt-6">
               {[
                 { icon: Zap,    title: "تسجيل سريع",   sub: "أضف مصاريفك بالكتابة أو الصوت أو الفاتورة" },
-                { icon: Target, title: "ميزانية ذكية", sub: "تنبيهات قبل ما تتجاوز حدّك الشهري" },
-                { icon: Wrench, title: "أدوات مالية",  sub: "عملات، ديون، أقساط، وحاسبات تساعدك تقرّر" },
+                { icon: Target, title: "ميزانية ذكية", sub: "تنبيهات قبل أن تتجاوز حدّك الشهري" },
+                { icon: Wrench, title: "أدوات مالية",  sub: "ديون، أقساط، وحاسبات تساعدك على القرار" },
               ].map(({ icon: Icon, title, sub }) => (
                 <div key={title} className="flex items-start gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -239,7 +245,7 @@ export default function OnboardingSheet() {
               onClick={() => setPhase("steps")}
               disabled={saving}
             >
-              يلا نبدأ <ChevronLeft className="h-5 w-5 mr-1" />
+              لنبدأ <ChevronLeft className="h-5 w-5 ms-1" />
             </Button>
 
             <button
@@ -271,7 +277,7 @@ export default function OnboardingSheet() {
                   تخطّي الباقي
                 </button>
               </div>
-              <SheetDescription className="text-sm text-right">
+              <SheetDescription className="text-sm text-start">
                 3 خطوات سريعة لتفعيل كل ميزات الميزانية
               </SheetDescription>
             </SheetHeader>
@@ -310,8 +316,11 @@ export default function OnboardingSheet() {
                         تخطي
                       </button>
                     </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      منه نحسب تنبيهات ميزانيتك.
+                    </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
-                      منه نحسب تنبيهات ميزانيتك <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
+                      <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       دخلك متغيّر؟ (يومي أو أسبوعي) اكتب تقدير معدله الشهري تقريباً.
@@ -329,10 +338,12 @@ export default function OnboardingSheet() {
                           const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setIncome(fmt(Number(raw)) || "");
                         }}
-                        className="h-14 text-2xl font-bold pl-16 font-mono"
-                        autoFocus
+                        // ⛔ النص التوضيحي خفيف وصغير عمداً: كان بخط القيمة فيُظنّ الحقل معبّأً.
+                        className="h-14 text-2xl font-bold pe-16 font-mono placeholder:text-base placeholder:font-normal placeholder:font-sans placeholder:text-muted-foreground/60"
+                        // ⛔ لا فتح تلقائي للوحة المفاتيح على الهاتف: تحجب الاختيارات السريعة ورأس الورقة.
+                        autoFocus={!isMobile}
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
+                      <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
                     </div>
                     {/* Quick picks — تسميات عربية واضحة بدل صيغة K الإنجليزية */}
                     <div className="flex gap-2 flex-wrap">
@@ -384,9 +395,9 @@ export default function OnboardingSheet() {
                           const raw = normalizeDigits(e.target.value).replace(/,/g, "");
                           if (/^\d*$/.test(raw)) setTotalBudget(fmt(Number(raw)) || "");
                         }}
-                        className="h-14 text-2xl font-bold pl-16 font-mono"
+                        className="h-14 text-2xl font-bold pe-16 font-mono placeholder:text-base placeholder:font-normal placeholder:font-sans placeholder:text-muted-foreground/60"
                       />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
+                      <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
                     </div>
 
                     {/* تلميح: الحقل اختياري ويُحسب تلقائياً إن تُرك فارغاً */}
@@ -473,7 +484,8 @@ export default function OnboardingSheet() {
             </div>
 
             {/* Navigation buttons */}
-            <div className="px-5 py-5 flex gap-3 border-t mt-4">
+            {/* لاصق بأسفل الورقة: يبقى ظاهراً فوق لوحة المفاتيح مهما طال المحتوى */}
+            <div className="px-5 py-4 flex gap-3 border-t mt-4 sticky bottom-0 bg-background">
               {step > 0 && (
                 <Button
                   variant="outline"
@@ -481,7 +493,7 @@ export default function OnboardingSheet() {
                   onClick={() => setStep(s => s - 1)}
                   disabled={saving}
                 >
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <ChevronRight className="h-4 w-4 me-1" />
                   السابق
                 </Button>
               )}
@@ -491,11 +503,11 @@ export default function OnboardingSheet() {
                 disabled={!canProceed() || saving}
               >
                 {saving ? (
-                  <><Loader2 className="h-4 w-4 animate-spin ml-2" /> جاري الحفظ...</>
+                  <><Loader2 className="h-4 w-4 animate-spin me-2" /> جاري الحفظ...</>
                 ) : step === TOTAL_STEPS - 1 ? (
-                  <><CheckCircle2 className="h-4 w-4 ml-2" /> إنهاء الإعداد</>
+                  <><CheckCircle2 className="h-4 w-4 me-2" /> إنهاء الإعداد</>
                 ) : (
-                  <>التالي <ChevronLeft className="h-4 w-4 mr-1" /></>
+                  <>التالي <ChevronLeft className="h-4 w-4 ms-1" /></>
                 )}
               </Button>
             </div>
@@ -523,7 +535,7 @@ export default function OnboardingSheet() {
               className="w-full h-12 text-base font-semibold mt-7"
               onClick={goAddExpense}
             >
-              <Plus className="h-5 w-5 ml-2" /> سجّل أول مصروف
+              <Plus className="h-5 w-5 me-2" /> سجّل أول مصروف
             </Button>
 
             <button

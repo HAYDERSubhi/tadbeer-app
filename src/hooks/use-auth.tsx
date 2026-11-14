@@ -118,9 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
           trackMetaEvent('CompleteRegistration', { content_name: 'google' });
           toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
-        } else {
-          toast({ title: 'أهلاً بعودتك!' });
         }
+        // لا رسالة للعائد: كانت «أهلاً بعودتك!» تظهر أيضاً لمن يُفتح له معالج الترحيب
+        // (حساب جوجل معروف لدى Firebase بلا بيانات) وتغطّي رأس المعالج سبع ثوانٍ.
       })
       .catch((error: any) => {
         clearGoogleRedirectPending();

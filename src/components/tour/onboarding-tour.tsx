@@ -292,7 +292,8 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
 
             <div className="mt-4 flex justify-between items-center">
                 <span className="text-xs text-muted-foreground">
-                {currentStep + 1} / {steps.length}
+                {/* «من» لا «/»: الشرطة بين رقمين تنقلب في RTL فتُقرأ «6 / 1» */}
+                {currentStep + 1} من {steps.length}
                 </span>
                 <div className="flex gap-2">
                 {currentStep > 0 && <Button variant="ghost" size="sm" onClick={handlePrev}>السابق</Button>}
