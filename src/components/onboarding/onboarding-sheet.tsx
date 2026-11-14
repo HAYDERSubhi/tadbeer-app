@@ -5,9 +5,13 @@
  *
  * تجربة دخول واحدة من ٥ شاشات داخل نفس الـ Sheet (بلا فتح/إغلاق بينها):
  *   0. ترحيب  (قيمة + ٣ نقاط، بلا إدخال)            ← phase: 'welcome'
- *   1. الدخل   (يفعّل تتبّع الميزانية — إلزامي)        ┐
- *   2. الميزانية (إجمالي، يُحسب تلقائياً إن تُرك فارغاً) ├ phase: 'steps'
- *   3. الأسرة   (يخصّص توصيات الذكاء)                 ┘
+ *   1. الميزانية (إلزامية)                          ┐ phase: 'steps'
+ *   2. الأسرة   (يخصّص توصيات الذكاء)                 ┘
+ *
+ * ⛔ خطوة «الدخل» حُذفت بقرار المالك 2026-11-14: الميزانية هي ما تبني عليه الرئيسية
+ *   (المتبقي، الشريط، التنبيهات)، والدخل سؤال حساس يتردّد فيه الناس، وصاحب الدخل
+ *   اليومي لا يعرفه أصلاً. الدخل يُسجَّل لاحقاً (الإعدادات · «دخل» في شاشة الإضافة).
+ *   لا تُعِدها بلا قراره. والمعالج **لا يكتب** monthlyIncome إطلاقاً كي لا يمسح قيمة قائمة.
  *   4. انطلاق  («تم» + زر يقود مباشرة لأول مصروف)     ← phase: 'launch'
  *
  * بعد أول مصروف تبدأ «الجولة التعريفية» (مكوّن منفصل، غير ممسوس هنا).
@@ -18,9 +22,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { track } from "@/lib/track";
 import { useAppData } from "@/hooks/use-app-data";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserSettings } from "@/services/firestore";
+import type { UserSettings } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -28,9 +34,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Wallet, Target, Users, ChevronLeft, ChevronRight,
+  Target, Users, ChevronLeft, ChevronRight,
   CheckCircle2, Loader2, Baby, UserRound, Plus, Minus,
-  Sparkles, Zap, Wrench, Lock,
+  Sparkles, Zap, Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
@@ -39,7 +45,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { isNewSignup } from "@/lib/new-signup";
 
 const ONBOARDING_KEY = "tadbeer-onboarding-v1";
-const TOTAL_STEPS    = 3;
+const TOTAL_STEPS    = 2;
 
 type Phase = "welcome" | "steps" | "launch";
 
@@ -52,8 +58,15 @@ const parse = (s: string) => {
   return isNaN(n) || n < 0 ? 0 : n;
 };
 
+/* الميزانية كما تُحفظ — مصدر واحد للحفظ الجزئي والإنهاء */
+const budgetPayload = (total: number) => ({
+  totalBudget: total,
+  weeklyBudget: Math.round(total / 4),
+  zeroSpendDaysTarget: 4,
+}) as UserSettings["budget"];
+
 /* عناوين الخطوات — تُعرض في عدّاد التقدّم */
-const stepTitles = ["الدخل", "الميزانية", "الأسرة"];
+const stepTitles = ["الميزانية", "الأسرة"];
 
 export default function OnboardingSheet() {
   const { user }          = useAuth();
@@ -80,12 +93,11 @@ export default function OnboardingSheet() {
   };
 
   /* form state */
-  const [income,       setIncome]       = useState("");
   const [totalBudget,  setTotalBudget]  = useState("");
   const [adults,       setAdults]       = useState(1);
   const [children,     setChildren]     = useState(0);
 
-  /* show only once, only for users who haven't set income yet */
+  /* show only once, only for users who haven't set a budget yet */
   const decidedRef = useRef(false);
   useEffect(() => {
     if (decidedRef.current) return;       // قرار الفتح يُتّخذ مرة واحدة فقط
@@ -102,13 +114,10 @@ export default function OnboardingSheet() {
     if (!isSettingsFetched) return;
     decidedRef.current = true;             // قرّرنا الآن — لا نُعيد التقييم مع كل تغيّر لاحق لـ userSettings
     if (localStorage.getItem(ONBOARDING_KEY)) return;
-    // مستخدم عائد = دخل **وميزانية** مسجّلان معاً. الميزانية لا تُكتب إلا عند إنهاء
-    // المعالج (handleFinish يحسبها 70% تلقائياً إن تُركت فارغة)، بينما الدخل يُحفظ
-    // جزئياً فور تجاوز خطوته — فوجود دخل بلا ميزانية يعني معالجاً انقطع بمنتصفه
-    // (إعادة تحميل بسبب تحديث SW، إغلاق تاب...) → أعد فتحه ليُكمل (الدخل يُعبّأ مسبقاً).
-    const hasIncome = (userSettings?.profile?.monthlyIncome ?? 0) > 0;
-    const hasBudget = (userSettings?.budget?.totalBudget    ?? 0) > 0;
-    if (hasIncome && hasBudget) {
+    // مستخدم عائد = له ميزانية. (كان الشرط «دخل وميزانية» قبل حذف خطوة الدخل 2026-11-14؛
+    // لو بقي لعاد المعالج لكل من لا دخل له.) الميزانية تُحفظ فور تجاوز خطوتها.
+    const hasBudget = (userSettings?.budget?.totalBudget ?? 0) > 0;
+    if (hasBudget) {
       localStorage.setItem(ONBOARDING_KEY, "done");
       return;
     }
@@ -120,8 +129,6 @@ export default function OnboardingSheet() {
   /* pre-fill if user already has some data */
   useEffect(() => {
     if (!userSettings) return;
-    if (userSettings.profile?.monthlyIncome)
-      setIncome(fmt(userSettings.profile.monthlyIncome));
     if (userSettings.budget?.totalBudget)
       setTotalBudget(fmt(userSettings.budget.totalBudget));
     const members = userSettings.profile?.familyMembers || [];
@@ -147,17 +154,14 @@ export default function OnboardingSheet() {
         ...Array.from({ length: children }, (_, i) => ({ id: `child-${i}`,   type: "child"  as const, age: 8  })),
       ];
 
+      const budget = parse(totalBudget);
+      // ⛔ لا monthlyIncome هنا (انظر رأس الملف)، والميزانية تُكتب فقط إن أُدخلت —
+      // التخطّي لا يكتب ميزانية صفراً فوق شيء قائم.
       await updateUserSettings(user.uid, {
-        profile: {
-          monthlyIncome: parse(income),
-          familyMembers,
-        },
-        budget: {
-          totalBudget:         parse(totalBudget) || Math.round(parse(income) * 0.7),
-          weeklyBudget:        Math.round((parse(totalBudget) || parse(income) * 0.7) / 4),
-          zeroSpendDaysTarget: 4,
-        },
+        profile: { familyMembers } as UserSettings["profile"],
+        ...(budget > 0 ? { budget: budgetPayload(budget) } : {}),
       });
+      track(budget > 0 ? "onboarding_finish" : "onboarding_skip");
 
       localStorage.setItem(ONBOARDING_KEY, "done");
       // ⚠️ لا نُطلِق onboarding-complete هنا: الـ Sheet لا يُغلَق بهذي اللحظة، فقط ينتقل
@@ -195,16 +199,16 @@ export default function OnboardingSheet() {
   };
 
   const canProceed = () => {
-    if (step === 0) return parse(income) >= 1000;     // must enter income
-    if (step === 1) return true;                       // budget optional (auto-calc)
+    if (step === 0) return parse(totalBudget) >= 1000;  // الميزانية إلزامية
     return true;
   };
 
   const next = () => {
-    // عند تجاوز خطوة الدخل (الإلزامية): احفظ الدخل فوراً (دمج جزئي آمن) كي لا يضيع
-    // مهما أُغلق المعالج لاحقاً — حتى عبر الـ ✕. الميزانية/الأسرة تُحفظان عند الإنهاء.
+    // عند تجاوز خطوة الميزانية (الإلزامية): احفظها فوراً (دمج جزئي آمن) كي لا تضيع
+    // مهما أُغلق المعالج لاحقاً — حتى عبر الـ ✕. الأسرة تُحفظ عند الإنهاء.
     if (step === 0 && user) {
-      updateUserSettings(user.uid, { profile: { monthlyIncome: parse(income) } }).catch(() => {});
+      updateUserSettings(user.uid, { budget: budgetPayload(parse(totalBudget)) }).catch(() => {});
+      track("onboarding_budget_set");
     }
     if (step < TOTAL_STEPS - 1) setStep(s => s + 1);
     else handleFinish();
@@ -279,7 +283,7 @@ export default function OnboardingSheet() {
           </div>
         )}
 
-        {/* ════════ الطور ٢: الخطوات الثلاث ════════ */}
+        {/* ════════ الطور ٢: الخطوتان ════════ */}
         {phase === "steps" && (
           <>
             {/* Header */}
@@ -289,13 +293,13 @@ export default function OnboardingSheet() {
                 <button
                   onClick={handleFinish}
                   disabled={saving}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                  className="text-base font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50"
                 >
-                  تخطّي الباقي
+                  تخطّ الباقي
                 </button>
               </div>
-              <SheetDescription className={cn("text-sm text-start", kbOpen && "sr-only")}>
-                3 خطوات سريعة لتفعيل كل ميزات الميزانية
+              <SheetDescription className={cn("text-base text-start", kbOpen && "sr-only")}>
+                خطوتان سريعتان لتفعيل ميزات الميزانية
               </SheetDescription>
             </SheetHeader>
 
@@ -308,7 +312,7 @@ export default function OnboardingSheet() {
                   style={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
                 />
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-base text-muted-foreground mt-2">
                 الخطوة {step + 1} من {TOTAL_STEPS} — <span className="text-primary font-semibold">{stepTitles[step]}</span>
               </p>
             </div>
@@ -316,33 +320,17 @@ export default function OnboardingSheet() {
             {/* Step content */}
             <div className={cn("px-5", !kbOpen && "min-h-[220px]")}>
 
-              {/* ── Step 0: Income ─────────────────────────────── */}
+
+              {/* ── Step 0: Budget (إلزامية) ───────────────────── */}
               {step === 0 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-5 w-5 text-primary shrink-0" />
-                        <h3 className="font-bold text-lg text-foreground">ما هو دخلك الشهري؟</h3>
-                      </div>
-                      <button
-                        onClick={handleFinish}
-                        disabled={saving}
-                        className="text-sm font-semibold text-primary hover:opacity-80 transition-opacity disabled:opacity-50 shrink-0"
-                      >
-                        تخطي
-                      </button>
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary shrink-0" />
+                      <h3 className="font-bold text-lg text-foreground">ما هي ميزانيتك الشهرية؟</h3>
                     </div>
-                    {!kbOpen && <>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      منه نحسب تنبيهات ميزانيتك.
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 leading-relaxed">
-                      <Lock className="h-3.5 w-3.5 shrink-0" /> لا يُشارَك مع أحد
-                    </p>
-                    </>}
-                    <p className={cn("text-xs text-muted-foreground leading-relaxed", kbOpen && "hidden")}>
-                      دخلك متغيّر؟ (يومي أو أسبوعي) اكتب تقدير معدله الشهري تقريباً.
+                    <p className={cn("text-base text-muted-foreground leading-relaxed", kbOpen && "hidden")}>
+                      منها نحسب المتبقي وتنبيهات التجاوز.
                     </p>
                   </div>
 
@@ -354,65 +342,8 @@ export default function OnboardingSheet() {
                         enterKeyHint="next"
                         onKeyDown={onEnterNext}
                         placeholder="مثال: 800,000"
-                        value={income}
-                        onChange={e => {
-                          const raw = normalizeDigits(e.target.value).replace(/,/g, "");
-                          if (/^\d*$/.test(raw)) setIncome(fmt(Number(raw)) || "");
-                        }}
-                        // ⛔ النص التوضيحي خفيف وصغير عمداً: كان بخط القيمة فيُظنّ الحقل معبّأً.
-                        className="h-14 text-2xl font-bold pe-16 font-mono placeholder:text-base placeholder:font-normal placeholder:font-sans placeholder:text-muted-foreground/60"
-                        // ⛔ لا فتح تلقائي للوحة المفاتيح على الهاتف: تحجب الاختيارات السريعة ورأس الورقة.
+                        // ⛔ لا فتح تلقائي للوحة المفاتيح على الهاتف (تحجب رأس الورقة).
                         autoFocus={!isMobile}
-                      />
-                      <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
-                    </div>
-                    {/* Quick picks — تسميات عربية واضحة بدل صيغة K الإنجليزية */}
-                    <div className="flex gap-2 flex-wrap">
-                      {[
-                        { v: 500_000,   label: "500 ألف" },
-                        { v: 750_000,   label: "750 ألف" },
-                        { v: 1_000_000, label: "مليون" },
-                        { v: 1_500_000, label: "مليون ونصف" },
-                      ].map(({ v, label }) => (
-                        <button
-                          key={v}
-                          onClick={() => setIncome(fmt(v))}
-                          className={cn(
-                            "px-4 py-2 rounded-full text-sm border transition-colors",
-                            income === fmt(v)
-                              ? "bg-primary text-white border-primary"
-                              : "bg-muted border-transparent hover:border-primary/40"
-                          )}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step 1: Budget ─────────────────────────────── */}
-              {step === 1 && (
-                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Target className="h-5 w-5 text-primary shrink-0" />
-                      <h3 className="font-bold text-lg text-foreground">ما هي ميزانيتك الشهرية؟</h3>
-                    </div>
-                    <p className={cn("text-sm text-muted-foreground leading-relaxed", kbOpen && "hidden")}>
-                      خطّك الأحمر الشهري — على أساسه تعمل تنبيهات التجاوز.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        enterKeyHint="next"
-                        onKeyDown={onEnterNext}
-                        placeholder={parse(income) > 0 ? fmt(Math.round(parse(income) * 0.7)) : "مثال: 560,000"}
                         value={totalBudget}
                         onChange={e => {
                           const raw = normalizeDigits(e.target.value).replace(/,/g, "");
@@ -423,17 +354,12 @@ export default function OnboardingSheet() {
                       <span className="absolute end-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">د.ع</span>
                     </div>
 
-                    {/* تلميح: الحقل اختياري ويُحسب تلقائياً إن تُرك فارغاً */}
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      اتركها فارغة وسنحسبها لك تلقائياً
-                      {parse(income) > 0 && <> (70% من دخلك = <span className="font-semibold text-foreground">{fmt(Math.round(parse(income) * 0.7))}</span> د.ع)</>}
-                    </p>
                   </div>
                 </div>
               )}
 
-              {/* ── Step 2: Family ─────────────────────────────── */}
-              {step === 2 && (
+              {/* ── Step 1: Family ─────────────────────────────── */}
+              {step === 1 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
