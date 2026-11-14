@@ -17,6 +17,7 @@ import { track } from '@/lib/track';
 
 const seenKey = (uid: string) => `income-intro-seen-${uid}`;
 const sessionKey = (uid: string) => `income-intro-session-${uid}`;
+const eligibleKey = (uid: string) => `income-intro-eligible-${uid}`;
 
 export function IncomeIntroCard() {
   const { user } = useAuth();
@@ -31,6 +32,17 @@ export function IncomeIntroCard() {
     // الميزانية ومع الجولة في اللحظة نفسها (فيديو المالك 2026-11-14). تنتظر فتحة لاحقة.
     // ⛔ المفتاح نفسه في (main)/page.tsx — لا تغيّره في مكان دون الآخر.
     try { if (!localStorage.getItem('tadbeer-onboarding-tour-v2')) return; } catch { return; }
+    // وفي يوم لاحق لا في يوم الجولة نفسه (قرار المالك 2026-11-14): أول يوم يرى فيه التطبيقُ
+    // الجولةَ منتهية يُسجَّل، والبطاقة تنتظر يوماً بعده. من رأى البطاقة سابقاً لا يتأثر.
+    try {
+      const seenBefore = localStorage.getItem(seenKey(user.uid)) === '1';
+      if (!seenBefore) {
+        const today = new Date().toDateString();
+        const firstDay = localStorage.getItem(eligibleKey(user.uid));
+        if (!firstDay) { localStorage.setItem(eligibleKey(user.uid), today); return; }
+        if (firstDay === today) return;
+      }
+    } catch { return; }
     decided.current = true;
     try {
       const inThisSession = sessionStorage.getItem(sessionKey(user.uid)) === '1';
