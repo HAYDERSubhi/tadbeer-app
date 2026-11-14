@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -54,7 +54,13 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
   // الزرّ «غير مُنفَّذ» إن رجع المستخدم خطوةً ثم تقدّم إليها من جديد.
   const [doneSteps, setDoneSteps] = useState<Set<number>>(() => new Set());
   const [actionBusy, setActionBusy] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  // يبدأ من وسط الشاشة لا من (0,0): كانت أول نافذة تنزلق من الزاوية العليا خارج الشاشة.
+  const [position, setPosition] = useState(() => (
+    typeof window === 'undefined'
+      ? { top: 0, left: 0 }
+      : { top: window.innerHeight / 2, left: window.innerWidth / 2 }
+  ));
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const [currentPlacement, setCurrentPlacement] = useState<TourStep['placement']>('bottom');
 
   useEffect(() => {
@@ -86,7 +92,7 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
 
         const PADDING = 16;
         const TOOLTIP_WIDTH = 320;
-        const TOOLTIP_HEIGHT = 180; // Approximate height
+        const TOOLTIP_HEIGHT = 260; // تقدير متحفّظ — الضبط الدقيق في useLayoutEffect أدناه
 
         const applyPosition = (rect: DOMRect) => {
             setTargetRect(rect);
@@ -183,6 +189,25 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
     }
   }, [isOpen, updatePosition]);
 
+  // ضبط بعد الرسم بالارتفاع **الفعلي** للنافذة: كان الارتفاع مقدَّراً (180) فتنزل النافذة
+  // تحت حافة الشاشة ويختفي زرّ «التالي» (فيديو المالك 2026-11-14، الخطوة 3).
+  // ⛔ لا تحذفه: النوافذ تختلف طولاً (خطوة التذكير فيها زرّ إضافي).
+  useLayoutEffect(() => {
+    const el = tooltipRef.current;
+    if (!isOpen || !el || !targetRect) return;
+    const EDGE = 12;
+    const h = el.offsetHeight;
+    const maxBottom = window.innerHeight - EDGE;
+    let top = position.top;
+    if (currentPlacement === 'bottom' && top + h > maxBottom) top = maxBottom - h;
+    else if (currentPlacement === 'top' && top - h < EDGE) top = EDGE + h;
+    else if ((currentPlacement === 'left' || currentPlacement === 'right')) {
+      if (top + h / 2 > maxBottom) top = maxBottom - h / 2;
+      if (top - h / 2 < EDGE) top = EDGE + h / 2;
+    }
+    if (Math.abs(top - position.top) > 1) setPosition(p => ({ ...p, top }));
+  }, [isOpen, position, currentPlacement, currentStep, targetRect, doneSteps]);
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -247,6 +272,7 @@ export default function OnboardingTour({ steps, tourKey, enabled = true }: Onboa
             "fixed z-[201] w-[min(90vw,320px)] transition-all duration-300",
             "animate-in fade-in zoom-in-95"
         )}
+        ref={tooltipRef}
         style={{
             top: position.top,
             left: position.left,
