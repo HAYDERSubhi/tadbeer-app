@@ -79,6 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+        // علامة الجلسة: تُقرأ قبل الرسم من سكربت في layout.tsx لإخفاء هيكل التطبيق
+        // عن من لا جلسة له (وميض الرئيسية قبل التحويل لشاشة الدخول — فيديو المالك 2026-11-14).
+        // ⛔ لا تُغيَّر قيمة المفتاح ولا اسمه بلا تعديل السكربت في layout.tsx.
+        try {
+          if (user) localStorage.setItem('tadbeer-session-hint', '1');
+          else localStorage.removeItem('tadbeer-session-hint');
+          document.documentElement.setAttribute('data-sess', user ? '1' : '0');
+        } catch {}
         setUser(user);
         setLoading(false);
     });

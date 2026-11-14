@@ -73,6 +73,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   //   NEW: shell (instant) → skeleton in-place → content
   // ────────────────────────────────────────────────────────────────────────────
   return (
+    <>
+    {/* خلفية بنفس لون شاشة الدخول تُعرض بدل التطبيق لمن لا جلسة له (تُحدَّد بـ data-sess في CSS) */}
+    <div aria-hidden className="main-splash" />
+    <div className="main-gate">
     <AppLockGate>
     <AppDataProvider>
       {user && <NotificationsRunner />}
@@ -93,5 +97,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       </AppShell>
     </AppDataProvider>
     </AppLockGate>
+    </div>
+    </>
   );
 }

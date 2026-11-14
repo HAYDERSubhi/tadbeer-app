@@ -100,6 +100,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning className={tajawal.variable}>
+      <head>
+        {/* علامة «هل لهذا الجهاز جلسة؟» تُضبط قبل أول رسم: تُخفي هيكل التطبيق عن الزائر
+            الجديد فلا يرى الرئيسية ثم تقفز به لشاشة التسجيل. السبب في use-auth.tsx. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{document.documentElement.setAttribute('data-sess',localStorage.getItem('tadbeer-session-hint')==='1'?'1':'0')}catch(e){}" }} />
+      </head>
       <body>
         {/* Meta Pixel — loaded after the page is interactive so it never blocks first paint. */}
         <Script id="meta-pixel" strategy="afterInteractive">

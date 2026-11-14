@@ -308,3 +308,14 @@
   border-radius: 3px;
   background: #fff;
 }
+/* وميض أول فتح (2026-11-14): من لا جلسة له (data-sess=0، يضبطها سكربت layout.tsx) يرى
+   خلفية الدخول بدل هيكل الرئيسية قبل التحويل. ⛔ لا تحذف: بدونها يعود الوميض. */
+.main-gate { display: contents; }
+.main-splash { display: none; }
+html[data-sess="0"] .main-gate { display: none; }
+html[data-sess="0"] .main-splash {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(to bottom right, #0f766e, #0d9488, #10b981);
+}
