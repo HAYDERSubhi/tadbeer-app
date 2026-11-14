@@ -153,6 +153,10 @@ export default function SignupPage() {
         <div>
           <h1 className="text-4xl font-black tracking-tight">تدبير</h1>
           <p className="text-white/85 text-base mt-1.5">مساعدك المالي الذكي</p>
+          {/* سبب للبقاء قبل طلب التسجيل (2026-11-14): كانت الشاشة شعاراً وأزراراً فقط. */}
+          <p className="text-white/75 text-sm mt-3 leading-relaxed max-w-[18rem] mx-auto">
+            سجّل مصاريفك بالكتابة أو الصوت أو صورة الفاتورة، وابقَ ضمن ميزانيتك بتنبيهات قبل التجاوز.
+          </p>
         </div>
       </div>
 

@@ -36,6 +36,7 @@ import { cn } from "@/lib/utils";
 import { normalizeDigits } from "@/lib/normalize-digits";
 import { useKeyboardFit } from "@/hooks/use-keyboard-fit";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isNewSignup } from "@/lib/new-signup";
 
 const ONBOARDING_KEY = "tadbeer-onboarding-v1";
 const TOTAL_STEPS    = 3;
@@ -89,6 +90,13 @@ export default function OnboardingSheet() {
   useEffect(() => {
     if (decidedRef.current) return;       // قرار الفتح يُتّخذ مرة واحدة فقط
     if (!user) return;
+    // حساب أُنشئ الآن في هذه الجلسة ⇒ لا إعدادات له يقيناً: افتح فوراً بلا انتظار الجلب
+    // (كان المستخدم الجديد ينتظر ~٤ ثوانٍ أمام هيكل تحميل). السبب في lib/new-signup.ts.
+    if (!localStorage.getItem(ONBOARDING_KEY) && isNewSignup(user.uid)) {
+      decidedRef.current = true;
+      setOpen(true);
+      return;
+    }
     // المعالج صار يُركَّب في الـ layout قبل اكتمال جلب الإعدادات — انتظر البيانات الحقيقية
     // قبل القرار، وإلا قد نفتحه لمستخدم عائد بناءً على القيم المؤقتة (دخل=0).
     if (!isSettingsFetched) return;

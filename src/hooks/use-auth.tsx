@@ -26,6 +26,7 @@ import { recordReferral } from '@/services/firestore';
 import { trackMetaEvent } from '@/lib/meta-pixel';
 import { toast } from '@/hooks/use-toast';
 import { markGoogleRedirectPending, clearGoogleRedirectPending } from '@/lib/google-redirect';
+import { markNewSignup } from '@/lib/new-signup';
 
 interface AuthContextType {
   user: User | null;
@@ -117,7 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (refUid) { recordReferral(refUid, result.user.uid).catch(() => {}); sessionStorage.removeItem('tadbeer-ref'); }
           if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'google' }); } catch {} }
           trackMetaEvent('CompleteRegistration', { content_name: 'google' });
-          toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
+          markNewSignup(result.user.uid);
+          // لا رسالة ترحيب هنا: معالج الترحيب يرحّب فوراً، وكانت الرسالة ترحيباً ثالثاً
+          // (رسالة + معالج + أول خطوة في الجولة) يغطّي رأس الشاشة ثوانيَ (2026-11-14).
         }
         // لا رسالة للعائد: كانت «أهلاً بعودتك!» تظهر أيضاً لمن يُفتح له معالج الترحيب
         // (حساب جوجل معروف لدى Firebase بلا بيانات) وتغطّي رأس المعالج سبع ثوانٍ.
@@ -164,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // For guest users, we just sign them in without adding any sample data
     // to give them a clean slate.
     const userCredential = await signInAnonymously(auth);
+    markNewSignup(userCredential.user.uid);
     return userCredential;
   }
   

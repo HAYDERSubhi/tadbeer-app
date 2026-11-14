@@ -27,6 +27,10 @@ export function IncomeIntroCard() {
 
   useEffect(() => {
     if (decided.current || !user || !isExpensesFetched || expenses.length === 0) return;
+    // لا تظهر قبل انتهاء الجولة التعريفية: كانت تظهر للمستخدم الجديد بشارة «جديد» فوق
+    // الميزانية ومع الجولة في اللحظة نفسها (فيديو المالك 2026-11-14). تنتظر فتحة لاحقة.
+    // ⛔ المفتاح نفسه في (main)/page.tsx — لا تغيّره في مكان دون الآخر.
+    try { if (!localStorage.getItem('tadbeer-onboarding-tour-v2')) return; } catch { return; }
     decided.current = true;
     try {
       const inThisSession = sessionStorage.getItem(sessionKey(user.uid)) === '1';

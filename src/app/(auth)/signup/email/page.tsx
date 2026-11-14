@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { markNewSignup } from '@/lib/new-signup';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Loader2Icon, Eye, EyeOff, ChevronRight, Lock } from 'lucide-react';
@@ -71,7 +72,8 @@ export default function EmailSignupPage() {
 
     if (analytics) { try { logEvent(analytics, 'sign_up', { method: 'password' }); } catch {} }
     trackMetaEvent('CompleteRegistration', { content_name: 'password' });
-    toast({ title: 'مرحباً بك في تدبير! 🎉', description: 'حسابك جاهز — لنبدأ.' });
+    if (userCredential?.user) markNewSignup(userCredential.user.uid);
+    // لا رسالة ترحيب: معالج الترحيب يرحّب فوراً (السبب في use-auth.tsx).
     router.push('/');
     setIsLoading(false);
   };

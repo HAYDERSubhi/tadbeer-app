@@ -78,8 +78,9 @@ function VoiceWaveBars({ barsRef, className }: { barsRef: { current: HTMLDivElem
 const tourSteps: TourStep[] = [
   {
     selector: '',
-    title: 'أهلاً بك في تطبيق تدبير!',
-    content: 'هذه جولة سريعة لمساعدتك على استكشاف الميزات الرئيسية. يمكنك تخطيها في أي وقت.',
+    // ليس «أهلاً بك» ثالثة: المعالج رحّب قبلها (2026-11-14). ⛔ لا تُعِد الترحيب هنا.
+    title: 'جولة سريعة',
+    content: 'نعرّفك بأهم أجزاء الشاشة الرئيسية في خطوات قليلة. يمكنك تخطيها في أي وقت.',
     placement: 'center',
   },
   {
