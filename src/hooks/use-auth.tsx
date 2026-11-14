@@ -25,6 +25,7 @@ import { auth as firebaseAuth, googleProvider, analytics } from '@/lib/firebase'
 import { recordReferral } from '@/services/firestore';
 import { trackMetaEvent } from '@/lib/meta-pixel';
 import { toast } from '@/hooks/use-toast';
+import { markGoogleRedirectPending, clearGoogleRedirectPending } from '@/lib/google-redirect';
 
 interface AuthContextType {
   user: User | null;
@@ -94,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     redirectResultHandled = true;
     getRedirectResult(auth)
       .then((result) => {
-        if (!result) return; // تحميل عادي
+        // لا عودة قيد الإكمال (تحميل عادي أو أُلغي الاختيار) ⇒ لا تُبقِ شاشة الانتظار.
+        // عند النجاح تبقى العلامة حتى يظهر المستخدم فتمحوها شاشة التسجيل نفسها.
+        if (!result) { clearGoogleRedirectPending(); return; }
         // ترقية زائر → حساب Google (نفس uid، البيانات محفوظة)
         if (result.operationType === 'link') {
           toast({ title: 'تم حفظ حسابك! ✅', description: 'بياناتك الآن آمنة ومُزامنة على كل أجهزتك.' });
@@ -112,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch((error: any) => {
+        clearGoogleRedirectPending();
         console.error('google redirect result error:', error?.code, error);
         let description = 'تعذّر إكمال الدخول بـ Google. حاول مجدداً.';
         if (error?.code === 'auth/credential-already-in-use')
@@ -142,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!googleProvider || !auth) {
       return Promise.reject(new Error("Google Auth provider or Firebase Auth not initialized."));
     }
+    markGoogleRedirectPending();
     return signInWithRedirect(auth, googleProvider);
   }
   

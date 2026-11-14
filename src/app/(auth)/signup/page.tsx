@@ -15,6 +15,7 @@ import { OpenInBrowserBanner } from '@/components/auth/open-in-browser-banner';
 import { PlayStoreBadge } from '@/components/auth/play-store-badge';
 import { track } from '@/lib/track';
 import { isAndroid, isAppInstalled } from '@/lib/platform';
+import { isGoogleRedirectPending, clearGoogleRedirectPending, REDIRECT_SETTLED_EVENT } from '@/lib/google-redirect';
 
 const GoogleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
@@ -45,12 +46,24 @@ export default function SignupPage() {
     if (ref) sessionStorage.setItem('tadbeer-ref', ref);
   }, []);
 
+  // عودة من جوجل قيد الإكمال؟ (null = لم نعرف بعد ⇒ لا نرسم شيئاً لحظة واحدة)
+  // يمنع وميض الأزرار بين اختيار الحساب والدخول للرئيسية — السبب في google-redirect.ts.
+  const [returning, setReturning] = useState<boolean | null>(null);
+  useEffect(() => {
+    setReturning(isGoogleRedirectPending());
+    const onSettled = () => setReturning(false);
+    window.addEventListener(REDIRECT_SETTLED_EVENT, onSettled);
+    const t = window.setTimeout(() => { clearGoogleRedirectPending(); }, 20_000);
+    return () => { window.removeEventListener(REDIRECT_SETTLED_EVENT, onSettled); window.clearTimeout(t); };
+  }, []);
+  useEffect(() => { if (user) clearGoogleRedirectPending(); }, [user]);
+
   // قياس: من يصل هذه الشاشة وكم انتظر حتى رآها؟ (2026-11-14 — نصف الزوار يغادرون
   // خلال ثوانٍ ولا نعرف مصدرهم). أعلام فقط: لا نصوص ولا هوية. مرّة واحدة لكل تحميل.
   // ms_to_view ≈ الزمن من بدء التحميل حتى ظهور الأزرار.
   const viewTracked = useRef(false);
   useEffect(() => {
-    if (viewTracked.current || user) return;
+    if (viewTracked.current || user || returning !== false) return;
     viewTracked.current = true;
     const ua = navigator.userAgent || '';
     track('signup_view', {
@@ -59,7 +72,7 @@ export default function SignupPage() {
       installed: isAppInstalled(),
       ms_to_view: Math.round(performance.now()),
     });
-  }, [user]);
+  }, [user, returning]);
 
   const anyLoading = isGoogleLoading || isGuestLoading;
 
@@ -114,7 +127,17 @@ export default function SignupPage() {
   // يردّ Firebase بأنه غير مسجّل (ثوانٍ على شبكة بطيئة). الأزرار لا تحتاج الجواب؛
   // والمسجَّل أصلاً يُحوَّل بالمؤثّر أعلاه، ومن كان محفوظاً محلياً يبدأ `user` عنده
   // مضبوطاً فلا يرى وميضاً.
-  if (user) return null;
+  if (user || returning === null) return null;
+
+  // عائد من جوجل: لا أزرار، فقط مؤشّر انتظار حتى يُحسَم الدخول فيُحوَّل للرئيسية.
+  if (returning) {
+    return (
+      <div className="flex flex-col items-center gap-4 text-white text-center" role="status">
+        <Loader2Icon className="h-10 w-10 animate-spin" />
+        <p className="text-lg font-semibold">جارٍ إكمال الدخول…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm flex flex-col gap-7">
