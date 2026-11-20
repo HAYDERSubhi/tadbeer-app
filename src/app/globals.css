@@ -344,3 +344,13 @@ html[data-sess="0"] .main-splash {
   .tl-ring, .tl-float, .tl-chip { animation: none; }
   .tl-chip { display: none; }
 }
+
+/* ── تلميح السحب في شريط تحذير الميزانية (budget-summary-card) ──
+   سهمان يتحرّكان نحو جهتيهما بهدوء. transform فقط، وتُطفأ لمن يفعّل «تقليل الحركة». */
+@keyframes swipe-nudge-l { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-3px); } }
+@keyframes swipe-nudge-r { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+.swipe-hint-l { animation: swipe-nudge-l 1.6s ease-in-out infinite; }
+.swipe-hint-r { animation: swipe-nudge-r 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .swipe-hint-l, .swipe-hint-r { animation: none; }
+}

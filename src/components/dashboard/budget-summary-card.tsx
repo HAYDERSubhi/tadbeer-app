@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft, AlertTriangle, X } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 import { getDate, format as formatDate } from 'date-fns';
@@ -275,17 +275,19 @@ export default function BudgetSummaryCard({
                                     </p>
                                 </>
                             )}
-                            <button
-                                type="button"
-                                aria-label="إخفاء التنبيه"
-                                onClick={() => dismissStrip(-1)}
+                            {/* سهمان صغيران متحركان يلمّحان للسحب يميناً ويساراً (قرار المالك: بدل زر ×).
+                                اتجاههما فيزيائي لا منطقي عمداً، فلا ينعكسان في RTL. حركتهما في globals.css (swipe-hint-*). */}
+                            <span
+                                dir="ltr"
+                                aria-hidden="true"
                                 className={cn(
-                                    "ms-auto shrink-0 rounded-md p-1.5 -my-1 -me-1.5",
-                                    stripMode === 'over' ? "text-red-700/70 dark:text-red-300/70" : "text-amber-700/70 dark:text-amber-300/70"
+                                    "ms-auto shrink-0 flex items-center",
+                                    stripMode === 'over' ? "text-red-700/60 dark:text-red-300/60" : "text-amber-700/60 dark:text-amber-300/60"
                                 )}
                             >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
+                                <ChevronLeft className="swipe-hint-l h-3.5 w-3.5" />
+                                <ChevronRight className="swipe-hint-r h-3.5 w-3.5 -ms-1.5" />
+                            </span>
                         </div>
                     )}
 
