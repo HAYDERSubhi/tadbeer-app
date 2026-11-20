@@ -358,4 +358,3 @@ html[data-sess="0"] .main-splash {
 @media (prefers-reduced-motion: reduce) {
   .swipe-peek { animation: none; }
 }
-}
