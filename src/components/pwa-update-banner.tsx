@@ -2,95 +2,98 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { reloadWhenIdle } from '@/lib/reload-when-idle';
 
+// مؤشر «جارٍ تحديث التطبيق» — يظهر **عند بداية** تنزيل النسخة الجديدة لا عند نهايته.
+//
+// كان يظهر فقط حين تكتمل النسخة الجديدة (`installed`)، وتنزيلها صامت ويطول على شبكة
+// الهاتف — فكان المستخدم لا يرى شيئاً دقيقة كاملة ثم يظهر شريط ثم تُعاد الصفحة
+// (رصده المالك على هاتفه 2026-11-20: «ليس أول الفتح ولكن بعدها بدقيقة»).
+// وزرّ «تحديث الآن» القديم كان بلا وظيفة: الإعداد `skipWaiting: true` يُفعِّل النسخة
+// الجديدة وحدها فلا تبقى «بانتظار» أبداً. فصار المؤشر إعلاماً فقط: لا أزرار، ولا
+// يحجب شيئاً (`pointer-events-none`)، شارة صغيرة وسط الأعلى لا شريطاً يغطّي الهيدر.
+//
+// ⛔ لا يظهر عند **أول تثبيت** لعامل الخدمة (لا `controller` بعد): ذاك ليس تحديثاً.
+// ⛔ إعادة التحميل بعد التفعيل ليست هنا فقط: `use-sw-update` و`sw-updater` يستمعان
+//    للحدث نفسه (`controllerchange`) — هذا المكوّن يعرض الحالة ولا يُغيّرها.
+type Phase = 'idle' | 'downloading' | 'applying';
+
 export function PwaUpdateBanner() {
-  const [waitingSW, setWaitingSW] = useState<ServiceWorker | null>(null);
-  const [visible, setVisible] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
-    const checkForWaiting = (reg: ServiceWorkerRegistration) => {
-      if (reg.waiting) {
-        setWaitingSW(reg.waiting);
-        setVisible(true);
-      }
+    let cancelled = false;
+    const set = (p: Phase) => { if (!cancelled) setPhase(p); };
+    // هل كان للصفحة عامل خدمة يتحكّم بها عند الفتح؟ بدونه فكل ما يحدث **أول تثبيت** لا تحديث.
+    const hadController = !!navigator.serviceWorker.controller;
+
+    const track = (sw: ServiceWorker) => {
+      // لا مؤشر لأول تثبيت: هناك لا يوجد عامل قائم يتحكّم بالصفحة بعد.
+      if (!navigator.serviceWorker.controller) return;
+      const apply = () => {
+        if (sw.state === 'installed' || sw.state === 'activating' || sw.state === 'activated') set('applying');
+        else if (sw.state === 'redundant') set('idle'); // فشل التنزيل/أُلغي
+        else set('downloading');
+      };
+      apply();
+      sw.addEventListener('statechange', apply);
     };
 
+    const onUpdateFound = (reg: ServiceWorkerRegistration) => () => {
+      if (reg.installing) track(reg.installing);
+    };
+
+    let regRef: ServiceWorkerRegistration | null = null;
+    let handler: (() => void) | null = null;
+
     navigator.serviceWorker.ready.then((reg) => {
-      // Already waiting when page loaded
-      checkForWaiting(reg);
-
-      // New SW found and installed while page is open
-      reg.addEventListener('updatefound', () => {
-        const newSW = reg.installing;
-        if (!newSW) return;
-        newSW.addEventListener('statechange', () => {
-          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-            setWaitingSW(newSW);
-            setVisible(true);
-          }
-        });
-      });
+      if (cancelled) return;
+      regRef = reg;
+      // تحديث بدأ قبل أن نُصغي (سباق قصير عند الفتح)
+      if (reg.installing) track(reg.installing);
+      handler = onUpdateFound(reg);
+      reg.addEventListener('updatefound', handler);
     });
 
-    // Listen for the controlling SW to change → reload to get fresh content
+    // العامل الجديد تولّى التحكّم ⇒ ستُعاد الصفحة (تؤجَّلها `reloadWhenIdle` إن كانت نافذة مفتوحة).
     let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        reloadWhenIdle();
-      }
-    });
+    const onControllerChange = () => {
+      if (refreshing) return;
+      refreshing = true;
+      if (hadController) set('applying'); // أول تثبيت: يُعاد التحميل (سلوك قديم) بلا مؤشر
+      reloadWhenIdle();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
+    return () => {
+      cancelled = true;
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      if (regRef && handler) regRef.removeEventListener('updatefound', handler);
+    };
   }, []);
 
-  const handleUpdate = () => {
-    if (!waitingSW) return;
-    setUpdating(true);
-    // Tell the waiting SW to skip waiting → triggers controllerchange → reload
-    waitingSW.postMessage({ type: 'SKIP_WAITING' });
-  };
-
-  if (!visible) return null;
+  if (phase === 'idle') return null;
 
   return (
     <div
-      className={cn(
-        'fixed top-0 left-0 right-0 z-[100]',
-        'flex items-center justify-between gap-3',
-        'bg-primary text-primary-foreground',
-        'px-4 py-2.5 shadow-md',
-        'animate-in slide-in-from-top duration-300'
-      )}
+      className="pointer-events-none fixed inset-x-0 z-[100] flex justify-center"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
     >
-      <div className="flex items-center gap-2 text-xs font-medium">
-        <RefreshCw className={cn('h-4 w-4 shrink-0', updating && 'animate-spin')} />
-        <span>يوجد تحديث جديد للتطبيق</span>
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7 px-3 text-xs font-bold"
-          onClick={handleUpdate}
-          disabled={updating}
-        >
-          {updating ? 'جاري التحديث...' : 'تحديث الآن'}
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-7 w-7 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
-          onClick={() => setVisible(false)}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
+      <div
+        role="status"
+        aria-live="polite"
+        className={cn(
+          'flex items-center gap-1.5 rounded-full px-3 py-1.5',
+          'bg-primary text-primary-foreground text-xs font-medium shadow-md',
+          'animate-in fade-in slide-in-from-top-2 duration-300'
+        )}
+      >
+        <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
+        <span>{phase === 'applying' ? 'اكتمل التحديث، جارٍ التطبيق…' : 'جارٍ تحديث التطبيق…'}</span>
       </div>
     </div>
   );
