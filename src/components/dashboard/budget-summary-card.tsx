@@ -1,14 +1,34 @@
 // src/components/dashboard/budget-summary-card.tsx
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft, AlertTriangle, X } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
-import { getDate } from 'date-fns';
+import { getDate, format as formatDate } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+
+// ── شريط تحذير الميزانية القابل للإخفاء (قرار المالك 2026-11-20) ─────────────────
+// كان تحذيران برتقاليان يكرّران المعنى نفسه (تنبيه علوي + هذا الشريط). بقي الشريط وحده.
+// يُخفى بالسحب يميناً/يساراً أو بزرّ ×، ويُحفَظ الإخفاء **لكل حساب ولكل شهر** (مفتاح مرتبط
+// بالحساب — انظر فخّ ١ في CLAUDE.md). ⛔ لا تُغيّر اسم المفتاح: سيُنسى إخفاء كل المستخدمين.
+// يعود بعد الإخفاء عند: مستوى أخطر (٩٠٪ ثم تجاوز) · تقدّم اليوم المتوقع ٣ أيام فأكثر ·
+// شهر جديد · تعديل الميزانية. تأخّر اليوم المتوقع خبر جيّد فلا يُعيده.
+const STRIP_RESHOW_DAYS = 3;
+const SWIPE_DISMISS_PX = 70;
+const stripStorageKey = (uid: string) => `budget-strip-dismissed-${uid}`;
+
+interface StripDismissal {
+    month: string;       // yyyy-MM محلي (لا UTC)
+    level: number;       // ١ = أقل من ٩٠٪ · ٢ = ٩٠٪ فأكثر · ٣ = تجاوز الميزانية
+    endDay: number | null; // اليوم المتوقع لحظة الإخفاء (null عند التجاوز)
+    budget: number;
+}
+
+const spendLevel = (pct: number) => (pct >= 100 ? 3 : pct >= 90 ? 2 : 1);
 
 interface BudgetSummaryCardProps {
     totalBudget: number;
@@ -52,8 +72,80 @@ export default function BudgetSummaryCard({
 }: BudgetSummaryCardProps) {
     const [isVisible, setIsVisible] = useState(true);
     const { format: formatCurrency } = useCurrency();
+    const { user } = useAuth();
+    const uid = user?.uid;
 
     const currentDay = getDate(new Date());
+
+    // ── حالة إخفاء الشريط ──
+    // undefined = لم تُقرأ بعد من التخزين ⇒ لا نرسم الشريط (يمنع وميضاً يظهر ثم يختفي).
+    const [dismissal, setDismissal] = useState<StripDismissal | null | undefined>(undefined);
+    const [dragX, setDragX] = useState(0);
+    const [exitDir, setExitDir] = useState<0 | 1 | -1>(0);
+    const dragRef = useRef<{ id: number; x0: number } | null>(null);
+
+    useEffect(() => {
+        if (!uid) return;
+        try {
+            const raw = localStorage.getItem(stripStorageKey(uid));
+            setDismissal(raw ? (JSON.parse(raw) as StripDismissal) : null);
+        } catch {
+            setDismissal(null);
+        }
+    }, [uid]);
+
+    const isOver = isBudgetSet && spentPercentage >= 100;
+    const stripMode: 'over' | 'predicted' | null = isOver ? 'over' : predictedEndDay ? 'predicted' : null;
+    const currentLevel = spendLevel(spentPercentage);
+    const currentMonth = formatDate(new Date(), 'yyyy-MM');
+
+    const stripSuppressed = (() => {
+        if (!dismissal) return false;
+        if (dismissal.month !== currentMonth) return false;
+        if (dismissal.budget !== totalBudget) return false;
+        if (currentLevel > dismissal.level) return false;
+        if (stripMode === 'predicted' && predictedEndDay && dismissal.endDay !== null
+            && predictedEndDay <= dismissal.endDay - STRIP_RESHOW_DAYS) return false;
+        return true;
+    })();
+
+    const showStrip = stripMode !== null && isVisible && dismissal !== undefined && !stripSuppressed;
+
+    const dismissStrip = (dir: 1 | -1) => {
+        setExitDir(dir);
+        const record: StripDismissal = {
+            month: currentMonth,
+            level: currentLevel,
+            endDay: stripMode === 'predicted' ? predictedEndDay ?? null : null,
+            budget: totalBudget,
+        };
+        window.setTimeout(() => {
+            setDismissal(record);
+            setExitDir(0);
+            setDragX(0);
+        }, 180);
+        if (uid) {
+            try { localStorage.setItem(stripStorageKey(uid), JSON.stringify(record)); } catch { /* تخزين ممتلئ/محجوب: يُخفى للجلسة فقط */ }
+        }
+    };
+
+    const onStripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+        dragRef.current = { id: e.pointerId, x0: e.clientX };
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* غير مدعوم: يكمل بلا التقاط */ }
+    };
+    const onStripPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        const d = dragRef.current;
+        if (!d || d.id !== e.pointerId) return;
+        setDragX(e.clientX - d.x0);
+    };
+    const onStripPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+        const d = dragRef.current;
+        if (!d || d.id !== e.pointerId) return;
+        dragRef.current = null;
+        if (Math.abs(dragX) >= SWIPE_DISMISS_PX) dismissStrip(dragX > 0 ? 1 : -1);
+        else setDragX(0);
+    };
 
     // Bar design: the FILL represents elapsed time in the month; the COLOR
     // encodes spending health; a vertical MARKER shows the actual spend %.
@@ -147,13 +239,53 @@ export default function BudgetSummaryCard({
                         )}
                     </div>
 
-                    {/* Budget end prediction */}
-                    {predictedEndDay && isVisible && (
-                        <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 px-3 py-1.5 mt-1">
-                            <TrendingDown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                            <p className="text-xs text-amber-700 dark:text-amber-300">
-                                بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <span className="font-bold">{predictedEndDay}</span> من الشهر
-                            </p>
+                    {/* شريط التحذير: «تجاوزت» أو «اليوم المتوقع لنفاد الميزانية». يُخفى بالسحب أو × (انظر أعلى الملف). */}
+                    {showStrip && (
+                        <div
+                            role="status"
+                            onPointerDown={onStripPointerDown}
+                            onPointerMove={onStripPointerMove}
+                            onPointerUp={onStripPointerEnd}
+                            onPointerCancel={onStripPointerEnd}
+                            className={cn(
+                                "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 mt-1 select-none",
+                                stripMode === 'over'
+                                    ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                            )}
+                            style={{
+                                touchAction: 'pan-y',
+                                transform: exitDir ? `translateX(${exitDir * 110}%)` : `translateX(${dragX}px)`,
+                                opacity: exitDir ? 0 : 1 - Math.min(Math.abs(dragX) / 220, 0.6),
+                                transition: dragRef.current ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
+                            }}
+                        >
+                            {stripMode === 'over' ? (
+                                <>
+                                    <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400 shrink-0" />
+                                    <p className="text-xs text-red-700 dark:text-red-300">
+                                        تجاوزت الميزانية بمبلغ <bdi className="font-bold">{formatCurrency(Math.abs(remaining))}</bdi>
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <TrendingDown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <bdi className="font-bold">{predictedEndDay}</bdi> من الشهر
+                                    </p>
+                                </>
+                            )}
+                            <button
+                                type="button"
+                                aria-label="إخفاء التنبيه"
+                                onClick={() => dismissStrip(-1)}
+                                className={cn(
+                                    "ms-auto shrink-0 rounded-md p-1.5 -my-1 -me-1.5",
+                                    stripMode === 'over' ? "text-red-700/70 dark:text-red-300/70" : "text-amber-700/70 dark:text-amber-300/70"
+                                )}
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
                         </div>
                     )}
 

@@ -5,7 +5,7 @@
 import { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, DollarSign, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle } from "lucide-react";
+import { Trash2, Sparkles, History, Pencil, CreditCard, Mic, MoreHorizontal, Loader2, ChevronLeft, Receipt, Plus, FileScan, AlertTriangle } from "lucide-react";
 import type { Expense, Income } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -36,7 +36,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteExpense, updateUserSettings } from '@/services/firestore';
 import { requestAndSubscribePush } from '@/hooks/use-push-notifications';
 import { useAppData } from '@/hooks/use-app-data';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InsightIcon } from '@/components/dashboard/insight-icon';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useExitConfirm } from '@/hooks/use-exit-confirm';
@@ -822,33 +821,6 @@ export default function DashboardPage() {
       <WeeklySummaryCard />
 
       <IncomeIntroCard />
-
-      {/* Budget Alert */}
-      {!isAppDataLoading && budgetData.isBudgetSet && budgetData.spentPercentage >= 80 && (
-        <Alert
-          variant={budgetData.spentPercentage >= 100 ? "destructive" : "default"}
-          className={cn(
-            "animate-in fade-in border-2",
-            budgetData.spentPercentage >= 100
-              ? "border-destructive"
-              : "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200"
-          )}
-        >
-          <AlertTitle className="flex items-center gap-2 text-sm font-bold">
-            {budgetData.spentPercentage >= 100 ? (
-              <><DollarSign className="h-4 w-4" /> تجاوزت الميزانية الشهرية!</>
-            ) : (
-              <><DollarSign className="h-4 w-4" /> تحذير: اقتربت من حد الميزانية</>
-            )}
-          </AlertTitle>
-          <AlertDescription className="text-xs mt-1">
-            {budgetData.spentPercentage >= 100
-              ? `أنفقت ${budgetData.totalSpent.toLocaleString()} د.ع من أصل ${budgetData.totalBudget.toLocaleString()} د.ع — تجاوزت الميزانية بـ ${Math.abs(budgetData.remaining).toLocaleString()} د.ع.`
-              : `أنفقت ${budgetData.spentPercentage.toFixed(0)}% من ميزانيتك — تبقى ${budgetData.remaining.toLocaleString()} د.ع فقط.`
-            }
-          </AlertDescription>
-        </Alert>
-      )}
 
       {isAppDataLoading || !isSettingsFetched ? (
         <Skeleton className="h-40 w-full rounded-lg" />
