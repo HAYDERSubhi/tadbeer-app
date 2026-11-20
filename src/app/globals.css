@@ -346,11 +346,16 @@ html[data-sess="0"] .main-splash {
 }
 
 /* ── تلميح السحب في شريط تحذير الميزانية (budget-summary-card) ──
-   سهمان يتحرّكان نحو جهتيهما بهدوء. transform فقط، وتُطفأ لمن يفعّل «تقليل الحركة». */
-@keyframes swipe-nudge-l { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-3px); } }
-@keyframes swipe-nudge-r { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
-.swipe-hint-l { animation: swipe-nudge-l 1.6s ease-in-out infinite; }
-.swipe-hint-r { animation: swipe-nudge-r 1.6s ease-in-out infinite; }
+   اهتزازة أفقية واحدة (يمين ثم يسار ثم سكون) — حركة تلميح لا دائمة. transform فقط، وتُطفأ لمن يفعّل «تقليل الحركة». */
+@keyframes swipe-peek {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(10px); }
+  45% { transform: translateX(-10px); }
+  70% { transform: translateX(5px); }
+  85% { transform: translateX(-3px); }
+}
+.swipe-peek { animation: swipe-peek 0.9s ease-in-out 0.5s 1 both; }
 @media (prefers-reduced-motion: reduce) {
-  .swipe-hint-l, .swipe-hint-r { animation: none; }
+  .swipe-peek { animation: none; }
+}
 }

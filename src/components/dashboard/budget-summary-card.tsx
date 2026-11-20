@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, TrendingDown, HandCoins, ChevronLeft, AlertTriangle } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/hooks/use-currency';
 import { getDate, format as formatDate } from 'date-fns';
@@ -20,6 +20,9 @@ import { useAuth } from '@/hooks/use-auth';
 const STRIP_RESHOW_DAYS = 3;
 const SWIPE_DISMISS_PX = 70;
 const stripStorageKey = (uid: string) => `budget-strip-dismissed-${uid}`;
+// تلميح السحب: اهتزازة أفقية واحدة، وتُعرض مرتين فقط في عمر الحساب (توصية Material «حركة تلميح» لا حركة دائمة).
+const stripHintKey = (uid: string) => `budget-strip-hint-${uid}`;
+const STRIP_HINT_MAX = 2;
 
 interface StripDismissal {
     month: string;       // yyyy-MM محلي (لا UTC)
@@ -83,6 +86,8 @@ export default function BudgetSummaryCard({
     const [dragX, setDragX] = useState(0);
     const [exitDir, setExitDir] = useState<0 | 1 | -1>(0);
     const dragRef = useRef<{ id: number; x0: number } | null>(null);
+    const [peek, setPeek] = useState(false);
+    const hintShownRef = useRef(false);
 
     useEffect(() => {
         if (!uid) return;
@@ -110,6 +115,18 @@ export default function BudgetSummaryCard({
     })();
 
     const showStrip = stripMode !== null && isVisible && dismissal !== undefined && !stripSuppressed;
+
+    // يُشغَّل مرة واحدة لكل ظهور للشريط، وبحدّ أقصى مرتين لكل حساب.
+    useEffect(() => {
+        if (!showStrip || !uid || hintShownRef.current) return;
+        hintShownRef.current = true;
+        try {
+            const n = parseInt(localStorage.getItem(stripHintKey(uid)) || '0', 10) || 0;
+            if (n >= STRIP_HINT_MAX) return;
+            localStorage.setItem(stripHintKey(uid), String(n + 1));
+            setPeek(true);
+        } catch { /* تخزين محجوب: لا تلميح بدل تلميح متكرّر */ }
+    }, [showStrip, uid]);
 
     const dismissStrip = (dir: 1 | -1) => {
         setExitDir(dir);
@@ -242,52 +259,44 @@ export default function BudgetSummaryCard({
                     {/* شريط التحذير: «تجاوزت» أو «اليوم المتوقع لنفاد الميزانية». يُخفى بالسحب أو × (انظر أعلى الملف). */}
                     {showStrip && (
                         <div
-                            role="status"
-                            onPointerDown={onStripPointerDown}
-                            onPointerMove={onStripPointerMove}
-                            onPointerUp={onStripPointerEnd}
-                            onPointerCancel={onStripPointerEnd}
-                            className={cn(
-                                "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 mt-1 select-none",
-                                stripMode === 'over'
-                                    ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
-                                    : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
-                            )}
-                            style={{
-                                touchAction: 'pan-y',
-                                transform: exitDir ? `translateX(${exitDir * 110}%)` : `translateX(${dragX}px)`,
-                                opacity: exitDir ? 0 : 1 - Math.min(Math.abs(dragX) / 220, 0.6),
-                                transition: dragRef.current ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
-                            }}
+                            className={peek ? 'swipe-peek' : undefined}
+                            onAnimationEnd={() => setPeek(false)}
                         >
-                            {stripMode === 'over' ? (
-                                <>
-                                    <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400 shrink-0" />
-                                    <p className="text-xs text-red-700 dark:text-red-300">
-                                        تجاوزت الميزانية بمبلغ <bdi className="font-bold">{formatCurrency(Math.abs(remaining))}</bdi>
-                                    </p>
-                                </>
-                            ) : (
-                                <>
-                                    <TrendingDown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                                        بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <bdi className="font-bold">{predictedEndDay}</bdi> من الشهر
-                                    </p>
-                                </>
-                            )}
-                            {/* سهمان صغيران متحركان يلمّحان للسحب يميناً ويساراً (قرار المالك: بدل زر ×).
-                                اتجاههما فيزيائي لا منطقي عمداً، فلا ينعكسان في RTL. حركتهما في globals.css (swipe-hint-*). */}
-                            <span
-                                dir="ltr"
-                                aria-hidden="true"
+                            <div
+                                role="status"
+                                onPointerDown={onStripPointerDown}
+                                onPointerMove={onStripPointerMove}
+                                onPointerUp={onStripPointerEnd}
+                                onPointerCancel={onStripPointerEnd}
                                 className={cn(
-                                    "ms-auto shrink-0 flex items-center",
-                                    stripMode === 'over' ? "text-red-700/60 dark:text-red-300/60" : "text-amber-700/60 dark:text-amber-300/60"
+                                    "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 mt-1 select-none",
+                                    stripMode === 'over'
+                                        ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                                        : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
                                 )}
+                                style={{
+                                    touchAction: 'pan-y',
+                                    transform: exitDir ? `translateX(${exitDir * 110}%)` : `translateX(${dragX}px)`,
+                                    opacity: exitDir ? 0 : 1 - Math.min(Math.abs(dragX) / 220, 0.6),
+                                    transition: dragRef.current ? 'none' : 'transform 180ms ease-out, opacity 180ms ease-out',
+                                }}
                             >
-                                <ChevronLeft className="swipe-hint-l h-3.5 w-3.5" />
-                                <ChevronRight className="swipe-hint-r h-3.5 w-3.5 -ms-1.5" />
-                            </span>
+                                {stripMode === 'over' ? (
+                                    <>
+                                        <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400 shrink-0" />
+                                        <p className="text-xs text-red-700 dark:text-red-300">
+                                            تجاوزت الميزانية بمبلغ <bdi className="font-bold">{formatCurrency(Math.abs(remaining))}</bdi>
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TrendingDown className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                                            بمعدل إنفاقك الحالي، ستنتهي الميزانية في يوم <bdi className="font-bold">{predictedEndDay}</bdi> من الشهر
+                                        </p>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
 
