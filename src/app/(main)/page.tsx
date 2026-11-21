@@ -46,7 +46,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { GuestUpgradeBanner } from '@/components/guest-upgrade-banner';
 import { UpcomingBillsCard } from '@/components/dashboard/upcoming-bills-card';
 import { WeeklySummaryCard } from '@/components/dashboard/weekly-summary-card';
-import { IncomeIntroCard } from '@/components/dashboard/income-intro-card';
+import { AnnouncementHost } from '@/components/dashboard/announcement-host';
 import { GreetingHeader } from '@/components/dashboard/greeting-header';
 import { IncomeRow } from '@/components/expenses/income-row';
 import QuickBudgetSetupSheet from '@/components/dashboard/quick-budget-setup-sheet';
@@ -820,7 +820,7 @@ export default function DashboardPage() {
 
       <WeeklySummaryCard />
 
-      <IncomeIntroCard />
+      <AnnouncementHost />
 
       {isAppDataLoading || !isSettingsFetched ? (
         <Skeleton className="h-40 w-full rounded-lg" />
